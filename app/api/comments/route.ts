@@ -6,6 +6,7 @@ import { mockComments } from "@/lib/mock-data";
 import { createCommentSchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const taskId = request.nextUrl.searchParams.get("taskId");

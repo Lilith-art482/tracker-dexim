@@ -6,6 +6,7 @@ import { getAllServices, createService, deleteService } from "@/lib/models";
 import { mockServices } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const createServiceSchema = z.object({
   name: z.string().min(1),

@@ -11,6 +11,7 @@ import { mockTasks } from "@/lib/mock-data";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const archived = request.nextUrl.searchParams.get("archived");

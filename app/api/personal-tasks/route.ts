@@ -13,6 +13,7 @@ import {
 } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET() {
   const dbAvailable = await isDatabaseAvailable();

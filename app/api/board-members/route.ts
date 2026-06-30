@@ -9,6 +9,7 @@ import {
 import { mockBoardMembers } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const createBoardMemberSchema = z.object({
   boardId: z.string().min(1),

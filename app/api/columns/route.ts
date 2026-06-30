@@ -10,6 +10,7 @@ import {
 import { mockColumns } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const createColumnSchema = z.object({
   boardId: z.string().min(1),

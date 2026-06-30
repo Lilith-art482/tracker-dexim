@@ -5,6 +5,7 @@ import { getAllBoards, createBoard } from "@/lib/models";
 import { mockBoards } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const createBoardSchema = z.object({
   name: z.string().min(1).max(200),
