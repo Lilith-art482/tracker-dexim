@@ -1,0 +1,160 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { isDatabaseAvailable } from "@/lib/db";
+import {
+  getColumnsByBoardId,
+  createColumn,
+  updateColumn,
+  deleteColumn,
+} from "@/lib/models";
+import { mockColumns } from "@/lib/mock-data";
+
+const createColumnSchema = z.object({
+  boardId: z.string().min(1),
+  name: z.string().min(1).max(200),
+  order: z.number().int().min(0),
+});
+
+const updateColumnSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  order: z.number().int().min(0).optional(),
+});
+
+export async function GET(request: NextRequest) {
+  const boardId = request.nextUrl.searchParams.get("boardId");
+  if (!boardId) {
+    return NextResponse.json({ error: "boardId обязателен" }, { status: 400 });
+  }
+
+  const dbAvailable = await isDatabaseAvailable();
+
+  if (dbAvailable) {
+    try {
+      const columns = await getColumnsByBoardId(boardId);
+      return NextResponse.json(columns);
+    } catch (error) {
+      console.error("Ошибка получения колонок:", error);
+      return NextResponse.json(
+        { error: "Ошибка получения данных из Firestore" },
+        { status: 500 }
+      );
+    }
+  }
+
+  const filtered = mockColumns.filter((c) => c.boardId === boardId);
+  return NextResponse.json(filtered);
+}
+
+export async function POST(request: NextRequest) {
+  const dbAvailable = await isDatabaseAvailable();
+
+  if (!dbAvailable) {
+    return NextResponse.json(
+      { error: "База данных недоступна в статическом режиме" },
+      { status: 503 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const parsed = createColumnSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Некорректные данные",
+          details: parsed.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const column = await createColumn({
+      id: crypto.randomUUID(),
+      boardId: parsed.data.boardId,
+      name: parsed.data.name.trim(),
+      order: parsed.data.order,
+    });
+
+    return NextResponse.json(column, { status: 201 });
+  } catch (error) {
+    console.error("Ошибка создания колонки:", error);
+    return NextResponse.json(
+      { error: "Ошибка создания колонки" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const dbAvailable = await isDatabaseAvailable();
+
+  if (!dbAvailable) {
+    return NextResponse.json(
+      { error: "База данных недоступна в статическом режиме" },
+      { status: 503 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+
+    if (!body.id || typeof body.id !== "string") {
+      return NextResponse.json(
+        { error: "Поле id обязательно" },
+        { status: 400 }
+      );
+    }
+
+    const parsed = updateColumnSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Некорректные данные",
+          details: parsed.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const column = await updateColumn(body.id, parsed.data);
+    return NextResponse.json(column);
+  } catch (error) {
+    console.error("Ошибка обновления колонки:", error);
+    return NextResponse.json(
+      { error: "Ошибка обновления колонки" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const dbAvailable = await isDatabaseAvailable();
+
+  if (!dbAvailable) {
+    return NextResponse.json(
+      { error: "База данных недоступна в статическом режиме" },
+      { status: 503 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+
+    if (!body.id || typeof body.id !== "string") {
+      return NextResponse.json(
+        { error: "Поле id обязательно" },
+        { status: 400 }
+      );
+    }
+
+    await deleteColumn(body.id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Ошибка удаления колонки:", error);
+    return NextResponse.json(
+      { error: "Ошибка удаления колонки" },
+      { status: 500 }
+    );
+  }
+}
