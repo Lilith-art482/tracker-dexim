@@ -8,6 +8,7 @@ import {
 import { mockBoards, mockColumns, mockBoardMembers } from "@/lib/mock-data";
 import type { Board, Column, BoardMember } from "@/lib/models";
 import { TeamOrPersonalView } from "@/components/team-or-personal-view";
+import HomeContent from "@/components/home-content";
 
 async function getColumnsForBoard(boardId: string): Promise<Column[]> {
   const dbAvailable = await isDatabaseAvailable();
@@ -56,15 +57,17 @@ export default async function HomePage({
 
   if (!activeBoard) {
     return (
-      <div className="container mx-auto flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-          <ClipboardList className="h-8 w-8 text-muted-foreground" />
+      <HomeContent>
+        <div className="container mx-auto flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+            <ClipboardList className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-semibold tracking-tight">Нет досок</h2>
+          <p className="text-sm text-muted-foreground">
+            Создайте первую доску в боковой панели
+          </p>
         </div>
-        <h2 className="text-xl font-semibold tracking-tight">Нет досок</h2>
-        <p className="text-sm text-muted-foreground">
-          Создайте первую доску в боковой панели
-        </p>
-      </div>
+      </HomeContent>
     );
   }
 
@@ -74,12 +77,14 @@ export default async function HomePage({
   const isArchiveView = view === "archive";
 
   return (
-    <TeamOrPersonalView
-      _boards={boards}
-      activeBoard={activeBoard}
-      columns={columns}
-      boardMembers={boardMembers}
-      isArchiveView={isArchiveView}
-    />
+    <HomeContent>
+      <TeamOrPersonalView
+        _boards={boards}
+        activeBoard={activeBoard}
+        columns={columns}
+        boardMembers={boardMembers}
+        isArchiveView={isArchiveView}
+      />
+    </HomeContent>
   );
 }

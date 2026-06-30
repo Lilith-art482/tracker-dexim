@@ -100,11 +100,6 @@ export default async function RootLayout({
               </Suspense>
               <main className="flex-1">{children}</main>
             </div>
-            <footer className="border-t">
-              <div className="container mx-auto px-4 py-6 text-center text-xs text-muted-foreground">
-                © {new Date().getFullYear()} {appName}
-              </div>
-            </footer>
             <Toaster richColors position="top-right" />
           </ModeProvider>
         </ThemeProvider>
