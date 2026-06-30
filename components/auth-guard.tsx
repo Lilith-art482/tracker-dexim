@@ -15,7 +15,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
         setAuthenticated(false);
-        router.push("/auth/login");
+        router.push("/auth");
       } else {
         setAuthenticated(true);
       }

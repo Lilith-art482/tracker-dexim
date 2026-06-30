@@ -13,7 +13,7 @@ export default function HomeContent({ children }: { children: React.ReactNode })
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        router.push("/auth/login");
+        router.push("/auth");
       } else {
         setLoading(false);
       }

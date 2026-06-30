@@ -24,7 +24,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (!firebaseUser) {
-        router.push("/auth/login");
+        router.push("/auth");
         return;
       }
 
@@ -45,14 +45,12 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
-      // Обновление в Firebase Auth
       if (auth.currentUser) {
         await updateProfile(auth.currentUser, {
           displayName: nickname.trim(),
         });
       }
 
-      // Обновление в Firestore через API
       await fetch("/api/auth/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -76,7 +74,7 @@ export default function ProfilePage() {
     try {
       await signOut(auth);
       toast.success("Выход выполнен");
-      router.push("/");
+      router.push("/auth");
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Ошибка выхода");
@@ -96,9 +94,15 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Градиент по углам */}
-      <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-gradient-to-br from-primary/15 to-transparent rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-primary/15 to-transparent rounded-full blur-3xl" />
+      {/* Градиенты по углам */}
+      <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-gradient-to-br from-primary/20 via-primary/10 to-transparent rounded-full blur-3xl" />
+      <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-gradient-to-tl from-primary/20 via-primary/10 to-transparent rounded-full blur-3xl" />
+      <div className="absolute top-1/4 right-0 w-80 h-80 bg-gradient-to-l from-primary/15 to-transparent rounded-full blur-3xl" />
+      
+      {/* Зернистость */}
+      <div className="absolute inset-0 opacity-[0.015]" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+      }} />
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
@@ -114,9 +118,9 @@ export default function ProfilePage() {
 
         {/* Профиль карточка */}
         <div className="max-w-2xl mx-auto">
-          <div className="backdrop-blur-xl bg-card/50 border border-border rounded-2xl p-8 animate-in fade-in slide-in-from-bottom-8 duration-500">
+          <div className="backdrop-blur-xl bg-card/60 border border-border/60 rounded-3xl p-8 animate-in fade-in slide-in-from-bottom-8 duration-500 shadow-xl">
             <div className="text-center mb-8">
-              <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/60 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/60 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
                 <User className="h-12 w-12 text-primary-foreground" />
               </div>
               <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -151,7 +155,7 @@ export default function ProfilePage() {
                   <button
                     onClick={handleSave}
                     disabled={saving || !nickname.trim()}
-                    className="px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                    className="px-6 py-3 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold rounded-xl hover:from-primary/90 hover:to-primary/70 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-primary/25"
                   >
                     {saving ? (
                       <>
