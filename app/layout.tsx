@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
-import { Sparkles } from "lucide-react";
+import { Sparkles, User } from "lucide-react";
 import { ThemeProvider } from "next-themes";
 import { BridgeProvider } from "@/components/bridge-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -72,6 +72,13 @@ export default async function RootLayout({
                   {appName}
                 </Link>
                 <div className="flex items-center gap-2">
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                  >
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">Профиль</span>
+                  </Link>
                   <ModeToggle />
                   <ThemeToggle />
                 </div>

@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore, collection, getDocs, limit, query as fbQuery } from "firebase/firestore";
+import { getAuth, Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDWvrCqMWsdLH1LSGZU3xzVAVg4PEAHnSQ",
@@ -19,6 +20,7 @@ if (getApps().length === 0) {
 }
 
 export const db: Firestore = getFirestore(app);
+export const auth: Auth = getAuth(app);
 
 const globalForDbAvailable = globalThis as unknown as {
   _dbAvailable: boolean | null;
