@@ -12,8 +12,8 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ru" suppressHydrationWarning>
-      <body className="antialiased min-h-screen">
+    <html lang="ru" suppressHydrationWarning className="dark">
+      <body className="antialiased min-h-screen dark bg-[#0a0f0d]">
         {children}
       </body>
     </html>
