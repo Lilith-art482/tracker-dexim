@@ -20,8 +20,9 @@ function getAdminApp(): App {
     console.log("FIREBASE_PRIVATE_KEY_BASE64 found");
     try {
       privateKey = Buffer.from(base64Key, "base64").toString("utf-8");
+      // Замена литеральных \n на реальные переносы
+      privateKey = privateKey.replace(/\\n/g, "\n");
       console.log("Decoded base64 key, length:", privateKey.length);
-      console.log("Decoded key preview:", privateKey.substring(0, 30) + "...");
       console.log("Starts with BEGIN:", privateKey.startsWith("-----BEGIN"));
       console.log("Ends with END:", privateKey.trim().endsWith("END PRIVATE KEY-----"));
     } catch (e) {
@@ -29,9 +30,6 @@ function getAdminApp(): App {
     }
   } else if (rawKey) {
     console.log("FIREBASE_PRIVATE_KEY found, length:", rawKey.length);
-    console.log("First 50 chars:", rawKey.substring(0, 50));
-    console.log("Has real newlines:", rawKey.includes("\n"));
-    console.log("Has literal \\n:", rawKey.includes("\\n"));
     
     if (rawKey.includes("\\n")) {
       privateKey = rawKey.replace(/\\n/g, "\n");
@@ -69,7 +67,6 @@ function getAdminApp(): App {
   } catch (e: unknown) {
     const err = e instanceof Error ? e : new Error(String(e));
     console.error("Failed to initialize Firebase Admin:", err.message);
-    console.error("Private key format may be invalid");
     throw err;
   }
   return adminApp;
