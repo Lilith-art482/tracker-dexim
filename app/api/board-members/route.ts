@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { isDatabaseAvailable } from "@/lib/firebase";
+import { isDatabaseAvailable } from "@/lib/db";
 import {
   getBoardMembersByBoardId,
   createBoardMember,
   deleteBoardMember,
 } from "@/lib/models";
 import { mockBoardMembers } from "@/lib/mock-data";
+
+export const dynamic = "force-dynamic";
 
 const createBoardMemberSchema = z.object({
   boardId: z.string().min(1),

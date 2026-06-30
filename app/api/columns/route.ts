@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { isDatabaseAvailable } from "@/lib/firebase";
+import { isDatabaseAvailable } from "@/lib/db";
 import {
   getColumnsByBoardId,
   createColumn,
@@ -8,6 +8,8 @@ import {
   deleteColumn,
 } from "@/lib/models";
 import { mockColumns } from "@/lib/mock-data";
+
+export const dynamic = "force-dynamic";
 
 const createColumnSchema = z.object({
   boardId: z.string().min(1),

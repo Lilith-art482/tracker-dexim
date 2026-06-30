@@ -1,8 +1,11 @@
+
 import { NextRequest, NextResponse } from "next/server";
-import { isDatabaseAvailable } from "@/lib/firebase";
+import { isDatabaseAvailable } from "@/lib/db";
 import { getCommentsByTaskId, createComment } from "@/lib/models";
 import { mockComments } from "@/lib/mock-data";
 import { createCommentSchema } from "@/lib/validation";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const taskId = request.nextUrl.searchParams.get("taskId");

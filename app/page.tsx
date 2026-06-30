@@ -1,5 +1,5 @@
 import { ClipboardList } from "lucide-react";
-import { isDatabaseAvailable } from "@/lib/firebase";
+import { isDatabaseAvailable } from "@/lib/db";
 import {
   getAllBoards,
   getColumnsByBoardId,

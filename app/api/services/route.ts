@@ -1,8 +1,11 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { isDatabaseAvailable } from "@/lib/firebase";
+import { isDatabaseAvailable } from "@/lib/db";
 import { getAllServices, createService, deleteService } from "@/lib/models";
 import { mockServices } from "@/lib/mock-data";
+
+export const dynamic = "force-dynamic";
 
 const createServiceSchema = z.object({
   name: z.string().min(1),

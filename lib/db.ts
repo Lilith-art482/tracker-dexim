@@ -1,5 +1,4 @@
-import { db } from "./firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { getAdminDb } from "./firebase-admin";
 
 const globalForDbAvailable = globalThis as unknown as {
   _dbAvailable: boolean | null;
@@ -21,11 +20,17 @@ export async function isDatabaseAvailable(): Promise<boolean> {
 
   const promise = (async () => {
     try {
-      await getDocs(collection(db, "_health_check"));
+      const db = getAdminDb();
+      await db.collection("_health_check").limit(1).get();
       globalForDbAvailable._dbAvailable = true;
       return true;
-    } catch {
-      console.warn("Database is not available. Running in static mode.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("FIREBASE_PRIVATE_KEY") || message.includes("invalid-credential")) {
+        console.warn("Firebase Admin not configured. Running in static mode.");
+      } else {
+        console.warn("Database is not available. Running in static mode.", message);
+      }
       globalForDbAvailable._dbAvailable = false;
       return false;
     }

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { isDatabaseAvailable } from "@/lib/firebase";
+import { isDatabaseAvailable } from "@/lib/db";
 import { getAllBoards, createBoard } from "@/lib/models";
 import { mockBoards } from "@/lib/mock-data";
+
+export const dynamic = "force-dynamic";
 
 const createBoardSchema = z.object({
   name: z.string().min(1).max(200),

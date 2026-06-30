@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isDatabaseAvailable } from "@/lib/firebase";
+import { isDatabaseAvailable } from "@/lib/db";
 import {
   getTasksByColumnId,
   getArchivedTasks,
@@ -9,6 +9,8 @@ import {
 } from "@/lib/models";
 import { mockTasks } from "@/lib/mock-data";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validation";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const archived = request.nextUrl.searchParams.get("archived");
