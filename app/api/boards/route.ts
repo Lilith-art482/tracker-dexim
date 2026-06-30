@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { isDatabaseAvailable } from "@/lib/db";
+import { isDatabaseAvailable } from "@/lib/firebase";
 import { getAllBoards, createBoard } from "@/lib/models";
 import { mockBoards } from "@/lib/mock-data";
 

@@ -12,7 +12,7 @@ import { BoardSidebar } from "@/components/board-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ModeProvider } from "@/lib/mode-context";
-import { isDatabaseAvailable } from "@/lib/db";
+import { isDatabaseAvailable } from "@/lib/firebase";
 import { getAllBoards } from "@/lib/models";
 import { mockBoards } from "@/lib/mock-data";
 import type { Board } from "@/lib/models";

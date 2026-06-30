@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isDatabaseAvailable } from "@/lib/db";
+import { isDatabaseAvailable } from "@/lib/firebase";
 import { getCommentsByTaskId, createComment } from "@/lib/models";
 import { mockComments } from "@/lib/mock-data";
 import { createCommentSchema } from "@/lib/validation";

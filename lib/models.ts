@@ -70,6 +70,7 @@ export interface PersonalTask {
   createdAt: string;
   updatedAt: string;
 }
+
 export interface Service {
   id: string;
   name: string;
@@ -81,22 +82,26 @@ export interface Service {
 }
 
 const COL = (name: string) => name;
+const toPlain = <T>(snap: { id: string; data: () => T }): T & { id: string } => ({
+  id: snap.id,
+  ...snap.data(),
+});
 
 export async function getServiceById(id: string): Promise<Service | null> {
   const snap = await getDoc(doc(db, COL("SERVICES"), id));
   if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() } as Service;
+  return toPlain(snap) as Service;
 }
 
 export async function getServicesByStatus(status: string): Promise<Service[]> {
   const q = query(collection(db, COL("SERVICES")), where("status", "==", status));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Service);
+  return snap.docs.map((d) => toPlain(d) as Service);
 }
 
 export async function getAllServices(): Promise<Service[]> {
   const snap = await getDocs(collection(db, COL("SERVICES")));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Service);
+  return snap.docs.map((d) => toPlain(d) as Service);
 }
 
 export async function createService(
@@ -116,7 +121,7 @@ export async function updateService(
   const updates: Record<string, unknown> = { ...data, updatedAt: new Date().toISOString() };
   await updateDoc(ref, updates);
   const snap = await getDoc(ref);
-  return { id, ...snap.data() } as Service;
+  return toPlain(snap) as Service;
 }
 
 export async function deleteService(id: string): Promise<void> {
@@ -125,7 +130,7 @@ export async function deleteService(id: string): Promise<void> {
 
 export async function getAllBoards(): Promise<Board[]> {
   const snap = await getDocs(collection(db, COL("BOARDS")));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Board);
+  return snap.docs.map((d) => toPlain(d) as Board);
 }
 
 export async function createBoard(
@@ -140,7 +145,7 @@ export async function createBoard(
 export async function getColumnsByBoardId(boardId: string): Promise<Column[]> {
   const q = query(collection(db, COL("COLUMNS")), where("boardId", "==", boardId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Column);
+  return snap.docs.map((d) => toPlain(d) as Column);
 }
 
 export async function createColumn(
@@ -160,7 +165,7 @@ export async function updateColumn(
   const updates: Record<string, unknown> = { ...data, updatedAt: new Date().toISOString() };
   await updateDoc(ref, updates);
   const snap = await getDoc(ref);
-  return { id, ...snap.data() } as Column;
+  return toPlain(snap) as Column;
 }
 
 export async function deleteColumn(id: string): Promise<void> {
@@ -170,13 +175,13 @@ export async function deleteColumn(id: string): Promise<void> {
 export async function getTasksByColumnId(columnId: string): Promise<Task[]> {
   const q = query(collection(db, COL("TASKS")), where("columnId", "==", columnId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Task);
+  return snap.docs.map((d) => toPlain(d) as Task);
 }
 
 export async function getArchivedTasks(): Promise<Task[]> {
   const q = query(collection(db, COL("TASKS")), where("archived", "==", true));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Task);
+  return snap.docs.map((d) => toPlain(d) as Task);
 }
 
 export async function createTask(
@@ -208,7 +213,7 @@ export async function updateTask(
   const updates: Record<string, unknown> = { ...data, updatedAt: new Date().toISOString() };
   await updateDoc(ref, updates);
   const snap = await getDoc(ref);
-  return { id, ...snap.data() } as Task;
+  return toPlain(snap) as Task;
 }
 
 export async function deleteTask(id: string): Promise<void> {
@@ -218,7 +223,7 @@ export async function deleteTask(id: string): Promise<void> {
 export async function getCommentsByTaskId(taskId: string): Promise<Comment[]> {
   const q = query(collection(db, COL("COMMENTS")), where("taskId", "==", taskId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Comment);
+  return snap.docs.map((d) => toPlain(d) as Comment);
 }
 
 export async function createComment(
@@ -235,7 +240,7 @@ export async function getBoardMembersByBoardId(
 ): Promise<BoardMember[]> {
   const q = query(collection(db, COL("BOARD_MEMBERS")), where("boardId", "==", boardId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as BoardMember);
+  return snap.docs.map((d) => toPlain(d) as BoardMember);
 }
 
 export async function createBoardMember(
@@ -253,7 +258,7 @@ export async function deleteBoardMember(id: string): Promise<void> {
 
 export async function getAllPersonalTasks(): Promise<PersonalTask[]> {
   const snap = await getDocs(collection(db, COL("PERSONAL_TASKS")));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as PersonalTask);
+  return snap.docs.map((d) => toPlain(d) as PersonalTask);
 }
 
 export async function createPersonalTask(
@@ -284,7 +289,7 @@ export async function updatePersonalTask(
   const updates: Record<string, unknown> = { ...data, updatedAt: new Date().toISOString() };
   await updateDoc(ref, updates);
   const snap = await getDoc(ref);
-  return { id, ...snap.data() } as PersonalTask;
+  return toPlain(snap) as PersonalTask;
 }
 
 export async function deletePersonalTask(id: string): Promise<void> {

@@ -1,4 +1,4 @@
-import { isDatabaseAvailable } from "@/lib/db";
+import { isDatabaseAvailable } from "@/lib/firebase";
 import { getAllServices } from "@/lib/models";
 import { mockServices } from "@/lib/mock-data";
 import { ServiceCatalog } from "@/components/service-catalog";
