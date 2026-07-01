@@ -63,66 +63,64 @@ export default async function RootLayout({
           <BridgeProvider />
           <ModeProvider>
             <SidebarProvider>
-              <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl shadow-sm">
-                <div className="container mx-auto px-4">
-                  <div className="h-16 flex items-center justify-between gap-4">
-                    {/* Левая часть: Лого + ON Track */}
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-md">
-                        <Plus className="h-5 w-5" />
+              <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <div className="flex h-14 items-center px-4 gap-3">
+                  {/* Логотип */}
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                      <Plus className="h-4 w-4" />
+                    </div>
+                    <span className="text-base font-semibold tracking-tight">
+                      {appName}
+                    </span>
+                  </div>
+
+                  {/* Разделитель */}
+                  <div className="h-5 w-px bg-border/50" />
+
+                  {/* Кнопка переключения сайдбара */}
+                  <SidebarToggle />
+
+                  {/* Поиск */}
+                  <div className="flex-1 max-w-sm">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+                      <input
+                        type="search"
+                        placeholder="Поиск задач..."
+                        className="h-8 w-full rounded-lg border border-border/40 bg-muted/30 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Правая часть */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+                      <Plus className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Создать</span>
+                    </button>
+
+                    <ModeToggle />
+
+                    <div className="h-5 w-px bg-border/50 mx-1" />
+
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2 h-8 px-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                        <User className="h-4 w-4" />
                       </div>
-                      <span className="text-xl font-bold tracking-tight text-foreground">
-                        {appName}
+                      <span className="hidden sm:inline text-sm font-medium">
+                        Профиль
                       </span>
-                    </div>
+                    </Link>
 
-                    {/* Разделитель */}
-                    <div className="h-8 w-px bg-border/60" />
-
-                    {/* Кнопка переключения сайдбара */}
-                    <SidebarToggle />
-
-                    {/* Правая часть: Поиск + Действия + Профиль */}
-                    <div className="flex items-center gap-2">
-                      <div className="hidden md:flex flex-1 max-w-md mx-auto">
-                        <div className="relative w-full">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <input
-                            type="search"
-                            placeholder="Поиск задач..."
-                            className="w-full pl-10 pr-4 py-2 text-sm bg-muted/50 border border-border/60 rounded-xl text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-transparent transition-all"
-                          />
-                        </div>
-                      </div>
-
-                      <button className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-sm font-medium rounded-lg hover:from-primary/90 hover:to-primary/70 shadow-md hover:shadow-lg transition-all duration-300">
-                        <Plus className="h-4 w-4" />
-                        <span className="hidden sm:inline">Создать</span>
-                      </button>
-
-                      <ModeToggle />
-
-                      <div className="h-6 w-px bg-border/60 mx-1" />
-
-                      <Link
-                        href="/profile"
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 hover:from-primary/15 hover:to-primary/10 border border-primary/20 transition-all duration-300 group"
-                      >
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground group-hover:scale-105 transition-transform">
-                          <User className="h-4 w-4" />
-                        </div>
-                        <span className="hidden sm:inline text-sm font-medium text-foreground">
-                          Профиль
-                        </span>
-                      </Link>
-
-                      <div className="h-6 w-px bg-border/60 mx-1" />
-
-                      <ThemeToggle />
-                    </div>
+                    <ThemeToggle />
                   </div>
                 </div>
               </header>
+
               <div className="flex flex-1">
                 <Suspense
                   fallback={
@@ -139,6 +137,7 @@ export default async function RootLayout({
                 </Suspense>
                 <main className="flex-1">{children}</main>
               </div>
+
               <Toaster richColors position="top-right" />
             </SidebarProvider>
           </ModeProvider>

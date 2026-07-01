@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "../globals.css";
 
 export const metadata: Metadata = {
-  title: "On Track",
-  description: "On Track",
+  title: "On Track — Вход",
+  description: "On Track — Вход",
 };
 
 export default function AuthLayout({
