@@ -200,4 +200,16 @@
   .dark .card-hover:hover {
     box-shadow: 0 8px 32px -8px #4E6E62/30;
   }
+
+  /* Hide global chrome (header/sidebar/toaster) on auth pages */
+  body.no-chrome header,
+  body.no-chrome aside {
+    display: none !important;
+  }
+
+  body.no-chrome main {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
 }

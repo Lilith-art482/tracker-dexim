@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect } from "react";
 import type { Metadata } from "next";
 import "../globals.css";
 
@@ -7,9 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="antialiased min-h-screen dark bg-[#0a0f0d]">
-      {children}
-    </div>
-  );
+  useEffect(() => {
+    document.body.classList.add("no-chrome");
+    return () => document.body.classList.remove("no-chrome");
+  }, []);
+
+  return <div className="antialiased min-h-screen dark bg-[#0a0f0d]">{children}</div>;
 }
