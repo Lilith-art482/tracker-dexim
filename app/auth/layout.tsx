@@ -6,16 +6,10 @@ export const metadata: Metadata = {
   description: "On Track — Вход",
 };
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" suppressHydrationWarning className="dark">
-      <body className="antialiased min-h-screen dark bg-[#0a0f0d]">
-        {children}
-      </body>
-    </html>
+    <div className="antialiased min-h-screen dark bg-[#0a0f0d]">
+      {children}
+    </div>
   );
 }
