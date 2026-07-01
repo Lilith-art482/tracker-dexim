@@ -51,30 +51,6 @@ export const mockColumns: Column[] = [
     createdAt: new Date("2024-01-01").toISOString(),
     updatedAt: new Date("2024-01-01").toISOString(),
   },
-  {
-    id: "col-4",
-    boardId: "board-2",
-    name: "Идеи",
-    order: 0,
-    createdAt: new Date("2024-01-01").toISOString(),
-    updatedAt: new Date("2024-01-01").toISOString(),
-  },
-  {
-    id: "col-5",
-    boardId: "board-2",
-    name: "Запланировано",
-    order: 1,
-    createdAt: new Date("2024-01-01").toISOString(),
-    updatedAt: new Date("2024-01-01").toISOString(),
-  },
-  {
-    id: "col-6",
-    boardId: "board-2",
-    name: "Запущено",
-    order: 2,
-    createdAt: new Date("2024-01-01").toISOString(),
-    updatedAt: new Date("2024-01-01").toISOString(),
-  },
 ];
 
 export const mockServices: Service[] = [
@@ -111,7 +87,6 @@ export const mockTasks: Task[] = [
   {
     id: "task-1",
     columnId: "col-1",
-    boardId: "board-1",
     title: "Дизайн главной страницы",
     description: "Разработать макет главной страницы в Figma",
     assignee: "Анна",
@@ -125,7 +100,6 @@ export const mockTasks: Task[] = [
   {
     id: "task-2",
     columnId: "col-1",
-    boardId: "board-1",
     title: "Настройка CI/CD",
     description: "Настроить автоматическую сборку и деплой",
     assignee: "Иван",
@@ -139,7 +113,6 @@ export const mockTasks: Task[] = [
   {
     id: "task-3",
     columnId: "col-2",
-    boardId: "board-1",
     title: "API аутентификации",
     description: "Реализовать JWT аутентификацию",
     assignee: "Пётр",
@@ -153,7 +126,6 @@ export const mockTasks: Task[] = [
   {
     id: "task-4",
     columnId: "col-2",
-    boardId: "board-1",
     title: "База данных пользователей",
     description: "Спроектировать и создать схему БД",
     assignee: "Мария",
@@ -167,7 +139,6 @@ export const mockTasks: Task[] = [
   {
     id: "task-5",
     columnId: "col-3",
-    boardId: "board-1",
     title: "Репозиторий проекта",
     description: "Создать репозиторий и настроить доступы",
     assignee: "Иван",
@@ -181,7 +152,6 @@ export const mockTasks: Task[] = [
   {
     id: "task-6",
     columnId: "col-3",
-    boardId: "board-1",
     title: "Выбор технологического стека",
     description: "Определиться с технологиями для проекта",
     assignee: "Команда",
@@ -195,7 +165,6 @@ export const mockTasks: Task[] = [
   {
     id: "task-7",
     columnId: "col-3",
-    boardId: "board-1",
     title: "Написание технической документации",
     description: "Составить документацию по API и архитектуре",
     assignee: "Мария",
@@ -209,7 +178,6 @@ export const mockTasks: Task[] = [
   {
     id: "task-8",
     columnId: "col-3",
-    boardId: "board-1",
     title: "Интеграционное тестирование",
     description: "Провести интеграционное тестирование модулей",
     assignee: "Пётр",

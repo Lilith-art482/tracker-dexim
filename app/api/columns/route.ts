@@ -109,6 +109,13 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    if (!body.boardId || typeof body.boardId !== "string") {
+      return NextResponse.json(
+        { error: "Поле boardId обязательно" },
+        { status: 400 }
+      );
+    }
+
     const parsed = updateColumnSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -120,7 +127,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const column = await updateColumn(body.id, parsed.data);
+    const column = await updateColumn(body.id, parsed.data, body.boardId);
     return NextResponse.json(column);
   } catch (error) {
     console.error("Ошибка обновления колонки:", error);
@@ -150,8 +157,15 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    if (!body.boardId || typeof body.boardId !== "string") {
+      return NextResponse.json(
+        { error: "Поле boardId обязательно" },
+        { status: 400 }
+      );
+    }
 
-    await deleteColumn(body.id);
+    await deleteColumn(body.boardId, body.id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Ошибка удаления колонки:", error);

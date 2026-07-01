@@ -21,7 +21,6 @@ export interface Column {
 export interface Task {
   id: string;
   columnId: string;
-  boardId: string;
   title: string;
   description: string;
   startDate: string | null;
@@ -162,48 +161,23 @@ export async function updateBoard(
   return toPlain(snap) as Board;
 }
 
-function chunkArray<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size));
-  }
-  return chunks;
-}
-
 export async function deleteBoard(id: string): Promise<void> {
   const db = getAdminDb();
   console.log(`[deleteBoard] start deleting board ${id}`);
-  // delete board doc
+  
+  // Удаляем доску - Firestore автоматически удалит все подколлекции
   await db.collection(COL("BOARDS")).doc(id).delete();
 
-  // delete columns and their tasks
-  const cols = await db.collection(COL("COLUMNS")).where("boardId", "==", id).get();
-  const columnIds = cols.docs.map((doc) => doc.id);
-  console.log(`[deleteBoard] found columns for board ${id}:`, columnIds);
-  
-  for (const colDoc of cols.docs) {
-    // delete tasks in this column
-    const tasks = await db.collection(COL("TASKS")).where("columnId", "==", colDoc.id).get();
-    for (const taskDoc of tasks.docs) {
-      await db.collection(COL("TASKS")).doc(taskDoc.id).delete();
-    }
-    // delete column
-    await db.collection(COL("COLUMNS")).doc(colDoc.id).delete();
-  }
-  
-  // delete board members
-  const members = await db.collection(COL("BOARD_MEMBERS")).where("boardId", "==", id).get();
-  for (const m of members.docs) {
-    await db.collection(COL("BOARD_MEMBERS")).doc(m.id).delete();
-  }
-  
-  console.log(`[deleteBoard] board ${id} deleted successfully`);
+  console.log(`[deleteBoard] board ${id} deleted successfully (including all subcollections)`);
 }
 
 export async function getColumnsByBoardId(boardId: string): Promise<Column[]> {
+  // Используем подколлекцию внутри доски
   const snap = await getAdminDb()
-    .collection(COL("COLUMNS"))
-    .where("boardId", "==", boardId)
+    .collection(COL("BOARDS"))
+    .doc(boardId)
+    .collection("COLUMNS")
+    .orderBy("order", "asc")
     .get();
   return snap.docs.map((d) => toPlain(d) as Column);
 }
@@ -213,64 +187,98 @@ export async function createColumn(
 ): Promise<Column> {
   const now = new Date().toISOString();
   const column: Column = { ...data, createdAt: now, updatedAt: now };
-  await getAdminDb().collection(COL("COLUMNS")).doc(column.id).set(column);
+  // Сохраняем в подколлекции доски
+  await getAdminDb()
+    .collection(COL("BOARDS"))
+    .doc(data.boardId)
+    .collection("COLUMNS")
+    .doc(column.id)
+    .set(column);
   return column;
 }
 
 export async function updateColumn(
   id: string,
-  data: Partial<Pick<Column, "name" | "order">>
+  data: Partial<Pick<Column, "name" | "order">>,
+  boardId: string
 ): Promise<Column> {
-  await getAdminDb().collection(COL("COLUMNS")).doc(id).update({
-    ...data,
-    updatedAt: new Date().toISOString(),
-  });
-  const snap = await getAdminDb().collection(COL("COLUMNS")).doc(id).get();
+  await getAdminDb()
+    .collection(COL("BOARDS"))
+    .doc(boardId)
+    .collection("COLUMNS")
+    .doc(id)
+    .update({
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
+  const snap = await getAdminDb()
+    .collection(COL("BOARDS"))
+    .doc(boardId)
+    .collection("COLUMNS")
+    .doc(id)
+    .get();
   return toPlain(snap) as Column;
 }
 
-export async function deleteColumn(id: string): Promise<void> {
+export async function deleteColumn(boardId: string, columnId: string): Promise<void> {
   const db = getAdminDb();
   
-  // Сначала удаляем все задачи в этой колонке
+  // Сначала удаляем все задачи в этой колонке (подколлекция внутри колонки)
   const tasksSnap = await db
-    .collection(COL("TASKS"))
-    .where("columnId", "==", id)
+    .collection(COL("BOARDS"))
+    .doc(boardId)
+    .collection("COLUMNS")
+    .doc(columnId)
+    .collection("TASKS")
     .get();
   
   for (const taskDoc of tasksSnap.docs) {
-    try {
-      await db.collection(COL("TASKS")).doc(taskDoc.id).delete();
-    } catch (e) {
-      console.warn(`[deleteColumn] failed to delete task ${taskDoc.id}:`, e);
-    }
+    await db.collection(COL("BOARDS")).doc(boardId).collection("COLUMNS").doc(columnId).collection("TASKS").doc(taskDoc.id).delete();
   }
   
   // Затем удаляем саму колонку
-  await db.collection(COL("COLUMNS")).doc(id).delete();
+  await db.collection(COL("BOARDS")).doc(boardId).collection("COLUMNS").doc(columnId).delete();
 }
-export async function getTasksByColumnId(columnId: string): Promise<Task[]> {
+export async function getTasksByColumnId(boardId: string, columnId: string): Promise<Task[]> {
+  // Используем подколлекцию внутри колонки
   const snap = await getAdminDb()
-    .collection(COL("TASKS"))
-    .where("columnId", "==", columnId)
+    .collection(COL("BOARDS"))
+    .doc(boardId)
+    .collection("COLUMNS")
+    .doc(columnId)
+    .collection("TASKS")
     .get();
   return snap.docs.map((d) => toPlain(d) as Task);
 }
 
-export async function getArchivedTasks(): Promise<Task[]> {
-  const snap = await getAdminDb()
-    .collection(COL("TASKS"))
-    .where("archived", "==", true)
-    .get();
-  return snap.docs.map((d) => toPlain(d) as Task);
+export async function getArchivedTasks(boardId: string): Promise<Task[]> {
+  // Нужно проверить все колонки доски
+  const columns = await getColumnsByBoardId(boardId);
+  const allTasks: Task[] = [];
+  
+  for (const col of columns) {
+    const tasks = await getTasksByColumnId(boardId, col.id);
+    allTasks.push(...tasks.filter(t => t.archived));
+  }
+  
+  return allTasks;
 }
 
 export async function createTask(
-  data: Omit<Task, "createdAt" | "updatedAt">
+  data: Omit<Task, "createdAt" | "updatedAt">,
+  boardId: string
 ): Promise<Task> {
   const now = new Date().toISOString();
   const task: Task = { ...data, createdAt: now, updatedAt: now };
-  await getAdminDb().collection(COL("TASKS")).doc(task.id).set(task);
+  // Сохраняем в подколлекции внутри колонки
+  await getAdminDb()
+    .collection(COL("BOARDS"))
+    .doc(boardId)
+    .collection("COLUMNS")
+    .doc(data.columnId)
+    .collection("TASKS")
+    .doc(task.id)
+    .set(task);
   return task;
 }
 
@@ -288,18 +296,41 @@ export async function updateTask(
       | "columnId"
       | "archived"
     >
-  >
+  >,
+  boardId: string,
+  columnId: string
 ): Promise<Task> {
-  await getAdminDb().collection(COL("TASKS")).doc(id).update({
-    ...data,
-    updatedAt: new Date().toISOString(),
-  });
-  const snap = await getAdminDb().collection(COL("TASKS")).doc(id).get();
+  await getAdminDb()
+    .collection(COL("BOARDS"))
+    .doc(boardId)
+    .collection("COLUMNS")
+    .doc(columnId)
+    .collection("TASKS")
+    .doc(id)
+    .update({
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
+  const snap = await getAdminDb()
+    .collection(COL("BOARDS"))
+    .doc(boardId)
+    .collection("COLUMNS")
+    .doc(columnId)
+    .collection("TASKS")
+    .doc(id)
+    .get();
   return toPlain(snap) as Task;
 }
 
-export async function deleteTask(id: string): Promise<void> {
-  await getAdminDb().collection(COL("TASKS")).doc(id).delete();
+export async function deleteTask(boardId: string, columnId: string, taskId: string): Promise<void> {
+  await getAdminDb()
+    .collection(COL("BOARDS"))
+    .doc(boardId)
+    .collection("COLUMNS")
+    .doc(columnId)
+    .collection("TASKS")
+    .doc(taskId)
+    .delete();
 }
 
 export async function getCommentsByTaskId(taskId: string): Promise<Comment[]> {

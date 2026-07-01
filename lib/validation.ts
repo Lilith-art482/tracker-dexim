@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createTaskSchema = z.object({
   columnId: z.string().min(1),
-  boardId: z.string().min(1).optional(),
+  boardId: z.string().min(1),
   title: z.string().min(1).max(200),
   description: z.string().max(10_000).optional().default(""),
   startDate: z.string().optional().nullable().default(null),
@@ -12,6 +12,8 @@ export const createTaskSchema = z.object({
 
 export const updateTaskSchema = z.object({
   id: z.string().min(1),
+  boardId: z.string().min(1),
+  columnId: z.string().min(1),
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(10_000).optional(),
   startDate: z.string().optional().nullable(),

@@ -337,7 +337,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
       const res = await fetch("/api/columns", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: columnId, name }),
+        body: JSON.stringify({ id: columnId, boardId, name }),
       });
 
       if (!res.ok) {
@@ -363,7 +363,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
       const res = await fetch("/api/columns", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: deleteId }),
+        body: JSON.stringify({ id: deleteId, boardId }),
       });
 
       if (!res.ok) {
@@ -401,6 +401,8 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: task.id,
+          boardId,
+          columnId: task.columnId,
           completed: !task.completed,
         }),
       });
@@ -434,7 +436,12 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
       const res = await fetch("/api/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: task.id, archived: true }),
+        body: JSON.stringify({ 
+          id: task.id, 
+          boardId,
+          columnId: task.columnId,
+          archived: true 
+        }),
       });
 
       if (!res.ok) {
@@ -521,7 +528,11 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
       const res = await fetch("/api/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: task.id, columnId: targetColumnId }),
+        body: JSON.stringify({ 
+          id: task.id, 
+          boardId,
+          columnId: targetColumnId,
+        }),
       });
 
       if (!res.ok) {

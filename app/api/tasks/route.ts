@@ -15,13 +15,18 @@ export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const archived = request.nextUrl.searchParams.get("archived");
-
+  const boardId = request.nextUrl.searchParams.get("boardId");
+  
   if (archived === "true") {
+    if (!boardId) {
+      return NextResponse.json({ error: "boardId обязателен для архива" }, { status: 400 });
+    }
+    
     const dbAvailable = await isDatabaseAvailable();
 
     if (dbAvailable) {
       try {
-        const tasks = await getArchivedTasks();
+        const tasks = await getArchivedTasks(boardId);
         return NextResponse.json(tasks);
       } catch (error) {
         console.error("Ошибка получения архивированных задач:", error);
@@ -37,23 +42,18 @@ export async function GET(request: NextRequest) {
   }
 
   const columnId = request.nextUrl.searchParams.get("columnId");
-  const boardId = request.nextUrl.searchParams.get("boardId");
   
-  if (!columnId) {
-    return NextResponse.json({ error: "columnId обязателен" }, { status: 400 });
+  if (!columnId || !boardId) {
+    return NextResponse.json({ error: "columnId и boardId обязательны" }, { status: 400 });
   }
 
   const dbAvailable = await isDatabaseAvailable();
 
   if (dbAvailable) {
     try {
-      const tasks = await getTasksByColumnId(columnId);
-      // Дополнительная проверка: если указан boardId, фильтруем задачи
-      const filteredTasks = boardId 
-        ? tasks.filter((t) => t.boardId === boardId)
-        : tasks;
-      console.log(`[api/tasks GET] columnId=${columnId}, boardId=${boardId}, found=${filteredTasks.length}`);
-      return NextResponse.json(filteredTasks);
+      const tasks = await getTasksByColumnId(boardId, columnId);
+      console.log(`[api/tasks GET] boardId=${boardId}, columnId=${columnId}, found=${tasks.length}`);
+      return NextResponse.json(tasks);
     } catch (error) {
       console.error("Ошибка получения задач:", error);
       return NextResponse.json(
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
   }
 
   const filtered = mockTasks.filter(
-    (t) => t.columnId === columnId && !t.archived && (!boardId || t.boardId === boardId)
+    (t) => t.columnId === columnId && !t.archived
   );
   return NextResponse.json(filtered);
 }
@@ -93,34 +93,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Получаем boardId из запроса или определяем по колонке
-    let boardId = parsed.data.boardId;
-    if (!boardId) {
-      const { getColumnsByBoardId } = await import("@/lib/models");
-      // Получаем все колонки и ищем нужную
-      // Это неэффективно, но работает для небольших объёмов
-      const allBoards = await import("@/lib/models").then(m => m.getAllBoards());
-      for (const board of allBoards) {
-        const columns = await getColumnsByBoardId(board.id);
-        const column = columns.find((c) => c.id === parsed.data.columnId);
-        if (column) {
-          boardId = board.id;
-          break;
-        }
-      }
-    }
-    
-    if (!boardId) {
+    if (!parsed.data.boardId) {
       return NextResponse.json(
-        { error: "Колонка не найдена или не принадлежит ни одной доске" },
-        { status: 404 }
+        { error: "boardId обязателен" },
+        { status: 400 }
       );
     }
 
     const task = await createTask({
       id: crypto.randomUUID(),
       columnId: parsed.data.columnId,
-      boardId,
       title: parsed.data.title.trim(),
       description: parsed.data.description,
       startDate: parsed.data.startDate,
@@ -128,8 +110,8 @@ export async function POST(request: NextRequest) {
       assignee: parsed.data.assignee,
       completed: false,
       archived: false,
-    });
-    console.log(`[api/tasks POST] created task ${task.id} in column ${task.columnId}, board ${task.boardId}`);
+    }, parsed.data.boardId);
+    console.log(`[api/tasks POST] created task ${task.id} in column ${task.columnId}`);
 
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
@@ -165,8 +147,16 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const { id, ...data } = parsed.data;
-    const task = await updateTask(id, data);
+    const { id, boardId, columnId, ...data } = parsed.data;
+    
+    if (!boardId || !columnId) {
+      return NextResponse.json(
+        { error: "boardId и columnId обязательны" },
+        { status: 400 }
+      );
+    }
+    
+    const task = await updateTask(id, data, boardId, columnId);
     console.log(`[api/tasks PATCH] updated task ${id}`, data);
     return NextResponse.json(task);
   } catch (error) {
@@ -197,8 +187,15 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    if (!body.boardId || !body.columnId) {
+      return NextResponse.json(
+        { error: "boardId и columnId обязательны" },
+        { status: 400 }
+      );
+    }
 
-    await deleteTask(body.id);
+    await deleteTask(body.boardId, body.columnId, body.id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Ошибка удаления задачи:", error);
