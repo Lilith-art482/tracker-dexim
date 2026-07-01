@@ -1,7 +1,7 @@
 import { ClipboardList } from "lucide-react";
 import { isDatabaseAvailable } from "@/lib/db";
 import {
-  getAllBoards,
+  getBoardsByUser,
   getColumnsByBoardId,
   getBoardMembersByBoardId,
 } from "@/lib/models";
@@ -37,20 +37,25 @@ async function getBoardMembers(boardId: string): Promise<BoardMember[]> {
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ boardId?: string; view?: string }>;
+  searchParams: Promise<{ boardId?: string; view?: string; uid?: string }>;
 }) {
-  const { boardId, view } = await searchParams;
+  const { boardId, view, uid } = await searchParams;
 
   const dbAvailable = await isDatabaseAvailable();
-  let boards: Board[];
-  if (dbAvailable) {
+  let boards: Board[] = [];
+  
+  if (dbAvailable && uid) {
     try {
-      boards = await getAllBoards();
+      boards = await getBoardsByUser(uid);
     } catch {
-      boards = mockBoards;
+      boards = mockBoards.filter((b) => b.ownerId === uid || b.members?.includes(uid));
     }
+  } else if (uid) {
+    // Static mode with uid - filter mock boards
+    boards = mockBoards.filter((b) => b.ownerId === uid || b.members?.includes(uid));
   } else {
-    boards = mockBoards;
+    // No uid - show empty state
+    boards = [];
   }
 
   const activeBoard = boardId ? boards.find((b) => b.id === boardId) : undefined;

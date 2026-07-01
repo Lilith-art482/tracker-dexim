@@ -17,16 +17,21 @@ export const mockBoards: Board[] = [
     name: "Разработка MVP",
     createdAt: new Date("2024-01-01").toISOString(),
     updatedAt: new Date("2024-01-01").toISOString(),
+    ownerId: "user-1",
+    members: ["user-1", "user-2"],
   },
   {
     id: "board-2",
     name: "Маркетинг",
     createdAt: new Date("2024-01-01").toISOString(),
     updatedAt: new Date("2024-01-01").toISOString(),
+    ownerId: "user-2",
+    members: ["user-2", "user-3"],
   },
 ];
 
 export const mockColumns: Column[] = [
+  // Колонки для доски "Разработка MVP" (board-1)
   {
     id: "col-1",
     boardId: "board-1",
@@ -47,6 +52,31 @@ export const mockColumns: Column[] = [
     id: "col-3",
     boardId: "board-1",
     name: "Готово",
+    order: 2,
+    createdAt: new Date("2024-01-01").toISOString(),
+    updatedAt: new Date("2024-01-01").toISOString(),
+  },
+  // Колонки для доски "Маркетинг" (board-2)
+  {
+    id: "col-4",
+    boardId: "board-2",
+    name: "План",
+    order: 0,
+    createdAt: new Date("2024-01-01").toISOString(),
+    updatedAt: new Date("2024-01-01").toISOString(),
+  },
+  {
+    id: "col-5",
+    boardId: "board-2",
+    name: "В работе",
+    order: 1,
+    createdAt: new Date("2024-01-01").toISOString(),
+    updatedAt: new Date("2024-01-01").toISOString(),
+  },
+  {
+    id: "col-6",
+    boardId: "board-2",
+    name: "Завершено",
     order: 2,
     createdAt: new Date("2024-01-01").toISOString(),
     updatedAt: new Date("2024-01-01").toISOString(),
@@ -84,8 +114,10 @@ export const mockServices: Service[] = [
 ];
 
 export const mockTasks: Task[] = [
+  // Задачи для доски "Разработка MVP" (board-1)
   {
     id: "task-1",
+    boardId: "board-1",
     columnId: "col-1",
     title: "Дизайн главной страницы",
     description: "Разработать макет главной страницы в Figma",
@@ -99,6 +131,7 @@ export const mockTasks: Task[] = [
   },
   {
     id: "task-2",
+    boardId: "board-1",
     columnId: "col-1",
     title: "Настройка CI/CD",
     description: "Настроить автоматическую сборку и деплой",
@@ -112,6 +145,7 @@ export const mockTasks: Task[] = [
   },
   {
     id: "task-3",
+    boardId: "board-1",
     columnId: "col-2",
     title: "API аутентификации",
     description: "Реализовать JWT аутентификацию",
@@ -125,6 +159,7 @@ export const mockTasks: Task[] = [
   },
   {
     id: "task-4",
+    boardId: "board-1",
     columnId: "col-2",
     title: "База данных пользователей",
     description: "Спроектировать и создать схему БД",
@@ -138,6 +173,7 @@ export const mockTasks: Task[] = [
   },
   {
     id: "task-5",
+    boardId: "board-1",
     columnId: "col-3",
     title: "Репозиторий проекта",
     description: "Создать репозиторий и настроить доступы",
@@ -151,6 +187,7 @@ export const mockTasks: Task[] = [
   },
   {
     id: "task-6",
+    boardId: "board-1",
     columnId: "col-3",
     title: "Выбор технологического стека",
     description: "Определиться с технологиями для проекта",
@@ -164,6 +201,7 @@ export const mockTasks: Task[] = [
   },
   {
     id: "task-7",
+    boardId: "board-1",
     columnId: "col-3",
     title: "Написание технической документации",
     description: "Составить документацию по API и архитектуре",
@@ -177,6 +215,7 @@ export const mockTasks: Task[] = [
   },
   {
     id: "task-8",
+    boardId: "board-1",
     columnId: "col-3",
     title: "Интеграционное тестирование",
     description: "Провести интеграционное тестирование модулей",
@@ -187,6 +226,63 @@ export const mockTasks: Task[] = [
     archived: true,
     createdAt: new Date("2024-02-05").toISOString(),
     updatedAt: new Date("2024-02-12").toISOString(),
+  },
+  // Задачи для доски "Маркетинг" (board-2)
+  {
+    id: "task-9",
+    boardId: "board-2",
+    columnId: "col-4",
+    title: "Анализ целевой аудитории",
+    description: "Провести исследование ЦА",
+    assignee: "Алексей",
+    startDate: "2024-03-01",
+    endDate: "2024-03-15",
+    completed: false,
+    archived: false,
+    createdAt: new Date("2024-03-01").toISOString(),
+    updatedAt: new Date("2024-03-01").toISOString(),
+  },
+  {
+    id: "task-10",
+    boardId: "board-2",
+    columnId: "col-4",
+    title: "Конкурентный анализ",
+    description: "Изучить предложения конкурентов",
+    assignee: "Елена",
+    startDate: "2024-03-05",
+    endDate: "2024-03-12",
+    completed: false,
+    archived: false,
+    createdAt: new Date("2024-03-05").toISOString(),
+    updatedAt: new Date("2024-03-05").toISOString(),
+  },
+  {
+    id: "task-11",
+    boardId: "board-2",
+    columnId: "col-5",
+    title: "Запуск рекламной кампании",
+    description: "Настроить таргетированную рекламу",
+    assignee: "Алексей",
+    startDate: "2024-03-10",
+    endDate: "2024-03-20",
+    completed: false,
+    archived: false,
+    createdAt: new Date("2024-03-10").toISOString(),
+    updatedAt: new Date("2024-03-10").toISOString(),
+  },
+  {
+    id: "task-12",
+    boardId: "board-2",
+    columnId: "col-6",
+    title: "Подготовка отчёта",
+    description: "Составить отчёт по итогам кампании",
+    assignee: "Елена",
+    startDate: "2024-02-20",
+    endDate: "2024-02-28",
+    completed: true,
+    archived: true,
+    createdAt: new Date("2024-02-20").toISOString(),
+    updatedAt: new Date("2024-02-28").toISOString(),
   },
 ];
 

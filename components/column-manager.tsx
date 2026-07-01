@@ -26,6 +26,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import type { Column, Task } from "@/lib/models";
+import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -249,7 +250,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
     setEditingId(null);
     setEditName("");
     setDeleteId(null);
-  }, [boardId]);
+  }, [boardId, initialColumns]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -258,7 +259,8 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
   const fetchTasks = useCallback(async (columnId: string) => {
     setLoadingTasks((prev) => ({ ...prev, [columnId]: true }));
     try {
-      const res = await fetch(`/api/tasks?columnId=${columnId}&boardId=${boardId}`);
+      const uid = auth.currentUser?.uid || "";
+      const res = await fetch(`/api/tasks?columnId=${columnId}&boardId=${boardId}&uid=${uid}`);
       if (res.ok) {
         const data: Task[] = await res.json();
         setTasks((prev) => ({ ...prev, [columnId]: data }));

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { isDatabaseAvailable } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export async function GET() {
   try {
     const db = (await import("@/lib/firebase-admin")).getAdminDb();
     const snap = await db.collection("users").get();
-    const users = snap.docs.map((d: any) => ({ uid: d.id, ...d.data() }));
+    const users = snap.docs.map((d: FirebaseFirestore.QueryDocumentSnapshot) => ({ uid: d.id, ...d.data() }));
     return NextResponse.json(users);
   } catch (error) {
     console.error("Ошибка получения пользователей:", error);

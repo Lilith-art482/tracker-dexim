@@ -100,7 +100,7 @@ function TeamView({
       </div>
 
       {isArchiveView ? (
-        <ArchiveView />
+        <ArchiveView boardId={activeBoard.id} />
       ) : columns.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">

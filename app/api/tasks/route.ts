@@ -6,20 +6,44 @@ import {
   createTask,
   updateTask,
   deleteTask,
+  getBoardMembersByBoardId,
 } from "@/lib/models";
-import { mockTasks } from "@/lib/mock-data";
+import { mockTasks, mockBoardMembers } from "@/lib/mock-data";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+async function checkBoardAccess(boardId: string, uid: string | null): Promise<boolean> {
+  if (!uid) return false;
+  
+  const dbAvailable = await isDatabaseAvailable();
+  if (dbAvailable) {
+    try {
+      const members = await getBoardMembersByBoardId(boardId);
+      return members.some((m) => m.userId === uid);
+    } catch {
+      return false;
+    }
+  }
+  
+  // Static fallback
+  const members = mockBoardMembers.filter((m) => m.boardId === boardId);
+  return members.some((m) => m.userId === uid);
+}
+
 export async function GET(request: NextRequest) {
   const archived = request.nextUrl.searchParams.get("archived");
   const boardId = request.nextUrl.searchParams.get("boardId");
+  const uid = request.nextUrl.searchParams.get("uid");
   
   if (archived === "true") {
     if (!boardId) {
       return NextResponse.json({ error: "boardId обязателен для архива" }, { status: 400 });
+    }
+    
+    if (!await checkBoardAccess(boardId, uid)) {
+      return NextResponse.json({ error: "Нет доступа к доске" }, { status: 403 });
     }
     
     const dbAvailable = await isDatabaseAvailable();
@@ -37,7 +61,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const filtered = mockTasks.filter((t) => t.archived);
+    const filtered = mockTasks.filter((t) => t.archived && t.boardId === boardId);
     return NextResponse.json(filtered);
   }
 
@@ -45,6 +69,10 @@ export async function GET(request: NextRequest) {
   
   if (!columnId || !boardId) {
     return NextResponse.json({ error: "columnId и boardId обязательны" }, { status: 400 });
+  }
+
+  if (!await checkBoardAccess(boardId, uid)) {
+    return NextResponse.json({ error: "Нет доступа к доске" }, { status: 403 });
   }
 
   const dbAvailable = await isDatabaseAvailable();
@@ -64,7 +92,7 @@ export async function GET(request: NextRequest) {
   }
 
   const filtered = mockTasks.filter(
-    (t) => t.columnId === columnId && !t.archived
+    (t) => t.columnId === columnId && t.boardId === boardId && !t.archived
   );
   return NextResponse.json(filtered);
 }
@@ -99,9 +127,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
+    
     const task = await createTask({
       id: crypto.randomUUID(),
+      boardId: parsed.data.boardId,
       columnId: parsed.data.columnId,
       title: parsed.data.title.trim(),
       description: parsed.data.description,
@@ -146,7 +175,7 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       );
     }
-
+    
     const { id, boardId, columnId, ...data } = parsed.data;
     
     if (!boardId || !columnId) {
@@ -155,7 +184,7 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     const task = await updateTask(id, data, boardId, columnId);
     console.log(`[api/tasks PATCH] updated task ${id}`, data);
     return NextResponse.json(task);

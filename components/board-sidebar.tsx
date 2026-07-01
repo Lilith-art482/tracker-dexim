@@ -57,11 +57,20 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
 
   useEffect(() => {
     fetchBoards();
-  }, [fetchBoards]);
+    // Add uid to URL on mount if not present
+    const uid = auth.currentUser?.uid;
+    if (uid && !searchParams.has("uid")) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("uid", uid);
+      router.replace(`${pathname}?${params.toString()}`);
+    }
+  }, [fetchBoards, searchParams, pathname, router]);
 
   const switchBoard = (boardId: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("boardId", boardId);
+    const uid = auth.currentUser?.uid;
+    if (uid) params.set("uid", uid);
     router.push(`${pathname}?${params.toString()}`);
   };
 

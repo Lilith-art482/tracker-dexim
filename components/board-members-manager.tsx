@@ -51,7 +51,7 @@ export function BoardMembersManager({ boardId, initialMembers }: BoardMembersMan
 
     setAdding(true);
     try {
-      const payload: any = { boardId };
+      const payload: { boardId: string; userId?: string; name?: string } = { boardId };
       if (selectedUser) payload.userId = selectedUser;
       else payload.name = name;
 

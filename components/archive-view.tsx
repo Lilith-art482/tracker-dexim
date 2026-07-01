@@ -10,18 +10,24 @@ import {
   Loader2,
 } from "lucide-react";
 import type { Task } from "@/lib/models";
+import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
-export function ArchiveView() {
+interface ArchiveViewProps {
+  boardId: string;
+}
+
+export function ArchiveView({ boardId }: ArchiveViewProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchArchived = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/tasks?archived=true");
+      const uid = auth.currentUser?.uid || "";
+      const res = await fetch(`/api/tasks?archived=true&boardId=${boardId}&uid=${uid}`);
       if (res.ok) {
         const data: Task[] = await res.json();
         setTasks(data);
@@ -31,7 +37,7 @@ export function ArchiveView() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [boardId]);
 
   useEffect(() => {
     fetchArchived();
@@ -42,7 +48,12 @@ export function ArchiveView() {
       const res = await fetch("/api/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: task.id, archived: false }),
+        body: JSON.stringify({ 
+          id: task.id, 
+          boardId,
+          columnId: task.columnId,
+          archived: false 
+        }),
       });
 
       if (!res.ok) {

@@ -20,6 +20,7 @@ export interface Column {
 
 export interface Task {
   id: string;
+  boardId: string;
   columnId: string;
   title: string;
   description: string;
@@ -317,7 +318,7 @@ export async function createTask(
   boardId: string
 ): Promise<Task> {
   const now = new Date().toISOString();
-  const task: Task = { ...data, createdAt: now, updatedAt: now };
+  const task: Task = { ...data, boardId, createdAt: now, updatedAt: now };
   // Сохраняем в подколлекции внутри колонки
   await getAdminDb()
     .collection(COL("BOARDS"))
@@ -342,6 +343,7 @@ export async function updateTask(
       | "assignee"
       | "completed"
       | "columnId"
+      | "boardId"
       | "archived"
     >
   >,

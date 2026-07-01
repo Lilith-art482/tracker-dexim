@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isDatabaseAvailable } from "@/lib/db";
-import { getAllBoards, createBoard, getBoardsByUser, updateBoard, deleteBoard } from "@/lib/models";
+import { getBoardsByUser, createBoard, updateBoard, deleteBoard } from "@/lib/models";
 import { mockBoards } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +17,17 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const uid = url.searchParams.get("uid");
 
+  // uid обязателен для безопасности
+  if (!uid) {
+    return NextResponse.json(
+      { error: "Требуется авторизация" },
+      { status: 401 }
+    );
+  }
+
   if (dbAvailable) {
     try {
-      const boards = uid ? await getBoardsByUser(uid) : await getAllBoards();
+      const boards = await getBoardsByUser(uid);
       return NextResponse.json(boards);
     } catch (error) {
       console.error("Ошибка получения досок:", error);
@@ -30,7 +38,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json(mockBoards);
+  // Static fallback - filter by uid
+  const filtered = mockBoards.filter((b) => b.ownerId === uid || b.members?.includes(uid));
+  return NextResponse.json(filtered);
 }
 
 export async function POST(request: NextRequest) {
