@@ -72,25 +72,18 @@ export default async function RootLayout({
               <SidebarProvider>
                 <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                   <div className="flex h-14 items-center px-4 gap-3">
-                    {/* Логотип */}
+                    {/* Заголовок и переключатель сайдбара слева */}
                     <div className="flex items-center gap-2.5 shrink-0">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                        <Plus className="h-4 w-4" />
-                      </div>
                       <span className="text-base font-semibold tracking-tight">
                         {appName}
                       </span>
+                      <div className="h-5 w-px bg-border/50" />
+                      <SidebarToggle />
                     </div>
 
-                    {/* Разделитель */}
-                    <div className="h-5 w-px bg-border/50" />
-
-                    {/* Кнопка переключения сайдбара */}
-                    <SidebarToggle />
-
-                    {/* Поиск */}
-                    <div className="flex-1 max-w-sm">
-                      <div className="relative">
+                    {/* Поиск по центру */}
+                    <div className="flex-1 flex justify-center">
+                      <div className="relative w-full max-w-sm">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
                         <input
                           type="search"

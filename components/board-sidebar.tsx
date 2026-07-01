@@ -162,17 +162,54 @@ export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
         collapsed ? "w-0 overflow-hidden border-0" : "w-60"
       )}
     >
-      <div className={cn(
-        "flex items-center gap-2 border-b px-4 py-3 transition-opacity duration-300",
-        collapsed ? "opacity-0" : "opacity-100"
-      )}>
+      <div
+        className={cn(
+          "flex items-center gap-2 border-b px-4 py-3 transition-opacity duration-300",
+          collapsed ? "opacity-0" : "opacity-100"
+        )}
+      >
         <LayoutDashboard className="h-4 w-4 text-sidebar-foreground/60" />
         <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
           Доски
         </span>
-        {loading && (
-          <Loader2 className="ml-auto h-3 w-3 animate-spin text-sidebar-foreground/40" />
-        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          {loading && (
+            <Loader2 className="h-3 w-3 animate-spin text-sidebar-foreground/40" />
+          )}
+
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger render={<Button size="sm" variant="ghost" className="gap-2" /> }>
+              <Plus className="h-3.5 w-3.5" />
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingBoardId ? "Редактировать доску" : "Новая доска"}</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-4">
+                <Input
+                  placeholder="Название доски"
+                  value={editingBoardId ? editingBoardName : newBoardName}
+                  onChange={(e) => {
+                    if (editingBoardId) setEditingBoardName(e.target.value);
+                    else setNewBoardName(e.target.value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") (editingBoardId ? handleUpdate() : handleCreate());
+                  }}
+                  autoFocus
+                />
+                <Button
+                  onClick={() => (editingBoardId ? handleUpdate() : handleCreate())}
+                  disabled={creating || (!newBoardName.trim() && !editingBoardName.trim())}
+                >
+                  {(creating || false) && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {editingBoardId ? "Сохранить" : "Создать"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <nav className={cn(
@@ -215,40 +252,8 @@ export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
         "border-t p-2 transition-opacity duration-300",
         collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
       )}>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger
-            render={<Button variant="outline" className="w-full gap-2" />}
-          >
-            <Plus className="h-4 w-4" />
-            Новая доска
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingBoardId ? "Редактировать доску" : "Новая доска"}</DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col gap-4">
-              <Input
-                placeholder="Название доски"
-                value={editingBoardId ? editingBoardName : newBoardName}
-                onChange={(e) => {
-                  if (editingBoardId) setEditingBoardName(e.target.value);
-                  else setNewBoardName(e.target.value);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") (editingBoardId ? handleUpdate() : handleCreate());
-                }}
-                autoFocus
-              />
-              <Button
-                onClick={() => (editingBoardId ? handleUpdate() : handleCreate())}
-                disabled={creating || (!newBoardName.trim() && !editingBoardName.trim())}
-              >
-                {(creating || false) && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editingBoardId ? "Сохранить" : "Создать"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Previously the dialog trigger lived here at the bottom; moved to header for visibility */}
+        <div className="text-xs text-muted-foreground">&nbsp;</div>
       </div>
     </aside>
   );
