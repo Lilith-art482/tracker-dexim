@@ -236,6 +236,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   useEffect(() => {
+    // Полный сброс при смене доски
     setColumns(initialColumns);
     setTasks({});
     setLoadingTasks({});
@@ -248,7 +249,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
     setEditingId(null);
     setEditName("");
     setDeleteId(null);
-  }, [boardId, initialColumns]);
+  }, [boardId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })

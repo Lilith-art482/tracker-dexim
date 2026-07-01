@@ -165,10 +165,58 @@ export async function deleteBoard(id: string): Promise<void> {
   const db = getAdminDb();
   console.log(`[deleteBoard] start deleting board ${id}`);
   
-  // Удаляем доску - Firestore автоматически удалит все подколлекции
+  // 1. Получаем все колонки доски
+  const columnsSnap = await db
+    .collection(COL("BOARDS"))
+    .doc(id)
+    .collection("COLUMNS")
+    .get();
+  
+  // 2. Для каждой колонки удаляем все задачи
+  for (const colDoc of columnsSnap.docs) {
+    const tasksSnap = await db
+      .collection(COL("BOARDS"))
+      .doc(id)
+      .collection("COLUMNS")
+      .doc(colDoc.id)
+      .collection("TASKS")
+      .get();
+    
+    // Удаляем все задачи в колонке
+    for (const taskDoc of tasksSnap.docs) {
+      await db
+        .collection(COL("BOARDS"))
+        .doc(id)
+        .collection("COLUMNS")
+        .doc(colDoc.id)
+        .collection("TASKS")
+        .doc(taskDoc.id)
+        .delete();
+    }
+    
+    // Удаляем саму колонку
+    await db
+      .collection(COL("BOARDS"))
+      .doc(id)
+      .collection("COLUMNS")
+      .doc(colDoc.id)
+      .delete();
+  }
+  
+  // 3. Удаляем документ доски
   await db.collection(COL("BOARDS")).doc(id).delete();
-
-  console.log(`[deleteBoard] board ${id} deleted successfully (including all subcollections)`);
+  
+  // 4. Удаляем участников доски
+  const membersSnap = await db
+    .collection(COL("BOARD_MEMBERS"))
+    .where("boardId", "==", id)
+    .get();
+  
+  for (const memberDoc of membersSnap.docs) {
+    await db.collection(COL("BOARD_MEMBERS")).doc(memberDoc.id).delete();
+  }
+  
+  console.log(`[deleteBoard] board ${id} deleted successfully`);
 }
 
 export async function getColumnsByBoardId(boardId: string): Promise<Column[]> {
