@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
-import { Mail, Lock, User, Key, Loader2, Sparkles } from "lucide-react";
+import { Mail, Lock, User, Key, Loader2 } from "lucide-react";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -168,13 +168,6 @@ export default function AuthPage() {
       {/* Форма */}
       <div className="relative w-full max-w-md">
         <div className="backdrop-blur-2xl bg-[#121814]/70 border border-[#4E6E62]/30 rounded-3xl shadow-2xl p-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          {/* Логотип */}
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#4E6E62] to-[#3D554A] text-white shadow-lg">
-              <Sparkles className="h-7 w-7" />
-            </div>
-          </div>
-
           {/* Переключатель */}
           <div className="flex mb-8 p-1 bg-[#1a2320]/60 rounded-xl border border-[#4E6E62]/20">
             <button

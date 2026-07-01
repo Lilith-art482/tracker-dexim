@@ -15,12 +15,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useSidebar } from "@/lib/sidebar-context";
 
 interface BoardSidebarProps {
   initialBoards: Board[];
 }
 
 export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
+  const { collapsed } = useSidebar();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -90,8 +92,16 @@ export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
   };
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r bg-sidebar">
-      <div className="flex items-center gap-2 border-b px-4 py-3">
+    <aside
+      className={cn(
+        "shrink-0 flex flex-col border-r bg-sidebar transition-all duration-300",
+        collapsed ? "w-0 overflow-hidden border-0" : "w-60"
+      )}
+    >
+      <div className={cn(
+        "flex items-center gap-2 border-b px-4 py-3 transition-opacity duration-300",
+        collapsed ? "opacity-0" : "opacity-100"
+      )}>
         <LayoutDashboard className="h-4 w-4 text-sidebar-foreground/60" />
         <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
           Доски
@@ -101,7 +111,10 @@ export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
         )}
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
+      <nav className={cn(
+        "flex-1 space-y-0.5 overflow-y-auto p-2 transition-opacity duration-300",
+        collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+      )}>
         {boards.map((board) => (
           <button
             key={board.id}
@@ -119,7 +132,10 @@ export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
         ))}
       </nav>
 
-      <div className="border-t p-2">
+      <div className={cn(
+        "border-t p-2 transition-opacity duration-300",
+        collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+      )}>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger
             render={<Button variant="outline" className="w-full gap-2" />}
