@@ -6,6 +6,7 @@ import type { Board, Column, BoardMember } from "@/lib/models";
 import { ColumnManager } from "@/components/column-manager";
 import { ArchiveView } from "@/components/archive-view";
 import { BoardMembersManager } from "@/components/board-members-manager";
+import { PersonalView } from "@/components/personal-view";
 interface TeamOrPersonalViewProps {
   _boards: Board[];
   activeBoard?: Board;
@@ -23,21 +24,19 @@ export function TeamOrPersonalView({
 }: TeamOrPersonalViewProps) {
   const { mode } = useMode();
 
-  // В personal mode показываем личные доски (канбан) как в team
-  // Если доска не выбрана — показываем заглушку
+  if (mode === "personal") {
+    return <PersonalView />;
+  }
+
   if (!activeBoard) {
     return (
       <div className="container mx-auto flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
           <ClipboardList className="h-8 w-8 text-muted-foreground" />
         </div>
-        <h2 className="text-xl font-semibold tracking-tight">
-          {mode === "personal" ? "Нет личных досок" : "Выберите доску"}
-        </h2>
+        <h2 className="text-xl font-semibold tracking-tight">Выберите доску</h2>
         <p className="text-sm text-muted-foreground max-w-md text-center">
-          {mode === "personal"
-            ? "Создайте личную доску в боковом меню, чтобы начать работу."
-            : "Чтобы увидеть задачи, выберите доску в боковом меню или создайте новую."}
+          Чтобы увидеть задачи, выберите доску в боковом меню или создайте новую.
         </p>
       </div>
     );
