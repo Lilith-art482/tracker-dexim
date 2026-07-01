@@ -188,11 +188,13 @@ export function WeeklyTable({
   onSaved,
   onToggleComplete,
   onDelete,
+  compact,
 }: {
   tasks: PersonalTask[];
   onSaved: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
   onDelete: (task: PersonalTask) => void;
+  compact?: boolean;
 }) {
   const [activeTask, setActiveTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -218,9 +220,10 @@ export function WeeklyTable({
     [tasks]
   );
 
-  const handleCellClick = (dayOfWeek: number, timeSlot: string) => {
+  const handleCellClick = (dayOfWeek: number, timeSlot?: string) => {
     setDialogDayOfWeek(dayOfWeek);
-    setDialogStartTime(timeSlot);
+    if (timeSlot) setDialogStartTime(timeSlot);
+    else setDialogStartTime("09:00");
     setEditingTask(null);
     setDialogOpen(true);
   };
@@ -291,6 +294,90 @@ export function WeeklyTable({
     const updated = { ...task, ...fields };
     onSaved(updated);
   };
+
+  if (compact) {
+    return (
+      <div>
+        <div className="grid grid-cols-7 gap-2">
+          {DAYS.map((day, idx) => (
+            <div key={day} className="rounded-md border p-2">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-sm font-semibold text-muted-foreground">{day}</div>
+                <button
+                  onClick={() => handleCellClick(idx)}
+                  className="p-1 rounded bg-emerald-600 text-white hover:bg-emerald-500"
+                  title="Добавить задачу"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="flex flex-col gap-2">
+                {tasks
+                  .filter((t) => t.dayOfWeek === idx && !t.completed)
+                  .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                  .map((task) => (
+                    <div
+                      key={task.id}
+                      onClick={() => handleEditTask(task)}
+                      className={cn(
+                        "cursor-pointer rounded-md border-l-2 px-2 py-1 text-sm",
+                        PRIORITY_COLORS[task.priority]
+                      )}
+                    >
+                      <div className="font-medium">{task.title}</div>
+                      <div className="text-xs text-muted-foreground">{task.startTime.slice(0,5)}–{task.endTime.slice(0,5)}</div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {tasks.some((t) => t.completed) && (
+          <div className="mt-6">
+            <h2 className="mb-3 text-lg font-semibold tracking-tight">Выполненные задачи</h2>
+            <div className="flex flex-wrap gap-2">
+              {tasks
+                .filter((t) => t.completed)
+                .map((task) => (
+                  <button
+                    key={task.id}
+                    onClick={() => onToggleComplete(task)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md border-l-2 px-3 py-1.5 text-sm opacity-70 transition-opacity hover:cursor-pointer hover:opacity-100",
+                      PRIORITY_COLORS[task.priority]
+                    )}
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    <span className="line-through">{task.title}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {DAYS[task.dayOfWeek]} {task.startTime}–{task.endTime}
+                    </span>
+                    <Badge variant={PRIORITY_BADGE[task.priority]} className="text-[10px]">
+                      {PRIORITY_LABELS[task.priority]}
+                    </Badge>
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
+
+        <PersonalTaskDialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) setEditingTask(null);
+          }}
+          defaultDayOfWeek={dialogDayOfWeek}
+          defaultStartTime={dialogStartTime}
+          task={editingTask}
+          onSaved={onSaved}
+          onDelete={onDelete}
+          onToggleComplete={onToggleComplete}
+        />
+      </div>
+    );
+  }
 
   return (
     <DndContext

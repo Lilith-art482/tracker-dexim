@@ -306,6 +306,7 @@ export function PersonalView() {
           onSaved={handleTaskSaved}
           onToggleComplete={handleToggleComplete}
           onDelete={handleDeleteTask}
+          compact
         />
       ) : (
         <div className="flex gap-6">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Loader2, LayoutDashboard } from "lucide-react";
+import { Plus, Loader2, LayoutDashboard, Pencil, Trash } from "lucide-react";
 import { Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,8 @@ export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
+  const [editingBoardName, setEditingBoardName] = useState("");
   const [loading, setLoading] = useState(false);
 
   const activeBoardId = searchParams.get("boardId");
@@ -95,6 +97,64 @@ export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
     }
   };
 
+  const startEdit = (board: Board) => {
+    setEditingBoardId(board.id);
+    setEditingBoardName(board.name);
+    setDialogOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingBoardId) return;
+    const name = editingBoardName.trim();
+    if (!name) return;
+    try {
+      const res = await fetch("/api/boards", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingBoardId, name }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Ошибка обновления доски");
+        return;
+      }
+      const updated: Board = await res.json();
+      setBoards((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+      setEditingBoardId(null);
+      setEditingBoardName("");
+      setDialogOpen(false);
+      toast.success("Доска обновлена");
+    } catch {
+      toast.error("Ошибка обновления доски");
+    }
+  };
+
+  const handleDelete = async (boardId: string) => {
+    if (!confirm("Удалить доску? Это действие необратимо.")) return;
+    try {
+      const res = await fetch("/api/boards", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: boardId }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Ошибка удаления доски");
+        return;
+      }
+      setBoards((prev) => prev.filter((b) => b.id !== boardId));
+      toast.success("Доска удалена");
+      // navigate away if active
+      if (activeBoardId === boardId) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("boardId");
+        router.push(`${pathname}?${params.toString()}`);
+      }
+    } catch {
+      toast.error("Ошибка удаления доски");
+    }
+  };
+
   return (
     <aside
       className={cn(
@@ -120,19 +180,34 @@ export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
         collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
       )}>
         {boards.map((board) => (
-          <button
-            key={board.id}
-            onClick={() => switchBoard(board.id)}
-            className={cn(
-              "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors",
-              activeBoardId === board.id ||
-                (!activeBoardId && boards[0]?.id === board.id)
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-            )}
-          >
-            <span className="truncate">{board.name}</span>
-          </button>
+          <div key={board.id} className="flex items-center gap-2">
+            <button
+              onClick={() => switchBoard(board.id)}
+              className={cn(
+                "flex-1 text-left text-sm rounded-lg px-3 py-2 transition-colors",
+                activeBoardId === board.id ||
+                  (!activeBoardId && boards[0]?.id === board.id)
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              )}
+            >
+              <span className="truncate">{board.name}</span>
+            </button>
+            <button
+              onClick={() => startEdit(board)}
+              className="p-1 rounded hover:bg-muted/20"
+              title="Редактировать"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleDelete(board.id)}
+              className="p-1 rounded hover:bg-muted/20"
+              title="Удалить"
+            >
+              <Trash className="h-4 w-4 text-destructive" />
+            </button>
+          </div>
         ))}
       </nav>
 
@@ -149,24 +224,27 @@ export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Новая доска</DialogTitle>
+              <DialogTitle>{editingBoardId ? "Редактировать доску" : "Новая доска"}</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col gap-4">
               <Input
                 placeholder="Название доски"
-                value={newBoardName}
-                onChange={(e) => setNewBoardName(e.target.value)}
+                value={editingBoardId ? editingBoardName : newBoardName}
+                onChange={(e) => {
+                  if (editingBoardId) setEditingBoardName(e.target.value);
+                  else setNewBoardName(e.target.value);
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCreate();
+                  if (e.key === "Enter") (editingBoardId ? handleUpdate() : handleCreate());
                 }}
                 autoFocus
               />
               <Button
-                onClick={handleCreate}
-                disabled={creating || !newBoardName.trim()}
+                onClick={() => (editingBoardId ? handleUpdate() : handleCreate())}
+                disabled={creating || (!newBoardName.trim() && !editingBoardName.trim())}
               >
-                {creating && <Loader2 className="h-4 w-4 animate-spin" />}
-                Создать
+                {(creating || false) && <Loader2 className="h-4 w-4 animate-spin" />}
+                {editingBoardId ? "Сохранить" : "Создать"}
               </Button>
             </div>
           </DialogContent>

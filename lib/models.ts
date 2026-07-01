@@ -149,6 +149,39 @@ export async function createBoard(
   return board;
 }
 
+export async function updateBoard(
+  id: string,
+  data: Partial<Pick<Board, "name" | "members">>
+): Promise<Board> {
+  await getAdminDb().collection(COL("BOARDS")).doc(id).update({
+    ...data,
+    updatedAt: new Date().toISOString(),
+  });
+  const snap = await getAdminDb().collection(COL("BOARDS")).doc(id).get();
+  return toPlain(snap) as Board;
+}
+
+export async function deleteBoard(id: string): Promise<void> {
+  const db = getAdminDb();
+  // delete board doc
+  await db.collection(COL("BOARDS")).doc(id).delete();
+  // delete columns
+  const cols = await db.collection(COL("COLUMNS")).where("boardId", "==", id).get();
+  for (const c of cols.docs) {
+    await db.collection(COL("COLUMNS")).doc(c.id).delete();
+  }
+  // delete tasks
+  const tasks = await db.collection(COL("TASKS")).where("columnId", "in", cols.docs.map(d=>d.id)).get().catch(()=>({docs:[]} as any));
+  for (const t of tasks.docs || []) {
+    await db.collection(COL("TASKS")).doc(t.id).delete();
+  }
+  // delete board members
+  const members = await db.collection(COL("BOARD_MEMBERS")).where("boardId", "==", id).get();
+  for (const m of members.docs) {
+    await db.collection(COL("BOARD_MEMBERS")).doc(m.id).delete();
+  }
+}
+
 export async function getColumnsByBoardId(boardId: string): Promise<Column[]> {
   const snap = await getAdminDb()
     .collection(COL("COLUMNS"))

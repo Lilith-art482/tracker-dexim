@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isDatabaseAvailable } from "@/lib/db";
-import { getAllBoards, createBoard, getBoardsByUser } from "@/lib/models";
+import { getAllBoards, createBoard, getBoardsByUser, updateBoard, deleteBoard } from "@/lib/models";
 import { mockBoards } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
@@ -73,5 +73,45 @@ export async function POST(request: NextRequest) {
       { error: "Ошибка создания доски" },
       { status: 500 }
     );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const dbAvailable = await isDatabaseAvailable();
+  if (!dbAvailable) {
+    return NextResponse.json({ error: "База данных недоступна" }, { status: 503 });
+  }
+
+  try {
+    const body = await request.json();
+    const { id, name } = body;
+    if (!id || typeof id !== "string") {
+      return NextResponse.json({ error: "id обязателен" }, { status: 400 });
+    }
+    const updated = await updateBoard(id, { name });
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("Ошибка обновления доски:", error);
+    return NextResponse.json({ error: "Ошибка обновления" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const dbAvailable = await isDatabaseAvailable();
+  if (!dbAvailable) {
+    return NextResponse.json({ error: "База данных недоступна" }, { status: 503 });
+  }
+
+  try {
+    const body = await request.json();
+    const { id } = body;
+    if (!id || typeof id !== "string") {
+      return NextResponse.json({ error: "id обязателен" }, { status: 400 });
+    }
+    await deleteBoard(id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Ошибка удаления доски:", error);
+    return NextResponse.json({ error: "Ошибка удаления" }, { status: 500 });
   }
 }
