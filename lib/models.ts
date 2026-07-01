@@ -21,6 +21,7 @@ export interface Column {
 export interface Task {
   id: string;
   columnId: string;
+  boardId: string;
   title: string;
   description: string;
   startDate: string | null;
@@ -175,44 +176,28 @@ export async function deleteBoard(id: string): Promise<void> {
   // delete board doc
   await db.collection(COL("BOARDS")).doc(id).delete();
 
-  // delete columns
+  // delete columns and their tasks
   const cols = await db.collection(COL("COLUMNS")).where("boardId", "==", id).get();
   const columnIds = cols.docs.map((doc) => doc.id);
   console.log(`[deleteBoard] found columns for board ${id}:`, columnIds);
-  await Promise.all(
-    cols.docs.map((c) => db.collection(COL("COLUMNS")).doc(c.id).delete())
-  );
-
-  // delete tasks in chunks of 10 column ids because Firestore 'in' queries are limited
-  if (columnIds.length > 0) {
-    const chunks = chunkArray(columnIds, 10);
-    for (const chunk of chunks) {
-      const tasksSnap = await db
-        .collection(COL("TASKS"))
-        .where("columnId", "in", chunk)
-        .get();
-
-      const taskIds = tasksSnap.docs.map((d) => d.id);
-      console.log(
-        `[deleteBoard] deleting tasks for chunk (${chunk.join(",")}):`,
-        taskIds
-      );
-
-      for (const taskDoc of tasksSnap.docs) {
-        try {
-          await db.collection(COL("TASKS")).doc(taskDoc.id).delete();
-        } catch (e) {
-          console.warn(`[deleteBoard] failed to delete task ${taskDoc.id}:`, e);
-        }
-      }
+  
+  for (const colDoc of cols.docs) {
+    // delete tasks in this column
+    const tasks = await db.collection(COL("TASKS")).where("columnId", "==", colDoc.id).get();
+    for (const taskDoc of tasks.docs) {
+      await db.collection(COL("TASKS")).doc(taskDoc.id).delete();
     }
+    // delete column
+    await db.collection(COL("COLUMNS")).doc(colDoc.id).delete();
   }
-
+  
   // delete board members
   const members = await db.collection(COL("BOARD_MEMBERS")).where("boardId", "==", id).get();
   for (const m of members.docs) {
     await db.collection(COL("BOARD_MEMBERS")).doc(m.id).delete();
   }
+  
+  console.log(`[deleteBoard] board ${id} deleted successfully`);
 }
 
 export async function getColumnsByBoardId(boardId: string): Promise<Column[]> {
@@ -245,7 +230,24 @@ export async function updateColumn(
 }
 
 export async function deleteColumn(id: string): Promise<void> {
-  await getAdminDb().collection(COL("COLUMNS")).doc(id).delete();
+  const db = getAdminDb();
+  
+  // Сначала удаляем все задачи в этой колонке
+  const tasksSnap = await db
+    .collection(COL("TASKS"))
+    .where("columnId", "==", id)
+    .get();
+  
+  for (const taskDoc of tasksSnap.docs) {
+    try {
+      await db.collection(COL("TASKS")).doc(taskDoc.id).delete();
+    } catch (e) {
+      console.warn(`[deleteColumn] failed to delete task ${taskDoc.id}:`, e);
+    }
+  }
+  
+  // Затем удаляем саму колонку
+  await db.collection(COL("COLUMNS")).doc(id).delete();
 }
 export async function getTasksByColumnId(columnId: string): Promise<Task[]> {
   const snap = await getAdminDb()

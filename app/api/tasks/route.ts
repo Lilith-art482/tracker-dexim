@@ -87,9 +87,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Получаем колонку, чтобы узнать boardId
+    const { getColumnsByBoardId } = await import("@/lib/models");
+    const allColumns = await getColumnsByBoardId(parsed.data.boardId || "");
+    const column = allColumns.find((c) => c.id === parsed.data.columnId);
+    
+    if (!column) {
+      return NextResponse.json(
+        { error: "Колонка не найдена" },
+        { status: 404 }
+      );
+    }
+
     const task = await createTask({
       id: crypto.randomUUID(),
       columnId: parsed.data.columnId,
+      boardId: column.boardId,
       title: parsed.data.title.trim(),
       description: parsed.data.description,
       startDate: parsed.data.startDate,
@@ -98,7 +111,7 @@ export async function POST(request: NextRequest) {
       completed: false,
       archived: false,
     });
-    console.log(`[api/tasks POST] created task ${task.id} in column ${task.columnId}`);
+    console.log(`[api/tasks POST] created task ${task.id} in column ${task.columnId}, board ${task.boardId}`);
 
     return NextResponse.json(task, { status: 201 });
   } catch (error) {

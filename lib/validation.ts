@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const createTaskSchema = z.object({
   columnId: z.string().min(1),
+  boardId: z.string().min(1).optional(),
   title: z.string().min(1).max(200),
   description: z.string().max(10_000).optional().default(""),
   startDate: z.string().optional().nullable().default(null),

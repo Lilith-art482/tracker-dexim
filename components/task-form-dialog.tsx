@@ -178,6 +178,7 @@ export function TaskFormDialog({
   const handleSubmit = async () => {
     const parsed = createTaskSchema.safeParse({
       columnId,
+      boardId,
       title,
       description: description || "",
       startDate: startDate || null,
@@ -230,6 +231,7 @@ export function TaskFormDialog({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             columnId,
+            boardId,
             title: parsed.data.title.trim(),
             description: parsed.data.description,
             startDate: parsed.data.startDate,
