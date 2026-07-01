@@ -1,8 +1,6 @@
-"use client";
-
-import { useEffect } from "react";
 import type { Metadata } from "next";
 import "../globals.css";
+import NoChromeClient from "./NoChromeClient";
 
 export const metadata: Metadata = {
   title: "On Track — Вход",
@@ -10,10 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    document.body.classList.add("no-chrome");
-    return () => document.body.classList.remove("no-chrome");
-  }, []);
-
-  return <div className="antialiased min-h-screen dark bg-[#0a0f0d]">{children}</div>;
+  return (
+    <div className="antialiased min-h-screen dark bg-[#0a0f0d]">
+      <NoChromeClient />
+      {children}
+    </div>
+  );
 }
