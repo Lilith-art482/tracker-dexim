@@ -37,6 +37,8 @@ export async function GET(request: NextRequest) {
   }
 
   const columnId = request.nextUrl.searchParams.get("columnId");
+  const boardId = request.nextUrl.searchParams.get("boardId");
+  
   if (!columnId) {
     return NextResponse.json({ error: "columnId обязателен" }, { status: 400 });
   }
@@ -46,8 +48,12 @@ export async function GET(request: NextRequest) {
   if (dbAvailable) {
     try {
       const tasks = await getTasksByColumnId(columnId);
-      console.log(`[api/tasks GET] columnId=${columnId}, found=${tasks.length}`);
-      return NextResponse.json(tasks);
+      // Дополнительная проверка: если указан boardId, фильтруем задачи
+      const filteredTasks = boardId 
+        ? tasks.filter((t) => t.boardId === boardId)
+        : tasks;
+      console.log(`[api/tasks GET] columnId=${columnId}, boardId=${boardId}, found=${filteredTasks.length}`);
+      return NextResponse.json(filteredTasks);
     } catch (error) {
       console.error("Ошибка получения задач:", error);
       return NextResponse.json(
@@ -58,7 +64,7 @@ export async function GET(request: NextRequest) {
   }
 
   const filtered = mockTasks.filter(
-    (t) => t.columnId === columnId && !t.archived
+    (t) => t.columnId === columnId && !t.archived && (!boardId || t.boardId === boardId)
   );
   return NextResponse.json(filtered);
 }
@@ -87,14 +93,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Получаем колонку, чтобы узнать boardId
-    const { getColumnsByBoardId } = await import("@/lib/models");
-    const allColumns = await getColumnsByBoardId(parsed.data.boardId || "");
-    const column = allColumns.find((c) => c.id === parsed.data.columnId);
+    // Получаем boardId из запроса или определяем по колонке
+    let boardId = parsed.data.boardId;
+    if (!boardId) {
+      const { getColumnsByBoardId } = await import("@/lib/models");
+      // Получаем все колонки и ищем нужную
+      // Это неэффективно, но работает для небольших объёмов
+      const allBoards = await import("@/lib/models").then(m => m.getAllBoards());
+      for (const board of allBoards) {
+        const columns = await getColumnsByBoardId(board.id);
+        const column = columns.find((c) => c.id === parsed.data.columnId);
+        if (column) {
+          boardId = board.id;
+          break;
+        }
+      }
+    }
     
-    if (!column) {
+    if (!boardId) {
       return NextResponse.json(
-        { error: "Колонка не найдена" },
+        { error: "Колонка не найдена или не принадлежит ни одной доске" },
         { status: 404 }
       );
     }
@@ -102,7 +120,7 @@ export async function POST(request: NextRequest) {
     const task = await createTask({
       id: crypto.randomUUID(),
       columnId: parsed.data.columnId,
-      boardId: column.boardId,
+      boardId,
       title: parsed.data.title.trim(),
       description: parsed.data.description,
       startDate: parsed.data.startDate,

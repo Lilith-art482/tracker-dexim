@@ -257,7 +257,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
   const fetchTasks = useCallback(async (columnId: string) => {
     setLoadingTasks((prev) => ({ ...prev, [columnId]: true }));
     try {
-      const res = await fetch(`/api/tasks?columnId=${columnId}`);
+      const res = await fetch(`/api/tasks?columnId=${columnId}&boardId=${boardId}`);
       if (res.ok) {
         const data: Task[] = await res.json();
         setTasks((prev) => ({ ...prev, [columnId]: data }));
@@ -267,7 +267,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
     } finally {
       setLoadingTasks((prev) => ({ ...prev, [columnId]: false }));
     }
-  }, []);
+  }, [boardId]);
 
   useEffect(() => {
     for (const col of columns) {
