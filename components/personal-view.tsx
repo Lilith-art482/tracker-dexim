@@ -241,8 +241,8 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "table"
-                  ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground"
               )}
             >
               <Table2 className="h-4 w-4" />
@@ -253,8 +253,8 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "list"
-                  ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground"
               )}
             >
               <LayoutList className="h-4 w-4" />

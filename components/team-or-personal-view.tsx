@@ -31,15 +31,15 @@ export function TeamOrPersonalView({
     return <PersonalView boardId={undefined} />;
   }
 
-  if (!activeBoard) {
+  if (!activeBoard || activeBoard.type !== "team") {
     return (
       <div className="container mx-auto flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
           <ClipboardList className="h-8 w-8 text-muted-foreground" />
         </div>
-        <h2 className="text-xl font-semibold tracking-tight">Выберите доску</h2>
+        <h2 className="text-xl font-semibold tracking-tight">Нет командных досок</h2>
         <p className="text-sm text-muted-foreground max-w-md text-center">
-          Чтобы увидеть задачи, выберите доску в боковом меню или создайте новую.
+          Командные доски пока в разработке.
         </p>
       </div>
     );

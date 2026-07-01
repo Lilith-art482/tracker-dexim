@@ -20,7 +20,7 @@ export function ModeToggle() {
           className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             mode === value
               ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
+              : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground"
           }`}
         >
           <Icon className="h-4 w-4" />

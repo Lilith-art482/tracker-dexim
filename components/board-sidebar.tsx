@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Loader2, LayoutDashboard, Pencil, Trash2, Check, X } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  LayoutDashboard,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  Palette,
+} from "lucide-react";
 import { Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -11,6 +20,22 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useMode } from "@/lib/mode-context";
+
+const BOARD_COLORS = [
+  "#4E6E62",
+  "#8B5CF6",
+  "#EC4899",
+  "#F59E0B",
+  "#10B981",
+  "#3B82F6",
+  "#EF4444",
+  "#14B8A6",
+];
+
+function getBoardColor(id: string, _index: number): string {
+  const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return BOARD_COLORS[hash % BOARD_COLORS.length];
+}
 
 interface BoardSidebarProps {
   initialBoards?: Board[];
@@ -61,11 +86,11 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
   }, [fetchBoards, searchParams, pathname, router]);
 
   const switchBoard = (boardId: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams();
     params.set("boardId", boardId);
     const uid = auth.currentUser?.uid;
     if (uid) params.set("uid", uid);
-    router.push(`${pathname}?${params.toString()}`);
+    router.push(`/?${params.toString()}`);
   };
 
   const handleCreate = async () => {
@@ -144,9 +169,10 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
       setBoards((prev) => prev.filter((b) => b.id !== boardId));
       toast.success("Доска удалена");
       if (activeBoardId === boardId) {
-        const params = new URLSearchParams(searchParams.toString());
-        params.delete("boardId");
-        router.push(`${pathname}?${params.toString()}`);
+        const params = new URLSearchParams();
+        const uid = auth.currentUser?.uid;
+        if (uid) params.set("uid", uid);
+        router.push(`/?${params.toString()}`);
       }
     } catch {
       toast.error("Ошибка удаления доски");
@@ -154,6 +180,9 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
       setDeletingId(null);
     }
   };
+
+  const isActive = (id: string, i: number) =>
+    activeBoardId === id || (!activeBoardId && i === 0);
 
   return (
     <aside
@@ -165,13 +194,13 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
       {/* Header */}
       <div
         className={cn(
-          "flex items-center gap-2 border-b px-4 py-3 transition-opacity duration-300",
+          "flex items-center gap-2.5 px-4 h-12 border-b transition-opacity duration-300",
           collapsed ? "opacity-0" : "opacity-100"
         )}
       >
         <LayoutDashboard className="h-4 w-4 text-sidebar-foreground/60" />
         <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-          Доски
+          {mode === "personal" ? "Личные доски" : "Командные доски"}
         </span>
         {loading && (
           <Loader2 className="ml-auto h-3 w-3 animate-spin text-sidebar-foreground/40" />
@@ -179,117 +208,141 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
       </div>
 
       {/* Board list */}
-      <nav className={cn(
-        "flex-1 overflow-y-auto py-2 transition-opacity duration-300",
-        collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
-      )}>
-        <div className="space-y-0.5 px-2">
+      <nav
+        className={cn(
+          "flex-1 overflow-y-auto py-3 transition-opacity duration-300",
+          collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+        )}
+      >
+        <div className="flex flex-col gap-1 px-2">
           {boards.length === 0 && !loading && (
-            <div className="px-3 py-6 text-center">
+            <div className="px-3 py-8 text-center">
+              <Palette className="h-8 w-8 mx-auto mb-2 text-sidebar-foreground/20" />
               <p className="text-xs text-sidebar-foreground/40">
                 {mode === "personal"
-                  ? "Нет личных досок"
-                  : "Нет командных досок"}
+                  ? "Создайте первую личную доску"
+                  : "Командные доски пока не созданы"}
               </p>
             </div>
           )}
 
-          {boards.map((board, i) => (
-            <div key={board.id}>
-              {i > 0 && (
-                <div className="my-1 mx-3 border-t border-sidebar-border/50" />
-              )}
-              <div className="group relative flex items-center gap-1.5 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent/50">
-                {/* Active indicator */}
-                {(activeBoardId === board.id || (!activeBoardId && i === 0)) && (
-                  <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-primary" />
-                )}
+          {boards.map((board, i) => {
+            const color = getBoardColor(board.id, i);
+            const active = isActive(board.id, i);
 
-                {editingId === board.id ? (
-                  <div className="flex flex-1 items-center gap-1">
-                    <Input
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleRename();
-                        if (e.key === "Escape") setEditingId(null);
-                      }}
-                      onBlur={handleRename}
-                      className="h-7 text-sm"
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleRename}
-                      className="p-0.5 rounded hover:bg-sidebar-accent shrink-0"
-                    >
-                      <Check className="h-3.5 w-3.5 text-emerald-500" />
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="p-0.5 rounded hover:bg-sidebar-accent shrink-0"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => switchBoard(board.id)}
-                      className={cn(
-                        "flex-1 text-left text-sm truncate transition-colors",
-                        activeBoardId === board.id || (!activeBoardId && i === 0)
-                          ? "font-semibold text-sidebar-foreground"
-                          : "text-sidebar-foreground/70 hover:text-sidebar-foreground"
-                      )}
-                    >
-                      {board.name}
-                    </button>
+            return (
+              <div key={board.id}>
+                {i > 0 && <div className="mx-3 my-1 border-t border-sidebar-border/30" />}
 
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div
+                  className={cn(
+                    "group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200",
+                    active
+                      ? "bg-sidebar-accent shadow-sm"
+                      : "hover:bg-sidebar-accent/50"
+                  )}
+                >
+                  {/* Color dot */}
+                  <div
+                    className={cn(
+                      "h-2.5 w-2.5 rounded-full shrink-0 ring-1 ring-black/5",
+                      active && "ring-2 ring-offset-1 ring-offset-sidebar-accent"
+                    )}
+                    style={{ backgroundColor: color }}
+                  />
+
+                  {editingId === board.id ? (
+                    <div className="flex flex-1 items-center gap-1 min-w-0">
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleRename();
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                        onBlur={handleRename}
+                        className="h-7 text-sm"
+                        autoFocus
+                      />
                       <button
-                        onClick={() => startEdit(board)}
-                        className="p-1 rounded hover:bg-sidebar-accent"
-                        title="Переименовать"
+                        onClick={handleRename}
+                        className="p-0.5 rounded hover:bg-sidebar-accent shrink-0"
                       >
-                        <Pencil className="h-3.5 w-3.5 text-sidebar-foreground/50" />
+                        <Check className="h-3.5 w-3.5 text-emerald-500" />
                       </button>
                       <button
-                        onClick={() => {
-                          toast("Удалить доску?", {
-                            action: {
-                              label: "Удалить",
-                              onClick: () => handleDelete(board.id),
-                            },
-                            cancel: {
-                              label: "Отмена",
-                              onClick: () => {},
-                            },
-                          });
-                        }}
-                        disabled={deletingId === board.id}
-                        className="p-1 rounded hover:bg-sidebar-accent"
-                        title="Удалить"
+                        onClick={() => setEditingId(null)}
+                        className="p-0.5 rounded hover:bg-sidebar-accent shrink-0"
                       >
-                        {deletingId === board.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-destructive" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5 text-destructive/60 hover:text-destructive" />
-                        )}
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => switchBoard(board.id)}
+                        className="flex-1 text-left truncate"
+                      >
+                        <span
+                          className={cn(
+                            "text-sm transition-colors",
+                            active
+                              ? "font-semibold text-sidebar-foreground"
+                              : "text-sidebar-foreground/70 group-hover:text-sidebar-foreground"
+                          )}
+                        >
+                          {board.name}
+                        </span>
+                      </button>
+
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => startEdit(board)}
+                          className="flex items-center justify-center h-7 w-7 rounded-md hover:bg-sidebar-accent"
+                          title="Переименовать"
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-sidebar-foreground/40" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            toast("Удалить доску?", {
+                              action: {
+                                label: "Удалить",
+                                onClick: () => handleDelete(board.id),
+                              },
+                              cancel: {
+                                label: "Отмена",
+                                onClick: () => {},
+                              },
+                            });
+                          }}
+                          disabled={deletingId === board.id}
+                          className="flex items-center justify-center h-7 w-7 rounded-md hover:bg-sidebar-accent"
+                          title="Удалить"
+                        >
+                          {deletingId === board.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-destructive" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5 text-destructive/50 hover:text-destructive" />
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </nav>
 
       {/* Create button at bottom */}
-      <div className={cn(
-        "border-t p-3 transition-opacity duration-300",
-        collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
-      )}>
+      <div
+        className={cn(
+          "border-t p-3 transition-opacity duration-300",
+          collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+        )}
+      >
         {creating ? (
           <div className="flex items-center gap-1">
             <Input
@@ -331,7 +384,7 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
           <Button
             variant="default"
             size="sm"
-            className="w-full gap-2"
+            className="w-full gap-2 shadow-sm"
             onClick={() => setCreating(true)}
           >
             <Plus className="h-4 w-4" />
