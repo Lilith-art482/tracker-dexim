@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
-import { User, Search, Plus } from "lucide-react";
+import { User, Search } from "lucide-react";
 import { ThemeProvider } from "next-themes";
 import { BridgeProvider } from "@/components/bridge-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -78,11 +78,6 @@ export default async function RootLayout({
 
                     {/* Правая часть */}
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <button className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-                        <Plus className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">Создать</span>
-                      </button>
-
                       <ModeToggle />
 
                       <div className="h-5 w-px bg-border/50 mx-1" />

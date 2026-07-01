@@ -47,7 +47,9 @@ function getMonday(d: Date): Date {
 }
 
 function formatDate(date: Date): string {
-  return `${date.getDate()} ${MONTH_NAMES[date.getMonth()].toLowerCase().slice(0, 4)}`;
+  const day = date.getDate();
+  const month = MONTH_NAMES[date.getMonth()].toLowerCase().slice(0, 4);
+  return `${day} ${month}`;
 }
 
 function getWeekDates(weekOffset: number): Date[] {
@@ -305,18 +307,18 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
               className={cn(
                 "flex flex-1 flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-xs transition-colors",
                 isSelected
-                  ? "bg-emerald-500/10 text-emerald-600 font-semibold"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
                   : "text-muted-foreground hover:bg-accent",
-                isToday && !isSelected && "ring-1 ring-emerald-500/30"
+                isToday && !isSelected && "ring-1 ring-primary/30"
               )}
             >
-              <span className="text-[11px] uppercase tracking-wider">
+              <span className={cn(
+                "text-[11px] uppercase tracking-wider",
+                isSelected && "text-primary-foreground/80"
+              )}>
                 {DAY_NAMES[idx]}
               </span>
-              <span className="text-sm font-medium">{date.getDate()}</span>
-              <span className="text-[10px] text-muted-foreground/60">
-                {formatDate(date)}
-              </span>
+              <span className="text-sm font-medium">{formatDate(date)}</span>
             </button>
           );
         })}
@@ -357,6 +359,7 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
           if (!open) setEditingTask(null);
         }}
         boardId={boardId ?? ""}
+        defaultDayOfWeek={selectedDay}
         task={editingTask}
         onSaved={handleTaskSaved}
         onDelete={handleDeleteTask}

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
-import { Button } from "@/components/ui/button";
+
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -32,9 +32,16 @@ const BOARD_COLORS = [
   "#14B8A6",
 ];
 
-function getBoardColor(id: string, _index: number): string {
+function getColorPref(id: string): string {
+  if (typeof window === "undefined") return BOARD_COLORS[0];
+  const stored = localStorage.getItem(`board_color_${id}`);
+  if (stored) return stored;
   const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
   return BOARD_COLORS[hash % BOARD_COLORS.length];
+}
+
+function setColorPref(id: string, color: string) {
+  localStorage.setItem(`board_color_${id}`, color);
 }
 
 interface BoardSidebarProps {
@@ -54,6 +61,7 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [colorPickerId, setColorPickerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const activeBoardId = searchParams.get("boardId");
@@ -96,7 +104,7 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
   const handleCreate = async () => {
     const name = newBoardName.trim();
     if (!name) return;
-    setCreating(true);
+    setCreating(false);
     try {
       const ownerId = auth.currentUser?.uid || null;
       const res = await fetch("/api/boards", {
@@ -112,18 +120,17 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
       const newBoard: Board = await res.json();
       setBoards((prev) => [...prev, newBoard]);
       setNewBoardName("");
-      setCreating(false);
       toast.success("Доска создана");
       switchBoard(newBoard.id);
     } catch {
       toast.error("Ошибка создания доски");
-      setCreating(false);
     }
   };
 
   const startEdit = (board: Board) => {
     setEditingId(board.id);
     setEditName(board.name);
+    setColorPickerId(null);
   };
 
   const handleRename = async () => {
@@ -181,6 +188,11 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
     }
   };
 
+  const handleColorChange = (boardId: string, color: string) => {
+    setColorPref(boardId, color);
+    setColorPickerId(null);
+  };
+
   const isActive = (id: string, i: number) =>
     activeBoardId === id || (!activeBoardId && i === 0);
 
@@ -191,19 +203,63 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
         collapsed ? "w-0 overflow-hidden border-0" : "w-60"
       )}
     >
-      {/* Header */}
+      {/* Header with inline create input */}
       <div
         className={cn(
           "flex items-center gap-2.5 px-4 h-12 border-b transition-opacity duration-300",
           collapsed ? "opacity-0" : "opacity-100"
         )}
       >
-        <LayoutDashboard className="h-4 w-4 text-sidebar-foreground/60" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-          {mode === "personal" ? "Личные доски" : "Командные доски"}
-        </span>
-        {loading && (
-          <Loader2 className="ml-auto h-3 w-3 animate-spin text-sidebar-foreground/40" />
+        {creating ? (
+          <div className="flex flex-1 items-center gap-1">
+            <Input
+              placeholder="Название доски"
+              value={newBoardName}
+              onChange={(e) => setNewBoardName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCreate();
+                if (e.key === "Escape") {
+                  setCreating(false);
+                  setNewBoardName("");
+                }
+              }}
+              className="h-7 text-sm"
+              autoFocus
+            />
+            <button
+              onClick={handleCreate}
+              disabled={!newBoardName.trim()}
+              className="p-0.5 rounded hover:bg-sidebar-accent shrink-0"
+            >
+              <Check className="h-4 w-4 text-emerald-500" />
+            </button>
+            <button
+              onClick={() => {
+                setCreating(false);
+                setNewBoardName("");
+              }}
+              className="p-0.5 rounded hover:bg-sidebar-accent shrink-0"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <LayoutDashboard className="h-4 w-4 text-sidebar-foreground/60 shrink-0" />
+            <span className="flex-1 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60 truncate">
+              {mode === "personal" ? "Личные доски" : "Командные доски"}
+            </span>
+            <button
+              onClick={() => setCreating(true)}
+              className="flex items-center justify-center h-7 w-7 rounded-md hover:bg-sidebar-accent transition-colors"
+              title="Создать доску"
+            >
+              <Plus className="h-4 w-4 text-sidebar-foreground/60" />
+            </button>
+            {loading && (
+              <Loader2 className="h-3 w-3 animate-spin text-sidebar-foreground/40 shrink-0" />
+            )}
+          </>
         )}
       </div>
 
@@ -227,8 +283,9 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
           )}
 
           {boards.map((board, i) => {
-            const color = getBoardColor(board.id, i);
+            const color = getColorPref(board.id);
             const active = isActive(board.id, i);
+            const showColorPicker = colorPickerId === board.id;
 
             return (
               <div key={board.id}>
@@ -242,14 +299,43 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
                       : "hover:bg-sidebar-accent/50"
                   )}
                 >
-                  {/* Color dot */}
-                  <div
-                    className={cn(
-                      "h-2.5 w-2.5 rounded-full shrink-0 ring-1 ring-black/5",
-                      active && "ring-2 ring-offset-1 ring-offset-sidebar-accent"
+                  {/* Color dot with picker */}
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setColorPickerId(showColorPicker ? null : board.id);
+                      }}
+                      className={cn(
+                        "h-2.5 w-2.5 rounded-full ring-1 ring-black/5 transition-transform hover:scale-125",
+                        active && "ring-2 ring-offset-1 ring-offset-sidebar-accent"
+                      )}
+                      style={{ backgroundColor: color }}
+                      title="Сменить цвет"
+                    />
+
+                    {showColorPicker && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setColorPickerId(null)}
+                        />
+                        <div className="absolute left-0 top-full mt-1.5 z-20 flex gap-1 p-1.5 rounded-lg border bg-popover shadow-lg">
+                          {BOARD_COLORS.map((c) => (
+                            <button
+                              key={c}
+                              onClick={() => handleColorChange(board.id, c)}
+                              className={cn(
+                                "h-5 w-5 rounded-full transition-transform hover:scale-125",
+                                color === c && "ring-2 ring-primary ring-offset-1 ring-offset-popover"
+                              )}
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+                        </div>
+                      </>
                     )}
-                    style={{ backgroundColor: color }}
-                  />
+                  </div>
 
                   {editingId === board.id ? (
                     <div className="flex flex-1 items-center gap-1 min-w-0">
@@ -335,63 +421,6 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
           })}
         </div>
       </nav>
-
-      {/* Create button at bottom */}
-      <div
-        className={cn(
-          "border-t p-3 transition-opacity duration-300",
-          collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
-        )}
-      >
-        {creating ? (
-          <div className="flex items-center gap-1">
-            <Input
-              placeholder="Название доски"
-              value={newBoardName}
-              onChange={(e) => setNewBoardName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleCreate();
-                if (e.key === "Escape") {
-                  setCreating(false);
-                  setNewBoardName("");
-                }
-              }}
-              className="h-8 text-sm"
-              autoFocus
-            />
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={handleCreate}
-              disabled={!newBoardName.trim()}
-              className="h-8 w-8 shrink-0"
-            >
-              <Check className="h-4 w-4 text-emerald-500" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => {
-                setCreating(false);
-                setNewBoardName("");
-              }}
-              className="h-8 w-8 shrink-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <Button
-            variant="default"
-            size="sm"
-            className="w-full gap-2 shadow-sm"
-            onClick={() => setCreating(true)}
-          >
-            <Plus className="h-4 w-4" />
-            Создать доску
-          </Button>
-        )}
-      </div>
     </aside>
   );
 }
