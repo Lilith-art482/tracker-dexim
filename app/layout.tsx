@@ -15,10 +15,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ModeProvider } from "@/lib/mode-context";
 import { SidebarProvider } from "@/lib/sidebar-context";
-import { isDatabaseAvailable } from "@/lib/db";
-import { getAllBoards } from "@/lib/models";
-import { mockBoards } from "@/lib/mock-data";
-import type { Board } from "@/lib/models";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -29,18 +25,6 @@ export const metadata: Metadata = {
   description: appName,
 };
 
-async function getBoards(): Promise<Board[]> {
-  const dbAvailable = await isDatabaseAvailable();
-  if (dbAvailable) {
-    try {
-      return await getAllBoards();
-    } catch {
-      return mockBoards;
-    }
-  }
-  return mockBoards;
-}
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -49,7 +33,6 @@ export default async function RootLayout({
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
   const isAuthPage = pathname.startsWith("/auth");
-  const boards = await getBoards();
 
   return (
     <html
@@ -133,7 +116,7 @@ export default async function RootLayout({
                       </aside>
                     }
                   >
-                    <BoardSidebar initialBoards={boards} />
+                    <BoardSidebar />
                   </Suspense>
                   <main className="flex-1">{children}</main>
                 </div>

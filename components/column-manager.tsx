@@ -230,11 +230,25 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
 
   const [tasks, setTasks] = useState<Record<string, Task[]>>({});
   const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({});
-
   const [formOpen, setFormOpen] = useState(false);
   const [formColumnId, setFormColumnId] = useState<string>("");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+  useEffect(() => {
+    setColumns(initialColumns);
+    setTasks({});
+    setLoadingTasks({});
+    setFormColumnId("");
+    setEditingTask(null);
+    setFormOpen(false);
+    setActiveTask(null);
+    setAdding(false);
+    setNewColumnName("");
+    setEditingId(null);
+    setEditName("");
+    setDeleteId(null);
+  }, [boardId, initialColumns]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })

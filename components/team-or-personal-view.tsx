@@ -110,10 +110,18 @@ function TeamView({
           <p className="text-sm text-muted-foreground">
             В этой доске пока нет колонок
           </p>
-          <ColumnManager boardId={activeBoard.id} initialColumns={columns} />
+          <ColumnManager
+            key={activeBoard.id}
+            boardId={activeBoard.id}
+            initialColumns={columns}
+          />
         </div>
       ) : (
-        <ColumnManager boardId={activeBoard.id} initialColumns={columns} />
+        <ColumnManager
+          key={activeBoard.id}
+          boardId={activeBoard.id}
+          initialColumns={columns}
+        />
       )}
     </div>
   );

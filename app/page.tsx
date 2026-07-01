@@ -53,7 +53,7 @@ export default async function HomePage({
     boards = mockBoards;
   }
 
-  const activeBoard = boards.find((b) => b.id === boardId) || boards[0];
+  const activeBoard = boardId ? boards.find((b) => b.id === boardId) : undefined;
 
   if (!activeBoard) {
     return (
@@ -62,9 +62,9 @@ export default async function HomePage({
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
             <ClipboardList className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h2 className="text-xl font-semibold tracking-tight">Нет досок</h2>
-          <p className="text-sm text-muted-foreground">
-            Создайте первую доску в боковой панели
+          <h2 className="text-xl font-semibold tracking-tight">Выберите доску</h2>
+          <p className="text-sm text-muted-foreground max-w-md text-center">
+            Чтобы увидеть задачи, выберите доску в боковом меню или создайте новую.
           </p>
         </div>
       </HomeContent>

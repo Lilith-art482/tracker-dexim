@@ -19,10 +19,10 @@ import { toast } from "sonner";
 import { useSidebar } from "@/lib/sidebar-context";
 
 interface BoardSidebarProps {
-  initialBoards: Board[];
+  initialBoards?: Board[];
 }
 
-export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
+export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   const { collapsed } = useSidebar();
   const searchParams = useSearchParams();
   const router = useRouter();
