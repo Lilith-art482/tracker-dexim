@@ -28,6 +28,7 @@ import { auth } from "@/lib/firebase";
 interface PersonalTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  boardId: string;
   defaultDayOfWeek?: number;
   defaultStartTime?: string;
   task?: PersonalTask | null;
@@ -35,6 +36,8 @@ interface PersonalTaskDialogProps {
   onDelete?: (task: PersonalTask) => void;
   onToggleComplete?: (task: PersonalTask) => void;
 }
+
+
 
 const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -47,6 +50,7 @@ const PRIORITY_LABELS: Record<Priority, string> = {
 export function PersonalTaskDialog({
   open,
   onOpenChange,
+  boardId,
   defaultDayOfWeek = 0,
   defaultStartTime = "09:00",
   task,
@@ -138,6 +142,7 @@ export function PersonalTaskDialog({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            boardId,
             title: title.trim(),
             dayOfWeek,
             startTime,

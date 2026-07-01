@@ -61,6 +61,7 @@ export type Priority = "low" | "medium" | "high";
 
 export interface PersonalTask {
   id: string;
+  boardId: string;
   dayOfWeek: number;
   startTime: string;
   endTime: string;

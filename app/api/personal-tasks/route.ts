@@ -19,11 +19,13 @@ export async function GET(request: NextRequest) {
   const dbAvailable = await isDatabaseAvailable();
   const url = new URL(request.url);
   const uid = url.searchParams.get("uid");
+  const boardId = url.searchParams.get("boardId");
   if (dbAvailable) {
     try {
       if (!uid) return NextResponse.json([]);
       const tasks = await getPersonalTasksByOwner(uid);
-      return NextResponse.json(tasks);
+      const filtered = boardId ? tasks.filter((t) => t.boardId === boardId) : tasks;
+      return NextResponse.json(filtered);
     } catch {
       return NextResponse.json([]);
     }
@@ -31,7 +33,9 @@ export async function GET(request: NextRequest) {
 
   // in static/mock mode, require uid to avoid exposing all personal tasks
   if (!uid) return NextResponse.json([]);
-  const filtered = mockPersonalTasks.filter((t) => t.ownerId === uid || !t.ownerId);
+  const filtered = mockPersonalTasks.filter(
+    (t) => (t.ownerId === uid || !t.ownerId) && (!boardId || t.boardId === boardId)
+  );
   return NextResponse.json(filtered);
 }
 

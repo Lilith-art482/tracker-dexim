@@ -25,7 +25,10 @@ export function TeamOrPersonalView({
   const { mode } = useMode();
 
   if (mode === "personal") {
-    return <PersonalView />;
+    if (activeBoard && activeBoard.type === "personal") {
+      return <PersonalView boardId={activeBoard.id} boardName={activeBoard.name} />;
+    }
+    return <PersonalView boardId={undefined} />;
   }
 
   if (!activeBoard) {

@@ -60,7 +60,12 @@ function getWeekDates(weekOffset: number): Date[] {
   });
 }
 
-export function PersonalView() {
+interface PersonalViewProps {
+  boardId?: string;
+  boardName?: string;
+}
+
+export function PersonalView({ boardId, boardName }: PersonalViewProps) {
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const today = new Date().getDay();
@@ -89,16 +94,20 @@ export function PersonalView() {
       setLoading(true);
       try {
         const uid = auth.currentUser?.uid;
-        const url = uid ? `/api/personal-tasks?uid=${uid}` : "/api/personal-tasks";
-        const res = await fetch(url);
+        if (!uid || !boardId) {
+          if (!cancelled) setTasks([]);
+          if (!cancelled) setLoading(false);
+          return;
+        }
+        const res = await fetch(`/api/personal-tasks?uid=${uid}&boardId=${boardId}`);
         if (res.ok) {
           const data: PersonalTask[] = await res.json();
           if (!cancelled) setTasks(data);
         } else {
-          if (!cancelled) setTasks(mockPersonalTasks);
+          if (!cancelled) setTasks(mockPersonalTasks.filter((t) => t.boardId === boardId));
         }
       } catch {
-        if (!cancelled) setTasks(mockPersonalTasks);
+        if (!cancelled) setTasks(mockPersonalTasks.filter((t) => t.boardId === boardId));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -107,7 +116,7 @@ export function PersonalView() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [boardId]);
 
   const handleTaskSaved = useCallback((task: PersonalTask) => {
     setTasks((prev) => {
@@ -182,6 +191,20 @@ export function PersonalView() {
     setDialogOpen(true);
   }, []);
 
+  if (!boardId) {
+    return (
+      <div className="container mx-auto flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+          <LayoutList className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h2 className="text-xl font-semibold tracking-tight">Нет досок</h2>
+        <p className="text-sm text-muted-foreground max-w-md text-center">
+          Создайте доску в боковом меню, чтобы добавить задачи в расписание.
+        </p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -198,7 +221,7 @@ export function PersonalView() {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Личное расписание
+            {boardName || "Личное расписание"}
           </h1>
           <p className="text-sm text-muted-foreground">{currentMonthLabel}</p>
         </div>
@@ -306,6 +329,7 @@ export function PersonalView() {
           onSaved={handleTaskSaved}
           onToggleComplete={handleToggleComplete}
           onDelete={handleDeleteTask}
+          boardId={boardId}
           compact
         />
       ) : (
@@ -331,6 +355,7 @@ export function PersonalView() {
           setDialogOpen(open);
           if (!open) setEditingTask(null);
         }}
+        boardId={boardId ?? ""}
         task={editingTask}
         onSaved={handleTaskSaved}
         onDelete={handleDeleteTask}

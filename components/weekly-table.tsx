@@ -189,12 +189,14 @@ export function WeeklyTable({
   onToggleComplete,
   onDelete,
   compact,
+  boardId,
 }: {
   tasks: PersonalTask[];
   onSaved: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
   onDelete: (task: PersonalTask) => void;
   compact?: boolean;
+  boardId?: string;
 }) {
   const [activeTask, setActiveTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -366,6 +368,7 @@ export function WeeklyTable({
             setDialogOpen(open);
             if (!open) setEditingTask(null);
           }}
+          boardId={boardId ?? ""}
           defaultDayOfWeek={dialogDayOfWeek}
           defaultStartTime={dialogStartTime}
           task={editingTask}
@@ -482,6 +485,7 @@ export function WeeklyTable({
           setDialogOpen(open);
           if (!open) setEditingTask(null);
         }}
+        boardId={boardId ?? ""}
         defaultDayOfWeek={dialogDayOfWeek}
         defaultStartTime={dialogStartTime}
         task={editingTask}
