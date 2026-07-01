@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus, Loader2, LayoutDashboard } from "lucide-react";
 import { Board } from "@/lib/models";
+import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,7 +39,9 @@ export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
   const fetchBoards = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/boards");
+      const uid = auth.currentUser?.uid;
+      const url = uid ? `/api/boards?uid=${uid}` : "/api/boards";
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setBoards(data);
@@ -66,10 +69,11 @@ export function BoardSidebar({ initialBoards }: BoardSidebarProps) {
 
     setCreating(true);
     try {
+      const ownerId = auth.currentUser?.uid || null;
       const res = await fetch("/api/boards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, ownerId }),
       });
 
       if (!res.ok) {

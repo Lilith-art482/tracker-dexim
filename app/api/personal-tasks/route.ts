@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isDatabaseAvailable } from "@/lib/db";
 import {
   getAllPersonalTasks,
+  getPersonalTasksByOwner,
   createPersonalTask,
   updatePersonalTask,
   deletePersonalTask,
@@ -15,21 +16,26 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const dbAvailable = await isDatabaseAvailable();
+  const url = new URL(request.url);
+  const uid = url.searchParams.get("uid");
+
   if (dbAvailable) {
     try {
-      const tasks = await getAllPersonalTasks();
+      const tasks = uid ? await getPersonalTasksByOwner(uid) : await getAllPersonalTasks();
       return NextResponse.json(tasks);
     } catch {
       return NextResponse.json(mockPersonalTasks);
     }
   }
+
   return NextResponse.json(mockPersonalTasks);
 }
 
 export async function POST(request: NextRequest) {
-  const parsed = createPersonalTaskSchema.safeParse(await request.json());
+  const body = await request.json();
+  const parsed = createPersonalTaskSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Некорректные данные", details: parsed.error.flatten() },
@@ -46,10 +52,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const ownerId = parsed.success ? parsed.data.ownerId || body.ownerId || null : body.ownerId || null;
     const task = await createPersonalTask({
       id: crypto.randomUUID(),
       ...parsed.data,
       completed: false,
+      ownerId: ownerId || undefined,
     });
     return NextResponse.json(task, { status: 201 });
   } catch {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isDatabaseAvailable } from "@/lib/db";
-import { getAllBoards, createBoard } from "@/lib/models";
+import { getAllBoards, createBoard, getBoardsByUser } from "@/lib/models";
 import { mockBoards } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
@@ -11,12 +11,15 @@ const createBoardSchema = z.object({
   name: z.string().min(1).max(200),
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const dbAvailable = await isDatabaseAvailable();
+
+  const url = new URL(request.url);
+  const uid = url.searchParams.get("uid");
 
   if (dbAvailable) {
     try {
-      const boards = await getAllBoards();
+      const boards = uid ? await getBoardsByUser(uid) : await getAllBoards();
       return NextResponse.json(boards);
     } catch (error) {
       console.error("Ошибка получения досок:", error);
@@ -54,9 +57,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+
+    const ownerId = body.ownerId || null;
     const board = await createBoard({
       id: crypto.randomUUID(),
       name: parsed.data.name,
+      ownerId: ownerId || undefined,
+      members: ownerId ? [ownerId] : [],
     });
 
     return NextResponse.json(board, { status: 201 });

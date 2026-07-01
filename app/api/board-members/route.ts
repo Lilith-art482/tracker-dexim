@@ -13,7 +13,8 @@ export const runtime = "nodejs";
 
 const createBoardMemberSchema = z.object({
   boardId: z.string().min(1),
-  name: z.string().min(1).max(200),
+  name: z.string().min(1).max(200).optional(),
+  userId: z.string().min(1).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -68,7 +69,8 @@ export async function POST(request: NextRequest) {
     const member = await createBoardMember({
       id: crypto.randomUUID(),
       boardId: parsed.data.boardId,
-      name: parsed.data.name,
+      name: parsed.data.name || "",
+      userId: parsed.data.userId,
     });
 
     return NextResponse.json(member, { status: 201 });

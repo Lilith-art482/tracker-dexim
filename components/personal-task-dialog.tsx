@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { auth } from "@/lib/firebase";
 
 interface PersonalTaskDialogProps {
   open: boolean;
@@ -132,6 +133,7 @@ export function PersonalTaskDialog({
         onSaved(updated);
         toast.success("Задача обновлена");
       } else {
+        const ownerId = auth.currentUser?.uid || null;
         const res = await fetch("/api/personal-tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -142,6 +144,7 @@ export function PersonalTaskDialog({
             endTime,
             priority,
             comment: comment.trim() || undefined,
+            ownerId: ownerId || undefined,
           }),
         });
 

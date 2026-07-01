@@ -5,6 +5,8 @@ export interface Board {
   name: string;
   createdAt: string;
   updatedAt: string;
+  ownerId?: string;
+  members?: string[];
 }
 
 export interface Column {
@@ -42,6 +44,7 @@ export interface BoardMember {
   id: string;
   boardId: string;
   name: string;
+  userId?: string;
   createdAt: string;
 }
 
@@ -58,6 +61,7 @@ export interface PersonalTask {
   comment?: string;
   createdAt: string;
   updatedAt: string;
+  ownerId?: string;
 }
 
 export interface Service {
@@ -125,11 +129,22 @@ export async function getAllBoards(): Promise<Board[]> {
   return snap.docs.map((d) => toPlain(d) as Board);
 }
 
+export async function getBoardsByUser(uid: string): Promise<Board[]> {
+  // Boards where user is owner or listed in members array
+  const db = getAdminDb();
+  const ownerSnap = await db.collection(COL("BOARDS")).where("ownerId", "==", uid).get();
+  const memberSnap = await db.collection(COL("BOARDS")).where("members", "array-contains", uid).get();
+  const boardsMap = new Map<string, Board>();
+  ownerSnap.docs.forEach((d) => boardsMap.set(d.id, toPlain(d) as Board));
+  memberSnap.docs.forEach((d) => boardsMap.set(d.id, toPlain(d) as Board));
+  return Array.from(boardsMap.values());
+}
+
 export async function createBoard(
   data: Omit<Board, "createdAt" | "updatedAt">
 ): Promise<Board> {
   const now = new Date().toISOString();
-  const board: Board = { ...data, createdAt: now, updatedAt: now };
+  const board: Board = { ...data, createdAt: now, updatedAt: now, members: data.members || [] };
   await getAdminDb().collection(COL("BOARDS")).doc(board.id).set(board);
   return board;
 }
@@ -262,6 +277,14 @@ export async function deleteBoardMember(id: string): Promise<void> {
 
 export async function getAllPersonalTasks(): Promise<PersonalTask[]> {
   const snap = await getAdminDb().collection(COL("PERSONAL_TASKS")).get();
+  return snap.docs.map((d) => toPlain(d) as PersonalTask);
+}
+
+export async function getPersonalTasksByOwner(ownerId: string): Promise<PersonalTask[]> {
+  const snap = await getAdminDb()
+    .collection(COL("PERSONAL_TASKS"))
+    .where("ownerId", "==", ownerId)
+    .get();
   return snap.docs.map((d) => toPlain(d) as PersonalTask);
 }
 

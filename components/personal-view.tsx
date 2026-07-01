@@ -15,6 +15,7 @@ import { WeeklyTable } from "@/components/weekly-table";
 import { PersonalTaskList } from "@/components/personal-task-list";
 import { PersonalDashboard } from "@/components/personal-dashboard";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
+import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -87,7 +88,9 @@ export function PersonalView() {
     async function load() {
       setLoading(true);
       try {
-        const res = await fetch("/api/personal-tasks");
+        const uid = auth.currentUser?.uid;
+        const url = uid ? `/api/personal-tasks?uid=${uid}` : "/api/personal-tasks";
+        const res = await fetch(url);
         if (res.ok) {
           const data: PersonalTask[] = await res.json();
           if (!cancelled) setTasks(data);
