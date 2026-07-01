@@ -297,40 +297,38 @@ export function WeeklyTable({
 
   if (compact) {
     return (
-      <div>
-        <div className="grid grid-cols-7 gap-2">
-          {DAYS.map((day, idx) => (
-            <div key={day} className="rounded-md border p-2">
-              <div className="mb-2 flex items-center justify-between">
-                <div className="text-sm font-semibold text-muted-foreground">{day}</div>
-                <button
-                  onClick={() => handleCellClick(idx)}
-                  className="p-1 rounded bg-emerald-600 text-white hover:bg-emerald-500"
-                  title="Добавить задачу"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="flex flex-col gap-2">
-                {tasks
-                  .filter((t) => t.dayOfWeek === idx && !t.completed)
-                  .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                  .map((task) => (
-                    <div
-                      key={task.id}
-                      onClick={() => handleEditTask(task)}
-                      className={cn(
-                        "cursor-pointer rounded-md border-l-2 px-2 py-1 text-sm",
-                        PRIORITY_COLORS[task.priority]
-                      )}
-                    >
-                      <div className="font-medium">{task.title}</div>
-                      <div className="text-xs text-muted-foreground">{task.startTime.slice(0,5)}–{task.endTime.slice(0,5)}</div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ))}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="overflow-x-auto pb-2">
+          <div
+            className="grid min-w-[1200px]"
+            style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
+          >
+            {HOURS.map((hour) =>
+              DAYS.map((_day, dayIdx) => (
+                <div key={`r-${hour}-day-${dayIdx}`} className="border-b border-border/40 p-1">
+                  <CellDroppable
+                    dayOfWeek={dayIdx}
+                    timeSlot={hour}
+                    onCellClick={() => handleCellClick(dayIdx, hour)}
+                  >
+                    {getTasksForCell(dayIdx, hour).map((task) => (
+                      <DraggableTaskCard
+                        key={task.id}
+                        task={task}
+                        onEdit={handleEditTask}
+                        onToggleComplete={onToggleComplete}
+                      />
+                    ))}
+                  </CellDroppable>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         {tasks.some((t) => t.completed) && (
@@ -375,7 +373,11 @@ export function WeeklyTable({
           onDelete={onDelete}
           onToggleComplete={onToggleComplete}
         />
-      </div>
+
+        <DragOverlay dropAnimation={null}>
+          {activeTask ? <TaskCardOverlay task={activeTask} /> : null}
+        </DragOverlay>
+      </DndContext>
     );
   }
 
