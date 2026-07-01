@@ -24,12 +24,10 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        // Вход
         await signInWithEmailAndPassword(auth, formData.email, formData.password);
         toast.success("Вход выполнен!");
         router.push("/");
       } else {
-        // Регистрация
         if (formData.accessCode !== "demo-tracker-2026") {
           toast.error("Неверный код доступа");
           setLoading(false);
@@ -46,7 +44,6 @@ export default function AuthPage() {
           displayName: formData.nickname,
         });
 
-        // Сохранение в Firestore
         await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -78,7 +75,6 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[#0a0f0d]">
-      {/* Сетка на фоне */}
       <div 
         className="absolute inset-0 opacity-[0.06]"
         style={{
@@ -90,7 +86,6 @@ export default function AuthPage() {
         }}
       />
       
-      {/* Анимированные круги с зернистостью */}
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-3xl overflow-hidden animate-float-slow">
         <div className="absolute inset-0 bg-gradient-to-br from-[#4E6E62]/40 to-[#4E6E62]/20" />
         <div className="absolute inset-0 opacity-[0.03]" style={{
@@ -119,56 +114,29 @@ export default function AuthPage() {
         }} />
       </div>
 
-      {/* CSS анимации для кругов */}
       <style jsx>{`
         @keyframes float-slow {
-          0%, 100% {
-            transform: translate(0, 0) scale(1);
-          }
-          33% {
-            transform: translate(30px, -30px) scale(1.05);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.95);
-          }
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -30px) scale(1.05); }
+          66% { transform: translate(-20px, 20px) scale(0.95); }
         }
         @keyframes float-medium {
-          0%, 100% {
-            transform: translate(0, 0) scale(1);
-          }
-          33% {
-            transform: translate(-25px, 25px) scale(1.08);
-          }
-          66% {
-            transform: translate(35px, -15px) scale(0.92);
-          }
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(-25px, 25px) scale(1.08); }
+          66% { transform: translate(35px, -15px) scale(0.92); }
         }
         @keyframes float-fast {
-          0%, 100% {
-            transform: translate(0, 0) scale(1);
-          }
-          33% {
-            transform: translate(40px, 15px) scale(0.95);
-          }
-          66% {
-            transform: translate(-30px, -25px) scale(1.05);
-          }
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(40px, 15px) scale(0.95); }
+          66% { transform: translate(-30px, -25px) scale(1.05); }
         }
-        .animate-float-slow {
-          animation: float-slow 20s ease-in-out infinite;
-        }
-        .animate-float-medium {
-          animation: float-medium 15s ease-in-out infinite;
-        }
-        .animate-float-fast {
-          animation: float-fast 12s ease-in-out infinite;
-        }
+        .animate-float-slow { animation: float-slow 20s ease-in-out infinite; }
+        .animate-float-medium { animation: float-medium 15s ease-in-out infinite; }
+        .animate-float-fast { animation: float-fast 12s ease-in-out infinite; }
       `}</style>
 
-      {/* Форма */}
       <div className="relative w-full max-w-md">
         <div className="backdrop-blur-2xl bg-[#121814]/70 border border-[#4E6E62]/30 rounded-3xl shadow-2xl p-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          {/* Переключатель */}
           <div className="flex mb-8 p-1 bg-[#1a2320]/60 rounded-xl border border-[#4E6E62]/20">
             <button
               type="button"
