@@ -171,12 +171,14 @@ function chunkArray<T>(items: T[], size: number): T[][] {
 
 export async function deleteBoard(id: string): Promise<void> {
   const db = getAdminDb();
+  console.log(`[deleteBoard] start deleting board ${id}`);
   // delete board doc
   await db.collection(COL("BOARDS")).doc(id).delete();
 
   // delete columns
   const cols = await db.collection(COL("COLUMNS")).where("boardId", "==", id).get();
   const columnIds = cols.docs.map((doc) => doc.id);
+  console.log(`[deleteBoard] found columns for board ${id}:`, columnIds);
   await Promise.all(
     cols.docs.map((c) => db.collection(COL("COLUMNS")).doc(c.id).delete())
   );
@@ -190,8 +192,18 @@ export async function deleteBoard(id: string): Promise<void> {
         .where("columnId", "in", chunk)
         .get();
 
+      const taskIds = tasksSnap.docs.map((d) => d.id);
+      console.log(
+        `[deleteBoard] deleting tasks for chunk (${chunk.join(",")}):`,
+        taskIds
+      );
+
       for (const taskDoc of tasksSnap.docs) {
-        await db.collection(COL("TASKS")).doc(taskDoc.id).delete();
+        try {
+          await db.collection(COL("TASKS")).doc(taskDoc.id).delete();
+        } catch (e) {
+          console.warn(`[deleteBoard] failed to delete task ${taskDoc.id}:`, e);
+        }
       }
     }
   }
@@ -235,7 +247,6 @@ export async function updateColumn(
 export async function deleteColumn(id: string): Promise<void> {
   await getAdminDb().collection(COL("COLUMNS")).doc(id).delete();
 }
-
 export async function getTasksByColumnId(columnId: string): Promise<Task[]> {
   const snap = await getAdminDb()
     .collection(COL("TASKS"))

@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
   if (dbAvailable) {
     try {
       const tasks = await getTasksByColumnId(columnId);
+      console.log(`[api/tasks GET] columnId=${columnId}, found=${tasks.length}`);
       return NextResponse.json(tasks);
     } catch (error) {
       console.error("Ошибка получения задач:", error);
@@ -97,6 +98,7 @@ export async function POST(request: NextRequest) {
       completed: false,
       archived: false,
     });
+    console.log(`[api/tasks POST] created task ${task.id} in column ${task.columnId}`);
 
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
@@ -134,6 +136,7 @@ export async function PATCH(request: NextRequest) {
 
     const { id, ...data } = parsed.data;
     const task = await updateTask(id, data);
+    console.log(`[api/tasks PATCH] updated task ${id}`, data);
     return NextResponse.json(task);
   } catch (error) {
     console.error("Ошибка обновления задачи:", error);
