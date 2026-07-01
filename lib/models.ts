@@ -161,20 +161,41 @@ export async function updateBoard(
   return toPlain(snap) as Board;
 }
 
+function chunkArray<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
 export async function deleteBoard(id: string): Promise<void> {
   const db = getAdminDb();
   // delete board doc
   await db.collection(COL("BOARDS")).doc(id).delete();
+
   // delete columns
   const cols = await db.collection(COL("COLUMNS")).where("boardId", "==", id).get();
-  for (const c of cols.docs) {
-    await db.collection(COL("COLUMNS")).doc(c.id).delete();
+  const columnIds = cols.docs.map((doc) => doc.id);
+  await Promise.all(
+    cols.docs.map((c) => db.collection(COL("COLUMNS")).doc(c.id).delete())
+  );
+
+  // delete tasks in chunks of 10 column ids because Firestore 'in' queries are limited
+  if (columnIds.length > 0) {
+    const chunks = chunkArray(columnIds, 10);
+    for (const chunk of chunks) {
+      const tasksSnap = await db
+        .collection(COL("TASKS"))
+        .where("columnId", "in", chunk)
+        .get();
+
+      for (const taskDoc of tasksSnap.docs) {
+        await db.collection(COL("TASKS")).doc(taskDoc.id).delete();
+      }
+    }
   }
-  // delete tasks
-  const tasks = await db.collection(COL("TASKS")).where("columnId", "in", cols.docs.map(d=>d.id)).get().catch(()=>({docs:[]} as any));
-  for (const t of tasks.docs || []) {
-    await db.collection(COL("TASKS")).doc(t.id).delete();
-  }
+
   // delete board members
   const members = await db.collection(COL("BOARD_MEMBERS")).where("boardId", "==", id).get();
   for (const m of members.docs) {
