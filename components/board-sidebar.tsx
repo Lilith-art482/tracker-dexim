@@ -2,17 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Plus, Loader2, LayoutDashboard, Pencil, Trash } from "lucide-react";
+import { Plus, Loader2, LayoutDashboard, Pencil, Trash2, Check, X } from "lucide-react";
 import { Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -31,15 +24,14 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
   const pathname = usePathname();
 
   const [boards, setBoards] = useState<Board[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [newBoardName, setNewBoardName] = useState("");
   const [creating, setCreating] = useState(false);
-  const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
-  const [editingBoardName, setEditingBoardName] = useState("");
+  const [newBoardName, setNewBoardName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const activeBoardId = searchParams.get("boardId");
-
   const boardType = mode === "personal" ? "personal" : "team";
 
   const fetchBoards = useCallback(async () => {
@@ -53,7 +45,6 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
         setBoards(data);
       }
     } catch {
-      // keep current state
     } finally {
       setLoading(false);
     }
@@ -61,7 +52,6 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
 
   useEffect(() => {
     fetchBoards();
-    // Add uid to URL on mount if not present
     const uid = auth.currentUser?.uid;
     if (uid && !searchParams.has("uid")) {
       const params = new URLSearchParams(searchParams.toString());
@@ -81,7 +71,6 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
   const handleCreate = async () => {
     const name = newBoardName.trim();
     if (!name) return;
-
     setCreating(true);
     try {
       const ownerId = auth.currentUser?.uid || null;
@@ -90,60 +79,57 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, ownerId }),
       });
-
       if (!res.ok) {
         const err = await res.json();
         toast.error(err.error || "Ошибка создания доски");
         return;
       }
-
       const newBoard: Board = await res.json();
       setBoards((prev) => [...prev, newBoard]);
-      setDialogOpen(false);
       setNewBoardName("");
+      setCreating(false);
       toast.success("Доска создана");
       switchBoard(newBoard.id);
     } catch {
       toast.error("Ошибка создания доски");
-    } finally {
       setCreating(false);
     }
   };
 
   const startEdit = (board: Board) => {
-    setEditingBoardId(board.id);
-    setEditingBoardName(board.name);
-    setDialogOpen(true);
+    setEditingId(board.id);
+    setEditName(board.name);
   };
 
-  const handleUpdate = async () => {
-    if (!editingBoardId) return;
-    const name = editingBoardName.trim();
-    if (!name) return;
+  const handleRename = async () => {
+    if (!editingId) return;
+    const name = editName.trim();
+    if (!name) {
+      setEditingId(null);
+      return;
+    }
     try {
       const res = await fetch("/api/boards", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingBoardId, name }),
+        body: JSON.stringify({ id: editingId, name }),
       });
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "Ошибка обновления доски");
+        toast.error(err.error || "Ошибка переименования");
         return;
       }
       const updated: Board = await res.json();
       setBoards((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
-      setEditingBoardId(null);
-      setEditingBoardName("");
-      setDialogOpen(false);
-      toast.success("Доска обновлена");
+      setEditingId(null);
+      toast.success("Доска переименована");
     } catch {
-      toast.error("Ошибка обновления доски");
+      toast.error("Ошибка переименования");
     }
   };
 
   const handleDelete = async (boardId: string) => {
-    if (!confirm("Удалить доску? Это действие необратимо.")) return;
+    setDeletingId(boardId);
     try {
       const res = await fetch("/api/boards", {
         method: "DELETE",
@@ -157,7 +143,6 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
       }
       setBoards((prev) => prev.filter((b) => b.id !== boardId));
       toast.success("Доска удалена");
-      // navigate away if active
       if (activeBoardId === boardId) {
         const params = new URLSearchParams(searchParams.toString());
         params.delete("boardId");
@@ -165,6 +150,8 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
       }
     } catch {
       toast.error("Ошибка удаления доски");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -175,6 +162,7 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
         collapsed ? "w-0 overflow-hidden border-0" : "w-60"
       )}
     >
+      {/* Header */}
       <div
         className={cn(
           "flex items-center gap-2 border-b px-4 py-3 transition-opacity duration-300",
@@ -185,88 +173,171 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
         <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
           Доски
         </span>
-
-        <div className="ml-auto flex items-center gap-2">
-          {loading && (
-            <Loader2 className="h-3 w-3 animate-spin text-sidebar-foreground/40" />
-          )}
-
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger render={<Button size="sm" variant="ghost" className="gap-2" /> }>
-              <Plus className="h-3.5 w-3.5" />
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingBoardId ? "Редактировать доску" : "Новая доска"}</DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col gap-4">
-                <Input
-                  placeholder="Название доски"
-                  value={editingBoardId ? editingBoardName : newBoardName}
-                  onChange={(e) => {
-                    if (editingBoardId) setEditingBoardName(e.target.value);
-                    else setNewBoardName(e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") (editingBoardId ? handleUpdate() : handleCreate());
-                  }}
-                  autoFocus
-                />
-                <Button
-                  onClick={() => (editingBoardId ? handleUpdate() : handleCreate())}
-                  disabled={creating || (!newBoardName.trim() && !editingBoardName.trim())}
-                >
-                  {(creating || false) && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {editingBoardId ? "Сохранить" : "Создать"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+        {loading && (
+          <Loader2 className="ml-auto h-3 w-3 animate-spin text-sidebar-foreground/40" />
+        )}
       </div>
 
+      {/* Board list */}
       <nav className={cn(
-        "flex-1 space-y-0.5 overflow-y-auto p-2 transition-opacity duration-300",
+        "flex-1 overflow-y-auto py-2 transition-opacity duration-300",
         collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
       )}>
-        {boards.map((board) => (
-          <div key={board.id} className="flex items-center gap-2">
-            <button
-              onClick={() => switchBoard(board.id)}
-              className={cn(
-                "flex-1 text-left text-sm rounded-lg px-3 py-2 transition-colors",
-                activeBoardId === board.id ||
-                  (!activeBoardId && boards[0]?.id === board.id)
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+        <div className="space-y-0.5 px-2">
+          {boards.length === 0 && !loading && (
+            <div className="px-3 py-6 text-center">
+              <p className="text-xs text-sidebar-foreground/40">
+                {mode === "personal"
+                  ? "Нет личных досок"
+                  : "Нет командных досок"}
+              </p>
+            </div>
+          )}
+
+          {boards.map((board, i) => (
+            <div key={board.id}>
+              {i > 0 && (
+                <div className="my-1 mx-3 border-t border-sidebar-border/50" />
               )}
-            >
-              <span className="truncate">{board.name}</span>
-            </button>
-            <button
-              onClick={() => startEdit(board)}
-              className="p-1 rounded hover:bg-muted/20"
-              title="Редактировать"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => handleDelete(board.id)}
-              className="p-1 rounded hover:bg-muted/20"
-              title="Удалить"
-            >
-              <Trash className="h-4 w-4 text-destructive" />
-            </button>
-          </div>
-        ))}
+              <div className="group relative flex items-center gap-1.5 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent/50">
+                {/* Active indicator */}
+                {(activeBoardId === board.id || (!activeBoardId && i === 0)) && (
+                  <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-primary" />
+                )}
+
+                {editingId === board.id ? (
+                  <div className="flex flex-1 items-center gap-1">
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRename();
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                      onBlur={handleRename}
+                      className="h-7 text-sm"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleRename}
+                      className="p-0.5 rounded hover:bg-sidebar-accent shrink-0"
+                    >
+                      <Check className="h-3.5 w-3.5 text-emerald-500" />
+                    </button>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      className="p-0.5 rounded hover:bg-sidebar-accent shrink-0"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => switchBoard(board.id)}
+                      className={cn(
+                        "flex-1 text-left text-sm truncate transition-colors",
+                        activeBoardId === board.id || (!activeBoardId && i === 0)
+                          ? "font-semibold text-sidebar-foreground"
+                          : "text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                      )}
+                    >
+                      {board.name}
+                    </button>
+
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => startEdit(board)}
+                        className="p-1 rounded hover:bg-sidebar-accent"
+                        title="Переименовать"
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-sidebar-foreground/50" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          toast("Удалить доску?", {
+                            action: {
+                              label: "Удалить",
+                              onClick: () => handleDelete(board.id),
+                            },
+                            cancel: {
+                              label: "Отмена",
+                              onClick: () => {},
+                            },
+                          });
+                        }}
+                        disabled={deletingId === board.id}
+                        className="p-1 rounded hover:bg-sidebar-accent"
+                        title="Удалить"
+                      >
+                        {deletingId === board.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-destructive" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5 text-destructive/60 hover:text-destructive" />
+                        )}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </nav>
 
+      {/* Create button at bottom */}
       <div className={cn(
-        "border-t p-2 transition-opacity duration-300",
+        "border-t p-3 transition-opacity duration-300",
         collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
       )}>
-        {/* Previously the dialog trigger lived here at the bottom; moved to header for visibility */}
-        <div className="text-xs text-muted-foreground">&nbsp;</div>
+        {creating ? (
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Название доски"
+              value={newBoardName}
+              onChange={(e) => setNewBoardName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCreate();
+                if (e.key === "Escape") {
+                  setCreating(false);
+                  setNewBoardName("");
+                }
+              }}
+              className="h-8 text-sm"
+              autoFocus
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={handleCreate}
+              disabled={!newBoardName.trim()}
+              className="h-8 w-8 shrink-0"
+            >
+              <Check className="h-4 w-4 text-emerald-500" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => {
+                setCreating(false);
+                setNewBoardName("");
+              }}
+              className="h-8 w-8 shrink-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full gap-2"
+            onClick={() => setCreating(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Создать доску
+          </Button>
+        )}
       </div>
     </aside>
   );

@@ -343,7 +343,8 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
               onDelete={handleDeleteTask}
             />
           </div>
-          <div className="w-72 shrink-0">
+          <div className="hidden lg:block w-px bg-border shrink-0" />
+          <div className="w-80 shrink-0">
             <PersonalDashboard tasks={tasks} />
           </div>
         </div>

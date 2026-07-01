@@ -20,28 +20,80 @@ const PRIORITY_LABELS: Record<Priority, string> = {
   low: "Низкий",
 };
 
+function DonutChart({
+  segments,
+  size = 120,
+  strokeWidth = 20,
+}: {
+  segments: { value: number; color: string; label: string }[];
+  size?: number;
+  strokeWidth?: number;
+}) {
+  const total = segments.reduce((s, seg) => s + seg.value, 0);
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  const paths = useMemo(() => {
+    if (total === 0) return [];
+    let cumulativePercent = 0;
+    return segments
+      .filter((s) => s.value > 0)
+      .map((seg) => {
+        const percent = seg.value / total;
+        const offset = cumulativePercent * circumference;
+        const length = percent * circumference;
+        cumulativePercent += percent;
+        return { ...seg, offset, length };
+      });
+  }, [segments, total, circumference]);
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <svg width={size} height={size} className="-rotate-90">
+        {/* Background circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          className="text-muted/20"
+        />
+        {/* Segments */}
+        {paths.map((seg) => (
+          <circle
+            key={seg.label}
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={seg.color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={`${seg.length} ${circumference - seg.length}`}
+            strokeDashoffset={-seg.offset}
+            className="transition-all duration-500"
+            strokeLinecap="round"
+          />
+        ))}
+      </svg>
+      <span className="text-lg font-bold tabular-nums">{total}</span>
+    </div>
+  );
+}
+
 interface BarChartProps {
   data: { label: string; value: number; color: string }[];
   title: string;
-  maxValue: number;
 }
 
-function BarChart({ data, title, maxValue }: BarChartProps) {
-  if (maxValue === 0) {
-    return (
-      <div className="flex flex-col gap-2">
-        <h4 className="text-xs font-medium text-muted-foreground">{title}</h4>
-        <div className="flex h-[100px] items-center justify-center rounded-md bg-muted/20">
-          <span className="text-xs text-muted-foreground">Нет данных</span>
-        </div>
-      </div>
-    );
-  }
+function BarChart({ data, title }: BarChartProps) {
+  const maxValue = Math.max(...data.map((d) => d.value), 1);
 
   return (
     <div className="flex flex-col gap-2">
       <h4 className="text-xs font-medium text-muted-foreground">{title}</h4>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         {data.map((d) => (
           <div key={d.label} className="flex items-center gap-2">
             <span className="w-16 text-[11px] text-muted-foreground shrink-0 text-right">
@@ -92,23 +144,56 @@ export function PersonalDashboard({ tasks }: PersonalDashboardProps) {
     ];
   }, [tasks]);
 
-  const maxPriority = Math.max(...priorityData.map((d) => d.value), 1);
-  const maxStatus = Math.max(...statusData.map((d) => d.value), 1);
-
   const total = tasks.length;
 
   return (
-    <div className="rounded-lg border p-4 space-y-5">
+    <div className="rounded-lg border p-5 space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Дашборд</h3>
         <span className="text-xs text-muted-foreground">Всего: {total}</span>
       </div>
-      <BarChart
-        data={priorityData}
-        title="По приоритетам"
-        maxValue={maxPriority}
-      />
-      <BarChart data={statusData} title="По статусам" maxValue={maxStatus} />
+
+      {/* Donut charts row */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col items-center gap-1">
+          <DonutChart segments={priorityData} size={100} strokeWidth={18} />
+          <span className="text-[11px] font-medium text-muted-foreground">
+            По приоритетам
+          </span>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <DonutChart segments={statusData} size={100} strokeWidth={18} />
+          <span className="text-[11px] font-medium text-muted-foreground">
+            По статусам
+          </span>
+        </div>
+      </div>
+
+      {/* Legend for donuts */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        {priorityData.map((d) => (
+          <span key={d.label} className="flex items-center gap-1">
+            <span
+              className="inline-block h-2 w-2 rounded-full"
+              style={{ backgroundColor: d.color }}
+            />
+            {d.label} — {d.value}
+          </span>
+        ))}
+        {statusData.map((d) => (
+          <span key={d.label} className="flex items-center gap-1">
+            <span
+              className="inline-block h-2 w-2 rounded-full"
+              style={{ backgroundColor: d.color }}
+            />
+            {d.label} — {d.value}
+          </span>
+        ))}
+      </div>
+
+      <div className="border-t pt-4">
+        <BarChart data={priorityData} title="Бары по приоритетам" />
+      </div>
     </div>
   );
 }
