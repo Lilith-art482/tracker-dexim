@@ -1,4 +1,5 @@
 export const TableName = {
+  USERS: "users",
   SERVICES: "services",
   BOARDS: "boards",
   COLUMNS: "columns",

@@ -9,12 +9,29 @@ import {
   PersonalTask,
   Service,
   Task,
+  User,
 } from "./models";
+
+export const mockUsers: User[] = [
+  {
+    uid: "user-1",
+    email: "alice@example.com",
+    nickname: "Алиса",
+    createdAt: new Date("2024-01-01").toISOString(),
+  },
+  {
+    uid: "user-2",
+    email: "bob@example.com",
+    nickname: "Боб",
+    createdAt: new Date("2024-01-01").toISOString(),
+  },
+];
 
 export const mockBoards: Board[] = [
   {
     id: "board-1",
     name: "Разработка MVP",
+    type: "personal",
     createdAt: new Date("2024-01-01").toISOString(),
     updatedAt: new Date("2024-01-01").toISOString(),
     ownerId: "user-1",
@@ -23,6 +40,7 @@ export const mockBoards: Board[] = [
   {
     id: "board-2",
     name: "Маркетинг",
+    type: "personal",
     createdAt: new Date("2024-01-01").toISOString(),
     updatedAt: new Date("2024-01-01").toISOString(),
     ownerId: "user-2",

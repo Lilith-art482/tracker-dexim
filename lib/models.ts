@@ -1,8 +1,16 @@
 import { getAdminDb } from "./firebase-admin";
 
+export interface User {
+  uid: string;
+  email: string;
+  nickname: string;
+  createdAt: string;
+}
+
 export interface Board {
   id: string;
   name: string;
+  type: "personal" | "team";
   createdAt: string;
   updatedAt: string;
   ownerId?: string;
@@ -81,6 +89,31 @@ const toPlain = <T>(snap: { id: string; data: () => T }): T & { id: string } => 
   ...snap.data(),
 });
 
+const docToUser = (snap: { id: string; data: () => Record<string, unknown> | undefined }): User => ({
+  uid: snap.id,
+  email: (snap.data()?.email as string) ?? "",
+  nickname: (snap.data()?.nickname as string) ?? "",
+  createdAt: (snap.data()?.createdAt as string) ?? new Date().toISOString(),
+});
+
+export async function getUserByUid(uid: string): Promise<User | null> {
+  const snap = await getAdminDb().collection(COL("USERS")).doc(uid).get();
+  if (!snap.exists) return null;
+  return docToUser(snap);
+}
+
+export async function getAllUsers(): Promise<User[]> {
+  const snap = await getAdminDb().collection(COL("USERS")).get();
+  return snap.docs.map((d) => docToUser(d));
+}
+
+export async function createUser(data: Omit<User, "createdAt">): Promise<User> {
+  const now = new Date().toISOString();
+  const user: User = { ...data, createdAt: now };
+  await getAdminDb().collection(COL("USERS")).doc(user.uid).set(user);
+  return user;
+}
+
 export async function getServiceById(id: string): Promise<Service | null> {
   const snap = await getAdminDb().collection(COL("SERVICES")).doc(id).get();
   if (!snap.exists) return null;
@@ -139,6 +172,16 @@ export async function getBoardsByUser(uid: string): Promise<Board[]> {
   ownerSnap.docs.forEach((d) => boardsMap.set(d.id, toPlain(d) as Board));
   memberSnap.docs.forEach((d) => boardsMap.set(d.id, toPlain(d) as Board));
   return Array.from(boardsMap.values());
+}
+
+export async function getPersonalBoardsByUser(uid: string): Promise<Board[]> {
+  const db = getAdminDb();
+  const snap = await db
+    .collection(COL("BOARDS"))
+    .where("ownerId", "==", uid)
+    .where("type", "==", "personal")
+    .get();
+  return snap.docs.map((d) => toPlain(d) as Board);
 }
 
 export async function createBoard(

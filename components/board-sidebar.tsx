@@ -17,18 +17,20 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSidebar } from "@/lib/sidebar-context";
+import { useMode } from "@/lib/mode-context";
 
 interface BoardSidebarProps {
   initialBoards?: Board[];
 }
 
-export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
+export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSidebarProps) {
   const { collapsed } = useSidebar();
+  const { mode } = useMode();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
 
-  const [boards, setBoards] = useState<Board[]>(initialBoards);
+  const [boards, setBoards] = useState<Board[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -38,11 +40,13 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
 
   const activeBoardId = searchParams.get("boardId");
 
+  const boardType = mode === "personal" ? "personal" : "team";
+
   const fetchBoards = useCallback(async () => {
     setLoading(true);
     try {
       const uid = auth.currentUser?.uid;
-      const url = uid ? `/api/boards?uid=${uid}` : "/api/boards";
+      const url = uid ? `/api/boards?uid=${uid}&type=${boardType}` : "/api/boards";
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -53,7 +57,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [boardType]);
 
   useEffect(() => {
     fetchBoards();
