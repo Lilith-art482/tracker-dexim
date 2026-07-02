@@ -13,7 +13,7 @@ import type { PersonalTask } from "@/lib/models";
 import { mockPersonalTasks } from "@/lib/mock-data";
 import { WeeklyTable } from "@/components/weekly-table";
 import { PersonalTaskList } from "@/components/personal-task-list";
-import { TaskProvider } from "@/lib/task-context";
+import { PersonalDashboard } from "@/components/personal-dashboard";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -222,157 +222,163 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
   }
 
   return (
-    <TaskProvider tasks={tasks}>
-      <div className="container mx-auto px-4 py-6">
-        {/* Header: title + view toggle */}
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {boardName || "Личное расписание"}
-            </h1>
-            <p className="text-sm text-muted-foreground">{currentMonthLabel}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              className="gap-1.5"
-              onClick={handleAddTask}
+    <div className="container mx-auto px-4 py-6">
+      {/* Header: title + view toggle */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {boardName || "Личное расписание"}
+          </h1>
+          <p className="text-sm text-muted-foreground">{currentMonthLabel}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            className="gap-1.5"
+            onClick={handleAddTask}
+          >
+            <Plus className="h-4 w-4" />
+            Добавить задачу
+          </Button>
+          <div className="flex items-center gap-1 rounded-lg border p-0.5">
+            <button
+              onClick={() => setViewMode("table")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                viewMode === "table"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground",
+              )}
             >
-              <Plus className="h-4 w-4" />
-              Добавить задачу
-            </Button>
-            <div className="flex items-center gap-1 rounded-lg border p-0.5">
-              <button
-                onClick={() => setViewMode("table")}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  viewMode === "table"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground",
-                )}
-              >
-                <Table2 className="h-4 w-4" />
-                Таблица
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  viewMode === "list"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground",
-                )}
-              >
-                <LayoutList className="h-4 w-4" />
-                Список
-              </button>
-            </div>
+              <Table2 className="h-4 w-4" />
+              Таблица
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                viewMode === "list"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground",
+              )}
+            >
+              <LayoutList className="h-4 w-4" />
+              Список
+            </button>
           </div>
         </div>
-
-        {/* Month navigation */}
-        <div className="mb-4 flex items-center justify-between">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setWeekOffset((p) => p - 1)}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-semibold tracking-tight">
-            {currentMonthLabel}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setWeekOffset((p) => p + 1)}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Day selector */}
-        <div className="mb-4 flex gap-1">
-          {weekDates.map((date, idx) => {
-            const isToday = (() => {
-              const now = new Date();
-              return (
-                date.getDate() === now.getDate() &&
-                date.getMonth() === now.getMonth() &&
-                date.getFullYear() === now.getFullYear()
-              );
-            })();
-            const isSelected = idx === selectedDay;
-
-            return (
-              <button
-                key={idx}
-                onClick={() => setSelectedDay(idx)}
-                className={cn(
-                  "flex flex-1 flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-xs transition-colors",
-                  isSelected
-                    ? "bg-primary/20 text-primary font-semibold shadow-sm"
-                    : "text-muted-foreground hover:bg-accent",
-                  isToday && !isSelected && "ring-1 ring-primary/30",
-                )}
-              >
-                <span
-                  className={cn(
-                    "text-[11px] uppercase tracking-wider",
-                    isSelected && "text-primary-foreground/80",
-                  )}
-                >
-                  {DAY_NAMES[idx]}
-                </span>
-                <span className="text-sm font-medium">{formatDate(date)}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Content */}
-        {viewMode === "table" ? (
-          <div className="flex gap-6">
-            <div className="flex-1 min-w-0">
-              <WeeklyTable
-                tasks={tasks}
-                onSaved={handleTaskSaved}
-                onToggleComplete={handleToggleComplete}
-                onDelete={handleDeleteTask}
-                boardId={boardId}
-                compact
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="flex gap-6">
-            <div className="flex-1 min-w-0">
-              <PersonalTaskList
-                tasks={tasks}
-                selectedDay={selectedDay}
-                onEdit={handleEditTask}
-                onToggleComplete={handleToggleComplete}
-                onDelete={handleDeleteTask}
-              />
-            </div>
-          </div>
-        )}
-
-        <PersonalTaskDialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) setEditingTask(null);
-          }}
-          boardId={boardId ?? ""}
-          defaultDayOfWeek={selectedDay}
-          task={editingTask}
-          onSaved={handleTaskSaved}
-          onDelete={handleDeleteTask}
-          onToggleComplete={handleToggleComplete}
-        />
       </div>
-    </TaskProvider>
+
+      {/* Month navigation */}
+      <div className="mb-4 flex items-center justify-between">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setWeekOffset((p) => p - 1)}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm font-semibold tracking-tight">
+          {currentMonthLabel}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setWeekOffset((p) => p + 1)}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Day selector */}
+      <div className="mb-4 flex gap-1">
+        {weekDates.map((date, idx) => {
+          const isToday = (() => {
+            const now = new Date();
+            return (
+              date.getDate() === now.getDate() &&
+              date.getMonth() === now.getMonth() &&
+              date.getFullYear() === now.getFullYear()
+            );
+          })();
+          const isSelected = idx === selectedDay;
+
+          return (
+            <button
+              key={idx}
+              onClick={() => setSelectedDay(idx)}
+              className={cn(
+                "flex flex-1 flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-xs transition-colors",
+                isSelected
+                  ? "bg-primary/20 text-primary font-semibold shadow-sm"
+                  : "text-muted-foreground hover:bg-accent",
+                isToday && !isSelected && "ring-1 ring-primary/30",
+              )}
+            >
+              <span
+                className={cn(
+                  "text-[11px] uppercase tracking-wider",
+                  isSelected && "text-primary-foreground/80",
+                )}
+              >
+                {DAY_NAMES[idx]}
+              </span>
+              <span className="text-sm font-medium">{formatDate(date)}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Content */}
+      {viewMode === "table" ? (
+        <div className="flex gap-6">
+          <div className="flex-1 min-w-0">
+            <WeeklyTable
+              tasks={tasks}
+              onSaved={handleTaskSaved}
+              onToggleComplete={handleToggleComplete}
+              onDelete={handleDeleteTask}
+              boardId={boardId}
+              compact
+            />
+          </div>
+          <div className="hidden lg:block w-px bg-border shrink-0" />
+          <div className="w-80 shrink-0">
+            <PersonalDashboard tasks={tasks} />
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-6">
+          <div className="flex-1 min-w-0">
+            <PersonalTaskList
+              tasks={tasks}
+              selectedDay={selectedDay}
+              onEdit={handleEditTask}
+              onToggleComplete={handleToggleComplete}
+              onDelete={handleDeleteTask}
+            />
+          </div>
+          <div className="hidden lg:block w-px bg-border shrink-0" />
+          <div className="w-80 shrink-0">
+            <PersonalDashboard tasks={tasks} />
+          </div>
+        </div>
+      )}
+
+      <PersonalTaskDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) setEditingTask(null);
+        }}
+        boardId={boardId ?? ""}
+        defaultDayOfWeek={selectedDay}
+        task={editingTask}
+        onSaved={handleTaskSaved}
+        onDelete={handleDeleteTask}
+        onToggleComplete={handleToggleComplete}
+      />
+    </div>
   );
 }

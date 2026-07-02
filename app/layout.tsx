@@ -15,7 +15,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ModeProvider } from "@/lib/mode-context";
 import { SidebarProvider } from "@/lib/sidebar-context";
-import { RightSidebar } from "@/components/right-sidebar";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -114,8 +113,7 @@ export default async function RootLayout({
                   >
                     <BoardSidebar />
                   </Suspense>
-                  <main className="flex-1 min-h-0">{children}</main>
-                  <RightSidebar />
+                  <main className="flex-1">{children}</main>
                 </div>
 
                 <Toaster richColors position="top-right" />
