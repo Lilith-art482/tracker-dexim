@@ -14,6 +14,7 @@ import { mockPersonalTasks } from "@/lib/mock-data";
 import { WeeklyTable } from "@/components/weekly-table";
 import { PersonalTaskList } from "@/components/personal-task-list";
 import { PersonalDashboard } from "@/components/personal-dashboard";
+import { CompletedTasksBlock } from "@/components/completed-tasks-block";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -222,7 +223,7 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-6 h-full flex flex-col">
       {/* Header: title + view toggle */}
       <div className="mb-4 flex items-center justify-between">
         <div>
@@ -330,29 +331,19 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
         })}
       </div>
 
-      {/* Content */}
-      {viewMode === "table" ? (
-        <div className="overflow-x-auto">
-          <div className="flex gap-4 min-w-fit">
-            <div className="flex-1 min-w-0">
-              <WeeklyTable
-                tasks={tasks}
-                onSaved={handleTaskSaved}
-                onToggleComplete={handleToggleComplete}
-                onDelete={handleDeleteTask}
-                boardId={boardId}
-                compact
-              />
-            </div>
-            <div className="w-px bg-border shrink-0" />
-            <div className="w-80 shrink-0">
-              <PersonalDashboard tasks={tasks} />
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex gap-6">
-          <div className="flex-1 min-w-0">
+      <div className="flex flex-1 min-h-0">
+        {/* Content */}
+        <div className="flex-1 min-w-0 overflow-auto">
+          {viewMode === "table" ? (
+            <WeeklyTable
+              tasks={tasks}
+              onSaved={handleTaskSaved}
+              onToggleComplete={handleToggleComplete}
+              onDelete={handleDeleteTask}
+              boardId={boardId}
+              compact
+            />
+          ) : (
             <PersonalTaskList
               tasks={tasks}
               selectedDay={selectedDay}
@@ -360,13 +351,22 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
               onToggleComplete={handleToggleComplete}
               onDelete={handleDeleteTask}
             />
+          )}
+        </div>
+
+        {/* Right sidebar */}
+        <div className="w-80 shrink-0 border-l bg-sidebar flex flex-col">
+          <div className="flex items-center gap-2 px-4 h-12 border-b border-border/40 shrink-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
+              Дашборд
+            </span>
           </div>
-          <div className="hidden lg:block w-px bg-border shrink-0" />
-          <div className="w-80 shrink-0">
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            <CompletedTasksBlock tasks={tasks} onToggleComplete={handleToggleComplete} />
             <PersonalDashboard tasks={tasks} />
           </div>
         </div>
-      )}
+      </div>
 
       <PersonalTaskDialog
         open={dialogOpen}
