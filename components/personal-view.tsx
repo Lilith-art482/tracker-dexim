@@ -14,7 +14,6 @@ import { mockPersonalTasks } from "@/lib/mock-data";
 import { WeeklyTable } from "@/components/weekly-table";
 import { PersonalTaskList } from "@/components/personal-task-list";
 import { PersonalDashboard } from "@/components/personal-dashboard";
-import { CompletedTasksBlock } from "@/components/completed-tasks-block";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -223,7 +222,7 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
   }
 
   return (
-    <div className="container mx-auto flex flex-1 flex-col px-4 py-6 min-h-0">
+    <div className="container mx-auto px-4 py-6">
       {/* Header: title + view toggle */}
       <div className="mb-4 flex items-center justify-between">
         <div>
@@ -331,62 +330,41 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
         })}
       </div>
 
-      {/* Content — left: completed + schedule, right: dashboard */}
-      <div className="flex flex-1 gap-4 min-h-0">
-        {viewMode === "table" ? (
-          <>
-            {/* Left column: completed tasks + schedule */}
-            <div className="flex-1 flex flex-col gap-4 min-h-0">
-              {/* Completed tasks block */}
-              <div className="w-full shrink-0">
-                <CompletedTasksBlock
-                  tasks={tasks}
-                  onToggleComplete={handleToggleComplete}
-                  weekDates={weekDates}
-                />
-              </div>
-
-              {/* Weekly schedule */}
-              <div className="flex-1 min-h-0 overflow-auto">
-                <WeeklyTable
-                  tasks={tasks}
-                  onSaved={handleTaskSaved}
-                  onToggleComplete={handleToggleComplete}
-                  onDelete={handleDeleteTask}
-                  boardId={boardId}
-                  compact
-                />
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="hidden lg:block w-px bg-border shrink-0" />
-
-            {/* Right column: dashboard */}
-            <div className="w-80 shrink-0">
-              <PersonalDashboard tasks={tasks} />
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex-1 min-w-0 flex flex-col">
-              <div className="flex-1 min-h-0 overflow-auto">
-                <PersonalTaskList
-                  tasks={tasks}
-                  selectedDay={selectedDay}
-                  onEdit={handleEditTask}
-                  onToggleComplete={handleToggleComplete}
-                  onDelete={handleDeleteTask}
-                />
-              </div>
-            </div>
-            <div className="hidden lg:block w-px bg-border shrink-0" />
-            <div className="w-80 shrink-0 flex flex-col gap-6">
-              <PersonalDashboard tasks={tasks} />
-            </div>
-          </>
-        )}
-      </div>
+      {/* Content */}
+      {viewMode === "table" ? (
+        <div className="flex gap-6">
+          <div className="flex-1 min-w-0">
+            <WeeklyTable
+              tasks={tasks}
+              onSaved={handleTaskSaved}
+              onToggleComplete={handleToggleComplete}
+              onDelete={handleDeleteTask}
+              boardId={boardId}
+              compact
+            />
+          </div>
+          <div className="hidden lg:block w-px bg-border shrink-0" />
+          <div className="w-80 shrink-0">
+            <PersonalDashboard tasks={tasks} />
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-6">
+          <div className="flex-1 min-w-0">
+            <PersonalTaskList
+              tasks={tasks}
+              selectedDay={selectedDay}
+              onEdit={handleEditTask}
+              onToggleComplete={handleToggleComplete}
+              onDelete={handleDeleteTask}
+            />
+          </div>
+          <div className="hidden lg:block w-px bg-border shrink-0" />
+          <div className="w-80 shrink-0">
+            <PersonalDashboard tasks={tasks} />
+          </div>
+        </div>
+      )}
 
       <PersonalTaskDialog
         open={dialogOpen}
