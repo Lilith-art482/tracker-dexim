@@ -50,7 +50,7 @@ export function PersonalTaskDialog({
   onOpenChange,
   boardId,
   defaultDayOfWeek = 0,
-  defaultStartTime = "09:00",
+  defaultStartTime,
   task,
   onSaved,
   onDelete,
@@ -62,7 +62,7 @@ export function PersonalTaskDialog({
     task?.dayOfWeek ?? defaultDayOfWeek,
   );
   const [startTime, setStartTime] = useState(
-    task?.startTime ?? defaultStartTime,
+    task?.startTime ?? "09:00",
   );
   const [endTime, setEndTime] = useState(task?.endTime ?? "10:00");
   const [priority, setPriority] = useState<Priority>(
@@ -85,14 +85,14 @@ export function PersonalTaskDialog({
     } else {
       setTitle("");
       setDayOfWeek(defaultDayOfWeek);
-      setStartTime(defaultStartTime);
+      setStartTime("09:00");
       setEndTime("10:00");
       setPriority("medium");
       setCompleted(false);
       setComment("");
     }
     setErrors({});
-  }, [task, open, defaultDayOfWeek, defaultStartTime]);
+  }, [task, open, defaultDayOfWeek]);
 
   const handleSubmit = async () => {
     const newErrors: Record<string, string> = {};

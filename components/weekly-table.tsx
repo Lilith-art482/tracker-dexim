@@ -22,10 +22,9 @@ import { cn } from "@/lib/utils";
 
 const DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
-const HOURS = Array.from({ length: 18 }, (_, i) => {
-  const h = i + 6;
-  return `${String(h).padStart(2, "0")}:00`;
-});
+const HOURS = Array.from({ length: 24 }, (_, i) =>
+  `${String(i).padStart(2, "0")}:00`,
+);
 
 const PRIORITY_COLORS: Record<Priority, string> = {
   high: "bg-rose-500/10 border-l-rose-500 text-rose-600 dark:text-rose-400",
@@ -65,7 +64,7 @@ function CellDroppable({
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `cell-${dayOfWeek}-${timeSlot}`,
-    data: { type: "cell", dayOfWeek, timeSlot },
+    data: { type: "cell", dayOfWeek },
   });
 
   return (
@@ -73,14 +72,14 @@ function CellDroppable({
       ref={setNodeRef}
       onClick={onCellClick}
       className={cn(
-        "relative flex min-h-[56px] cursor-pointer flex-col gap-1 rounded-md border border-transparent p-1.5 transition-colors",
+        "relative flex min-h-[40px] cursor-pointer flex-col gap-1 rounded-sm border border-transparent p-1 transition-colors",
         isOver && "border-emerald-500 bg-emerald-500/10",
       )}
     >
       {children}
       {React.Children.count(children) === 0 && (
-        <div className="flex items-center justify-center">
-          <Plus className="h-3.5 w-3.5 text-muted-foreground/20 transition-colors group-hover:text-muted-foreground/50" />
+        <div className="flex h-full items-center justify-center">
+          <Plus className="h-3 w-3 text-muted-foreground/20 transition-colors group-hover:text-muted-foreground/50" />
         </div>
       )}
     </div>
@@ -122,14 +121,14 @@ function DraggableTaskCard({
         onEdit(task);
       }}
       className={cn(
-        "group cursor-grab active:cursor-grabbing rounded-md border-l-2 px-2 py-1.5 text-xs transition-colors",
+        "group cursor-grab active:cursor-grabbing rounded border-l-2 px-1.5 py-1 text-[11px] transition-colors",
         PRIORITY_COLORS[task.priority],
         task.completed && "opacity-60",
         isDragging && "opacity-0 z-50",
       )}
     >
       <div className="flex items-start justify-between gap-1">
-        <span className="flex-1 font-medium leading-tight">
+        <span className="flex-1 font-medium leading-tight truncate">
           <span className={cn(task.completed && "line-through")}>
             {task.title}
           </span>
@@ -142,22 +141,14 @@ function DraggableTaskCard({
           className="shrink-0 hover:scale-110 transition-transform"
         >
           {task.completed ? (
-            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+            <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" />
           ) : (
-            <Circle className="h-3 w-3 text-muted-foreground hover:text-emerald-500" />
+            <Circle className="h-2.5 w-2.5 text-muted-foreground hover:text-emerald-500" />
           )}
         </button>
       </div>
-      <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-        <span>
-          {task.startTime.slice(0, 5)}–{task.endTime.slice(0, 5)}
-        </span>
-        <Badge
-          variant={PRIORITY_BADGE[task.priority]}
-          className="text-[9px] px-1 py-0"
-        >
-          {PRIORITY_LABELS[task.priority]}
-        </Badge>
+      <div className="text-[9px] text-muted-foreground">
+        {task.startTime.slice(0, 5)}–{task.endTime.slice(0, 5)}
       </div>
     </div>
   );
@@ -167,13 +158,13 @@ function TaskCardOverlay({ task }: { task: PersonalTask }) {
   return (
     <div
       className={cn(
-        "rounded-md border-l-2 px-3 py-2 text-sm rotate-3 opacity-90",
+        "rounded border-l-2 px-3 py-2 text-xs rotate-3 opacity-90",
         PRIORITY_COLORS[task.priority],
         task.completed && "opacity-60",
       )}
     >
       <div className="font-medium">{task.title}</div>
-      <div className="text-xs text-muted-foreground">
+      <div className="text-[10px] text-muted-foreground">
         {task.startTime}–{task.endTime}
       </div>
     </div>
@@ -191,7 +182,6 @@ export function WeeklyTable({
   onSaved: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
   onDelete: (task: PersonalTask) => void;
-  compact?: boolean;
   boardId?: string;
 }) {
   const [activeTask, setActiveTask] = useState<PersonalTask | null>(null);
@@ -213,10 +203,9 @@ export function WeeklyTable({
     [tasks],
   );
 
-  const handleCellClick = (dayOfWeek: number, timeSlot?: string) => {
+  const handleCellClick = (dayOfWeek: number, timeSlot: string) => {
     setDialogDayOfWeek(dayOfWeek);
-    if (timeSlot) setDialogStartTime(timeSlot);
-    else setDialogStartTime("09:00");
+    setDialogStartTime(timeSlot);
     setEditingTask(null);
     setDialogOpen(true);
   };
@@ -266,8 +255,6 @@ export function WeeklyTable({
         toast.error(err.error || "Ошибка перемещения задачи");
         return;
       }
-
-      toast.success("Задача перемещена");
     } catch {
       toast.error("Ошибка перемещения задачи");
     }
@@ -284,35 +271,35 @@ export function WeeklyTable({
         <div
           className="grid min-w-[1200px]"
           style={{
-            gridTemplateColumns: `repeat(7, 64px 1fr)`,
+            gridTemplateColumns: `40px repeat(7, 1fr)`,
           }}
         >
-          {DAYS.flatMap((day, idx) => [
-            <div
-              key={`h-time-${idx}`}
-              className="px-2 py-2 text-center text-xs font-semibold tracking-tight text-muted-foreground"
-            >
-              Время
-            </div>,
+          {/* top-left corner */}
+          <div className="px-1 py-2 text-center text-[10px] font-semibold tracking-tight text-muted-foreground">
+            Час
+          </div>
+          {/* day headers */}
+          {DAYS.map((day, idx) => (
             <div
               key={`h-day-${idx}`}
-              className="px-2 py-2 text-center text-sm font-semibold tracking-tight text-muted-foreground"
+              className="px-1 py-2 text-center text-xs font-semibold tracking-tight text-muted-foreground"
             >
               {day}
-            </div>,
-          ])}
+            </div>
+          ))}
 
-          {HOURS.map((hour) =>
-            DAYS.flatMap((_day, dayIdx) => [
-              <div
-                key={`r-${hour}-time-${dayIdx}`}
-                className="flex items-center justify-center px-1 text-[11px] font-medium text-muted-foreground/60"
-              >
-                {""}
-              </div>,
+          {/* hour rows */}
+          {HOURS.map((hour) => [
+            <div
+              key={`r-${hour}-label`}
+              className="flex items-center justify-end px-1.5 text-[10px] font-medium text-muted-foreground/50 border-b border-border/20"
+            >
+              {hour.slice(0, 5)}
+            </div>,
+            ...DAYS.map((_day, dayIdx) => (
               <div
                 key={`r-${hour}-day-${dayIdx}`}
-                className="border-b border-border/40"
+                className="border-b border-border/20"
               >
                 <CellDroppable
                   dayOfWeek={dayIdx}
@@ -328,9 +315,9 @@ export function WeeklyTable({
                     />
                   ))}
                 </CellDroppable>
-              </div>,
-            ]),
-          )}
+              </div>
+            )),
+          ])}
         </div>
       </div>
 
