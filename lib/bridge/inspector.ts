@@ -50,7 +50,7 @@ function computeSelector(el: HTMLElement): string {
 
     const siblings = current.parentElement
       ? Array.from(current.parentElement.children).filter(
-          (s) => s.tagName === current!.tagName
+          (s) => s.tagName === current!.tagName,
         )
       : [];
     if (siblings.length > 1) {
@@ -88,7 +88,7 @@ export function init() {
     if (!state.active) return;
     const el = document.elementFromPoint(
       e.clientX,
-      e.clientY
+      e.clientY,
     ) as HTMLElement | null;
     if (el && el !== state.hoveredElement) {
       setState({ hoveredElement: el });
@@ -107,7 +107,7 @@ export function init() {
 
     const el = document.elementFromPoint(
       e.clientX,
-      e.clientY
+      e.clientY,
     ) as HTMLElement | null;
     if (!el) return;
 

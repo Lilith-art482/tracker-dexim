@@ -1,5 +1,12 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getFirestore, Firestore, collection, getDocs, limit, query as fbQuery } from "firebase/firestore";
+import {
+  getFirestore,
+  Firestore,
+  collection,
+  getDocs,
+  limit,
+  query as fbQuery,
+} from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
 
 const firebaseConfig = {

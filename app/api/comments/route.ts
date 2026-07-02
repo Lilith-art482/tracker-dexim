@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { isDatabaseAvailable } from "@/lib/db";
 import { getCommentsByTaskId, createComment } from "@/lib/models";
@@ -24,7 +23,7 @@ export async function GET(request: NextRequest) {
       console.error("Ошибка получения комментариев:", error);
       return NextResponse.json(
         { error: "Ошибка получения данных из Firestore" },
-        { status: 500 }
+        { status: 500 },
       );
     }
   }
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest) {
   if (!dbAvailable) {
     return NextResponse.json(
       { error: "База данных недоступна в статическом режиме" },
-      { status: 503 }
+      { status: 503 },
     );
   }
 
@@ -53,7 +52,7 @@ export async function POST(request: NextRequest) {
           error: "Некорректные данные",
           details: parsed.error.flatten(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -69,7 +68,7 @@ export async function POST(request: NextRequest) {
     console.error("Ошибка создания комментария:", error);
     return NextResponse.json(
       { error: "Ошибка создания комментария" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

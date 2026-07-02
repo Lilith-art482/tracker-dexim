@@ -42,20 +42,26 @@ export default async function HomePage({
 
   const dbAvailable = await isDatabaseAvailable();
   let boards: Board[] = [];
-  
+
   if (dbAvailable && uid) {
     try {
       boards = await getBoardsByUser(uid);
     } catch {
-      boards = mockBoards.filter((b) => b.ownerId === uid || b.members?.includes(uid));
+      boards = mockBoards.filter(
+        (b) => b.ownerId === uid || b.members?.includes(uid),
+      );
     }
   } else if (uid) {
-    boards = mockBoards.filter((b) => b.ownerId === uid || b.members?.includes(uid));
+    boards = mockBoards.filter(
+      (b) => b.ownerId === uid || b.members?.includes(uid),
+    );
   } else {
     boards = [];
   }
 
-  const activeBoard = boardId ? boards.find((b) => b.id === boardId) : undefined;
+  const activeBoard = boardId
+    ? boards.find((b) => b.id === boardId)
+    : undefined;
 
   let columns: Column[] = [];
   let boardMembers: BoardMember[] = [];

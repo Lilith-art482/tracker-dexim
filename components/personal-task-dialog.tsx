@@ -37,8 +37,6 @@ interface PersonalTaskDialogProps {
   onToggleComplete?: (task: PersonalTask) => void;
 }
 
-
-
 const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 const PRIORITY_LABELS: Record<Priority, string> = {
@@ -61,14 +59,14 @@ export function PersonalTaskDialog({
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title ?? "");
   const [dayOfWeek, setDayOfWeek] = useState(
-    task?.dayOfWeek ?? defaultDayOfWeek
+    task?.dayOfWeek ?? defaultDayOfWeek,
   );
   const [startTime, setStartTime] = useState(
-    task?.startTime ?? defaultStartTime
+    task?.startTime ?? defaultStartTime,
   );
   const [endTime, setEndTime] = useState(task?.endTime ?? "10:00");
   const [priority, setPriority] = useState<Priority>(
-    task?.priority ?? "medium"
+    task?.priority ?? "medium",
   );
   const [completed, setCompleted] = useState(task?.completed ?? false);
   const [comment, setComment] = useState(task?.comment ?? "");

@@ -14,6 +14,7 @@ import { mockPersonalTasks } from "@/lib/mock-data";
 import { WeeklyTable } from "@/components/weekly-table";
 import { PersonalTaskList } from "@/components/personal-task-list";
 import { PersonalDashboard } from "@/components/personal-dashboard";
+import { CompletedTasksBlock } from "@/components/completed-tasks-block";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -101,15 +102,19 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
           if (!cancelled) setLoading(false);
           return;
         }
-        const res = await fetch(`/api/personal-tasks?uid=${uid}&boardId=${boardId}`);
+        const res = await fetch(
+          `/api/personal-tasks?uid=${uid}&boardId=${boardId}`,
+        );
         if (res.ok) {
           const data: PersonalTask[] = await res.json();
           if (!cancelled) setTasks(data);
         } else {
-          if (!cancelled) setTasks(mockPersonalTasks.filter((t) => t.boardId === boardId));
+          if (!cancelled)
+            setTasks(mockPersonalTasks.filter((t) => t.boardId === boardId));
         }
       } catch {
-        if (!cancelled) setTasks(mockPersonalTasks.filter((t) => t.boardId === boardId));
+        if (!cancelled)
+          setTasks(mockPersonalTasks.filter((t) => t.boardId === boardId));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -153,7 +158,7 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
       const updated: PersonalTask = await res.json();
       setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
       toast.success(
-        updated.completed ? "Задача выполнена" : "Задача возобновлена"
+        updated.completed ? "Задача выполнена" : "Задача возобновлена",
       );
     } catch {
       toast.error("Ошибка обновления задачи");
@@ -244,7 +249,7 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "table"
                   ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground",
               )}
             >
               <Table2 className="h-4 w-4" />
@@ -256,7 +261,7 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "list"
                   ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground",
               )}
             >
               <LayoutList className="h-4 w-4" />
@@ -307,15 +312,17 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
               className={cn(
                 "flex flex-1 flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-xs transition-colors",
                 isSelected
-                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                  ? "bg-primary/20 text-primary font-semibold shadow-sm"
                   : "text-muted-foreground hover:bg-accent",
-                isToday && !isSelected && "ring-1 ring-primary/30"
+                isToday && !isSelected && "ring-1 ring-primary/30",
               )}
             >
-              <span className={cn(
-                "text-[11px] uppercase tracking-wider",
-                isSelected && "text-primary-foreground/80"
-              )}>
+              <span
+                className={cn(
+                  "text-[11px] uppercase tracking-wider",
+                  isSelected && "text-primary-foreground/80",
+                )}
+              >
                 {DAY_NAMES[idx]}
               </span>
               <span className="text-sm font-medium">{formatDate(date)}</span>
@@ -326,14 +333,26 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
 
       {/* Content */}
       {viewMode === "table" ? (
-        <WeeklyTable
-          tasks={tasks}
-          onSaved={handleTaskSaved}
-          onToggleComplete={handleToggleComplete}
-          onDelete={handleDeleteTask}
-          boardId={boardId}
-          compact
-        />
+        <div className="flex gap-6">
+          <div className="flex-1 min-w-0">
+            <WeeklyTable
+              tasks={tasks}
+              onSaved={handleTaskSaved}
+              onToggleComplete={handleToggleComplete}
+              onDelete={handleDeleteTask}
+              boardId={boardId}
+              compact
+            />
+          </div>
+          <div className="hidden lg:block w-px bg-border shrink-0" />
+          <div className="w-80 shrink-0 space-y-6">
+            <CompletedTasksBlock
+              tasks={tasks}
+              onToggleComplete={handleToggleComplete}
+            />
+            <PersonalDashboard tasks={tasks} />
+          </div>
+        </div>
       ) : (
         <div className="flex gap-6">
           <div className="flex-1 min-w-0">

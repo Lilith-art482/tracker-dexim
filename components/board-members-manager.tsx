@@ -18,7 +18,10 @@ interface BoardMembersManagerProps {
   boardId: string;
   initialMembers: BoardMember[];
 }
-export function BoardMembersManager({ boardId, initialMembers }: BoardMembersManagerProps) {
+export function BoardMembersManager({
+  boardId,
+  initialMembers,
+}: BoardMembersManagerProps) {
   const [members, setMembers] = useState<BoardMember[]>(initialMembers);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
@@ -51,7 +54,9 @@ export function BoardMembersManager({ boardId, initialMembers }: BoardMembersMan
 
     setAdding(true);
     try {
-      const payload: { boardId: string; userId?: string; name?: string } = { boardId };
+      const payload: { boardId: string; userId?: string; name?: string } = {
+        boardId,
+      };
       if (selectedUser) payload.userId = selectedUser;
       else payload.name = name;
 
@@ -168,7 +173,9 @@ export function BoardMembersManager({ boardId, initialMembers }: BoardMembersMan
                 >
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">{member.name || member.userId}</span>
+                    <span className="text-sm font-medium">
+                      {member.name || member.userId}
+                    </span>
                   </div>
                   <button
                     onClick={() => handleRemove(member.id)}

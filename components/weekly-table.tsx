@@ -74,7 +74,7 @@ function CellDroppable({
       onClick={onCellClick}
       className={cn(
         "relative flex min-h-[56px] cursor-pointer flex-col gap-1 rounded-md border border-transparent p-1.5 transition-colors",
-        isOver && "border-emerald-500 bg-emerald-500/10"
+        isOver && "border-emerald-500 bg-emerald-500/10",
       )}
     >
       {children}
@@ -128,7 +128,7 @@ function DraggableTaskCard({
         PRIORITY_COLORS[task.priority],
         task.completed && "opacity-60",
         isDragging && "opacity-0",
-        isDraggingSource && "z-50"
+        isDraggingSource && "z-50",
       )}
     >
       <div className="flex items-start justify-between gap-1">
@@ -172,7 +172,7 @@ function TaskCardOverlay({ task }: { task: PersonalTask }) {
       className={cn(
         "rounded-md border-l-2 px-3 py-2 text-sm rotate-3 opacity-90",
         PRIORITY_COLORS[task.priority],
-        task.completed && "opacity-60"
+        task.completed && "opacity-60",
       )}
     >
       <div className="font-medium">{task.title}</div>
@@ -205,21 +205,16 @@ export function WeeklyTable({
   const [editingTask, setEditingTask] = useState<PersonalTask | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
   const getTasksForCell = useCallback(
     (dayOfWeek: number, timeSlot: string) => {
       return tasks
-        .filter(
-          (t) =>
-            t.dayOfWeek === dayOfWeek &&
-            !t.completed &&
-            tasksMatchSlot(t, timeSlot)
-        )
+        .filter((t) => t.dayOfWeek === dayOfWeek && tasksMatchSlot(t, timeSlot))
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
     },
-    [tasks]
+    [tasks],
   );
 
   const handleCellClick = (dayOfWeek: number, timeSlot?: string) => {
@@ -250,7 +245,8 @@ export function WeeklyTable({
     if (!task) return;
 
     const targetData = over.data.current as
-      { type: string; dayOfWeek: number; timeSlot: string } | undefined;
+      | { type: string; dayOfWeek: number; timeSlot: string }
+      | undefined;
     if (!targetData || targetData.type !== "cell") return;
 
     const newDayOfWeek = targetData.dayOfWeek;
@@ -291,7 +287,7 @@ export function WeeklyTable({
 
   const handleOptimisticUpdate = (
     task: PersonalTask,
-    fields: Partial<PersonalTask>
+    fields: Partial<PersonalTask>,
   ) => {
     const updated = { ...task, ...fields };
     onSaved(updated);
@@ -312,7 +308,10 @@ export function WeeklyTable({
           >
             {HOURS.map((hour) =>
               DAYS.map((_day, dayIdx) => (
-                <div key={`r-${hour}-day-${dayIdx}`} className="border-b border-border/40 p-1">
+                <div
+                  key={`r-${hour}-day-${dayIdx}`}
+                  className="border-b border-border/40 p-1"
+                >
                   <CellDroppable
                     dayOfWeek={dayIdx}
                     timeSlot={hour}
@@ -328,39 +327,10 @@ export function WeeklyTable({
                     ))}
                   </CellDroppable>
                 </div>
-              ))
+              )),
             )}
           </div>
         </div>
-
-        {tasks.some((t) => t.completed) && (
-          <div className="mt-6">
-            <h2 className="mb-3 text-lg font-semibold tracking-tight">Выполненные задачи</h2>
-            <div className="flex flex-wrap gap-2">
-              {tasks
-                .filter((t) => t.completed)
-                .map((task) => (
-                  <button
-                    key={task.id}
-                    onClick={() => onToggleComplete(task)}
-                    className={cn(
-                      "flex items-center gap-2 rounded-md border-l-2 px-3 py-1.5 text-sm opacity-70 transition-opacity hover:cursor-pointer hover:opacity-100",
-                      PRIORITY_COLORS[task.priority]
-                    )}
-                  >
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    <span className="line-through">{task.title}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {DAYS[task.dayOfWeek]} {task.startTime}–{task.endTime}
-                    </span>
-                    <Badge variant={PRIORITY_BADGE[task.priority]} className="text-[10px]">
-                      {PRIORITY_LABELS[task.priority]}
-                    </Badge>
-                  </button>
-                ))}
-            </div>
-          </div>
-        )}
 
         <PersonalTaskDialog
           open={dialogOpen}
@@ -440,44 +410,10 @@ export function WeeklyTable({
                   ))}
                 </CellDroppable>
               </div>,
-            ])
+            ]),
           )}
         </div>
       </div>
-
-      {tasks.some((t) => t.completed) && (
-        <div className="mt-8">
-          <h2 className="mb-3 text-lg font-semibold tracking-tight">
-            Выполненные задачи
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {tasks
-              .filter((t) => t.completed)
-              .map((task) => (
-                <button
-                  key={task.id}
-                  onClick={() => onToggleComplete(task)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md border-l-2 px-3 py-1.5 text-sm opacity-70 transition-opacity hover:cursor-pointer hover:opacity-100",
-                    PRIORITY_COLORS[task.priority]
-                  )}
-                >
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  <span className="line-through">{task.title}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {DAYS[task.dayOfWeek]} {task.startTime}–{task.endTime}
-                  </span>
-                  <Badge
-                    variant={PRIORITY_BADGE[task.priority]}
-                    className="text-[10px]"
-                  >
-                    {PRIORITY_LABELS[task.priority]}
-                  </Badge>
-                </button>
-              ))}
-          </div>
-        </div>
-      )}
 
       <PersonalTaskDialog
         open={dialogOpen}

@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Некорректные данные", details: parsed.error.flatten() },
-      { status: 400 }
+      { status: 400 },
     );
   }
 

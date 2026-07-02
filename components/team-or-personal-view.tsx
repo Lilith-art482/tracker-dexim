@@ -26,7 +26,9 @@ export function TeamOrPersonalView({
 
   if (mode === "personal") {
     if (activeBoard && activeBoard.type === "personal") {
-      return <PersonalView boardId={activeBoard.id} boardName={activeBoard.name} />;
+      return (
+        <PersonalView boardId={activeBoard.id} boardName={activeBoard.name} />
+      );
     }
     return <PersonalView boardId={undefined} />;
   }
@@ -37,7 +39,9 @@ export function TeamOrPersonalView({
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
           <ClipboardList className="h-8 w-8 text-muted-foreground" />
         </div>
-        <h2 className="text-xl font-semibold tracking-tight">Нет командных досок</h2>
+        <h2 className="text-xl font-semibold tracking-tight">
+          Нет командных досок
+        </h2>
         <p className="text-sm text-muted-foreground max-w-md text-center">
           Командные доски пока в разработке.
         </p>

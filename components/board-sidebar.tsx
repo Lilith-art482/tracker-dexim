@@ -48,7 +48,9 @@ interface BoardSidebarProps {
   initialBoards?: Board[];
 }
 
-export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSidebarProps) {
+export function BoardSidebar({
+  initialBoards: _initialBoards = [],
+}: BoardSidebarProps) {
   const { collapsed } = useSidebar();
   const { mode } = useMode();
   const searchParams = useSearchParams();
@@ -71,7 +73,9 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
     setLoading(true);
     try {
       const uid = auth.currentUser?.uid;
-      const url = uid ? `/api/boards?uid=${uid}&type=${boardType}` : "/api/boards";
+      const url = uid
+        ? `/api/boards?uid=${uid}&type=${boardType}`
+        : "/api/boards";
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -199,15 +203,26 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
   return (
     <aside
       className={cn(
-        "shrink-0 flex flex-col border-r bg-sidebar transition-all duration-300",
-        collapsed ? "w-0 overflow-hidden border-0" : "w-60"
+        "shrink-0 flex flex-col border-r bg-sidebar transition-all duration-300 relative overflow-hidden",
+        collapsed ? "w-0 border-0" : "w-60",
       )}
     >
+      {/* Grid pattern overlay */}
+      <div
+        className="absolute inset-0 opacity-[0.04] pointer-events-none"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, #4E6E62 1px, transparent 1px),
+            linear-gradient(to bottom, #4E6E62 1px, transparent 1px)
+          `,
+          backgroundSize: "48px 48px",
+        }}
+      />
       {/* Header with inline create input */}
       <div
         className={cn(
           "flex items-center gap-2.5 px-4 h-12 border-b transition-opacity duration-300",
-          collapsed ? "opacity-0" : "opacity-100"
+          collapsed ? "opacity-0" : "opacity-100",
         )}
       >
         {creating ? (
@@ -267,7 +282,7 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
       <nav
         className={cn(
           "flex-1 overflow-y-auto py-3 transition-opacity duration-300",
-          collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+          collapsed ? "opacity-0 pointer-events-none" : "opacity-100",
         )}
       >
         <div className="flex flex-col gap-1 px-2">
@@ -289,14 +304,16 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
 
             return (
               <div key={board.id}>
-                {i > 0 && <div className="mx-3 my-1 border-t border-sidebar-border/30" />}
+                {i > 0 && (
+                  <div className="mx-3 my-1 border-t border-sidebar-border/30" />
+                )}
 
                 <div
                   className={cn(
                     "group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200",
                     active
                       ? "bg-sidebar-accent shadow-sm"
-                      : "hover:bg-sidebar-accent/50"
+                      : "hover:bg-sidebar-accent/50",
                   )}
                 >
                   {/* Color dot with picker */}
@@ -308,7 +325,8 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
                       }}
                       className={cn(
                         "h-2.5 w-2.5 rounded-full ring-1 ring-black/5 transition-transform hover:scale-125",
-                        active && "ring-2 ring-offset-1 ring-offset-sidebar-accent"
+                        active &&
+                          "ring-2 ring-offset-1 ring-offset-sidebar-accent",
                       )}
                       style={{ backgroundColor: color }}
                       title="Сменить цвет"
@@ -327,7 +345,8 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
                               onClick={() => handleColorChange(board.id, c)}
                               className={cn(
                                 "h-5 w-5 rounded-full transition-transform hover:scale-125",
-                                color === c && "ring-2 ring-primary ring-offset-1 ring-offset-popover"
+                                color === c &&
+                                  "ring-2 ring-primary ring-offset-1 ring-offset-popover",
                               )}
                               style={{ backgroundColor: c }}
                             />
@@ -374,7 +393,7 @@ export function BoardSidebar({ initialBoards: _initialBoards = [] }: BoardSideba
                             "text-sm transition-colors",
                             active
                               ? "font-semibold text-sidebar-foreground"
-                              : "text-sidebar-foreground/70 group-hover:text-sidebar-foreground"
+                              : "text-sidebar-foreground/70 group-hover:text-sidebar-foreground",
                           )}
                         >
                           {board.name}

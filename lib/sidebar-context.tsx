@@ -7,12 +7,16 @@ interface SidebarContextValue {
   toggle: () => void;
 }
 
-const SidebarContext = createContext<SidebarContextValue | undefined>(undefined);
+const SidebarContext = createContext<SidebarContextValue | undefined>(
+  undefined,
+);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   return (
-    <SidebarContext.Provider value={{ collapsed, toggle: () => setCollapsed((v) => !v) }}>
+    <SidebarContext.Provider
+      value={{ collapsed, toggle: () => setCollapsed((v) => !v) }}
+    >
       {children}
     </SidebarContext.Provider>
   );

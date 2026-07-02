@@ -29,7 +29,7 @@ export function getSecret(): string | null {
 }
 
 export function postMessage(
-  message: Omit<BridgeMessage<BridgePayload>, "version">
+  message: Omit<BridgeMessage<BridgePayload>, "version">,
 ) {
   if (!parentWindow) {
     return;

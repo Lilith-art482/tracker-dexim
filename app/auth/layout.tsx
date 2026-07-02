@@ -7,7 +7,11 @@ export const metadata: Metadata = {
   description: "On Track — Вход",
 };
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="antialiased min-h-screen dark bg-[#0a0f0d]">
       <NoChromeClient />

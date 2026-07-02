@@ -12,4 +12,3 @@ export const TableName = {
 export type TableName = (typeof TableName)[keyof typeof TableName];
 
 export const TABLE_NAMES: TableName[] = Object.values(TableName);
-
