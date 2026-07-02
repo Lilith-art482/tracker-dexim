@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Moon, Sun } from "lucide-react";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { useTheme } from "next-themes";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import {
@@ -20,23 +18,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-
-function ThemeToggleInline() {
-  const { theme, setTheme } = useTheme();
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="text-foreground/40 hover:text-foreground"
-      aria-label="Переключить тему"
-    >
-      <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-    </Button>
-  );
-}
 
 const features = [
   { icon: CalendarCheck, label: "Планнер" },
@@ -96,38 +77,43 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex relative overflow-hidden bg-background">
-      {/* Glow from top-left */}
+    <div className="dark min-h-screen flex relative overflow-hidden bg-background">
+      {/* Large green glow — top-left */}
       <div
-        className="absolute -top-64 -left-64 w-[900px] h-[900px] rounded-full blur-[150px] pointer-events-none opacity-25 dark:opacity-30"
+        className="absolute -top-80 -left-80 w-[1100px] h-[1100px] rounded-full blur-[200px] pointer-events-none opacity-25"
         style={{
           background:
-            "radial-gradient(circle, #4E6E62 0%, #4E6E62 30%, transparent 70%)",
+            "radial-gradient(circle at 30% 30%, #4E6E62 0%, #4E6E62 25%, #5B8A7A 45%, transparent 65%)",
         }}
       />
+      {/* Soft teal-cyan glow — center */}
       <div
-        className="absolute top-[40%] -left-32 w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none opacity-15 dark:opacity-20"
+        className="absolute top-[30%] left-[10%] w-[700px] h-[700px] rounded-full blur-[160px] pointer-events-none opacity-15"
         style={{
-          background: "radial-gradient(circle, #4E6E62 0%, transparent 60%)",
+          background:
+            "radial-gradient(circle, #3D7E8C 0%, #4E7A6A 35%, transparent 65%)",
+        }}
+      />
+      {/* Warm amber-pink glow — bottom-right */}
+      <div
+        className="absolute bottom-0 right-0 w-[800px] h-[800px] rounded-full blur-[180px] pointer-events-none opacity-15"
+        style={{
+          background:
+            "radial-gradient(circle at 70% 80%, #6B5B4E 0%, #7A5A55 25%, transparent 60%)",
         }}
       />
 
-      {/* Noise overlay - dark only */}
+      {/* Noise overlay */}
       <div
-        className="hidden dark:block absolute inset-0 opacity-[0.04] pointer-events-none"
+        className="absolute inset-0 opacity-[0.04] pointer-events-none"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         }}
       />
 
-      {/* Theme toggle */}
-      <div className="fixed top-4 right-4 z-50">
-        <ThemeToggleInline />
-      </div>
-
       {/* Main content */}
       <div className="flex-1 flex items-center justify-center px-6 py-8">
-        <div className="flex w-full max-w-5xl flex-col lg:flex-row items-center gap-12 lg:gap-16">
+        <div className="flex w-full max-w-6xl flex-col lg:flex-row items-center gap-20 lg:gap-32">
           {/* Left: info block */}
           <div className="flex-1 max-w-lg space-y-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm text-primary">
