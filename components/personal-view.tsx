@@ -346,16 +346,14 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
 
             {/* Center: weekly schedule */}
             <div className="flex-1 min-h-0 flex flex-col">
-              <div className="flex-1 min-h-0 overflow-auto">
-                <WeeklyTable
-                  tasks={tasks}
-                  onSaved={handleTaskSaved}
-                  onToggleComplete={handleToggleComplete}
-                  onDelete={handleDeleteTask}
-                  boardId={boardId}
-                  compact
-                />
-              </div>
+              <WeeklyTable
+                tasks={tasks}
+                onSaved={handleTaskSaved}
+                onToggleComplete={handleToggleComplete}
+                onDelete={handleDeleteTask}
+                boardId={boardId}
+                compact
+              />
             </div>
 
             {/* Divider */}
