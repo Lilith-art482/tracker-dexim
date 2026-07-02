@@ -57,12 +57,6 @@ export default function AuthPage() {
         );
         router.push("/");
       } else {
-        if (formData.accessCode !== "demo-tracker-2026") {
-          toast.error("Неверный код доступа");
-          setLoading(false);
-          return;
-        }
-
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           formData.email,
@@ -366,8 +360,7 @@ export default function AuthPage() {
                       setFormData({ ...formData, accessCode: e.target.value })
                     }
                     className="w-full pl-10 pr-4 py-3 bg-background/50 border border-input/60 rounded-xl text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all"
-                    placeholder="demo-tracker-2026"
-                    required
+                    placeholder="Код доступа"
                   />
                 </div>
               </div>

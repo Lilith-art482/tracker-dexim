@@ -7,7 +7,7 @@ import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useTheme } from "next-themes";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
-import { Mail, Lock, User, Key, Loader2, CheckCircle } from "lucide-react";
+import { Mail, Lock, User, Key, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -45,12 +45,6 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      if (formData.accessCode !== "demo-tracker-2026") {
-        toast.error("Неверный код доступа");
-        setLoading(false);
-        return;
-      }
-
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
@@ -315,14 +309,9 @@ export default function RegisterPage() {
                     setFormData({ ...formData, accessCode: e.target.value })
                   }
                   className="w-full pl-10 pr-4 py-3 bg-background/50 border border-input/60 rounded-xl text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all"
-                  placeholder="demo-tracker-2026"
-                  required
+                  placeholder="Код доступа"
                 />
               </div>
-              <p className="text-xs text-muted-foreground/60 flex items-center gap-1">
-                <CheckCircle className="h-3 w-3" />
-                Продукт в закрытом доступе
-              </p>
             </div>
 
             <button
