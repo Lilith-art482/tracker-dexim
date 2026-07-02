@@ -162,7 +162,6 @@ export function WeeklyTable({
     (dayOfWeek: number) => {
       return tasks
         .filter((t) => t.dayOfWeek === dayOfWeek)
-        .sort((a, b) => a.startTime.localeCompare(b.startTime))
         .slice(0, ROWS);
     },
     [tasks],
@@ -194,10 +193,13 @@ export function WeeklyTable({
     if (!task) return;
 
     const overId = over.id.toString();
-    if (!overId.startsWith("day-")) return;
+    if (!overId.startsWith("cell-")) return;
 
-    const newDayOfWeek = parseInt(overId.replace("day-", ""), 10);
-    if (isNaN(newDayOfWeek) || newDayOfWeek === task.dayOfWeek) return;
+    const parts = overId.split("-");
+    const newDayOfWeek = parseInt(parts[1], 10);
+    if (isNaN(newDayOfWeek)) return;
+
+    if (newDayOfWeek === task.dayOfWeek) return;
 
     const updated = { ...task, dayOfWeek: newDayOfWeek };
     onSaved(updated);
@@ -232,14 +234,23 @@ export function WeeklyTable({
           style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
         >
           {DAYS.map((_day, dayIdx) => (
-            <DayColumn
-              key={dayIdx}
-              dayOfWeek={dayIdx}
-              tasks={getTasksForDay(dayIdx)}
-              onCellClick={() => handleCellClick(dayIdx)}
-              onEditTask={handleEditTask}
-              onToggleComplete={onToggleComplete}
-            />
+            <div key={dayIdx} className="flex flex-col">
+              {Array.from({ length: ROWS }, (_, rowIdx) => {
+                const dayTasks = getTasksForDay(dayIdx);
+                const task = dayTasks[rowIdx];
+                return (
+                  <CellRow
+                    key={rowIdx}
+                    id={`cell-${dayIdx}-${rowIdx}`}
+                    dayOfWeek={dayIdx}
+                    task={task}
+                    onCellClick={() => handleCellClick(dayIdx)}
+                    onEdit={handleEditTask}
+                    onToggleComplete={onToggleComplete}
+                  />
+                );
+              })}
+            </div>
           ))}
         </div>
       </div>
@@ -265,57 +276,47 @@ export function WeeklyTable({
   );
 }
 
-function DayColumn({
+function CellRow({
+  id,
   dayOfWeek,
-  tasks,
+  task,
   onCellClick,
-  onEditTask,
+  onEdit,
   onToggleComplete,
 }: {
+  id: string;
   dayOfWeek: number;
-  tasks: PersonalTask[];
+  task?: PersonalTask;
   onCellClick: () => void;
-  onEditTask: (task: PersonalTask) => void;
+  onEdit: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
-    id: `day-${dayOfWeek}`,
-    data: { type: "day", dayOfWeek },
+    id,
+    data: { type: "cell", dayOfWeek },
   });
 
   return (
     <div
       ref={setNodeRef}
+      onClick={!task ? onCellClick : undefined}
       className={cn(
-        "flex flex-col rounded-lg border border-border/30 transition-colors",
-        isOver && "border-emerald-500 bg-emerald-500/5",
+        "h-[56px] border-b border-border/20 last:border-0 px-1.5 py-1 overflow-hidden transition-colors",
+        !task && "cursor-pointer hover:bg-muted/20",
+        isOver && "bg-emerald-500/5",
       )}
     >
-      {Array.from({ length: ROWS }, (_, idx) => {
-        const task = tasks[idx];
-        return (
-          <div
-            key={idx}
-            onClick={!task ? onCellClick : undefined}
-            className={cn(
-              "h-[56px] border-b border-border/20 last:border-0 px-1.5 py-1 overflow-hidden",
-              !task && "cursor-pointer hover:bg-muted/20 transition-colors",
-            )}
-          >
-            {task ? (
-              <DraggableTaskCard
-                task={task}
-                onEdit={onEditTask}
-                onToggleComplete={onToggleComplete}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <Plus className="h-3.5 w-3.5 text-muted-foreground/20" />
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {task ? (
+        <DraggableTaskCard
+          task={task}
+          onEdit={onEdit}
+          onToggleComplete={onToggleComplete}
+        />
+      ) : (
+        <div className="flex h-full items-center justify-center">
+          <Plus className="h-3.5 w-3.5 text-muted-foreground/20" />
+        </div>
+      )}
     </div>
   );
 }
