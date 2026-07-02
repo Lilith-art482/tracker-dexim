@@ -331,9 +331,19 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
         })}
       </div>
 
-      {/* Content */}
+      {/* Content — 3 columns: completed | schedule | dashboard */}
       {viewMode === "table" ? (
-        <div className="flex gap-6">
+        <div className="flex gap-4">
+          {/* Left: completed tasks */}
+          <div className="w-72 shrink-0 space-y-6">
+            <CompletedTasksBlock
+              tasks={tasks}
+              onToggleComplete={handleToggleComplete}
+              weekDates={weekDates}
+            />
+          </div>
+
+          {/* Center: weekly schedule */}
           <div className="flex-1 min-w-0">
             <WeeklyTable
               tasks={tasks}
@@ -344,12 +354,12 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
               compact
             />
           </div>
+
+          {/* Divider */}
           <div className="hidden lg:block w-px bg-border shrink-0" />
-          <div className="w-80 shrink-0 space-y-6">
-            <CompletedTasksBlock
-              tasks={tasks}
-              onToggleComplete={handleToggleComplete}
-            />
+
+          {/* Right: dashboard */}
+          <div className="w-80 shrink-0">
             <PersonalDashboard tasks={tasks} />
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Plus,
@@ -12,6 +12,7 @@ import {
   X,
   Palette,
 } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
 import { Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
 
@@ -65,37 +66,43 @@ export function BoardSidebar({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [colorPickerId, setColorPickerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [userUid, setUserUid] = useState<string | null>(null);
 
   const activeBoardId = searchParams.get("boardId");
   const boardType = mode === "personal" ? "personal" : "team";
 
-  const fetchBoards = useCallback(async () => {
-    setLoading(true);
-    try {
-      const uid = auth.currentUser?.uid;
-      const url = uid
-        ? `/api/boards?uid=${uid}&type=${boardType}`
-        : "/api/boards";
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setBoards(data);
-      }
-    } catch {
-    } finally {
-      setLoading(false);
-    }
-  }, [boardType]);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserUid(user?.uid ?? null);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
-    fetchBoards();
-    const uid = auth.currentUser?.uid;
-    if (uid && !searchParams.has("uid")) {
+    if (!userUid) return;
+    setLoading(true);
+    const load = async () => {
+      try {
+        const res = await fetch(`/api/boards?uid=${userUid}&type=${boardType}`);
+        if (res.ok) {
+          const data = await res.json();
+          setBoards(data);
+        }
+      } catch {
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [userUid, boardType]);
+
+  useEffect(() => {
+    if (userUid && !searchParams.has("uid")) {
       const params = new URLSearchParams(searchParams.toString());
-      params.set("uid", uid);
+      params.set("uid", userUid);
       router.replace(`${pathname}?${params.toString()}`);
     }
-  }, [fetchBoards, searchParams, pathname, router]);
+  }, [userUid, searchParams, pathname, router]);
 
   const switchBoard = (boardId: string) => {
     const params = new URLSearchParams();
