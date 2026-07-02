@@ -223,117 +223,117 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 h-full flex flex-col">
-      {/* Header: title + view toggle */}
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {boardName || "Личное расписание"}
-          </h1>
-          <p className="text-sm text-muted-foreground">{currentMonthLabel}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="default"
-            size="sm"
-            className="gap-1.5"
-            onClick={handleAddTask}
-          >
-            <Plus className="h-4 w-4" />
-            Добавить задачу
-          </Button>
-          <div className="flex items-center gap-1 rounded-lg border p-0.5">
-            <button
-              onClick={() => setViewMode("table")}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                viewMode === "table"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground",
-              )}
-            >
-              <Table2 className="h-4 w-4" />
-              Таблица
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                viewMode === "list"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground",
-              )}
-            >
-              <LayoutList className="h-4 w-4" />
-              Список
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Month navigation */}
-      <div className="mb-4 flex items-center justify-between">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setWeekOffset((p) => p - 1)}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <span className="text-sm font-semibold tracking-tight">
-          {currentMonthLabel}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setWeekOffset((p) => p + 1)}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Day selector */}
-      <div className="mb-4 flex gap-1">
-        {weekDates.map((date, idx) => {
-          const isToday = (() => {
-            const now = new Date();
-            return (
-              date.getDate() === now.getDate() &&
-              date.getMonth() === now.getMonth() &&
-              date.getFullYear() === now.getFullYear()
-            );
-          })();
-          const isSelected = idx === selectedDay;
-
-          return (
-            <button
-              key={idx}
-              onClick={() => setSelectedDay(idx)}
-              className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-xs transition-colors",
-                isSelected
-                  ? "bg-primary/20 text-primary font-semibold shadow-sm"
-                  : "text-muted-foreground hover:bg-accent",
-                isToday && !isSelected && "ring-1 ring-primary/30",
-              )}
-            >
-              <span
-                className={cn(
-                  "text-[11px] uppercase tracking-wider",
-                  isSelected && "text-primary-foreground/80",
-                )}
+    <div className="flex flex-1 h-full">
+      {/* Main content area */}
+      <div className="flex-1 min-w-0 overflow-auto">
+        <div className="container mx-auto px-4 py-6">
+          {/* Header: title + view toggle */}
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                {boardName || "Личное расписание"}
+              </h1>
+              <p className="text-sm text-muted-foreground">{currentMonthLabel}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-1.5"
+                onClick={handleAddTask}
               >
-                {DAY_NAMES[idx]}
-              </span>
-              <span className="text-sm font-medium">{formatDate(date)}</span>
-            </button>
-          );
-        })}
-      </div>
+                <Plus className="h-4 w-4" />
+                Добавить задачу
+              </Button>
+              <div className="flex items-center gap-1 rounded-lg border p-0.5">
+                <button
+                  onClick={() => setViewMode("table")}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    viewMode === "table"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground",
+                  )}
+                >
+                  <Table2 className="h-4 w-4" />
+                  Таблица
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    viewMode === "list"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground dark:text-foreground/70 dark:hover:text-foreground",
+                  )}
+                >
+                  <LayoutList className="h-4 w-4" />
+                  Список
+                </button>
+              </div>
+            </div>
+          </div>
 
-      <div className="flex flex-1 min-h-0">
-        {/* Content */}
-        <div className="flex-1 min-w-0 overflow-auto">
+          {/* Month navigation */}
+          <div className="mb-4 flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setWeekOffset((p) => p - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-semibold tracking-tight">
+              {currentMonthLabel}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setWeekOffset((p) => p + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Day selector */}
+          <div className="mb-4 flex gap-1">
+            {weekDates.map((date, idx) => {
+              const isToday = (() => {
+                const now = new Date();
+                return (
+                  date.getDate() === now.getDate() &&
+                  date.getMonth() === now.getMonth() &&
+                  date.getFullYear() === now.getFullYear()
+                );
+              })();
+              const isSelected = idx === selectedDay;
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedDay(idx)}
+                  className={cn(
+                    "flex flex-1 flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-xs transition-colors",
+                    isSelected
+                      ? "bg-primary/20 text-primary font-semibold shadow-sm"
+                      : "text-muted-foreground hover:bg-accent",
+                    isToday && !isSelected && "ring-1 ring-primary/30",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "text-[11px] uppercase tracking-wider",
+                      isSelected && "text-primary-foreground/80",
+                    )}
+                  >
+                    {DAY_NAMES[idx]}
+                  </span>
+                  <span className="text-sm font-medium">{formatDate(date)}</span>
+                </button>
+              );
+            })}
+          </div>
+
           {viewMode === "table" ? (
             <WeeklyTable
               tasks={tasks}
@@ -353,18 +353,18 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
             />
           )}
         </div>
+      </div>
 
-        {/* Right sidebar */}
-        <div className="w-80 shrink-0 border-l bg-sidebar flex flex-col">
-          <div className="flex items-center gap-2 px-4 h-12 border-b border-border/40 shrink-0">
-            <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-              Дашборд
-            </span>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
-            <CompletedTasksBlock tasks={tasks} onToggleComplete={handleToggleComplete} />
-            <PersonalDashboard tasks={tasks} />
-          </div>
+      {/* Right sidebar */}
+      <div className="w-80 shrink-0 border-l bg-sidebar flex flex-col">
+        <div className="flex items-center gap-2 px-4 h-12 border-b border-border/40 shrink-0">
+          <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
+            Дашборд
+          </span>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <CompletedTasksBlock tasks={tasks} onToggleComplete={handleToggleComplete} />
+          <PersonalDashboard tasks={tasks} />
         </div>
       </div>
 
