@@ -223,7 +223,7 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto flex flex-1 flex-col px-4 py-6 min-h-0">
       {/* Header: title + view toggle */}
       <div className="mb-4 flex items-center justify-between">
         <div>
@@ -332,54 +332,60 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
       </div>
 
       {/* Content — 3 columns: completed | schedule | dashboard */}
-      {viewMode === "table" ? (
-        <div className="flex gap-4">
-          {/* Left: completed tasks */}
-          <div className="w-72 shrink-0 space-y-6">
-            <CompletedTasksBlock
-              tasks={tasks}
-              onToggleComplete={handleToggleComplete}
-              weekDates={weekDates}
-            />
-          </div>
+      <div className="flex flex-1 gap-4 min-h-0">
+        {viewMode === "table" ? (
+          <>
+            {/* Left: completed tasks */}
+            <div className="w-72 shrink-0 flex flex-col gap-6">
+              <CompletedTasksBlock
+                tasks={tasks}
+                onToggleComplete={handleToggleComplete}
+                weekDates={weekDates}
+              />
+            </div>
 
-          {/* Center: weekly schedule */}
-          <div className="flex-1 min-w-0">
-            <WeeklyTable
-              tasks={tasks}
-              onSaved={handleTaskSaved}
-              onToggleComplete={handleToggleComplete}
-              onDelete={handleDeleteTask}
-              boardId={boardId}
-              compact
-            />
-          </div>
+            {/* Center: weekly schedule */}
+            <div className="flex-1 min-h-0 flex flex-col">
+              <div className="flex-1 min-h-0 overflow-auto">
+                <WeeklyTable
+                  tasks={tasks}
+                  onSaved={handleTaskSaved}
+                  onToggleComplete={handleToggleComplete}
+                  onDelete={handleDeleteTask}
+                  boardId={boardId}
+                  compact
+                />
+              </div>
+            </div>
 
-          {/* Divider */}
-          <div className="hidden lg:block w-px bg-border shrink-0" />
+            {/* Divider */}
+            <div className="hidden lg:block w-px bg-border shrink-0" />
 
-          {/* Right: dashboard */}
-          <div className="w-80 shrink-0">
-            <PersonalDashboard tasks={tasks} />
-          </div>
-        </div>
-      ) : (
-        <div className="flex gap-6">
-          <div className="flex-1 min-w-0">
-            <PersonalTaskList
-              tasks={tasks}
-              selectedDay={selectedDay}
-              onEdit={handleEditTask}
-              onToggleComplete={handleToggleComplete}
-              onDelete={handleDeleteTask}
-            />
-          </div>
-          <div className="hidden lg:block w-px bg-border shrink-0" />
-          <div className="w-80 shrink-0">
-            <PersonalDashboard tasks={tasks} />
-          </div>
-        </div>
-      )}
+            {/* Right: dashboard */}
+            <div className="w-80 shrink-0 flex flex-col gap-6">
+              <PersonalDashboard tasks={tasks} />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex-1 min-w-0 flex flex-col">
+              <div className="flex-1 min-h-0 overflow-auto">
+                <PersonalTaskList
+                  tasks={tasks}
+                  selectedDay={selectedDay}
+                  onEdit={handleEditTask}
+                  onToggleComplete={handleToggleComplete}
+                  onDelete={handleDeleteTask}
+                />
+              </div>
+            </div>
+            <div className="hidden lg:block w-px bg-border shrink-0" />
+            <div className="w-80 shrink-0 flex flex-col gap-6">
+              <PersonalDashboard tasks={tasks} />
+            </div>
+          </>
+        )}
+      </div>
 
       <PersonalTaskDialog
         open={dialogOpen}
