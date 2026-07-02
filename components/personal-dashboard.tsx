@@ -147,7 +147,7 @@ export function PersonalDashboard({ tasks }: PersonalDashboardProps) {
   const total = tasks.length;
 
   return (
-    <div className="rounded-lg border p-5 space-y-6">
+    <div className="rounded-lg border p-5 space-y-5">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Дашборд</h3>
         <span className="text-xs text-muted-foreground">Всего: {total}</span>
