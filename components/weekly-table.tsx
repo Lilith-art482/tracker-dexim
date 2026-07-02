@@ -147,7 +147,7 @@ function DraggableTaskCard({
           )}
         </button>
       </div>
-      <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+      <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
         <span>
           {task.startTime.slice(0, 5)}–{task.endTime.slice(0, 5)}
         </span>
