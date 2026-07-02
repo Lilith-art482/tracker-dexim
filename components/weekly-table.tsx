@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import { Plus, CheckCircle2, Circle } from "lucide-react";
 import {
   DndContext,
@@ -136,6 +136,34 @@ function TaskCardOverlay({ task }: { task: PersonalTask }) {
   );
 }
 
+function buildDaySlots(
+  dayTasks: PersonalTask[],
+  positionMap: Record<string, number>,
+): (PersonalTask | null)[] {
+  const slots: (PersonalTask | null)[] = new Array(ROWS).fill(null);
+  const placed = new Set<string>();
+
+  for (const t of dayTasks) {
+    const row = positionMap[t.id];
+    if (typeof row === "number" && row >= 0 && row < ROWS && !slots[row]) {
+      slots[row] = t;
+      placed.add(t.id);
+    }
+  }
+
+  let insertIdx = 0;
+  for (const t of dayTasks) {
+    if (placed.has(t.id)) continue;
+    while (insertIdx < ROWS && slots[insertIdx] !== null) insertIdx++;
+    if (insertIdx < ROWS) {
+      slots[insertIdx] = t;
+      insertIdx++;
+    }
+  }
+
+  return slots;
+}
+
 export function WeeklyTable({
   tasks,
   onSaved,
@@ -153,19 +181,28 @@ export function WeeklyTable({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogDayOfWeek, setDialogDayOfWeek] = useState(0);
   const [editingTask, setEditingTask] = useState<PersonalTask | null>(null);
+  const [positionMap, setPositionMap] = useState<Record<string, number>>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  const getTasksForDay = useCallback(
-    (dayOfWeek: number) => {
-      return tasks
-        .filter((t) => t.dayOfWeek === dayOfWeek)
-        .slice(0, ROWS);
-    },
-    [tasks],
-  );
+  const tasksByDay = useMemo(() => {
+    const map: Record<number, PersonalTask[]> = {};
+    for (const t of tasks) {
+      if (!map[t.dayOfWeek]) map[t.dayOfWeek] = [];
+      map[t.dayOfWeek].push(t);
+    }
+    return map;
+  }, [tasks]);
+
+  const daySlots = useMemo(() => {
+    const result: Record<number, (PersonalTask | null)[]> = {};
+    for (let d = 0; d < 7; d++) {
+      result[d] = buildDaySlots(tasksByDay[d] || [], positionMap);
+    }
+    return result;
+  }, [tasksByDay, positionMap]);
 
   const handleCellClick = (dayOfWeek: number) => {
     setDialogDayOfWeek(dayOfWeek);
@@ -193,31 +230,49 @@ export function WeeklyTable({
     if (!task) return;
 
     const overId = over.id.toString();
-    if (!overId.startsWith("cell-")) return;
+    if (!overId.startsWith("slot-")) return;
 
     const parts = overId.split("-");
-    const newDayOfWeek = parseInt(parts[1], 10);
-    if (isNaN(newDayOfWeek)) return;
+    const newDay = parseInt(parts[1], 10);
+    const newRow = parseInt(parts[2], 10);
+    if (isNaN(newDay) || isNaN(newRow)) return;
 
-    if (newDayOfWeek === task.dayOfWeek) return;
-
-    const updated = { ...task, dayOfWeek: newDayOfWeek };
-    onSaved(updated);
-
-    try {
-      const res = await fetch("/api/personal-tasks", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: task.id, dayOfWeek: newDayOfWeek }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        toast.error(err.error || "Ошибка перемещения задачи");
-        return;
+    if (newDay === task.dayOfWeek) {
+      const slots = daySlots[newDay];
+      let oldRow = -1;
+      for (let i = 0; i < slots.length; i++) {
+        if (slots[i]?.id === task.id) {
+          oldRow = i;
+          break;
+        }
       }
-    } catch {
-      toast.error("Ошибка перемещения задачи");
+      if (oldRow === newRow) return;
+      if (slots[newRow]) return;
+      setPositionMap((prev) => ({ ...prev, [task.id]: newRow }));
+    } else {
+      const targetSlots = daySlots[newDay];
+      if (targetSlots?.[newRow]) return;
+
+      setPositionMap((prev) => ({ ...prev, [task.id]: newRow }));
+
+      const updated = { ...task, dayOfWeek: newDay };
+      onSaved(updated);
+
+      try {
+        const res = await fetch("/api/personal-tasks", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: task.id, dayOfWeek: newDay }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          toast.error(err.error || "Ошибка перемещения задачи");
+          return;
+        }
+      } catch {
+        toast.error("Ошибка перемещения задачи");
+      }
     }
   };
 
@@ -230,28 +285,30 @@ export function WeeklyTable({
     >
       <div className="overflow-x-auto pb-2">
         <div
-          className="grid min-w-[1000px]"
+          className="grid min-w-[1000px] gap-px bg-border/20"
           style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
         >
-          {DAYS.map((_day, dayIdx) => (
-            <div key={dayIdx} className="flex flex-col">
-              {Array.from({ length: ROWS }, (_, rowIdx) => {
-                const dayTasks = getTasksForDay(dayIdx);
-                const task = dayTasks[rowIdx];
-                return (
-                  <CellRow
-                    key={rowIdx}
-                    id={`cell-${dayIdx}-${rowIdx}`}
-                    dayOfWeek={dayIdx}
-                    task={task}
-                    onCellClick={() => handleCellClick(dayIdx)}
-                    onEdit={handleEditTask}
-                    onToggleComplete={onToggleComplete}
-                  />
-                );
-              })}
-            </div>
-          ))}
+          {DAYS.map((_day, dayIdx) => {
+            const slots = daySlots[dayIdx];
+            return (
+              <div key={dayIdx} className="flex flex-col bg-background">
+                {Array.from({ length: ROWS }, (_, rowIdx) => {
+                  const task = slots?.[rowIdx] ?? null;
+                  return (
+                    <CellRow
+                      key={`slot-${dayIdx}-${rowIdx}`}
+                      dayOfWeek={dayIdx}
+                      rowIndex={rowIdx}
+                      task={task}
+                      onCellClick={() => handleCellClick(dayIdx)}
+                      onEdit={handleEditTask}
+                      onToggleComplete={onToggleComplete}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -277,23 +334,23 @@ export function WeeklyTable({
 }
 
 function CellRow({
-  id,
   dayOfWeek,
+  rowIndex,
   task,
   onCellClick,
   onEdit,
   onToggleComplete,
 }: {
-  id: string;
   dayOfWeek: number;
-  task?: PersonalTask;
+  rowIndex: number;
+  task: PersonalTask | null;
   onCellClick: () => void;
   onEdit: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
-    id,
-    data: { type: "cell", dayOfWeek },
+    id: `slot-${dayOfWeek}-${rowIndex}`,
+    data: { type: "slot", dayOfWeek, rowIndex },
   });
 
   return (
@@ -301,9 +358,10 @@ function CellRow({
       ref={setNodeRef}
       onClick={!task ? onCellClick : undefined}
       className={cn(
-        "h-[56px] border-b border-border/20 last:border-0 px-1.5 py-1 overflow-hidden transition-colors",
+        "h-[56px] px-1.5 py-1 overflow-hidden transition-colors",
         !task && "cursor-pointer hover:bg-muted/20",
-        isOver && "bg-emerald-500/5",
+        isOver && "bg-emerald-500/10",
+        task && "bg-card",
       )}
     >
       {task ? (
