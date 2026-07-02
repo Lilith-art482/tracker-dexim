@@ -331,36 +331,39 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
         })}
       </div>
 
-      {/* Content — 3 columns: completed | schedule | dashboard */}
+      {/* Content — left: completed + schedule, right: dashboard */}
       <div className="flex flex-1 gap-4 min-h-0">
         {viewMode === "table" ? (
           <>
-            {/* Left: completed tasks */}
-            <div className="w-72 shrink-0 flex flex-col gap-6">
-              <CompletedTasksBlock
-                tasks={tasks}
-                onToggleComplete={handleToggleComplete}
-                weekDates={weekDates}
-              />
-            </div>
+            {/* Left column: completed tasks + schedule */}
+            <div className="flex-1 flex flex-col gap-4 min-h-0">
+              {/* Completed tasks block */}
+              <div className="w-full shrink-0">
+                <CompletedTasksBlock
+                  tasks={tasks}
+                  onToggleComplete={handleToggleComplete}
+                  weekDates={weekDates}
+                />
+              </div>
 
-            {/* Center: weekly schedule */}
-            <div className="flex-1 min-h-0 flex flex-col">
-              <WeeklyTable
-                tasks={tasks}
-                onSaved={handleTaskSaved}
-                onToggleComplete={handleToggleComplete}
-                onDelete={handleDeleteTask}
-                boardId={boardId}
-                compact
-              />
+              {/* Weekly schedule */}
+              <div className="flex-1 min-h-0 overflow-auto">
+                <WeeklyTable
+                  tasks={tasks}
+                  onSaved={handleTaskSaved}
+                  onToggleComplete={handleToggleComplete}
+                  onDelete={handleDeleteTask}
+                  boardId={boardId}
+                  compact
+                />
+              </div>
             </div>
 
             {/* Divider */}
             <div className="hidden lg:block w-px bg-border shrink-0" />
 
-            {/* Right: dashboard */}
-            <div className="w-80 shrink-0 flex flex-col gap-6">
+            {/* Right column: dashboard */}
+            <div className="w-80 shrink-0">
               <PersonalDashboard tasks={tasks} />
             </div>
           </>

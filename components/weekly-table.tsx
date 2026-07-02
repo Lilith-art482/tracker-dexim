@@ -301,17 +301,10 @@ export function WeeklyTable({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div
-          className="flex flex-col h-full"
-          style={{ minHeight: 0 }}
-        >
+        <div className="overflow-x-auto pb-2">
           <div
-            className="grid"
-            style={{
-              gridTemplateColumns: `repeat(7, 1fr)`,
-              gridTemplateRows: `repeat(${HOURS.length}, minmax(56px, auto))`,
-              minWidth: 1200,
-            }}
+            className="grid min-w-[1200px]"
+            style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
           >
             {HOURS.map((hour) =>
               DAYS.map((_day, dayIdx) => (

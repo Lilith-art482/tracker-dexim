@@ -71,7 +71,7 @@ export function CompletedTasksBlock({
   onToggleComplete,
   weekDates,
 }: CompletedTasksBlockProps) {
-  const completed = tasks.filter((t) => t.completed).slice(0, 20);
+  const completed = tasks.filter((t) => t.completed).slice(0, 10);
 
   return (
     <div className="rounded-lg border p-4 space-y-3">
