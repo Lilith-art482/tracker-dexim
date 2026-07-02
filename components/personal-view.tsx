@@ -324,7 +324,7 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
                   className={cn(
                     "flex flex-1 flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-xs transition-colors",
                     isSelected
-                      ? "bg-primary/20 text-primary font-semibold shadow-sm"
+                      ? "bg-accent text-accent-foreground font-semibold shadow-sm"
                       : "text-muted-foreground hover:bg-accent",
                     isToday && !isSelected && "ring-1 ring-primary/30",
                   )}
@@ -332,7 +332,7 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
                   <span
                     className={cn(
                       "text-[11px] uppercase tracking-wider",
-                      isSelected && "text-primary-foreground/80",
+                      isSelected && "text-accent-foreground/80",
                     )}
                   >
                     {DAY_NAMES[idx]}

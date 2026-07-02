@@ -7,7 +7,6 @@ import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import { User, LogOut, Loader2, Save, ArrowLeft, Mail } from "lucide-react";
 import Link from "next/link";
-import { useNotifications } from "@/lib/notification-context";
 
 interface UserProfile {
   uid: string;
@@ -17,7 +16,6 @@ interface UserProfile {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { addNotification } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -64,7 +62,6 @@ export default function ProfilePage() {
 
       setUser({ ...user, nickname: nickname.trim() });
       toast.success("Профиль обновлён!");
-      addNotification("Профиль обновлён", "success");
     } catch (error) {
       console.error("Update error:", error);
       toast.error("Ошибка обновления профиля");
@@ -76,8 +73,6 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      toast.success("Выход выполнен");
-      addNotification("Вы вышли из системы", "info");
       router.push("/auth");
     } catch (error) {
       console.error("Logout error:", error);
