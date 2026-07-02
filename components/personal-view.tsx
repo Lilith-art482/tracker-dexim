@@ -352,7 +352,6 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
               onToggleComplete={handleToggleComplete}
               onDelete={handleDeleteTask}
               boardId={boardId}
-              compact
             />
           ) : (
             <PersonalTaskList

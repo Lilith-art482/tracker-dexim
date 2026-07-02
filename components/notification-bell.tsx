@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bell, X, CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { Bell, X, CheckCircle2, AlertCircle, Info, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/lib/notification-context";
 import { cn } from "@/lib/utils";
@@ -19,9 +19,7 @@ export function NotificationBell() {
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
-        if (open) {
-          clearAllNotifications();
-        }
+        if (open) clearAllNotifications();
         setOpen(false);
       }
     }
@@ -56,11 +54,27 @@ export function NotificationBell() {
         <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border bg-popover shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between px-4 py-2.5 border-b">
             <span className="text-sm font-semibold">Уведомления</span>
-            {unreadCount > 0 && (
-              <span className="text-xs text-muted-foreground">
-                {unreadCount} новых
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <>
+                  <span className="text-xs text-muted-foreground">
+                    {unreadCount} новых
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => {
+                      clearAllNotifications();
+                      setOpen(false);
+                    }}
+                    aria-label="Прочитать все"
+                  >
+                    <CheckCheck className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
           <div className="max-h-[320px] overflow-y-auto">
             {notifications.length === 0 ? (

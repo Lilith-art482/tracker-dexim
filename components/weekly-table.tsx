@@ -22,11 +22,6 @@ import { cn } from "@/lib/utils";
 
 const DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
-const HOURS = Array.from({ length: 18 }, (_, i) => {
-  const h = i + 6;
-  return `${String(h).padStart(2, "0")}:00`;
-});
-
 const PRIORITY_COLORS: Record<Priority, string> = {
   high: "bg-rose-500/10 border-l-rose-500 text-rose-600 dark:text-rose-400",
   medium:
@@ -46,41 +41,36 @@ const PRIORITY_LABELS: Record<Priority, string> = {
   low: "Низкий",
 };
 
-function tasksMatchSlot(task: PersonalTask, timeSlot: string): boolean {
-  const slotHour = timeSlot.split(":")[0];
-  const taskHour = task.startTime.split(":")[0];
-  return taskHour === slotHour;
-}
-
 function CellDroppable({
   dayOfWeek,
-  timeSlot,
   children,
   onCellClick,
 }: {
   dayOfWeek: number;
-  timeSlot: string;
   children: React.ReactNode;
   onCellClick: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
-    id: `cell-${dayOfWeek}-${timeSlot}`,
-    data: { type: "cell", dayOfWeek, timeSlot },
+    id: `day-${dayOfWeek}`,
+    data: { type: "day", dayOfWeek },
   });
+
+  const childCount = React.Children.count(children);
 
   return (
     <div
       ref={setNodeRef}
       onClick={onCellClick}
       className={cn(
-        "relative flex min-h-[56px] cursor-pointer flex-col gap-1 rounded-md border border-transparent p-1.5 transition-colors",
+        "relative flex min-h-[200px] flex-col gap-1.5 rounded-lg border border-border/40 p-2 transition-colors",
         isOver && "border-emerald-500 bg-emerald-500/10",
+        !isOver && "hover:border-border/70",
       )}
     >
       {children}
-      {React.Children.count(children) === 0 && (
-        <div className="flex items-center justify-center">
-          <Plus className="h-3.5 w-3.5 text-muted-foreground/20 transition-colors group-hover:text-muted-foreground/50" />
+      {childCount === 0 && (
+        <div className="flex flex-1 items-center justify-center">
+          <Plus className="h-4 w-4 text-muted-foreground/20 hover:text-muted-foreground/50 transition-colors" />
         </div>
       )}
     </div>
@@ -91,19 +81,17 @@ function DraggableTaskCard({
   task,
   onEdit,
   onToggleComplete,
-  isDragging,
 }: {
   task: PersonalTask;
   onEdit: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
-  isDragging?: boolean;
 }) {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
-    isDragging: isDraggingSource,
+    isDragging,
   } = useDraggable({
     id: task.id,
     data: { type: "personalTask", task },
@@ -127,8 +115,7 @@ function DraggableTaskCard({
         "group cursor-grab active:cursor-grabbing rounded-md border-l-2 px-2 py-1.5 text-xs transition-colors",
         PRIORITY_COLORS[task.priority],
         task.completed && "opacity-60",
-        isDragging && "opacity-0",
-        isDraggingSource && "z-50",
+        isDragging && "opacity-0 z-50",
       )}
     >
       <div className="flex items-start justify-between gap-1">
@@ -188,7 +175,6 @@ export function WeeklyTable({
   onSaved,
   onToggleComplete,
   onDelete,
-  compact,
   boardId,
 }: {
   tasks: PersonalTask[];
@@ -201,26 +187,23 @@ export function WeeklyTable({
   const [activeTask, setActiveTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogDayOfWeek, setDialogDayOfWeek] = useState(0);
-  const [dialogStartTime, setDialogStartTime] = useState("09:00");
   const [editingTask, setEditingTask] = useState<PersonalTask | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  const getTasksForCell = useCallback(
-    (dayOfWeek: number, timeSlot: string) => {
+  const getTasksForDay = useCallback(
+    (dayOfWeek: number) => {
       return tasks
-        .filter((t) => t.dayOfWeek === dayOfWeek && tasksMatchSlot(t, timeSlot))
+        .filter((t) => t.dayOfWeek === dayOfWeek)
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
     },
     [tasks],
   );
 
-  const handleCellClick = (dayOfWeek: number, timeSlot?: string) => {
+  const handleCellClick = (dayOfWeek: number) => {
     setDialogDayOfWeek(dayOfWeek);
-    if (timeSlot) setDialogStartTime(timeSlot);
-    else setDialogStartTime("09:00");
     setEditingTask(null);
     setDialogOpen(true);
   };
@@ -245,21 +228,15 @@ export function WeeklyTable({
     if (!task) return;
 
     const targetData = over.data.current as
-      | { type: string; dayOfWeek: number; timeSlot: string }
+      | { type: string; dayOfWeek: number }
       | undefined;
-    if (!targetData || targetData.type !== "cell") return;
+    if (!targetData || targetData.type !== "day") return;
 
     const newDayOfWeek = targetData.dayOfWeek;
-    const newStartTime = targetData.timeSlot;
+    if (newDayOfWeek === task.dayOfWeek) return;
 
-    if (newDayOfWeek === task.dayOfWeek && newStartTime === task.startTime)
-      return;
-
-    const updatedFields: Partial<PersonalTask> = {};
-    if (newDayOfWeek !== task.dayOfWeek) updatedFields.dayOfWeek = newDayOfWeek;
-    if (newStartTime !== task.startTime) updatedFields.startTime = newStartTime;
-
-    handleOptimisticUpdate(task, updatedFields);
+    const updated = { ...task, dayOfWeek: newDayOfWeek };
+    onSaved(updated);
 
     try {
       const res = await fetch("/api/personal-tasks", {
@@ -267,7 +244,7 @@ export function WeeklyTable({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: task.id,
-          ...updatedFields,
+          dayOfWeek: newDayOfWeek,
         }),
       });
 
@@ -277,82 +254,11 @@ export function WeeklyTable({
         return;
       }
 
-      const updated: PersonalTask = await res.json();
-      onSaved(updated);
       toast.success("Задача перемещена");
     } catch {
       toast.error("Ошибка перемещения задачи");
     }
   };
-
-  const handleOptimisticUpdate = (
-    task: PersonalTask,
-    fields: Partial<PersonalTask>,
-  ) => {
-    const updated = { ...task, ...fields };
-    onSaved(updated);
-  };
-
-  if (compact) {
-    return (
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="overflow-x-auto pb-2">
-          <div
-            className="grid min-w-[1200px]"
-            style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
-          >
-            {HOURS.map((hour) =>
-              DAYS.map((_day, dayIdx) => (
-                <div
-                  key={`r-${hour}-day-${dayIdx}`}
-                  className="border-b border-border/40 p-1"
-                >
-                  <CellDroppable
-                    dayOfWeek={dayIdx}
-                    timeSlot={hour}
-                    onCellClick={() => handleCellClick(dayIdx, hour)}
-                  >
-                    {getTasksForCell(dayIdx, hour).map((task) => (
-                      <DraggableTaskCard
-                        key={task.id}
-                        task={task}
-                        onEdit={handleEditTask}
-                        onToggleComplete={onToggleComplete}
-                      />
-                    ))}
-                  </CellDroppable>
-                </div>
-              )),
-            )}
-          </div>
-        </div>
-
-        <PersonalTaskDialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) setEditingTask(null);
-          }}
-          boardId={boardId ?? ""}
-          defaultDayOfWeek={dialogDayOfWeek}
-          defaultStartTime={dialogStartTime}
-          task={editingTask}
-          onSaved={onSaved}
-          onDelete={onDelete}
-          onToggleComplete={onToggleComplete}
-        />
-
-        <DragOverlay dropAnimation={null}>
-          {activeTask ? <TaskCardOverlay task={activeTask} /> : null}
-        </DragOverlay>
-      </DndContext>
-    );
-  }
 
   return (
     <DndContext
@@ -363,55 +269,29 @@ export function WeeklyTable({
     >
       <div className="overflow-x-auto pb-2">
         <div
-          className="grid min-w-[1200px]"
-          style={{
-            gridTemplateColumns: `repeat(7, 64px 1fr)`,
-          }}
+          className="grid min-w-[800px] gap-2"
+          style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
         >
-          {DAYS.flatMap((day, idx) => [
-            <div
-              key={`h-time-${idx}`}
-              className="px-2 py-2 text-center text-xs font-semibold tracking-tight text-muted-foreground"
-            >
-              Время
-            </div>,
-            <div
-              key={`h-day-${idx}`}
-              className="px-2 py-2 text-center text-sm font-semibold tracking-tight text-muted-foreground"
-            >
-              {day}
-            </div>,
-          ])}
-
-          {HOURS.map((hour) =>
-            DAYS.flatMap((_day, dayIdx) => [
-              <div
-                key={`r-${hour}-time-${dayIdx}`}
-                className="flex items-center justify-center px-1 text-[11px] font-medium text-muted-foreground/60"
+          {DAYS.map((day, idx) => (
+            <div key={day} className="flex flex-col gap-1.5">
+              <div className="px-1 py-1.5 text-center text-sm font-semibold tracking-tight text-muted-foreground">
+                {day}
+              </div>
+              <CellDroppable
+                dayOfWeek={idx}
+                onCellClick={() => handleCellClick(idx)}
               >
-                {""}
-              </div>,
-              <div
-                key={`r-${hour}-day-${dayIdx}`}
-                className="border-b border-border/40"
-              >
-                <CellDroppable
-                  dayOfWeek={dayIdx}
-                  timeSlot={hour}
-                  onCellClick={() => handleCellClick(dayIdx, hour)}
-                >
-                  {getTasksForCell(dayIdx, hour).map((task) => (
-                    <DraggableTaskCard
-                      key={task.id}
-                      task={task}
-                      onEdit={handleEditTask}
-                      onToggleComplete={onToggleComplete}
-                    />
-                  ))}
-                </CellDroppable>
-              </div>,
-            ]),
-          )}
+                {getTasksForDay(idx).map((task) => (
+                  <DraggableTaskCard
+                    key={task.id}
+                    task={task}
+                    onEdit={handleEditTask}
+                    onToggleComplete={onToggleComplete}
+                  />
+                ))}
+              </CellDroppable>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -423,7 +303,6 @@ export function WeeklyTable({
         }}
         boardId={boardId ?? ""}
         defaultDayOfWeek={dialogDayOfWeek}
-        defaultStartTime={dialogStartTime}
         task={editingTask}
         onSaved={onSaved}
         onDelete={onDelete}
