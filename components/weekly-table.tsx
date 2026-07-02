@@ -64,7 +64,7 @@ function CellDroppable({
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `cell-${dayOfWeek}-${timeSlot}`,
-    data: { type: "cell", dayOfWeek, timeSlot },
+    data: { type: "cell", dayOfWeek },
   });
 
   return (
@@ -127,8 +127,8 @@ function DraggableTaskCard({
         isDragging && "opacity-0 z-50",
       )}
     >
-      <div className="flex items-start justify-between gap-1">
-        <span className="flex-1 font-medium leading-tight truncate">
+      <div className="flex items-start justify-between gap-1 w-full">
+        <span className="flex-1 font-medium leading-snug break-words min-w-0">
           <span className={cn(task.completed && "line-through")}>
             {task.title}
           </span>
@@ -238,17 +238,14 @@ export function WeeklyTable({
     if (!task) return;
 
     const targetData = over.data.current as
-      | { type: string; dayOfWeek: number; timeSlot: string }
+      | { type: string; dayOfWeek: number }
       | undefined;
     if (!targetData || targetData.type !== "cell") return;
 
     const newDayOfWeek = targetData.dayOfWeek;
-    const newStartTime = targetData.timeSlot;
+    if (newDayOfWeek === task.dayOfWeek) return;
 
-    if (newDayOfWeek === task.dayOfWeek && newStartTime === task.startTime)
-      return;
-
-    const updated = { ...task, dayOfWeek: newDayOfWeek, startTime: newStartTime };
+    const updated = { ...task, dayOfWeek: newDayOfWeek };
     onSaved(updated);
 
     try {
@@ -258,7 +255,6 @@ export function WeeklyTable({
         body: JSON.stringify({
           id: task.id,
           dayOfWeek: newDayOfWeek,
-          startTime: newStartTime,
         }),
       });
 
