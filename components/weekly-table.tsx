@@ -268,35 +268,15 @@ export function WeeklyTable({
       onDragEnd={handleDragEnd}
     >
       <div className="overflow-x-auto pb-2">
-        <div
+          <div
           className="grid min-w-[1200px]"
           style={{
-            gridTemplateColumns: `40px repeat(7, 1fr)`,
+            gridTemplateColumns: `repeat(7, 1fr)`,
           }}
         >
-          {/* top-left corner */}
-          <div className="px-1 py-2 text-center text-[10px] font-semibold tracking-tight text-muted-foreground">
-            Час
-          </div>
-          {/* day headers */}
-          {DAYS.map((day, idx) => (
-            <div
-              key={`h-day-${idx}`}
-              className="px-1 py-2 text-center text-xs font-semibold tracking-tight text-muted-foreground"
-            >
-              {day}
-            </div>
-          ))}
-
           {/* hour rows */}
-          {HOURS.map((hour) => [
-            <div
-              key={`r-${hour}-label`}
-              className="flex items-center justify-end px-1.5 text-[10px] font-medium text-muted-foreground/50 border-b border-border/20"
-            >
-              {hour.slice(0, 5)}
-            </div>,
-            ...DAYS.map((_day, dayIdx) => (
+          {HOURS.flatMap((hour) =>
+            DAYS.map((_day, dayIdx) => (
               <div
                 key={`r-${hour}-day-${dayIdx}`}
                 className="border-b border-border/20"
@@ -316,8 +296,8 @@ export function WeeklyTable({
                   ))}
                 </CellDroppable>
               </div>
-            )),
-          ])}
+            ))
+          )}
         </div>
       </div>
 
