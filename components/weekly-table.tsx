@@ -22,9 +22,7 @@ import { cn } from "@/lib/utils";
 
 const DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
-const HOURS = Array.from({ length: 24 }, (_, i) =>
-  `${String(i).padStart(2, "0")}:00`,
-);
+const ROWS = 24;
 
 const PRIORITY_COLORS: Record<Priority, string> = {
   high: "bg-rose-500/10 border-l-rose-500 text-rose-600 dark:text-rose-400",
@@ -45,25 +43,19 @@ const PRIORITY_LABELS: Record<Priority, string> = {
   low: "Низкий",
 };
 
-function tasksMatchSlot(task: PersonalTask, timeSlot: string): boolean {
-  const slotHour = timeSlot.split(":")[0];
-  const taskHour = task.startTime.split(":")[0];
-  return taskHour === slotHour;
-}
-
 function CellDroppable({
   dayOfWeek,
-  timeSlot,
+  rowIndex,
   children,
   onCellClick,
 }: {
   dayOfWeek: number;
-  timeSlot: string;
+  rowIndex: number;
   children: React.ReactNode;
   onCellClick: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
-    id: `cell-${dayOfWeek}-${timeSlot}`,
+    id: `cell-${dayOfWeek}-${rowIndex}`,
     data: { type: "cell", dayOfWeek },
   });
 
@@ -195,25 +187,24 @@ export function WeeklyTable({
   const [activeTask, setActiveTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogDayOfWeek, setDialogDayOfWeek] = useState(0);
-  const [dialogStartTime, setDialogStartTime] = useState("09:00");
   const [editingTask, setEditingTask] = useState<PersonalTask | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  const getTasksForCell = useCallback(
-    (dayOfWeek: number, timeSlot: string) => {
+  const getTasksForDay = useCallback(
+    (dayOfWeek: number) => {
       return tasks
-        .filter((t) => t.dayOfWeek === dayOfWeek && tasksMatchSlot(t, timeSlot))
-        .sort((a, b) => a.startTime.localeCompare(b.startTime));
+        .filter((t) => t.dayOfWeek === dayOfWeek)
+        .sort((a, b) => a.startTime.localeCompare(b.startTime))
+        .slice(0, ROWS);
     },
     [tasks],
   );
 
-  const handleCellClick = (dayOfWeek: number, timeSlot: string) => {
+  const handleCellClick = (dayOfWeek: number) => {
     setDialogDayOfWeek(dayOfWeek);
-    setDialogStartTime(timeSlot);
     setEditingTask(null);
     setDialogOpen(true);
   };
@@ -277,34 +268,36 @@ export function WeeklyTable({
     >
       <div className="overflow-x-auto pb-2">
         <div
-          className="grid min-w-[1200px]"
+          className="grid min-w-[1000px]"
           style={{
             gridTemplateColumns: `repeat(7, 1fr)`,
           }}
         >
-          {HOURS.flatMap((hour) =>
-            DAYS.map((_day, dayIdx) => (
-              <div
-                key={`r-${hour}-day-${dayIdx}`}
-                className="border-b border-border/40"
-              >
-                <CellDroppable
-                  dayOfWeek={dayIdx}
-                  timeSlot={hour}
-                  onCellClick={() => handleCellClick(dayIdx, hour)}
+          {DAYS.map((_day, dayIdx) => (
+            <div key={dayIdx} className="flex flex-col gap-1">
+              {Array.from({ length: ROWS }, (_, rowIdx) => (
+                <div
+                  key={rowIdx}
+                  className="border-b border-border/30 last:border-0"
                 >
-                  {getTasksForCell(dayIdx, hour).map((task) => (
-                    <DraggableTaskCard
-                      key={task.id}
-                      task={task}
-                      onEdit={handleEditTask}
-                      onToggleComplete={onToggleComplete}
-                    />
-                  ))}
-                </CellDroppable>
-              </div>
-            ))
-          )}
+                  <CellDroppable
+                    dayOfWeek={dayIdx}
+                    rowIndex={rowIdx}
+                    onCellClick={() => handleCellClick(dayIdx)}
+                  >
+                    {getTasksForDay(dayIdx)[rowIdx] ? (
+                      <DraggableTaskCard
+                        key={getTasksForDay(dayIdx)[rowIdx].id}
+                        task={getTasksForDay(dayIdx)[rowIdx]}
+                        onEdit={handleEditTask}
+                        onToggleComplete={onToggleComplete}
+                      />
+                    ) : null}
+                  </CellDroppable>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -316,7 +309,6 @@ export function WeeklyTable({
         }}
         boardId={boardId ?? ""}
         defaultDayOfWeek={dialogDayOfWeek}
-        defaultStartTime={dialogStartTime}
         task={editingTask}
         onSaved={onSaved}
         onDelete={onDelete}
