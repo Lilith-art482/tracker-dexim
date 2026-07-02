@@ -64,7 +64,7 @@ function CellDroppable({
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `cell-${dayOfWeek}-${timeSlot}`,
-    data: { type: "cell", dayOfWeek },
+    data: { type: "cell", dayOfWeek, timeSlot },
   });
 
   return (
@@ -72,14 +72,14 @@ function CellDroppable({
       ref={setNodeRef}
       onClick={onCellClick}
       className={cn(
-        "relative flex min-h-[40px] cursor-pointer flex-col gap-1 rounded-sm border border-transparent p-1 transition-colors",
+        "relative flex min-h-[56px] cursor-pointer flex-col gap-1 rounded-md border border-transparent p-1.5 transition-colors",
         isOver && "border-emerald-500 bg-emerald-500/10",
       )}
     >
       {children}
       {React.Children.count(children) === 0 && (
         <div className="flex h-full items-center justify-center">
-          <Plus className="h-3 w-3 text-muted-foreground/20 transition-colors group-hover:text-muted-foreground/50" />
+          <Plus className="h-3.5 w-3.5 text-muted-foreground/20 transition-colors group-hover:text-muted-foreground/50" />
         </div>
       )}
     </div>
@@ -121,7 +121,7 @@ function DraggableTaskCard({
         onEdit(task);
       }}
       className={cn(
-        "group cursor-grab active:cursor-grabbing rounded border-l-2 px-1.5 py-1 text-[11px] transition-colors",
+        "group cursor-grab active:cursor-grabbing rounded-md border-l-2 px-2 py-1.5 text-xs transition-colors",
         PRIORITY_COLORS[task.priority],
         task.completed && "opacity-60",
         isDragging && "opacity-0 z-50",
@@ -141,14 +141,22 @@ function DraggableTaskCard({
           className="shrink-0 hover:scale-110 transition-transform"
         >
           {task.completed ? (
-            <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" />
+            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
           ) : (
-            <Circle className="h-2.5 w-2.5 text-muted-foreground hover:text-emerald-500" />
+            <Circle className="h-3 w-3 text-muted-foreground hover:text-emerald-500" />
           )}
         </button>
       </div>
-      <div className="text-[9px] text-muted-foreground">
-        {task.startTime.slice(0, 5)}–{task.endTime.slice(0, 5)}
+      <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+        <span>
+          {task.startTime.slice(0, 5)}–{task.endTime.slice(0, 5)}
+        </span>
+        <Badge
+          variant={PRIORITY_BADGE[task.priority]}
+          className="text-[9px] px-1 py-0"
+        >
+          {PRIORITY_LABELS[task.priority]}
+        </Badge>
       </div>
     </div>
   );
@@ -158,13 +166,13 @@ function TaskCardOverlay({ task }: { task: PersonalTask }) {
   return (
     <div
       className={cn(
-        "rounded border-l-2 px-3 py-2 text-xs rotate-3 opacity-90",
+        "rounded-md border-l-2 px-3 py-2 text-sm rotate-3 opacity-90",
         PRIORITY_COLORS[task.priority],
         task.completed && "opacity-60",
       )}
     >
       <div className="font-medium">{task.title}</div>
-      <div className="text-[10px] text-muted-foreground">
+      <div className="text-xs text-muted-foreground">
         {task.startTime}–{task.endTime}
       </div>
     </div>
@@ -230,14 +238,17 @@ export function WeeklyTable({
     if (!task) return;
 
     const targetData = over.data.current as
-      | { type: string; dayOfWeek: number }
+      | { type: string; dayOfWeek: number; timeSlot: string }
       | undefined;
     if (!targetData || targetData.type !== "cell") return;
 
     const newDayOfWeek = targetData.dayOfWeek;
-    if (newDayOfWeek === task.dayOfWeek) return;
+    const newStartTime = targetData.timeSlot;
 
-    const updated = { ...task, dayOfWeek: newDayOfWeek };
+    if (newDayOfWeek === task.dayOfWeek && newStartTime === task.startTime)
+      return;
+
+    const updated = { ...task, dayOfWeek: newDayOfWeek, startTime: newStartTime };
     onSaved(updated);
 
     try {
@@ -247,6 +258,7 @@ export function WeeklyTable({
         body: JSON.stringify({
           id: task.id,
           dayOfWeek: newDayOfWeek,
+          startTime: newStartTime,
         }),
       });
 
@@ -268,18 +280,17 @@ export function WeeklyTable({
       onDragEnd={handleDragEnd}
     >
       <div className="overflow-x-auto pb-2">
-          <div
+        <div
           className="grid min-w-[1200px]"
           style={{
             gridTemplateColumns: `repeat(7, 1fr)`,
           }}
         >
-          {/* hour rows */}
           {HOURS.flatMap((hour) =>
             DAYS.map((_day, dayIdx) => (
               <div
                 key={`r-${hour}-day-${dayIdx}`}
-                className="border-b border-border/20"
+                className="border-b border-border/40"
               >
                 <CellDroppable
                   dayOfWeek={dayIdx}
