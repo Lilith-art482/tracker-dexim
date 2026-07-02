@@ -43,41 +43,6 @@ const PRIORITY_LABELS: Record<Priority, string> = {
   low: "Низкий",
 };
 
-function CellDroppable({
-  dayOfWeek,
-  rowIndex,
-  children,
-  onCellClick,
-}: {
-  dayOfWeek: number;
-  rowIndex: number;
-  children: React.ReactNode;
-  onCellClick: () => void;
-}) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `cell-${dayOfWeek}-${rowIndex}`,
-    data: { type: "cell", dayOfWeek },
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      onClick={onCellClick}
-      className={cn(
-        "relative flex min-h-[56px] cursor-pointer flex-col gap-1 rounded-md border border-transparent p-1.5 transition-colors",
-        isOver && "border-emerald-500 bg-emerald-500/10",
-      )}
-    >
-      {children}
-      {React.Children.count(children) === 0 && (
-        <div className="flex h-full items-center justify-center">
-          <Plus className="h-3.5 w-3.5 text-muted-foreground/20 transition-colors group-hover:text-muted-foreground/50" />
-        </div>
-      )}
-    </div>
-  );
-}
-
 function DraggableTaskCard({
   task,
   onEdit,
@@ -113,14 +78,14 @@ function DraggableTaskCard({
         onEdit(task);
       }}
       className={cn(
-        "group cursor-grab active:cursor-grabbing rounded-md border-l-2 px-2 py-1.5 text-xs transition-colors",
+        "group cursor-grab active:cursor-grabbing rounded-md border-l-2 px-2 py-1 text-xs transition-colors h-full overflow-hidden",
         PRIORITY_COLORS[task.priority],
         task.completed && "opacity-60",
         isDragging && "opacity-0 z-50",
       )}
     >
       <div className="flex items-start justify-between gap-1 w-full">
-        <span className="flex-1 font-medium leading-snug break-words min-w-0">
+        <span className="flex-1 font-medium leading-tight truncate">
           <span className={cn(task.completed && "line-through")}>
             {task.title}
           </span>
@@ -228,13 +193,11 @@ export function WeeklyTable({
     const task = active.data.current?.task as PersonalTask | undefined;
     if (!task) return;
 
-    const targetData = over.data.current as
-      | { type: string; dayOfWeek: number }
-      | undefined;
-    if (!targetData || targetData.type !== "cell") return;
+    const overId = over.id.toString();
+    if (!overId.startsWith("day-")) return;
 
-    const newDayOfWeek = targetData.dayOfWeek;
-    if (newDayOfWeek === task.dayOfWeek) return;
+    const newDayOfWeek = parseInt(overId.replace("day-", ""), 10);
+    if (isNaN(newDayOfWeek) || newDayOfWeek === task.dayOfWeek) return;
 
     const updated = { ...task, dayOfWeek: newDayOfWeek };
     onSaved(updated);
@@ -243,10 +206,7 @@ export function WeeklyTable({
       const res = await fetch("/api/personal-tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: task.id,
-          dayOfWeek: newDayOfWeek,
-        }),
+        body: JSON.stringify({ id: task.id, dayOfWeek: newDayOfWeek }),
       });
 
       if (!res.ok) {
@@ -269,34 +229,17 @@ export function WeeklyTable({
       <div className="overflow-x-auto pb-2">
         <div
           className="grid min-w-[1000px]"
-          style={{
-            gridTemplateColumns: `repeat(7, 1fr)`,
-          }}
+          style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
         >
           {DAYS.map((_day, dayIdx) => (
-            <div key={dayIdx} className="flex flex-col gap-1">
-              {Array.from({ length: ROWS }, (_, rowIdx) => (
-                <div
-                  key={rowIdx}
-                  className="border-b border-border/30 last:border-0"
-                >
-                  <CellDroppable
-                    dayOfWeek={dayIdx}
-                    rowIndex={rowIdx}
-                    onCellClick={() => handleCellClick(dayIdx)}
-                  >
-                    {getTasksForDay(dayIdx)[rowIdx] ? (
-                      <DraggableTaskCard
-                        key={getTasksForDay(dayIdx)[rowIdx].id}
-                        task={getTasksForDay(dayIdx)[rowIdx]}
-                        onEdit={handleEditTask}
-                        onToggleComplete={onToggleComplete}
-                      />
-                    ) : null}
-                  </CellDroppable>
-                </div>
-              ))}
-            </div>
+            <DayColumn
+              key={dayIdx}
+              dayOfWeek={dayIdx}
+              tasks={getTasksForDay(dayIdx)}
+              onCellClick={() => handleCellClick(dayIdx)}
+              onEditTask={handleEditTask}
+              onToggleComplete={onToggleComplete}
+            />
           ))}
         </div>
       </div>
@@ -319,5 +262,60 @@ export function WeeklyTable({
         {activeTask ? <TaskCardOverlay task={activeTask} /> : null}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+function DayColumn({
+  dayOfWeek,
+  tasks,
+  onCellClick,
+  onEditTask,
+  onToggleComplete,
+}: {
+  dayOfWeek: number;
+  tasks: PersonalTask[];
+  onCellClick: () => void;
+  onEditTask: (task: PersonalTask) => void;
+  onToggleComplete: (task: PersonalTask) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `day-${dayOfWeek}`,
+    data: { type: "day", dayOfWeek },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "flex flex-col rounded-lg border border-border/30 transition-colors",
+        isOver && "border-emerald-500 bg-emerald-500/5",
+      )}
+    >
+      {Array.from({ length: ROWS }, (_, idx) => {
+        const task = tasks[idx];
+        return (
+          <div
+            key={idx}
+            onClick={!task ? onCellClick : undefined}
+            className={cn(
+              "h-[56px] border-b border-border/20 last:border-0 px-1.5 py-1 overflow-hidden",
+              !task && "cursor-pointer hover:bg-muted/20 transition-colors",
+            )}
+          >
+            {task ? (
+              <DraggableTaskCard
+                task={task}
+                onEdit={onEditTask}
+                onToggleComplete={onToggleComplete}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <Plus className="h-3.5 w-3.5 text-muted-foreground/20" />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
