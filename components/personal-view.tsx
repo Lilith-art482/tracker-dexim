@@ -240,7 +240,9 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
               <h1 className="text-2xl font-bold tracking-tight">
                 {boardName || "Личное расписание"}
               </h1>
-              <p className="text-sm text-muted-foreground">{currentMonthLabel}</p>
+              <p className="text-sm text-muted-foreground">
+                {currentMonthLabel}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -335,7 +337,9 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
                   >
                     {DAY_NAMES[idx]}
                   </span>
-                  <span className="text-sm font-medium">{formatDate(date)}</span>
+                  <span className="text-sm font-medium">
+                    {formatDate(date)}
+                  </span>
                 </button>
               );
             })}
@@ -370,7 +374,10 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
           </span>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <CompletedTasksBlock tasks={tasks} onToggleComplete={handleToggleComplete} />
+          <CompletedTasksBlock
+            tasks={tasks}
+            onToggleComplete={handleToggleComplete}
+          />
           <PersonalDashboard tasks={tasks} />
         </div>
       </div>

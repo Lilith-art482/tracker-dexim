@@ -216,7 +216,7 @@ export function BoardSidebar({
     <aside
       className={cn(
         "shrink-0 flex flex-col border-r transition-all duration-300 relative overflow-hidden",
-        collapsed ? "w-0 border-0" : "w-60"
+        collapsed ? "w-0 border-0" : "w-60",
       )}
     >
       {/* Grid pattern overlay */}

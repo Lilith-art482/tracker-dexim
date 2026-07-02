@@ -12,11 +12,9 @@ export const registerSchema = z.object({
     .string()
     .min(2, "Никнейм должен быть не менее 2 символов")
     .max(30, "Никнейм слишком длинный"),
-  accessCode: z
-    .string()
-    .refine((code) => code === "demo-tracker-2026", {
-      message: "Неверный код доступа",
-    }),
+  accessCode: z.string().refine((code) => code === "demo-tracker-2026", {
+    message: "Неверный код доступа",
+  }),
 });
 
 export const updateProfileSchema = z.object({

@@ -175,28 +175,36 @@ export function PersonalDashboard({ tasks }: PersonalDashboardProps) {
 
       {/* Compact legend */}
       <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3 text-[11px]">
-        {priorityData.map((d) => (
-          d.value > 0 && (
-            <span key={d.label} className="flex items-center gap-1 text-muted-foreground">
+        {priorityData.map(
+          (d) =>
+            d.value > 0 && (
               <span
-                className="inline-block h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: d.color }}
-              />
-              {d.label} — {d.value}
-            </span>
-          )
-        ))}
-        {statusData.map((d) => (
-          d.value > 0 && (
-            <span key={d.label} className="flex items-center gap-1 text-muted-foreground">
+                key={d.label}
+                className="flex items-center gap-1 text-muted-foreground"
+              >
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: d.color }}
+                />
+                {d.label} — {d.value}
+              </span>
+            ),
+        )}
+        {statusData.map(
+          (d) =>
+            d.value > 0 && (
               <span
-                className="inline-block h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: d.color }}
-              />
-              {d.label} — {d.value}
-            </span>
-          )
-        ))}
+                key={d.label}
+                className="flex items-center gap-1 text-muted-foreground"
+              >
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: d.color }}
+                />
+                {d.label} — {d.value}
+              </span>
+            ),
+        )}
       </div>
 
       {/* Mini bar chart */}

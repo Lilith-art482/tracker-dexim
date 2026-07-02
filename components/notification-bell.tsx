@@ -1,32 +1,33 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import {
-  Bell,
-  X,
-  CheckCircle2,
-  AlertCircle,
-  Info,
-} from "lucide-react";
+import { Bell, X, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/lib/notification-context";
 import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
-  const { notifications, dismissNotification, unreadCount } =
-    useNotifications();
+  const {
+    notifications,
+    dismissNotification,
+    clearAllNotifications,
+    unreadCount,
+  } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
+        if (open) {
+          clearAllNotifications();
+        }
         setOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [open, clearAllNotifications]);
 
   const icons = {
     success: CheckCircle2,

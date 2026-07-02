@@ -20,10 +20,13 @@ interface NotificationContextValue {
   notifications: Notification[];
   addNotification: (message: string, type?: Notification["type"]) => void;
   dismissNotification: (id: string) => void;
+  clearAllNotifications: () => void;
   unreadCount: number;
 }
 
-const NotificationContext = createContext<NotificationContextValue | null>(null);
+const NotificationContext = createContext<NotificationContextValue | null>(
+  null,
+);
 
 const AUTO_DISMISS_MS = 30 * 60 * 1000;
 
@@ -67,6 +70,12 @@ export function NotificationProvider({
     }
   }, []);
 
+  const clearAllNotifications = useCallback(() => {
+    setNotifications([]);
+    timersRef.current.forEach((timer) => clearTimeout(timer));
+    timersRef.current.clear();
+  }, []);
+
   useEffect(() => {
     return () => {
       timersRef.current.forEach((timer) => clearTimeout(timer));
@@ -81,6 +90,7 @@ export function NotificationProvider({
         notifications,
         addNotification,
         dismissNotification,
+        clearAllNotifications,
         unreadCount,
       }}
     >

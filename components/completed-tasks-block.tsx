@@ -48,7 +48,8 @@ export function CompletedTasksBlock({
                   {task.title}
                 </span>
                 <span className="text-muted-foreground/60 text-[10px]">
-                  {DAY_NAMES[task.dayOfWeek]} {task.startTime.slice(0, 5)}–{task.endTime.slice(0, 5)}
+                  {DAY_NAMES[task.dayOfWeek]} {task.startTime.slice(0, 5)}–
+                  {task.endTime.slice(0, 5)}
                 </span>
               </div>
             </button>
