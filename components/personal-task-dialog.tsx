@@ -24,6 +24,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
+import { useNotifications } from "@/lib/notification-context";
 
 interface PersonalTaskDialogProps {
   open: boolean;
@@ -57,6 +58,7 @@ export function PersonalTaskDialog({
   onToggleComplete,
 }: PersonalTaskDialogProps) {
   const isEditing = !!task;
+  const { addNotification } = useNotifications();
   const [title, setTitle] = useState(task?.title ?? "");
   const [dayOfWeek, setDayOfWeek] = useState(
     task?.dayOfWeek ?? defaultDayOfWeek,
@@ -134,6 +136,7 @@ export function PersonalTaskDialog({
         const updated: PersonalTask = await res.json();
         onSaved(updated);
         toast.success("Задача обновлена");
+        addNotification("Задача обновлена: " + updated.title, "info");
       } else {
         const ownerId = auth.currentUser?.uid || null;
         const res = await fetch("/api/personal-tasks", {
@@ -165,6 +168,7 @@ export function PersonalTaskDialog({
         const created: PersonalTask = await res.json();
         onSaved(created);
         toast.success("Задача создана");
+        addNotification("Задача создана: " + created.title, "success");
       }
 
       onOpenChange(false);
@@ -323,19 +327,8 @@ export function PersonalTaskDialog({
                 variant="destructive"
                 size="sm"
                 onClick={() => {
-                  toast("Удалить задачу?", {
-                    action: {
-                      label: "Удалить",
-                      onClick: () => {
-                        onDelete(task);
-                        onOpenChange(false);
-                      },
-                    },
-                    cancel: {
-                      label: "Отмена",
-                      onClick: () => {},
-                    },
-                  });
+                  onDelete(task);
+                  onOpenChange(false);
                 }}
                 disabled={saving}
               >

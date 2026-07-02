@@ -17,6 +17,7 @@ import { PersonalDashboard } from "@/components/personal-dashboard";
 import { CompletedTasksBlock } from "@/components/completed-tasks-block";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
 import { auth } from "@/lib/firebase";
+import { useNotifications } from "@/lib/notification-context";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -79,6 +80,7 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { addNotification } = useNotifications();
 
   const weekDates = getWeekDates(weekOffset);
 
@@ -157,6 +159,10 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
 
       const updated: PersonalTask = await res.json();
       setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+      const msg = updated.completed
+        ? "Задача выполнена: " + task.title
+        : "Задача возобновлена: " + task.title;
+      addNotification(msg, updated.completed ? "success" : "info");
       toast.success(
         updated.completed ? "Задача выполнена" : "Задача возобновлена",
       );
@@ -183,6 +189,7 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
       }
 
       toast.success("Задача удалена");
+      addNotification("Задача удалена: " + task.title, "error");
     } catch {
       toast.error("Ошибка удаления задачи");
     }
@@ -356,13 +363,13 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
       </div>
 
       {/* Right sidebar */}
-      <div className="w-80 shrink-0 border-l bg-sidebar flex flex-col">
+      <div className="w-80 shrink-0 border-l flex flex-col">
         <div className="flex items-center gap-2 px-4 h-12 border-b border-border/40 shrink-0">
-          <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
             Дашборд
           </span>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <CompletedTasksBlock tasks={tasks} onToggleComplete={handleToggleComplete} />
           <PersonalDashboard tasks={tasks} />
         </div>

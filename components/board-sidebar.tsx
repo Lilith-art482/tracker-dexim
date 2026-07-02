@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useMode } from "@/lib/mode-context";
+import { useNotifications } from "@/lib/notification-context";
 
 const BOARD_COLORS = [
   "#4E6E62",
@@ -57,6 +58,7 @@ export function BoardSidebar({
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const { addNotification } = useNotifications();
 
   const [boards, setBoards] = useState<Board[]>([]);
   const [creating, setCreating] = useState(false);
@@ -132,6 +134,7 @@ export function BoardSidebar({
       setBoards((prev) => [...prev, newBoard]);
       setNewBoardName("");
       toast.success("Доска создана");
+      addNotification("Доска создана: " + name, "success");
       switchBoard(newBoard.id);
     } catch {
       toast.error("Ошибка создания доски");
@@ -166,6 +169,7 @@ export function BoardSidebar({
       setBoards((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
       setEditingId(null);
       toast.success("Доска переименована");
+      addNotification("Доска переименована", "info");
     } catch {
       toast.error("Ошибка переименования");
     }
@@ -186,6 +190,7 @@ export function BoardSidebar({
       }
       setBoards((prev) => prev.filter((b) => b.id !== boardId));
       toast.success("Доска удалена");
+      addNotification("Доска удалена", "error");
       if (activeBoardId === boardId) {
         const params = new URLSearchParams();
         const uid = auth.currentUser?.uid;
@@ -210,8 +215,8 @@ export function BoardSidebar({
   return (
     <aside
       className={cn(
-        "shrink-0 flex flex-col border-r bg-sidebar transition-all duration-300 relative overflow-hidden",
-        collapsed ? "w-0 border-0" : "w-60",
+        "shrink-0 flex flex-col border-r transition-all duration-300 relative overflow-hidden",
+        collapsed ? "w-0 border-0" : "w-60"
       )}
     >
       {/* Grid pattern overlay */}
@@ -416,18 +421,7 @@ export function BoardSidebar({
                           <Pencil className="h-3.5 w-3.5 text-sidebar-foreground/40" />
                         </button>
                         <button
-                          onClick={() => {
-                            toast("Удалить доску?", {
-                              action: {
-                                label: "Удалить",
-                                onClick: () => handleDelete(board.id),
-                              },
-                              cancel: {
-                                label: "Отмена",
-                                onClick: () => {},
-                              },
-                            });
-                          }}
+                          onClick={() => handleDelete(board.id)}
                           disabled={deletingId === board.id}
                           className="flex items-center justify-center h-7 w-7 rounded-md hover:bg-sidebar-accent"
                           title="Удалить"

@@ -147,52 +147,61 @@ export function PersonalDashboard({ tasks }: PersonalDashboardProps) {
   const total = tasks.length;
 
   return (
-    <div className="rounded-lg border p-5 space-y-5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Дашборд</h3>
-        <span className="text-xs text-muted-foreground">Всего: {total}</span>
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+          Дашборд
+        </h3>
+        <span className="text-xs font-medium tabular-nums text-muted-foreground">
+          {total}
+        </span>
       </div>
 
       {/* Donut charts row */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col items-center gap-1">
-          <DonutChart segments={priorityData} size={100} strokeWidth={18} />
-          <span className="text-[11px] font-medium text-muted-foreground">
-            По приоритетам
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="flex flex-col items-center gap-0.5 rounded-lg bg-muted/30 py-2.5">
+          <DonutChart segments={priorityData} size={80} strokeWidth={14} />
+          <span className="text-[10px] font-medium text-muted-foreground">
+            Приоритеты
           </span>
         </div>
-        <div className="flex flex-col items-center gap-1">
-          <DonutChart segments={statusData} size={100} strokeWidth={18} />
-          <span className="text-[11px] font-medium text-muted-foreground">
-            По статусам
+        <div className="flex flex-col items-center gap-0.5 rounded-lg bg-muted/30 py-2.5">
+          <DonutChart segments={statusData} size={80} strokeWidth={14} />
+          <span className="text-[10px] font-medium text-muted-foreground">
+            Статусы
           </span>
         </div>
       </div>
 
-      {/* Legend for donuts */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+      {/* Compact legend */}
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3 text-[11px]">
         {priorityData.map((d) => (
-          <span key={d.label} className="flex items-center gap-1">
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{ backgroundColor: d.color }}
-            />
-            {d.label} — {d.value}
-          </span>
+          d.value > 0 && (
+            <span key={d.label} className="flex items-center gap-1 text-muted-foreground">
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: d.color }}
+              />
+              {d.label} — {d.value}
+            </span>
+          )
         ))}
         {statusData.map((d) => (
-          <span key={d.label} className="flex items-center gap-1">
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{ backgroundColor: d.color }}
-            />
-            {d.label} — {d.value}
-          </span>
+          d.value > 0 && (
+            <span key={d.label} className="flex items-center gap-1 text-muted-foreground">
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: d.color }}
+              />
+              {d.label} — {d.value}
+            </span>
+          )
         ))}
       </div>
 
-      <div className="border-t pt-4">
-        <BarChart data={priorityData} title="Бары по приоритетам" />
+      {/* Mini bar chart */}
+      <div className="rounded-lg bg-muted/30 p-3">
+        <BarChart data={priorityData} title="По приоритетам" />
       </div>
     </div>
   );
