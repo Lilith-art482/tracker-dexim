@@ -27,9 +27,6 @@ function ThemeToggleInline() {
   );
 }
 
-const NOISE_SVG =
-  "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")";
-
 export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -82,124 +79,63 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background">
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-tl from-primary/8 via-transparent to-primary/3 pointer-events-none" />
+      {/* Dark-only: gradient blob top-left */}
+      <div className="hidden dark:block animate-float-slow absolute -top-48 -left-48 w-[800px] h-[800px] rounded-full blur-[130px] overflow-hidden opacity-50">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/15 to-transparent" />
+      </div>
 
-      {/* Full-page noise overlay */}
+      {/* Dark-only: gradient blob bottom-right */}
       <div
-        className="absolute inset-0 opacity-[0.025] pointer-events-none"
-        style={{ backgroundImage: NOISE_SVG }}
-      />
+        className="hidden dark:block animate-float-medium-slow absolute -bottom-48 -right-48 w-[800px] h-[800px] rounded-full blur-[130px] overflow-hidden opacity-45"
+        style={{ animationDelay: "-4s" }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-tl from-primary/25 via-primary/12 to-transparent" />
+      </div>
 
-      {/* Grid pattern */}
+      {/* Dark-only: high grain noise overlay */}
       <div
-        className="absolute inset-0 opacity-[0.04] pointer-events-none"
+        className="hidden dark:block absolute inset-0 opacity-[0.07] pointer-events-none mix-blend-overlay"
         style={{
-          backgroundImage: `
-            linear-gradient(to right, var(--primary) 1px, transparent 1px),
-            linear-gradient(to bottom, var(--primary) 1px, transparent 1px)
-          `,
-          backgroundSize: "48px 48px",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         }}
       />
-
-      {/* Floating gradient circles */}
-      <div className="animate-float-slow absolute -top-48 -left-48 w-[700px] h-[700px] rounded-full blur-[120px] overflow-hidden opacity-40">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-primary/15 to-transparent" />
-      </div>
-
-      <div
-        className="animate-float-medium-slow absolute -bottom-48 -right-48 w-[600px] h-[600px] rounded-full blur-[100px] overflow-hidden opacity-35"
-        style={{ animationDelay: "-3s" }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-tl from-primary/20 via-primary/10 to-transparent" />
-      </div>
-
-      <div
-        className="animate-float-medium absolute top-[15%] -right-32 w-[400px] h-[400px] rounded-full blur-[90px] overflow-hidden opacity-30"
-        style={{ animationDelay: "-6s" }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-l from-primary/15 via-primary/8 to-transparent" />
-      </div>
-
-      <div
-        className="animate-float-fast absolute bottom-[20%] -left-32 w-[350px] h-[350px] rounded-full blur-[80px] overflow-hidden opacity-25"
-        style={{ animationDelay: "-9s" }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/12 via-primary/8 to-transparent" />
-      </div>
 
       <style jsx>{`
         @keyframes float-slow {
           0%,
           100% {
-            transform: translate(0, 0) scale(1) rotate(0deg);
+            transform: translate(0, 0) scale(1);
           }
           25% {
-            transform: translate(40px, -35px) scale(1.06) rotate(2deg);
+            transform: translate(35px, -30px) scale(1.04);
           }
           50% {
-            transform: translate(-25px, 25px) scale(0.96) rotate(-1deg);
+            transform: translate(-20px, 25px) scale(0.97);
           }
           75% {
-            transform: translate(30px, 15px) scale(1.02) rotate(1deg);
+            transform: translate(25px, 15px) scale(1.02);
           }
         }
         @keyframes float-medium-slow {
           0%,
           100% {
-            transform: translate(0, 0) scale(1) rotate(0deg);
+            transform: translate(0, 0) scale(1);
           }
           25% {
-            transform: translate(-35px, 30px) scale(1.04) rotate(-2deg);
+            transform: translate(-30px, 35px) scale(1.03);
           }
           50% {
-            transform: translate(30px, -20px) scale(0.97) rotate(1deg);
+            transform: translate(35px, -15px) scale(0.96);
           }
           75% {
-            transform: translate(-20px, -30px) scale(1.03) rotate(-1deg);
-          }
-        }
-        @keyframes float-medium {
-          0%,
-          100% {
-            transform: translate(0, 0) scale(1) rotate(0deg);
-          }
-          33% {
-            transform: translate(-30px, 35px) scale(1.07) rotate(2deg);
-          }
-          66% {
-            transform: translate(40px, -25px) scale(0.94) rotate(-2deg);
-          }
-        }
-        @keyframes float-fast {
-          0%,
-          100% {
-            transform: translate(0, 0) scale(1) rotate(0deg);
-          }
-          33% {
-            transform: translate(50px, 20px) scale(0.95) rotate(3deg);
-          }
-          66% {
-            transform: translate(-35px, -30px) scale(1.05) rotate(-2deg);
+            transform: translate(-20px, -25px) scale(1.02);
           }
         }
         .animate-float-slow {
-          animation: float-slow 28s cubic-bezier(0.45, 0.05, 0.55, 0.95)
-            infinite;
+          animation: float-slow 24s ease-in-out infinite;
         }
         .animate-float-medium-slow {
-          animation: float-medium-slow 24s cubic-bezier(0.45, 0.05, 0.55, 0.95)
-            infinite;
-        }
-        .animate-float-medium {
-          animation: float-medium 20s cubic-bezier(0.45, 0.05, 0.55, 0.95)
-            infinite;
-        }
-        .animate-float-fast {
-          animation: float-fast 16s cubic-bezier(0.45, 0.05, 0.55, 0.95)
-            infinite;
+          animation: float-medium-slow 20s ease-in-out infinite;
         }
       `}</style>
 
