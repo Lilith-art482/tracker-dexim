@@ -332,20 +332,22 @@ export function PersonalView({ boardId, boardName }: PersonalViewProps) {
 
       {/* Content */}
       {viewMode === "table" ? (
-        <div className="flex gap-6">
-          <div className="flex-1 min-w-0">
-            <WeeklyTable
-              tasks={tasks}
-              onSaved={handleTaskSaved}
-              onToggleComplete={handleToggleComplete}
-              onDelete={handleDeleteTask}
-              boardId={boardId}
-              compact
-            />
-          </div>
-          <div className="hidden lg:block w-px bg-border shrink-0" />
-          <div className="w-80 shrink-0">
-            <PersonalDashboard tasks={tasks} />
+        <div className="overflow-x-auto">
+          <div className="flex gap-4 min-w-fit">
+            <div className="flex-1 min-w-0">
+              <WeeklyTable
+                tasks={tasks}
+                onSaved={handleTaskSaved}
+                onToggleComplete={handleToggleComplete}
+                onDelete={handleDeleteTask}
+                boardId={boardId}
+                compact
+              />
+            </div>
+            <div className="w-px bg-border shrink-0" />
+            <div className="w-80 shrink-0">
+              <PersonalDashboard tasks={tasks} />
+            </div>
           </div>
         </div>
       ) : (

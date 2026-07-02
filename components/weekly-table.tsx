@@ -301,7 +301,7 @@ export function WeeklyTable({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="overflow-x-auto pb-2">
+        <div className="pb-2">
           <div
             className="grid min-w-[1200px]"
             style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
