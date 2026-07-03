@@ -5,7 +5,6 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Plus,
   Loader2,
-  LayoutDashboard,
   Pencil,
   Trash,
   Search,
