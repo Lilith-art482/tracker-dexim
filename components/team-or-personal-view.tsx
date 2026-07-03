@@ -1,15 +1,17 @@
 "use client";
 
 import { useMode } from "@/lib/mode-context";
-import { LayoutDashboard, Archive, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Archive } from "lucide-react";
 import type { Board, Column, BoardMember } from "@/lib/models";
 import { ColumnManager } from "@/components/column-manager";
 import { ArchiveView } from "@/components/archive-view";
 import { BoardMembersManager } from "@/components/board-members-manager";
 import { PersonalView } from "@/components/personal-view";
+import { ModeToggle } from "@/components/mode-toggle";
+
 interface TeamOrPersonalViewProps {
   _boards: Board[];
-  activeBoard?: Board;
+  activeBoard: Board;
   columns: Column[];
   boardMembers: BoardMember[];
   isArchiveView: boolean;
@@ -25,28 +27,7 @@ export function TeamOrPersonalView({
   const { mode } = useMode();
 
   if (mode === "personal") {
-    if (activeBoard && activeBoard.type === "personal") {
-      return (
-        <PersonalView boardId={activeBoard.id} boardName={activeBoard.name} />
-      );
-    }
-    return <PersonalView boardId={undefined} />;
-  }
-
-  if (!activeBoard || activeBoard.type !== "team") {
-    return (
-      <div className="container mx-auto flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-          <ClipboardList className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h2 className="text-xl font-semibold tracking-tight">
-          Нет командных досок
-        </h2>
-        <p className="text-sm text-muted-foreground max-w-md text-center">
-          Командные доски пока в разработке.
-        </p>
-      </div>
-    );
+    return <PersonalView />;
   }
 
   return (
@@ -72,6 +53,9 @@ function TeamView({
 }) {
   return (
     <div className="container mx-auto px-4 py-8">
+      <div className="mb-4">
+        <ModeToggle />
+      </div>
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isArchiveView ? (

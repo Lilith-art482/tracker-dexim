@@ -28,7 +28,6 @@ import { auth } from "@/lib/firebase";
 interface PersonalTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  boardId: string;
   defaultDayOfWeek?: number;
   defaultStartTime?: string;
   task?: PersonalTask | null;
@@ -48,9 +47,8 @@ const PRIORITY_LABELS: Record<Priority, string> = {
 export function PersonalTaskDialog({
   open,
   onOpenChange,
-  boardId,
   defaultDayOfWeek = 0,
-  defaultStartTime,
+  defaultStartTime = "09:00",
   task,
   onSaved,
   onDelete,
@@ -59,14 +57,14 @@ export function PersonalTaskDialog({
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title ?? "");
   const [dayOfWeek, setDayOfWeek] = useState(
-    task?.dayOfWeek ?? defaultDayOfWeek,
+    task?.dayOfWeek ?? defaultDayOfWeek
   );
   const [startTime, setStartTime] = useState(
-    task?.startTime ?? "09:00",
+    task?.startTime ?? defaultStartTime
   );
   const [endTime, setEndTime] = useState(task?.endTime ?? "10:00");
   const [priority, setPriority] = useState<Priority>(
-    task?.priority ?? "medium",
+    task?.priority ?? "medium"
   );
   const [completed, setCompleted] = useState(task?.completed ?? false);
   const [comment, setComment] = useState(task?.comment ?? "");
@@ -85,14 +83,14 @@ export function PersonalTaskDialog({
     } else {
       setTitle("");
       setDayOfWeek(defaultDayOfWeek);
-      setStartTime("09:00");
+      setStartTime(defaultStartTime);
       setEndTime("10:00");
       setPriority("medium");
       setCompleted(false);
       setComment("");
     }
     setErrors({});
-  }, [task, open, defaultDayOfWeek]);
+  }, [task, open, defaultDayOfWeek, defaultStartTime]);
 
   const handleSubmit = async () => {
     const newErrors: Record<string, string> = {};
@@ -105,7 +103,6 @@ export function PersonalTaskDialog({
       return;
     }
 
-    onOpenChange(false);
     setErrors({});
     setSaving(true);
 
@@ -134,13 +131,13 @@ export function PersonalTaskDialog({
 
         const updated: PersonalTask = await res.json();
         onSaved(updated);
+        toast.success("Задача обновлена");
       } else {
         const ownerId = auth.currentUser?.uid || null;
         const res = await fetch("/api/personal-tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            boardId,
             title: title.trim(),
             dayOfWeek,
             startTime,
@@ -164,7 +161,10 @@ export function PersonalTaskDialog({
 
         const created: PersonalTask = await res.json();
         onSaved(created);
+        toast.success("Задача создана");
       }
+
+      onOpenChange(false);
     } catch {
       toast.error("Ошибка сохранения задачи");
     } finally {
@@ -320,8 +320,19 @@ export function PersonalTaskDialog({
                 variant="destructive"
                 size="sm"
                 onClick={() => {
-                  onDelete(task);
-                  onOpenChange(false);
+                  toast("Удалить задачу?", {
+                    action: {
+                      label: "Удалить",
+                      onClick: () => {
+                        onDelete(task);
+                        onOpenChange(false);
+                      },
+                    },
+                    cancel: {
+                      label: "Отмена",
+                      onClick: () => {},
+                    },
+                  });
                 }}
                 disabled={saving}
               >

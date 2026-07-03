@@ -73,6 +73,7 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      toast.success("Выход выполнен");
       router.push("/auth");
     } catch (error) {
       console.error("Logout error:", error);
@@ -97,14 +98,11 @@ export default function ProfilePage() {
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-gradient-to-br from-primary/20 via-primary/10 to-transparent rounded-full blur-3xl" />
       <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-gradient-to-tl from-primary/20 via-primary/10 to-transparent rounded-full blur-3xl" />
       <div className="absolute top-1/4 right-0 w-80 h-80 bg-gradient-to-l from-primary/15 to-transparent rounded-full blur-3xl" />
-
+      
       {/* Зернистость */}
-      <div
-        className="absolute inset-0 opacity-[0.015]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-        }}
-      />
+      <div className="absolute inset-0 opacity-[0.015]" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+      }} />
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
@@ -137,10 +135,7 @@ export default function ProfilePage() {
             {/* Редактирование никнейма */}
             <div className="space-y-6">
               <div className="space-y-2">
-                <label
-                  className="text-sm font-medium text-foreground/90"
-                  htmlFor="nickname"
-                >
+                <label className="text-sm font-medium text-foreground/90" htmlFor="nickname">
                   Никнейм
                 </label>
                 <div className="flex gap-3">
@@ -199,3 +194,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

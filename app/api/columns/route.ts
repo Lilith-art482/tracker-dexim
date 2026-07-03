@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       console.error("Ошибка получения колонок:", error);
       return NextResponse.json(
         { error: "Ошибка получения данных из Firestore" },
-        { status: 500 },
+        { status: 500 }
       );
     }
   }
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   if (!dbAvailable) {
     return NextResponse.json(
       { error: "База данных недоступна в статическом режиме" },
-      { status: 503 },
+      { status: 503 }
     );
   }
 
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
           error: "Некорректные данные",
           details: parsed.error.flatten(),
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     console.error("Ошибка создания колонки:", error);
     return NextResponse.json(
       { error: "Ошибка создания колонки" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -95,7 +95,7 @@ export async function PATCH(request: NextRequest) {
   if (!dbAvailable) {
     return NextResponse.json(
       { error: "База данных недоступна в статическом режиме" },
-      { status: 503 },
+      { status: 503 }
     );
   }
 
@@ -105,14 +105,14 @@ export async function PATCH(request: NextRequest) {
     if (!body.id || typeof body.id !== "string") {
       return NextResponse.json(
         { error: "Поле id обязательно" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (!body.boardId || typeof body.boardId !== "string") {
       return NextResponse.json(
         { error: "Поле boardId обязательно" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -123,7 +123,7 @@ export async function PATCH(request: NextRequest) {
           error: "Некорректные данные",
           details: parsed.error.flatten(),
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -133,7 +133,7 @@ export async function PATCH(request: NextRequest) {
     console.error("Ошибка обновления колонки:", error);
     return NextResponse.json(
       { error: "Ошибка обновления колонки" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -144,7 +144,7 @@ export async function DELETE(request: NextRequest) {
   if (!dbAvailable) {
     return NextResponse.json(
       { error: "База данных недоступна в статическом режиме" },
-      { status: 503 },
+      { status: 503 }
     );
   }
 
@@ -154,14 +154,14 @@ export async function DELETE(request: NextRequest) {
     if (!body.id || typeof body.id !== "string") {
       return NextResponse.json(
         { error: "Поле id обязательно" },
-        { status: 400 },
+        { status: 400 }
       );
     }
-
+    
     if (!body.boardId || typeof body.boardId !== "string") {
       return NextResponse.json(
         { error: "Поле boardId обязательно" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -171,7 +171,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Ошибка удаления колонки:", error);
     return NextResponse.json(
       { error: "Ошибка удаления колонки" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

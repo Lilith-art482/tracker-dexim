@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Некорректные данные", details: parsed.error.flatten() },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -45,17 +45,17 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error("Login error:", err.message);
-
+    
     if (err.message.includes("not found")) {
       return NextResponse.json(
         { error: "Пользователь с таким email не найден" },
-        { status: 404 },
+        { status: 404 }
       );
     }
-
+    
     return NextResponse.json(
       { error: "Ошибка входа. Проверьте email и пароль." },
-      { status: 401 },
+      { status: 401 }
     );
   }
 }

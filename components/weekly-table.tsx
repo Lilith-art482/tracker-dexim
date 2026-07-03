@@ -169,17 +169,16 @@ export function WeeklyTable({
   onSaved,
   onToggleComplete,
   onDelete,
-  boardId,
 }: {
   tasks: PersonalTask[];
   onSaved: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
   onDelete: (task: PersonalTask) => void;
-  boardId?: string;
 }) {
   const [activeTask, setActiveTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogDayOfWeek, setDialogDayOfWeek] = useState(0);
+  const [dialogDay, setDialogDay] = useState(0);
+  const [dialogRow, setDialogRow] = useState(0);
   const [editingTask, setEditingTask] = useState<PersonalTask | null>(null);
   const [positionMap, setPositionMap] = useState<Record<string, number>>({});
 
@@ -204,8 +203,9 @@ export function WeeklyTable({
     return result;
   }, [tasksByDay, positionMap]);
 
-  const handleCellClick = (dayOfWeek: number) => {
-    setDialogDayOfWeek(dayOfWeek);
+  const handleCellClick = (dayOfWeek: number, rowIndex: number) => {
+    setDialogDay(dayOfWeek);
+    setDialogRow(rowIndex);
     setEditingTask(null);
     setDialogOpen(true);
   };
@@ -213,6 +213,13 @@ export function WeeklyTable({
   const handleEditTask = (task: PersonalTask) => {
     setEditingTask(task);
     setDialogOpen(true);
+  };
+
+  const handleSaved = (task: PersonalTask) => {
+    if (!editingTask) {
+      setPositionMap((prev) => ({ ...prev, [task.id]: dialogRow }));
+    }
+    onSaved(task);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -237,6 +244,9 @@ export function WeeklyTable({
     const newRow = parseInt(parts[2], 10);
     if (isNaN(newDay) || isNaN(newRow)) return;
 
+    const targetSlots = daySlots[newDay];
+    if (targetSlots[newRow]) return;
+
     if (newDay === task.dayOfWeek) {
       const slots = daySlots[newDay];
       let oldRow = -1;
@@ -247,12 +257,8 @@ export function WeeklyTable({
         }
       }
       if (oldRow === newRow) return;
-      if (slots[newRow]) return;
       setPositionMap((prev) => ({ ...prev, [task.id]: newRow }));
     } else {
-      const targetSlots = daySlots[newDay];
-      if (targetSlots?.[newRow]) return;
-
       setPositionMap((prev) => ({ ...prev, [task.id]: newRow }));
 
       const updated = { ...task, dayOfWeek: newDay };
@@ -285,13 +291,13 @@ export function WeeklyTable({
     >
       <div className="overflow-x-auto pb-2">
         <div
-          className="grid min-w-[1000px] gap-px bg-border/20"
+          className="grid"
           style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
         >
           {DAYS.map((_day, dayIdx) => {
             const slots = daySlots[dayIdx];
             return (
-              <div key={dayIdx} className="flex flex-col bg-background">
+              <div key={dayIdx} className="flex flex-col">
                 {Array.from({ length: ROWS }, (_, rowIdx) => {
                   const task = slots?.[rowIdx] ?? null;
                   return (
@@ -300,7 +306,7 @@ export function WeeklyTable({
                       dayOfWeek={dayIdx}
                       rowIndex={rowIdx}
                       task={task}
-                      onCellClick={() => handleCellClick(dayIdx)}
+                      onCellClick={() => handleCellClick(dayIdx, rowIdx)}
                       onEdit={handleEditTask}
                       onToggleComplete={onToggleComplete}
                     />
@@ -318,10 +324,9 @@ export function WeeklyTable({
           setDialogOpen(open);
           if (!open) setEditingTask(null);
         }}
-        boardId={boardId ?? ""}
-        defaultDayOfWeek={dialogDayOfWeek}
+        defaultDayOfWeek={dialogDay}
         task={editingTask}
-        onSaved={onSaved}
+        onSaved={handleSaved}
         onDelete={onDelete}
         onToggleComplete={onToggleComplete}
       />

@@ -189,7 +189,7 @@ export function TaskFormDialog({
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
       for (const [key, issues] of Object.entries(
-        parsed.error.flatten().fieldErrors,
+        parsed.error.flatten().fieldErrors
       )) {
         fieldErrors[key] = (issues as string[])[0];
       }
@@ -468,7 +468,7 @@ export function TaskFormDialog({
                               month: "short",
                               hour: "2-digit",
                               minute: "2-digit",
-                            },
+                            }
                           )}
                         </span>
                       </div>

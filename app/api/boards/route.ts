@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isDatabaseAvailable } from "@/lib/db";
-import {
-  getBoardsByUser,
-  getPersonalBoardsByUser,
-  createBoard,
-  updateBoard,
-  deleteBoard,
-} from "@/lib/models";
+import { getBoardsByUser, createBoard, updateBoard, deleteBoard } from "@/lib/models";
 import { mockBoards } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
@@ -22,38 +16,30 @@ export async function GET(request: NextRequest) {
 
   const url = new URL(request.url);
   const uid = url.searchParams.get("uid");
-  const type = url.searchParams.get("type");
 
   // uid обязателен для безопасности
   if (!uid) {
     return NextResponse.json(
       { error: "Требуется авторизация" },
-      { status: 401 },
+      { status: 401 }
     );
   }
 
   if (dbAvailable) {
     try {
-      const boards =
-        type === "personal"
-          ? await getPersonalBoardsByUser(uid)
-          : await getBoardsByUser(uid);
+      const boards = await getBoardsByUser(uid);
       return NextResponse.json(boards);
     } catch (error) {
       console.error("Ошибка получения досок:", error);
       return NextResponse.json(
         { error: "Ошибка получения данных из Firestore" },
-        { status: 500 },
+        { status: 500 }
       );
     }
   }
 
-  // Static fallback - filter by uid and type
-  const filtered = mockBoards.filter(
-    (b) =>
-      (b.ownerId === uid || b.members?.includes(uid)) &&
-      (!type || b.type === type),
-  );
+  // Static fallback - filter by uid
+  const filtered = mockBoards.filter((b) => b.ownerId === uid || b.members?.includes(uid));
   return NextResponse.json(filtered);
 }
 
@@ -63,7 +49,7 @@ export async function POST(request: NextRequest) {
   if (!dbAvailable) {
     return NextResponse.json(
       { error: "База данных недоступна в статическом режиме" },
-      { status: 503 },
+      { status: 503 }
     );
   }
 
@@ -77,16 +63,15 @@ export async function POST(request: NextRequest) {
           error: "Некорректные данные",
           details: parsed.error.flatten(),
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
+
     const ownerId = body.ownerId || null;
-    const boardType = body.type === "team" ? "team" : "personal";
     const board = await createBoard({
       id: crypto.randomUUID(),
       name: parsed.data.name,
-      type: boardType,
       ownerId: ownerId || undefined,
       members: ownerId ? [ownerId] : [],
     });
@@ -96,7 +81,7 @@ export async function POST(request: NextRequest) {
     console.error("Ошибка создания доски:", error);
     return NextResponse.json(
       { error: "Ошибка создания доски" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -104,10 +89,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const dbAvailable = await isDatabaseAvailable();
   if (!dbAvailable) {
-    return NextResponse.json(
-      { error: "База данных недоступна" },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: "База данных недоступна" }, { status: 503 });
   }
 
   try {
@@ -127,10 +109,7 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const dbAvailable = await isDatabaseAvailable();
   if (!dbAvailable) {
-    return NextResponse.json(
-      { error: "База данных недоступна" },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: "База данных недоступна" }, { status: 503 });
   }
 
   try {

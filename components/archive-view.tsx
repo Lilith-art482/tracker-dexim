@@ -27,9 +27,7 @@ export function ArchiveView({ boardId }: ArchiveViewProps) {
     setLoading(true);
     try {
       const uid = auth.currentUser?.uid || "";
-      const res = await fetch(
-        `/api/tasks?archived=true&boardId=${boardId}&uid=${uid}`,
-      );
+      const res = await fetch(`/api/tasks?archived=true&boardId=${boardId}&uid=${uid}`);
       if (res.ok) {
         const data: Task[] = await res.json();
         setTasks(data);
@@ -50,11 +48,11 @@ export function ArchiveView({ boardId }: ArchiveViewProps) {
       const res = await fetch("/api/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: task.id,
+        body: JSON.stringify({ 
+          id: task.id, 
           boardId,
           columnId: task.columnId,
-          archived: false,
+          archived: false 
         }),
       });
 
@@ -136,7 +134,7 @@ export function ArchiveView({ boardId }: ArchiveViewProps) {
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
                   {new Date(task.endDate + "T00:00:00Z").toLocaleDateString(
-                    "ru-RU",
+                    "ru-RU"
                   )}
                 </span>
               )}

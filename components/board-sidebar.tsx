@@ -1,123 +1,135 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Plus,
   Loader2,
   LayoutDashboard,
   Pencil,
-  Trash2,
-  Check,
-  X,
-  Palette,
+  Trash,
+  Search,
+  Calendar,
+  DollarSign,
+  ListChecks,
+  Zap,
+  Award,
+  User,
+  Bell,
+  Moon,
+  Sun,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
-import { onAuthStateChanged } from "firebase/auth";
 import { Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
-
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useMode } from "@/lib/mode-context";
+import { useTheme } from "next-themes";
 import { useNotifications } from "@/lib/notification-context";
-
-const BOARD_COLORS = [
-  "#4E6E62",
-  "#8B5CF6",
-  "#EC4899",
-  "#F59E0B",
-  "#10B981",
-  "#3B82F6",
-  "#EF4444",
-  "#14B8A6",
-];
-
-function getColorPref(id: string): string {
-  if (typeof window === "undefined") return BOARD_COLORS[0];
-  const stored = localStorage.getItem(`board_color_${id}`);
-  if (stored) return stored;
-  const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return BOARD_COLORS[hash % BOARD_COLORS.length];
-}
-
-function setColorPref(id: string, color: string) {
-  localStorage.setItem(`board_color_${id}`, color);
-}
 
 interface BoardSidebarProps {
   initialBoards?: Board[];
 }
 
-export function BoardSidebar({
-  initialBoards: _initialBoards = [],
-}: BoardSidebarProps) {
+const NAV_ITEMS = [
+  { id: "planner", label: "Планнер", icon: Calendar },
+  { id: "finance", label: "Финансы", icon: DollarSign },
+  { id: "habits", label: "Привычки", icon: ListChecks },
+  { id: "sport", label: "Спорт", icon: Zap },
+  { id: "challenges", label: "Челленджи", icon: Award },
+] as const;
+
+export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   const { collapsed } = useSidebar();
-  const { mode } = useMode();
+  const { mode, setMode } = useMode();
+  const { theme, setTheme } = useTheme();
+  const { unreadCount } = useNotifications();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const { addNotification } = useNotifications();
 
-  const [boards, setBoards] = useState<Board[]>([]);
-  const [creating, setCreating] = useState(false);
+  const [boards, setBoards] = useState<Board[]>(initialBoards);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [colorPickerId, setColorPickerId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
+  const [editingBoardName, setEditingBoardName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [userUid, setUserUid] = useState<string | null>(null);
+  const [boardsOpen, setBoardsOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const activeBoardId = searchParams.get("boardId");
-  const boardType = mode === "personal" ? "personal" : "team";
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUserUid(user?.uid ?? null);
-    });
-    return () => unsubscribe();
+  const fetchBoards = useCallback(async () => {
+    setLoading(true);
+    try {
+      const uid = auth.currentUser?.uid;
+      const url = uid ? `/api/boards?uid=${uid}` : "/api/boards";
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setBoards(data);
+      }
+    } catch {
+      // keep current state
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (!userUid) return;
-    setLoading(true);
-    const load = async () => {
-      try {
-        const res = await fetch(`/api/boards?uid=${userUid}&type=${boardType}`);
-        if (res.ok) {
-          const data = await res.json();
-          setBoards(data);
-        }
-      } catch {
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [userUid, boardType]);
-
-  useEffect(() => {
-    if (userUid && !searchParams.has("uid")) {
+    fetchBoards();
+    const uid = auth.currentUser?.uid;
+    if (uid && !searchParams.has("uid")) {
       const params = new URLSearchParams(searchParams.toString());
-      params.set("uid", userUid);
+      params.set("uid", uid);
       router.replace(`${pathname}?${params.toString()}`);
     }
-  }, [userUid, searchParams, pathname, router]);
+  }, [fetchBoards, searchParams, pathname, router]);
 
   const switchBoard = (boardId: string) => {
-    const params = new URLSearchParams();
+    setMode("team");
+    const params = new URLSearchParams(searchParams.toString());
     params.set("boardId", boardId);
     const uid = auth.currentUser?.uid;
     if (uid) params.set("uid", uid);
-    router.push(`/?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handlePlanner = () => {
+    setMode("personal");
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("boardId");
+    const uid = auth.currentUser?.uid;
+    if (uid) params.set("uid", uid);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleNavClick = (id: string) => {
+    if (id === "planner") {
+      handlePlanner();
+      return;
+    }
+    toast.info("Страница в разработке");
   };
 
   const handleCreate = async () => {
     const name = newBoardName.trim();
     if (!name) return;
-    setCreating(false);
+
+    setCreating(true);
     try {
       const ownerId = auth.currentUser?.uid || null;
       const res = await fetch("/api/boards", {
@@ -125,58 +137,60 @@ export function BoardSidebar({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, ownerId }),
       });
+
       if (!res.ok) {
         const err = await res.json();
         toast.error(err.error || "Ошибка создания доски");
         return;
       }
+
       const newBoard: Board = await res.json();
       setBoards((prev) => [...prev, newBoard]);
+      setDialogOpen(false);
       setNewBoardName("");
       toast.success("Доска создана");
-      addNotification("Доска создана: " + name, "success");
       switchBoard(newBoard.id);
     } catch {
       toast.error("Ошибка создания доски");
+    } finally {
+      setCreating(false);
     }
   };
 
   const startEdit = (board: Board) => {
-    setEditingId(board.id);
-    setEditName(board.name);
-    setColorPickerId(null);
+    setEditingBoardId(board.id);
+    setEditingBoardName(board.name);
+    setDialogOpen(true);
   };
 
-  const handleRename = async () => {
-    if (!editingId) return;
-    const name = editName.trim();
-    if (!name) {
-      setEditingId(null);
-      return;
-    }
+  const handleUpdate = async () => {
+    if (!editingBoardId) return;
+    const name = editingBoardName.trim();
+    if (!name) return;
     try {
       const res = await fetch("/api/boards", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingId, name }),
+        body: JSON.stringify({ id: editingBoardId, name }),
       });
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "Ошибка переименования");
+        toast.error(err.error || "Ошибка обновления доски");
         return;
       }
       const updated: Board = await res.json();
       setBoards((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
-      setEditingId(null);
-      toast.success("Доска переименована");
-      addNotification("Доска переименована", "info");
+      setEditingBoardId(null);
+      setEditingBoardName("");
+      setDialogOpen(false);
+      toast.success("Доска обновлена");
     } catch {
-      toast.error("Ошибка переименования");
+      toast.error("Ошибка обновления доски");
     }
   };
 
   const handleDelete = async (boardId: string) => {
-    setDeletingId(boardId);
+    if (!confirm("Удалить доску? Это действие необратимо.")) return;
     try {
       const res = await fetch("/api/boards", {
         method: "DELETE",
@@ -190,257 +204,220 @@ export function BoardSidebar({
       }
       setBoards((prev) => prev.filter((b) => b.id !== boardId));
       toast.success("Доска удалена");
-      addNotification("Доска удалена", "error");
       if (activeBoardId === boardId) {
-        const params = new URLSearchParams();
-        const uid = auth.currentUser?.uid;
-        if (uid) params.set("uid", uid);
-        router.push(`/?${params.toString()}`);
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("boardId");
+        router.push(`${pathname}?${params.toString()}`);
       }
     } catch {
       toast.error("Ошибка удаления доски");
-    } finally {
-      setDeletingId(null);
     }
   };
-
-  const handleColorChange = (boardId: string, color: string) => {
-    setColorPref(boardId, color);
-    setColorPickerId(null);
-  };
-
-  const isActive = (id: string, i: number) =>
-    activeBoardId === id || (!activeBoardId && i === 0);
 
   return (
     <aside
       className={cn(
-        "shrink-0 flex flex-col border-r transition-all duration-300 relative overflow-hidden",
-        collapsed ? "w-0 border-0" : "w-60",
+        "shrink-0 flex flex-col border-r bg-sidebar transition-all duration-300",
+        collapsed ? "w-0 overflow-hidden border-0" : "w-60"
       )}
     >
-      {/* Grid pattern overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.04] pointer-events-none"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, #4E6E62 1px, transparent 1px),
-            linear-gradient(to bottom, #4E6E62 1px, transparent 1px)
-          `,
-          backgroundSize: "48px 48px",
-        }}
-      />
-      {/* Header with inline create input */}
+      {/* Search */}
       <div
         className={cn(
-          "flex items-center gap-2.5 px-4 h-12 border-b transition-opacity duration-300",
-          collapsed ? "opacity-0" : "opacity-100",
+          "px-3 pt-3 pb-2 transition-opacity duration-300",
+          collapsed ? "opacity-0" : "opacity-100"
         )}
       >
-        {creating ? (
-          <div className="flex flex-1 items-center gap-1">
-            <Input
-              placeholder="Название доски"
-              value={newBoardName}
-              onChange={(e) => setNewBoardName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleCreate();
-                if (e.key === "Escape") {
-                  setCreating(false);
-                  setNewBoardName("");
-                }
-              }}
-              className="h-7 text-sm"
-              autoFocus
-            />
-            <button
-              onClick={handleCreate}
-              disabled={!newBoardName.trim()}
-              className="p-0.5 rounded hover:bg-sidebar-accent shrink-0"
-            >
-              <Check className="h-4 w-4 text-emerald-500" />
-            </button>
-            <button
-              onClick={() => {
-                setCreating(false);
-                setNewBoardName("");
-              }}
-              className="p-0.5 rounded hover:bg-sidebar-accent shrink-0"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        ) : (
-          <>
-            <LayoutDashboard className="h-4 w-4 text-sidebar-foreground/60 shrink-0" />
-            <span className="flex-1 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60 truncate">
-              {mode === "personal" ? "Личные доски" : "Командные доски"}
-            </span>
-            <button
-              onClick={() => setCreating(true)}
-              className="flex items-center justify-center h-7 w-7 rounded-md hover:bg-sidebar-accent transition-colors"
-              title="Создать доску"
-            >
-              <Plus className="h-4 w-4 text-sidebar-foreground/60" />
-            </button>
-            {loading && (
-              <Loader2 className="h-3 w-3 animate-spin text-sidebar-foreground/40 shrink-0" />
-            )}
-          </>
-        )}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-sidebar-foreground/40" />
+          <input
+            type="search"
+            placeholder="Поиск"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-8 w-full rounded-lg border border-border/40 bg-sidebar-accent/30 pl-8 pr-3 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/40 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+          />
+        </div>
       </div>
 
-      {/* Board list */}
+      {/* Nav items */}
       <nav
         className={cn(
-          "flex-1 overflow-y-auto py-3 transition-opacity duration-300",
-          collapsed ? "opacity-0 pointer-events-none" : "opacity-100",
+          "px-2 pb-1 transition-opacity duration-300",
+          collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
         )}
       >
-        <div className="flex flex-col gap-1 px-2">
-          {boards.length === 0 && !loading && (
-            <div className="px-3 py-8 text-center">
-              <Palette className="h-8 w-8 mx-auto mb-2 text-sidebar-foreground/20" />
-              <p className="text-xs text-sidebar-foreground/40">
-                {mode === "personal"
-                  ? "Создайте первую личную доску"
-                  : "Командные доски пока не созданы"}
-              </p>
-            </div>
+        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => handleNavClick(id)}
+            className={cn(
+              "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+              id === "planner" && mode === "personal"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            )}
+          >
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="truncate">{label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* Divider */}
+      <div
+        className={cn(
+          "mx-3 border-t border-border/30 transition-opacity duration-300",
+          collapsed ? "opacity-0" : "opacity-100"
+        )}
+      />
+
+      {/* Boards header */}
+      <div
+        className={cn(
+          "flex items-center gap-2 px-4 py-2.5 transition-opacity duration-300",
+          collapsed ? "opacity-0" : "opacity-100"
+        )}
+      >
+        <button
+          onClick={() => setBoardsOpen(!boardsOpen)}
+          className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60"
+        >
+          {boardsOpen ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
+          Доски
+        </button>
+
+        <div className="ml-auto flex items-center gap-1">
+          {loading && (
+            <Loader2 className="h-3 w-3 animate-spin text-sidebar-foreground/40" />
           )}
 
-          {boards.map((board, i) => {
-            const color = getColorPref(board.id);
-            const active = isActive(board.id, i);
-            const showColorPicker = colorPickerId === board.id;
-
-            return (
-              <div key={board.id}>
-                {i > 0 && (
-                  <div className="mx-3 my-1 border-t border-sidebar-border/30" />
-                )}
-
-                <div
-                  className={cn(
-                    "group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-200",
-                    active
-                      ? "bg-sidebar-accent shadow-sm"
-                      : "hover:bg-sidebar-accent/50",
-                  )}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger render={<Button size="sm" variant="ghost" className="gap-2 h-6 w-6 p-0" />}>
+              <Plus className="h-3.5 w-3.5" />
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingBoardId ? "Редактировать доску" : "Новая доска"}</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-4">
+                <Input
+                  placeholder="Название доски"
+                  value={editingBoardId ? editingBoardName : newBoardName}
+                  onChange={(e) => {
+                    if (editingBoardId) setEditingBoardName(e.target.value);
+                    else setNewBoardName(e.target.value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") (editingBoardId ? handleUpdate() : handleCreate());
+                  }}
+                  autoFocus
+                />
+                <Button
+                  onClick={() => (editingBoardId ? handleUpdate() : handleCreate())}
+                  disabled={creating || (!newBoardName.trim() && !editingBoardName.trim())}
                 >
-                  {/* Color dot with picker */}
-                  <div className="relative shrink-0">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setColorPickerId(showColorPicker ? null : board.id);
-                      }}
-                      className={cn(
-                        "h-2.5 w-2.5 rounded-full ring-1 ring-black/5 transition-transform hover:scale-125",
-                        active &&
-                          "ring-2 ring-offset-1 ring-offset-sidebar-accent",
-                      )}
-                      style={{ backgroundColor: color }}
-                      title="Сменить цвет"
-                    />
-
-                    {showColorPicker && (
-                      <>
-                        <div
-                          className="fixed inset-0 z-10"
-                          onClick={() => setColorPickerId(null)}
-                        />
-                        <div className="absolute left-0 top-full mt-1.5 z-20 flex gap-1 p-1.5 rounded-lg border bg-popover shadow-lg">
-                          {BOARD_COLORS.map((c) => (
-                            <button
-                              key={c}
-                              onClick={() => handleColorChange(board.id, c)}
-                              className={cn(
-                                "h-5 w-5 rounded-full transition-transform hover:scale-125",
-                                color === c &&
-                                  "ring-2 ring-primary ring-offset-1 ring-offset-popover",
-                              )}
-                              style={{ backgroundColor: c }}
-                            />
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {editingId === board.id ? (
-                    <div className="flex flex-1 items-center gap-1 min-w-0">
-                      <Input
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleRename();
-                          if (e.key === "Escape") setEditingId(null);
-                        }}
-                        onBlur={handleRename}
-                        className="h-7 text-sm"
-                        autoFocus
-                      />
-                      <button
-                        onClick={handleRename}
-                        className="p-0.5 rounded hover:bg-sidebar-accent shrink-0"
-                      >
-                        <Check className="h-3.5 w-3.5 text-emerald-500" />
-                      </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className="p-0.5 rounded hover:bg-sidebar-accent shrink-0"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => switchBoard(board.id)}
-                        className="flex-1 text-left truncate"
-                      >
-                        <span
-                          className={cn(
-                            "text-sm transition-colors",
-                            active
-                              ? "font-semibold text-sidebar-foreground"
-                              : "text-sidebar-foreground/70 group-hover:text-sidebar-foreground",
-                          )}
-                        >
-                          {board.name}
-                        </span>
-                      </button>
-
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => startEdit(board)}
-                          className="flex items-center justify-center h-7 w-7 rounded-md hover:bg-sidebar-accent"
-                          title="Переименовать"
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-sidebar-foreground/40" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(board.id)}
-                          disabled={deletingId === board.id}
-                          className="flex items-center justify-center h-7 w-7 rounded-md hover:bg-sidebar-accent"
-                          title="Удалить"
-                        >
-                          {deletingId === board.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-destructive" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5 text-destructive/50 hover:text-destructive" />
-                          )}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                  {(creating || false) && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {editingBoardId ? "Сохранить" : "Создать"}
+                </Button>
               </div>
-            );
-          })}
+            </DialogContent>
+          </Dialog>
         </div>
-      </nav>
+      </div>
+
+      {/* Boards list */}
+      {boardsOpen && (
+        <nav
+          className={cn(
+            "flex-1 space-y-0.5 overflow-y-auto px-2 transition-opacity duration-300",
+            collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+          )}
+        >
+          {boards.map((board) => (
+            <div key={board.id} className="flex items-center gap-2">
+              <button
+                onClick={() => switchBoard(board.id)}
+                className={cn(
+                  "flex-1 text-left text-sm rounded-lg px-3 py-2 transition-colors",
+                  activeBoardId === board.id ||
+                    (!activeBoardId && boards[0]?.id === board.id)
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                )}
+              >
+                <span className="truncate">{board.name}</span>
+              </button>
+              <button
+                onClick={() => startEdit(board)}
+                className="p-1 rounded hover:bg-muted/20 shrink-0"
+                title="Редактировать"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => handleDelete(board.id)}
+                className="p-1 rounded hover:bg-muted/20 shrink-0"
+                title="Удалить"
+              >
+                <Trash className="h-4 w-4 text-destructive" />
+              </button>
+            </div>
+          ))}
+        </nav>
+      )}
+
+      {!boardsOpen && (
+        <div
+          className={cn(
+            "flex-1 transition-opacity duration-300",
+            collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+          )}
+        />
+      )}
+
+      {/* Bottom actions */}
+      <div
+        className={cn(
+          "border-t border-border/30 p-2 transition-opacity duration-300",
+          collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+        )}
+      >
+        <div className="flex items-center justify-around">
+          <button
+            onClick={() => router.push("/profile")}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+            title="Профиль"
+          >
+            <User className="h-4 w-4" />
+          </button>
+
+          <button
+            className="relative flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+            title="Уведомления"
+          >
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 flex h-3.5 w-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-primary-foreground">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+            title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+          >
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          </button>
+        </div>
+      </div>
     </aside>
   );
 }

@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   try {
     const db = getAdminDb();
     const userDoc = await db.collection("users").doc(uid).get();
-
+    
     if (!userDoc.exists) {
       return NextResponse.json({ error: "Профиль не найден" }, { status: 404 });
     }
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     console.error("Get profile error:", err.message);
     return NextResponse.json(
       { error: "Ошибка получения профиля" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Некорректные данные", details: parsed.error.flatten() },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -88,7 +88,7 @@ export async function PATCH(request: NextRequest) {
     console.error("Update profile error:", err.message);
     return NextResponse.json(
       { error: "Ошибка обновления профиля: " + err.message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

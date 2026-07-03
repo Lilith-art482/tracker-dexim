@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { isDatabaseAvailable } from "@/lib/db";
 

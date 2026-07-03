@@ -1,3 +1,4 @@
+import { ClipboardList } from "lucide-react";
 import { isDatabaseAvailable } from "@/lib/db";
 import {
   getBoardsByUser,
@@ -42,34 +43,41 @@ export default async function HomePage({
 
   const dbAvailable = await isDatabaseAvailable();
   let boards: Board[] = [];
-
+  
   if (dbAvailable && uid) {
     try {
       boards = await getBoardsByUser(uid);
     } catch {
-      boards = mockBoards.filter(
-        (b) => b.ownerId === uid || b.members?.includes(uid),
-      );
+      boards = mockBoards.filter((b) => b.ownerId === uid || b.members?.includes(uid));
     }
   } else if (uid) {
-    boards = mockBoards.filter(
-      (b) => b.ownerId === uid || b.members?.includes(uid),
-    );
+    // Static mode with uid - filter mock boards
+    boards = mockBoards.filter((b) => b.ownerId === uid || b.members?.includes(uid));
   } else {
+    // No uid - show empty state
     boards = [];
   }
 
-  const activeBoard = boardId
-    ? boards.find((b) => b.id === boardId)
-    : undefined;
+  const activeBoard = boardId ? boards.find((b) => b.id === boardId) : undefined;
 
-  let columns: Column[] = [];
-  let boardMembers: BoardMember[] = [];
-
-  if (activeBoard) {
-    columns = await getColumnsForBoard(activeBoard.id);
-    boardMembers = await getBoardMembers(activeBoard.id);
+  if (!activeBoard) {
+    return (
+      <HomeContent>
+        <div className="container mx-auto flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+            <ClipboardList className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-semibold tracking-tight">Выберите доску</h2>
+          <p className="text-sm text-muted-foreground max-w-md text-center">
+            Чтобы увидеть задачи, выберите доску в боковом меню или создайте новую.
+          </p>
+        </div>
+      </HomeContent>
+    );
   }
+
+  const columns = await getColumnsForBoard(activeBoard.id);
+  const boardMembers = await getBoardMembers(activeBoard.id);
 
   const isArchiveView = view === "archive";
 

@@ -6,11 +6,7 @@ import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-export default function HomeContent({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function HomeContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 

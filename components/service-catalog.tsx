@@ -46,7 +46,7 @@ export function ServiceCatalog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<"active" | "inactive" | "deploying">(
-    "active",
+    "active"
   );
   const [isLoading, setIsLoading] = useState(false);
 
@@ -223,7 +223,7 @@ export function ServiceCatalog({
                   value={status}
                   onChange={(e) =>
                     setStatus(
-                      e.target.value as "active" | "inactive" | "deploying",
+                      e.target.value as "active" | "inactive" | "deploying"
                     )
                   }
                   disabled={!dbAvailable || isLoading}
@@ -329,7 +329,7 @@ export function ServiceCatalog({
                         <Clock className="h-3.5 w-3.5" />
                         <span>
                           {new Date(service.createdAt).toLocaleDateString(
-                            "ru-RU",
+                            "ru-RU"
                           )}
                         </span>
                       </div>

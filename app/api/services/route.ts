@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isDatabaseAvailable } from "@/lib/db";
@@ -25,7 +26,7 @@ export async function GET() {
       console.error("Ошибка получения сервисов:", error);
       return NextResponse.json(
         { error: "Ошибка получения данных из Firestore" },
-        { status: 500 },
+        { status: 500 }
       );
     }
   }
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
   if (!dbAvailable) {
     return NextResponse.json(
       { error: "База данных недоступна в статическом режиме" },
-      { status: 503 },
+      { status: 503 }
     );
   }
 
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
           error: "Некорректные данные",
           details: parsed.error.flatten(),
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
     console.error("Ошибка создания сервиса:", error);
     return NextResponse.json(
       { error: "Ошибка создания сервиса" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -81,7 +82,7 @@ export async function DELETE(request: NextRequest) {
   if (!dbAvailable) {
     return NextResponse.json(
       { error: "База данных недоступна в статическом режиме" },
-      { status: 503 },
+      { status: 503 }
     );
   }
 
@@ -92,7 +93,7 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return NextResponse.json(
         { error: "Параметр id обязателен" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -102,7 +103,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Ошибка удаления сервиса:", error);
     return NextResponse.json(
       { error: "Ошибка удаления сервиса" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
