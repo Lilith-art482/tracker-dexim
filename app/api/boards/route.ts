@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
     const board = await createBoard({
       id: crypto.randomUUID(),
       name: parsed.data.name,
+      type: "personal",
       ownerId: ownerId || undefined,
       members: ownerId ? [ownerId] : [],
     });
