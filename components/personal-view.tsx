@@ -15,7 +15,7 @@ import { WeeklyTable } from "@/components/weekly-table";
 import { PersonalTaskList } from "@/components/personal-task-list";
 import { PersonalDashboard } from "@/components/personal-dashboard";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
-import { ModeToggle } from "@/components/mode-toggle";
+import { CompactModeToggle } from "@/components/compact-mode-toggle";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -196,7 +196,7 @@ export function PersonalView() {
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-4">
-        <ModeToggle />
+        <CompactModeToggle />
       </div>
       {/* Header: title + view toggle */}
       <div className="mb-4 flex items-center justify-between">
