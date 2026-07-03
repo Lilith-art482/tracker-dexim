@@ -7,7 +7,6 @@ import { ColumnManager } from "@/components/column-manager";
 import { ArchiveView } from "@/components/archive-view";
 import { BoardMembersManager } from "@/components/board-members-manager";
 import { PersonalView } from "@/components/personal-view";
-import { ModeToggle } from "@/components/mode-toggle";
 
 interface TeamOrPersonalViewProps {
   _boards: Board[];
@@ -53,9 +52,6 @@ function TeamView({
 }) {
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-4">
-        <ModeToggle />
-      </div>
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isArchiveView ? (

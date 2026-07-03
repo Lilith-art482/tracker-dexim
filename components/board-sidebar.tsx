@@ -7,16 +7,6 @@ import {
   Loader2,
   Pencil,
   Trash,
-  Search,
-  Calendar,
-  DollarSign,
-  ListChecks,
-  Zap,
-  Award,
-  User,
-  Bell,
-  Moon,
-  Sun,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -34,27 +24,13 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSidebar } from "@/lib/sidebar-context";
-import { useMode } from "@/lib/mode-context";
-import { useTheme } from "next-themes";
-import { useNotifications } from "@/lib/notification-context";
 
 interface BoardSidebarProps {
   initialBoards?: Board[];
 }
 
-const NAV_ITEMS = [
-  { id: "planner", label: "Планнер", icon: Calendar },
-  { id: "finance", label: "Финансы", icon: DollarSign },
-  { id: "habits", label: "Привычки", icon: ListChecks },
-  { id: "sport", label: "Спорт", icon: Zap },
-  { id: "challenges", label: "Челленджи", icon: Award },
-] as const;
-
 export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   const { collapsed } = useSidebar();
-  const { mode, setMode } = useMode();
-  const { theme, setTheme } = useTheme();
-  const { unreadCount } = useNotifications();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -67,7 +43,6 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   const [editingBoardName, setEditingBoardName] = useState("");
   const [loading, setLoading] = useState(false);
   const [boardsOpen, setBoardsOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const activeBoardId = searchParams.get("boardId");
 
@@ -99,29 +74,11 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   }, [fetchBoards, searchParams, pathname, router]);
 
   const switchBoard = (boardId: string) => {
-    setMode("team");
     const params = new URLSearchParams(searchParams.toString());
     params.set("boardId", boardId);
     const uid = auth.currentUser?.uid;
     if (uid) params.set("uid", uid);
     router.push(`${pathname}?${params.toString()}`);
-  };
-
-  const handlePlanner = () => {
-    setMode("personal");
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("boardId");
-    const uid = auth.currentUser?.uid;
-    if (uid) params.set("uid", uid);
-    router.push(`${pathname}?${params.toString()}`);
-  };
-
-  const handleNavClick = (id: string) => {
-    if (id === "planner") {
-      handlePlanner();
-      return;
-    }
-    toast.info("Страница в разработке");
   };
 
   const handleCreate = async () => {
@@ -220,57 +177,6 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
         collapsed ? "w-0 overflow-hidden border-0" : "w-60"
       )}
     >
-      {/* Search */}
-      <div
-        className={cn(
-          "px-3 pt-3 pb-2 transition-opacity duration-300",
-          collapsed ? "opacity-0" : "opacity-100"
-        )}
-      >
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-sidebar-foreground/40" />
-          <input
-            type="search"
-            placeholder="Поиск"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-8 w-full rounded-lg border border-border/40 bg-sidebar-accent/30 pl-8 pr-3 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/40 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-          />
-        </div>
-      </div>
-
-      {/* Nav items */}
-      <nav
-        className={cn(
-          "px-2 pb-1 transition-opacity duration-300",
-          collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
-        )}
-      >
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => handleNavClick(id)}
-            className={cn(
-              "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-              id === "planner" && mode === "personal"
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            <span className="truncate">{label}</span>
-          </button>
-        ))}
-      </nav>
-
-      {/* Divider */}
-      <div
-        className={cn(
-          "mx-3 border-t border-border/30 transition-opacity duration-300",
-          collapsed ? "opacity-0" : "opacity-100"
-        )}
-      />
-
       {/* Boards header */}
       <div
         className={cn(
@@ -296,8 +202,10 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
           )}
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger render={<Button size="sm" variant="ghost" className="gap-2 h-6 w-6 p-0" />}>
-              <Plus className="h-3.5 w-3.5" />
+            <DialogTrigger>
+              <Button size="sm" variant="ghost" className="gap-2 h-6 w-6 p-0">
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -378,45 +286,6 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
           )}
         />
       )}
-
-      {/* Bottom actions */}
-      <div
-        className={cn(
-          "border-t border-border/30 p-2 transition-opacity duration-300",
-          collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
-        )}
-      >
-        <div className="flex items-center justify-around">
-          <button
-            onClick={() => router.push("/profile")}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
-            title="Профиль"
-          >
-            <User className="h-4 w-4" />
-          </button>
-
-          <button
-            className="relative flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
-            title="Уведомления"
-          >
-            <Bell className="h-4 w-4" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 flex h-3.5 w-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-primary-foreground">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
-            title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
-          >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          </button>
-        </div>
-      </div>
     </aside>
   );
 }

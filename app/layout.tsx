@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { headers } from "next/headers";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
-import { User } from "lucide-react";
 import { ThemeProvider } from "next-themes";
 import { BridgeProvider } from "@/components/bridge-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { BoardSidebar } from "@/components/board-sidebar";
 import { SidebarToggle } from "@/components/sidebar-toggle";
+import { HeaderNav, HeaderActions } from "@/components/header-nav";
+import { CompactModeToggle } from "@/components/compact-mode-toggle";
 import { ModeProvider } from "@/lib/mode-context";
 import { SidebarProvider } from "@/lib/sidebar-context";
 import { NotificationProvider } from "@/lib/notification-context";
-import { NotificationBell } from "@/components/notification-bell";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -65,24 +64,13 @@ export default async function RootLayout({
                       <SidebarToggle />
                     </div>
 
-                    {/* Растягиваемся */}
-                    <div className="flex-1" />
+                    {/* Навигация и переключатель режима */}
+                    <HeaderNav />
+                    <CompactModeToggle />
 
                     {/* Правая часть */}
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <NotificationBell />
-
-                      <Link
-                        href="/profile"
-                        className="flex items-center gap-2 h-8 px-2 rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                          <User className="h-4 w-4" />
-                        </div>
-                        <span className="hidden sm:inline text-sm font-medium">
-                          Профиль
-                        </span>
-                      </Link>
+                      <HeaderActions />
                     </div>
                   </div>
                 </header>
