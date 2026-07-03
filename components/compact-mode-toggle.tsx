@@ -13,7 +13,7 @@ export function CompactModeToggle() {
   const { mode, setMode } = useMode();
 
   return (
-    <div className="flex items-center rounded-lg border p-0.5 h-8">
+    <div className="inline-flex items-center rounded-lg border p-0.5 h-8">
       {options.map(({ value, label, icon: Icon }) => (
         <button
           key={value}
