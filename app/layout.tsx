@@ -13,6 +13,7 @@ import { BoardSidebar } from "@/components/board-sidebar";
 import { SidebarToggle } from "@/components/sidebar-toggle";
 import { ModeProvider } from "@/lib/mode-context";
 import { SidebarProvider } from "@/lib/sidebar-context";
+import { NotificationProvider } from "@/lib/notification-context";
 import { NotificationBell } from "@/components/notification-bell";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -50,6 +51,7 @@ export default async function RootLayout({
           {isAuthPage ? (
             children
           ) : (
+            <NotificationProvider>
             <ModeProvider>
               <SidebarProvider>
                 <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -105,6 +107,7 @@ export default async function RootLayout({
                 <Toaster richColors position="top-right" />
               </SidebarProvider>
             </ModeProvider>
+            </NotificationProvider>
           )}
         </ThemeProvider>
       </body>
