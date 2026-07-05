@@ -42,7 +42,7 @@ export function init() {
         payload: {
           level,
           args: args.map((arg) =>
-            typeof arg === "object" ? String(arg) : arg,
+            typeof arg === "object" ? String(arg) : arg
           ),
         },
       });

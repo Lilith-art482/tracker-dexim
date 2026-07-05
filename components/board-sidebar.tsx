@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSidebar } from "@/lib/sidebar-context";
+import { useMode } from "@/lib/mode-context";
 
 interface BoardSidebarProps {
   initialBoards?: Board[];
@@ -31,6 +32,7 @@ interface BoardSidebarProps {
 
 export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   const { collapsed } = useSidebar();
+  const { setMode } = useMode();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -64,6 +66,11 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        fetchBoards();
+      }
+    });
     fetchBoards();
     const uid = auth.currentUser?.uid;
     if (uid && !searchParams.has("uid")) {
@@ -71,9 +78,11 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
       params.set("uid", uid);
       router.replace(`${pathname}?${params.toString()}`);
     }
+    return () => unsubscribe();
   }, [fetchBoards, searchParams, pathname, router]);
 
   const switchBoard = (boardId: string) => {
+    setMode("team");
     const params = new URLSearchParams(searchParams.toString());
     params.set("boardId", boardId);
     const uid = auth.currentUser?.uid;

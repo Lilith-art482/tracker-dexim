@@ -207,6 +207,8 @@ export function TaskFormDialog({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             id: task.id,
+            boardId,
+            columnId,
             title: parsed.data.title.trim(),
             description: parsed.data.description,
             startDate: parsed.data.startDate,

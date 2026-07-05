@@ -6,7 +6,7 @@ const backlogPath = path.join(
   process.cwd(),
   ".vibecraft",
   "docs",
-  "backlog.yaml",
+  "backlog.yaml"
 );
 
 if (!fs.existsSync(backlogPath)) {

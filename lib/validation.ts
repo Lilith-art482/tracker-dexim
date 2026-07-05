@@ -34,7 +34,6 @@ export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 export type CreateCommentInput = z.infer<typeof createCommentSchema>;
 
 export const createPersonalTaskSchema = z.object({
-  boardId: z.string().min(1),
   dayOfWeek: z.number().int().min(0).max(6),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ"),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ"),

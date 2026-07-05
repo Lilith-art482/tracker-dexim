@@ -66,7 +66,7 @@ export type BridgePayload =
   | InspectorHoveredPayload;
 
 export function isValidMessage(
-  data: unknown,
+  data: unknown
 ): data is BridgeMessage<BridgePayload> {
   if (typeof data !== "object" || data === null) return false;
   const msg = data as Record<string, unknown>;

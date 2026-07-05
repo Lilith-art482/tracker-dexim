@@ -9,29 +9,13 @@ import {
   PersonalTask,
   Service,
   Task,
-  User,
 } from "./models";
-
-export const mockUsers: User[] = [
-  {
-    uid: "user-1",
-    email: "alice@example.com",
-    nickname: "Алиса",
-    createdAt: new Date("2024-01-01").toISOString(),
-  },
-  {
-    uid: "user-2",
-    email: "bob@example.com",
-    nickname: "Боб",
-    createdAt: new Date("2024-01-01").toISOString(),
-  },
-];
 
 export const mockBoards: Board[] = [
   {
     id: "board-1",
     name: "Разработка MVP",
-    type: "personal",
+    type: "team",
     createdAt: new Date("2024-01-01").toISOString(),
     updatedAt: new Date("2024-01-01").toISOString(),
     ownerId: "user-1",
@@ -40,7 +24,7 @@ export const mockBoards: Board[] = [
   {
     id: "board-2",
     name: "Маркетинг",
-    type: "personal",
+    type: "team",
     createdAt: new Date("2024-01-01").toISOString(),
     updatedAt: new Date("2024-01-01").toISOString(),
     ownerId: "user-2",
@@ -331,7 +315,6 @@ export const mockComments: Comment[] = [
 export const mockPersonalTasks: PersonalTask[] = [
   {
     id: "ptask-1",
-    boardId: "board-1",
     dayOfWeek: 0,
     startTime: "09:00",
     endTime: "10:30",
@@ -344,7 +327,6 @@ export const mockPersonalTasks: PersonalTask[] = [
   },
   {
     id: "ptask-2",
-    boardId: "board-1",
     dayOfWeek: 0,
     startTime: "14:00",
     endTime: "15:00",
@@ -357,7 +339,6 @@ export const mockPersonalTasks: PersonalTask[] = [
   },
   {
     id: "ptask-3",
-    boardId: "board-1",
     dayOfWeek: 1,
     startTime: "10:00",
     endTime: "12:00",
@@ -369,7 +350,6 @@ export const mockPersonalTasks: PersonalTask[] = [
   },
   {
     id: "ptask-4",
-    boardId: "board-1",
     dayOfWeek: 2,
     startTime: "11:00",
     endTime: "11:30",
@@ -382,7 +362,6 @@ export const mockPersonalTasks: PersonalTask[] = [
   },
   {
     id: "ptask-5",
-    boardId: "board-1",
     dayOfWeek: 3,
     startTime: "15:00",
     endTime: "16:00",
@@ -394,7 +373,6 @@ export const mockPersonalTasks: PersonalTask[] = [
   },
   {
     id: "ptask-6",
-    boardId: "board-1",
     dayOfWeek: 4,
     startTime: "18:00",
     endTime: "19:00",
@@ -407,7 +385,6 @@ export const mockPersonalTasks: PersonalTask[] = [
   },
   {
     id: "ptask-7",
-    boardId: "board-1",
     dayOfWeek: 0,
     startTime: "08:00",
     endTime: "08:30",
@@ -419,7 +396,6 @@ export const mockPersonalTasks: PersonalTask[] = [
   },
   {
     id: "ptask-8",
-    boardId: "board-1",
     dayOfWeek: 1,
     startTime: "09:00",
     endTime: "10:00",
@@ -432,7 +408,6 @@ export const mockPersonalTasks: PersonalTask[] = [
   },
   {
     id: "ptask-9",
-    boardId: "board-1",
     dayOfWeek: 2,
     startTime: "09:00",
     endTime: "10:00",
@@ -444,7 +419,6 @@ export const mockPersonalTasks: PersonalTask[] = [
   },
   {
     id: "ptask-10",
-    boardId: "board-1",
     dayOfWeek: 3,
     startTime: "10:00",
     endTime: "11:00",
@@ -457,7 +431,6 @@ export const mockPersonalTasks: PersonalTask[] = [
   },
   {
     id: "ptask-11",
-    boardId: "board-1",
     dayOfWeek: 4,
     startTime: "09:00",
     endTime: "10:00",
@@ -469,7 +442,6 @@ export const mockPersonalTasks: PersonalTask[] = [
   },
   {
     id: "ptask-12",
-    boardId: "board-1",
     dayOfWeek: 5,
     startTime: "11:00",
     endTime: "12:00",
@@ -481,7 +453,6 @@ export const mockPersonalTasks: PersonalTask[] = [
   },
   {
     id: "ptask-13",
-    boardId: "board-1",
     dayOfWeek: 6,
     startTime: "10:00",
     endTime: "11:00",

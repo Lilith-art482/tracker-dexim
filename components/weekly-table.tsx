@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { Plus, CheckCircle2, Circle } from "lucide-react";
 import {
   DndContext,
@@ -178,7 +178,7 @@ export function WeeklyTable({
   const [activeTask, setActiveTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogDay, setDialogDay] = useState(0);
-  const [dialogRow, setDialogRow] = useState(0);
+  const dialogRowRef = useRef(0);
   const [editingTask, setEditingTask] = useState<PersonalTask | null>(null);
   const [positionMap, setPositionMap] = useState<Record<string, number>>({});
 
@@ -205,7 +205,7 @@ export function WeeklyTable({
 
   const handleCellClick = (dayOfWeek: number, rowIndex: number) => {
     setDialogDay(dayOfWeek);
-    setDialogRow(rowIndex);
+    dialogRowRef.current = rowIndex;
     setEditingTask(null);
     setDialogOpen(true);
   };
@@ -217,7 +217,8 @@ export function WeeklyTable({
 
   const handleSaved = (task: PersonalTask) => {
     if (!editingTask) {
-      setPositionMap((prev) => ({ ...prev, [task.id]: dialogRow }));
+      const row = dialogRowRef.current;
+      setPositionMap((prev) => ({ ...prev, [task.id]: row }));
     }
     onSaved(task);
   };

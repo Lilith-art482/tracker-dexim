@@ -1,5 +1,4 @@
 export const TableName = {
-  USERS: "users",
   SERVICES: "services",
   BOARDS: "boards",
   COLUMNS: "columns",
@@ -12,3 +11,4 @@ export const TableName = {
 export type TableName = (typeof TableName)[keyof typeof TableName];
 
 export const TABLE_NAMES: TableName[] = Object.values(TableName);
+

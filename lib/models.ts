@@ -1,12 +1,5 @@
 import { getAdminDb } from "./firebase-admin";
 
-export interface User {
-  uid: string;
-  email: string;
-  nickname: string;
-  createdAt: string;
-}
-
 export interface Board {
   id: string;
   name: string;
@@ -61,7 +54,6 @@ export type Priority = "low" | "medium" | "high";
 
 export interface PersonalTask {
   id: string;
-  boardId: string;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -85,41 +77,10 @@ export interface Service {
 }
 
 const COL = (name: string) => name;
-const toPlain = <T>(snap: {
-  id: string;
-  data: () => T;
-}): T & { id: string } => ({
+const toPlain = <T>(snap: { id: string; data: () => T }): T & { id: string } => ({
   id: snap.id,
   ...snap.data(),
 });
-
-const docToUser = (snap: {
-  id: string;
-  data: () => Record<string, unknown> | undefined;
-}): User => ({
-  uid: snap.id,
-  email: (snap.data()?.email as string) ?? "",
-  nickname: (snap.data()?.nickname as string) ?? "",
-  createdAt: (snap.data()?.createdAt as string) ?? new Date().toISOString(),
-});
-
-export async function getUserByUid(uid: string): Promise<User | null> {
-  const snap = await getAdminDb().collection(COL("USERS")).doc(uid).get();
-  if (!snap.exists) return null;
-  return docToUser(snap);
-}
-
-export async function getAllUsers(): Promise<User[]> {
-  const snap = await getAdminDb().collection(COL("USERS")).get();
-  return snap.docs.map((d) => docToUser(d));
-}
-
-export async function createUser(data: Omit<User, "createdAt">): Promise<User> {
-  const now = new Date().toISOString();
-  const user: User = { ...data, createdAt: now };
-  await getAdminDb().collection(COL("USERS")).doc(user.uid).set(user);
-  return user;
-}
 
 export async function getServiceById(id: string): Promise<Service | null> {
   const snap = await getAdminDb().collection(COL("SERVICES")).doc(id).get();
@@ -141,7 +102,7 @@ export async function getAllServices(): Promise<Service[]> {
 }
 
 export async function createService(
-  data: Omit<Service, "createdAt" | "updatedAt">,
+  data: Omit<Service, "createdAt" | "updatedAt">
 ): Promise<Service> {
   const now = new Date().toISOString();
   const service: Service = { ...data, createdAt: now, updatedAt: now };
@@ -151,15 +112,12 @@ export async function createService(
 
 export async function updateService(
   id: string,
-  data: Partial<Pick<Service, "name" | "description" | "status" | "url">>,
+  data: Partial<Pick<Service, "name" | "description" | "status" | "url">>
 ): Promise<Service> {
-  await getAdminDb()
-    .collection(COL("SERVICES"))
-    .doc(id)
-    .update({
-      ...data,
-      updatedAt: new Date().toISOString(),
-    });
+  await getAdminDb().collection(COL("SERVICES")).doc(id).update({
+    ...data,
+    updatedAt: new Date().toISOString(),
+  });
   const snap = await getAdminDb().collection(COL("SERVICES")).doc(id).get();
   return toPlain(snap) as Service;
 }
@@ -176,55 +134,31 @@ export async function getAllBoards(): Promise<Board[]> {
 export async function getBoardsByUser(uid: string): Promise<Board[]> {
   // Boards where user is owner or listed in members array
   const db = getAdminDb();
-  const ownerSnap = await db
-    .collection(COL("BOARDS"))
-    .where("ownerId", "==", uid)
-    .get();
-  const memberSnap = await db
-    .collection(COL("BOARDS"))
-    .where("members", "array-contains", uid)
-    .get();
+  const ownerSnap = await db.collection(COL("BOARDS")).where("ownerId", "==", uid).get();
+  const memberSnap = await db.collection(COL("BOARDS")).where("members", "array-contains", uid).get();
   const boardsMap = new Map<string, Board>();
   ownerSnap.docs.forEach((d) => boardsMap.set(d.id, toPlain(d) as Board));
   memberSnap.docs.forEach((d) => boardsMap.set(d.id, toPlain(d) as Board));
   return Array.from(boardsMap.values());
 }
 
-export async function getPersonalBoardsByUser(uid: string): Promise<Board[]> {
-  const db = getAdminDb();
-  const snap = await db
-    .collection(COL("BOARDS"))
-    .where("ownerId", "==", uid)
-    .where("type", "==", "personal")
-    .get();
-  return snap.docs.map((d) => toPlain(d) as Board);
-}
-
 export async function createBoard(
-  data: Omit<Board, "createdAt" | "updatedAt">,
+  data: Omit<Board, "createdAt" | "updatedAt">
 ): Promise<Board> {
   const now = new Date().toISOString();
-  const board: Board = {
-    ...data,
-    createdAt: now,
-    updatedAt: now,
-    members: data.members || [],
-  };
+  const board: Board = { ...data, createdAt: now, updatedAt: now, members: data.members || [] };
   await getAdminDb().collection(COL("BOARDS")).doc(board.id).set(board);
   return board;
 }
 
 export async function updateBoard(
   id: string,
-  data: Partial<Pick<Board, "name" | "members">>,
+  data: Partial<Pick<Board, "name" | "members">>
 ): Promise<Board> {
-  await getAdminDb()
-    .collection(COL("BOARDS"))
-    .doc(id)
-    .update({
-      ...data,
-      updatedAt: new Date().toISOString(),
-    });
+  await getAdminDb().collection(COL("BOARDS")).doc(id).update({
+    ...data,
+    updatedAt: new Date().toISOString(),
+  });
   const snap = await getAdminDb().collection(COL("BOARDS")).doc(id).get();
   return toPlain(snap) as Board;
 }
@@ -232,14 +166,14 @@ export async function updateBoard(
 export async function deleteBoard(id: string): Promise<void> {
   const db = getAdminDb();
   console.log(`[deleteBoard] start deleting board ${id}`);
-
+  
   // 1. Получаем все колонки доски
   const columnsSnap = await db
     .collection(COL("BOARDS"))
     .doc(id)
     .collection("COLUMNS")
     .get();
-
+  
   // 2. Для каждой колонки удаляем все задачи
   for (const colDoc of columnsSnap.docs) {
     const tasksSnap = await db
@@ -249,7 +183,7 @@ export async function deleteBoard(id: string): Promise<void> {
       .doc(colDoc.id)
       .collection("TASKS")
       .get();
-
+    
     // Удаляем все задачи в колонке
     for (const taskDoc of tasksSnap.docs) {
       await db
@@ -261,7 +195,7 @@ export async function deleteBoard(id: string): Promise<void> {
         .doc(taskDoc.id)
         .delete();
     }
-
+    
     // Удаляем саму колонку
     await db
       .collection(COL("BOARDS"))
@@ -270,20 +204,20 @@ export async function deleteBoard(id: string): Promise<void> {
       .doc(colDoc.id)
       .delete();
   }
-
+  
   // 3. Удаляем документ доски
   await db.collection(COL("BOARDS")).doc(id).delete();
-
+  
   // 4. Удаляем участников доски
   const membersSnap = await db
     .collection(COL("BOARD_MEMBERS"))
     .where("boardId", "==", id)
     .get();
-
+  
   for (const memberDoc of membersSnap.docs) {
     await db.collection(COL("BOARD_MEMBERS")).doc(memberDoc.id).delete();
   }
-
+  
   console.log(`[deleteBoard] board ${id} deleted successfully`);
 }
 
@@ -299,7 +233,7 @@ export async function getColumnsByBoardId(boardId: string): Promise<Column[]> {
 }
 
 export async function createColumn(
-  data: Omit<Column, "createdAt" | "updatedAt">,
+  data: Omit<Column, "createdAt" | "updatedAt">
 ): Promise<Column> {
   const now = new Date().toISOString();
   const column: Column = { ...data, createdAt: now, updatedAt: now };
@@ -316,7 +250,7 @@ export async function createColumn(
 export async function updateColumn(
   id: string,
   data: Partial<Pick<Column, "name" | "order">>,
-  boardId: string,
+  boardId: string
 ): Promise<Column> {
   await getAdminDb()
     .collection(COL("BOARDS"))
@@ -336,12 +270,9 @@ export async function updateColumn(
   return toPlain(snap) as Column;
 }
 
-export async function deleteColumn(
-  boardId: string,
-  columnId: string,
-): Promise<void> {
+export async function deleteColumn(boardId: string, columnId: string): Promise<void> {
   const db = getAdminDb();
-
+  
   // Сначала удаляем все задачи в этой колонке (подколлекция внутри колонки)
   const tasksSnap = await db
     .collection(COL("BOARDS"))
@@ -350,30 +281,15 @@ export async function deleteColumn(
     .doc(columnId)
     .collection("TASKS")
     .get();
-
+  
   for (const taskDoc of tasksSnap.docs) {
-    await db
-      .collection(COL("BOARDS"))
-      .doc(boardId)
-      .collection("COLUMNS")
-      .doc(columnId)
-      .collection("TASKS")
-      .doc(taskDoc.id)
-      .delete();
+    await db.collection(COL("BOARDS")).doc(boardId).collection("COLUMNS").doc(columnId).collection("TASKS").doc(taskDoc.id).delete();
   }
-
+  
   // Затем удаляем саму колонку
-  await db
-    .collection(COL("BOARDS"))
-    .doc(boardId)
-    .collection("COLUMNS")
-    .doc(columnId)
-    .delete();
+  await db.collection(COL("BOARDS")).doc(boardId).collection("COLUMNS").doc(columnId).delete();
 }
-export async function getTasksByColumnId(
-  boardId: string,
-  columnId: string,
-): Promise<Task[]> {
+export async function getTasksByColumnId(boardId: string, columnId: string): Promise<Task[]> {
   // Используем подколлекцию внутри колонки
   const snap = await getAdminDb()
     .collection(COL("BOARDS"))
@@ -389,18 +305,18 @@ export async function getArchivedTasks(boardId: string): Promise<Task[]> {
   // Нужно проверить все колонки доски
   const columns = await getColumnsByBoardId(boardId);
   const allTasks: Task[] = [];
-
+  
   for (const col of columns) {
     const tasks = await getTasksByColumnId(boardId, col.id);
-    allTasks.push(...tasks.filter((t) => t.archived));
+    allTasks.push(...tasks.filter(t => t.archived));
   }
-
+  
   return allTasks;
 }
 
 export async function createTask(
   data: Omit<Task, "createdAt" | "updatedAt">,
-  boardId: string,
+  boardId: string
 ): Promise<Task> {
   const now = new Date().toISOString();
   const task: Task = { ...data, boardId, createdAt: now, updatedAt: now };
@@ -433,7 +349,7 @@ export async function updateTask(
     >
   >,
   boardId: string,
-  columnId: string,
+  columnId: string
 ): Promise<Task> {
   await getAdminDb()
     .collection(COL("BOARDS"))
@@ -457,11 +373,7 @@ export async function updateTask(
   return toPlain(snap) as Task;
 }
 
-export async function deleteTask(
-  boardId: string,
-  columnId: string,
-  taskId: string,
-): Promise<void> {
+export async function deleteTask(boardId: string, columnId: string, taskId: string): Promise<void> {
   await getAdminDb()
     .collection(COL("BOARDS"))
     .doc(boardId)
@@ -481,7 +393,7 @@ export async function getCommentsByTaskId(taskId: string): Promise<Comment[]> {
 }
 
 export async function createComment(
-  data: Omit<Comment, "createdAt">,
+  data: Omit<Comment, "createdAt">
 ): Promise<Comment> {
   const now = new Date().toISOString();
   const comment: Comment = { ...data, createdAt: now };
@@ -490,7 +402,7 @@ export async function createComment(
 }
 
 export async function getBoardMembersByBoardId(
-  boardId: string,
+  boardId: string
 ): Promise<BoardMember[]> {
   const snap = await getAdminDb()
     .collection(COL("BOARD_MEMBERS"))
@@ -500,14 +412,11 @@ export async function getBoardMembersByBoardId(
 }
 
 export async function createBoardMember(
-  data: Omit<BoardMember, "createdAt">,
+  data: Omit<BoardMember, "createdAt">
 ): Promise<BoardMember> {
   const now = new Date().toISOString();
   const member: BoardMember = { ...data, createdAt: now };
-  await getAdminDb()
-    .collection(COL("BOARD_MEMBERS"))
-    .doc(member.id)
-    .set(member);
+  await getAdminDb().collection(COL("BOARD_MEMBERS")).doc(member.id).set(member);
   return member;
 }
 
@@ -520,9 +429,7 @@ export async function getAllPersonalTasks(): Promise<PersonalTask[]> {
   return snap.docs.map((d) => toPlain(d) as PersonalTask);
 }
 
-export async function getPersonalTasksByOwner(
-  ownerId: string,
-): Promise<PersonalTask[]> {
+export async function getPersonalTasksByOwner(ownerId: string): Promise<PersonalTask[]> {
   const snap = await getAdminDb()
     .collection(COL("PERSONAL_TASKS"))
     .where("ownerId", "==", ownerId)
@@ -531,7 +438,7 @@ export async function getPersonalTasksByOwner(
 }
 
 export async function createPersonalTask(
-  data: Omit<PersonalTask, "createdAt" | "updatedAt">,
+  data: Omit<PersonalTask, "createdAt" | "updatedAt">
 ): Promise<PersonalTask> {
   const now = new Date().toISOString();
   const task: PersonalTask = { ...data, createdAt: now, updatedAt: now };
@@ -552,19 +459,13 @@ export async function updatePersonalTask(
       | "completed"
       | "comment"
     >
-  >,
+  >
 ): Promise<PersonalTask> {
-  await getAdminDb()
-    .collection(COL("PERSONAL_TASKS"))
-    .doc(id)
-    .update({
-      ...data,
-      updatedAt: new Date().toISOString(),
-    });
-  const snap = await getAdminDb()
-    .collection(COL("PERSONAL_TASKS"))
-    .doc(id)
-    .get();
+  await getAdminDb().collection(COL("PERSONAL_TASKS")).doc(id).update({
+    ...data,
+    updatedAt: new Date().toISOString(),
+  });
+  const snap = await getAdminDb().collection(COL("PERSONAL_TASKS")).doc(id).get();
   return toPlain(snap) as PersonalTask;
 }
 

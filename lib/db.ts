@@ -26,16 +26,10 @@ export async function isDatabaseAvailable(): Promise<boolean> {
       return true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      if (
-        message.includes("FIREBASE_PRIVATE_KEY") ||
-        message.includes("invalid-credential")
-      ) {
+      if (message.includes("FIREBASE_PRIVATE_KEY") || message.includes("invalid-credential")) {
         console.warn("Firebase Admin not configured. Running in static mode.");
       } else {
-        console.warn(
-          "Database is not available. Running in static mode.",
-          message,
-        );
+        console.warn("Database is not available. Running in static mode.", message);
       }
       globalForDbAvailable._dbAvailable = false;
       return false;
