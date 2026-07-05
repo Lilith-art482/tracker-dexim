@@ -9,7 +9,6 @@ import {
   Circle,
   Archive,
   Tag,
-  FileText,
   CalendarDays,
   MessageSquareText,
   Send,
@@ -49,12 +48,24 @@ interface TaskFormDialogProps {
   onArchived?: (taskId: string) => void;
 }
 
-function FieldLabel({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
+function SectionBlock({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
-    <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-      <Icon className="h-3 w-3" />
+    <div className="space-y-3 rounded-lg border bg-muted/10 p-4">
+      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground/80">
+        <Icon className="h-4 w-4" />
+        {title}
+      </div>
       {children}
-    </Label>
+    </div>
+  );
+}
+
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs text-muted-foreground/70 font-medium">{label}</Label>
+      {children}
+    </div>
   );
 }
 
@@ -308,18 +319,18 @@ export function TaskFormDialog({
         onOpenChange(open);
       }}
     >
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto gap-0 p-0">
-        <div className="px-6 pt-6 pb-4 border-b bg-muted/20">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto gap-0">
+        <div className="px-6 pt-5 pb-4 border-b bg-muted/20 shrink-0">
           <DialogHeader className="p-0">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
-                <LayoutList className="h-4 w-4" />
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <LayoutList className="h-4.5 w-4.5" />
               </div>
               <div>
-                <DialogTitle className="text-lg">
+                <DialogTitle className="text-base">
                   {isEditing ? "Редактировать задачу" : "Создать задачу"}
                 </DialogTitle>
-                <DialogDescription className="text-xs mt-0.5">
+                <DialogDescription className="text-xs mt-0.5 text-muted-foreground/60">
                   {isEditing ? "Измените поля задачи" : "Заполните поля для новой задачи"}
                 </DialogDescription>
               </div>
@@ -327,128 +338,116 @@ export function TaskFormDialog({
           </DialogHeader>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
-          <div className="space-y-1.5">
-            <FieldLabel icon={Tag}>Название</FieldLabel>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Название задачи"
-              aria-invalid={!!errors.title}
-              className="h-9"
-            />
-            {errors.title && (
-              <p className="text-xs text-destructive flex items-center gap-1">
-                <span className="inline-block w-1 h-1 rounded-full bg-destructive" />
-                {errors.title}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <FieldLabel icon={FileText}>Описание</FieldLabel>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Описание задачи"
-              rows={2}
-              className="resize-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <FieldLabel icon={CalendarDays}>Дата начала</FieldLabel>
+        <div className="px-6 py-5 space-y-4">
+          <SectionBlock icon={Tag} title="Основное">
+            <FieldRow label="Название">
               <Input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="h-9"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Название задачи"
+                aria-invalid={!!errors.title}
               />
-            </div>
-            <div className="space-y-1.5">
-              <FieldLabel icon={CalendarDays}>Дата окончания</FieldLabel>
-              <Input
-                id="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="h-9"
+              {errors.title && (
+                <p className="text-xs text-destructive">{errors.title}</p>
+              )}
+            </FieldRow>
+            <FieldRow label="Описание">
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Описание задачи"
+                rows={2}
+                className="resize-none"
               />
-            </div>
-          </div>
+            </FieldRow>
+          </SectionBlock>
 
-          <div className="space-y-1.5">
-            <FieldLabel icon={User}>Ответственный</FieldLabel>
-            {membersLoading ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground h-9">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Загрузка участников...
-              </div>
-            ) : (
-              <Select
-                value={assignee}
-                onValueChange={(value) => setAssignee(value === "none" || value === null ? "" : value)}
-              >
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Не выбран" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Не назначен</SelectItem>
-                  {members.map((member) => (
-                    <SelectItem key={member.id} value={member.name}>
-                      {member.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
+          <SectionBlock icon={CalendarDays} title="Сроки">
+            <div className="grid grid-cols-2 gap-3">
+              <FieldRow label="Дата начала">
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </FieldRow>
+              <FieldRow label="Дата окончания">
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </FieldRow>
+            </div>
+          </SectionBlock>
+
+          <SectionBlock icon={User} title="Команда">
+            <FieldRow label="Ответственный">
+              {membersLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground h-9">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Загрузка участников...
+                </div>
+              ) : (
+                <Select
+                  value={assignee}
+                  onValueChange={(value) => setAssignee(value === "none" || value === null ? "" : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Не выбран" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Не назначен</SelectItem>
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.name}>
+                        {member.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </FieldRow>
+          </SectionBlock>
 
           {isEditing && (
             <>
-              <Separator />
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setCompleted(!completed)}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded-md hover:bg-accent/50 -ml-2"
-                >
-                  {completed ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  ) : (
-                    <Circle className="h-4 w-4" />
-                  )}
-                  <span>{completed ? "Задача выполнена" : "Отметить как выполненную"}</span>
-                </button>
-
-                {completed && (
+              <SectionBlock icon={CheckCircle2} title="Статус">
+                <div className="flex items-center gap-3">
                   <button
-                    onClick={handleArchive}
-                    disabled={archiving}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-amber-500 transition-colors py-1 px-2 rounded-md hover:bg-accent/50"
+                    onClick={() => setCompleted(!completed)}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1.5 px-3 rounded-md hover:bg-accent/50 -ml-1"
                   >
-                    {archiving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    {completed ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                     ) : (
-                      <Archive className="h-4 w-4" />
+                      <Circle className="h-4 w-4" />
                     )}
-                    <span>В архив</span>
+                    <span>{completed ? "Задача выполнена" : "Отметить как выполненную"}</span>
                   </button>
-                )}
-              </div>
+
+                  {completed && (
+                    <button
+                      onClick={handleArchive}
+                      disabled={archiving}
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-amber-500 transition-colors py-1.5 px-3 rounded-md hover:bg-accent/50"
+                    >
+                      {archiving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Archive className="h-4 w-4" />
+                      )}
+                      <span>В архив</span>
+                    </button>
+                  )}
+                </div>
+              </SectionBlock>
 
               <Separator />
 
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <MessageSquareText className="h-3.5 w-3.5 text-muted-foreground/70" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-                    Комментарии ({comments.length})
-                  </span>
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground/80">
+                  <MessageSquareText className="h-4 w-4" />
+                  Комментарии ({comments.length})
                 </div>
 
                 {commentsLoading ? (
@@ -520,7 +519,8 @@ export function TaskFormDialog({
           )}
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t bg-muted/10 gap-2">
+        <DialogFooter className="px-6 py-4 border-t bg-muted/10 m-0 rounded-b-xl gap-3 shrink-0">
+          <div className="flex-1" />
           <Button
             variant="ghost"
             size="sm"

@@ -7,9 +7,7 @@ import {
   Circle,
   Trash2,
   Tag,
-  CalendarDays,
   Clock,
-  MessageSquareText,
   GripHorizontal,
   ArrowUpDown,
 } from "lucide-react";
@@ -33,7 +31,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
 import { useNotifications } from "@/lib/notification-context";
@@ -57,12 +54,24 @@ const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
   { value: "high", label: "Высокий" },
 ];
 
-function FieldLabel({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
+function SectionBlock({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
-    <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-      <Icon className="h-3 w-3" />
+    <div className="space-y-3 rounded-lg border bg-muted/10 p-4">
+      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground/80">
+        <Icon className="h-4 w-4" />
+        {title}
+      </div>
       {children}
-    </Label>
+    </div>
+  );
+}
+
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs text-muted-foreground/70 font-medium">{label}</Label>
+      {children}
+    </div>
   );
 }
 
@@ -192,18 +201,18 @@ export function PersonalTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg gap-0 p-0 overflow-hidden">
-        <div className="px-6 pt-6 pb-4 border-b bg-muted/20">
+      <DialogContent className="sm:max-w-lg gap-0 overflow-hidden">
+        <div className="px-6 pt-5 pb-4 border-b bg-muted/20">
           <DialogHeader className="p-0">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
-                <GripHorizontal className="h-4 w-4" />
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <GripHorizontal className="h-4.5 w-4.5" />
               </div>
               <div>
-                <DialogTitle className="text-lg">
+                <DialogTitle className="text-base">
                   {isEditing ? "Редактировать задачу" : "Создать задачу"}
                 </DialogTitle>
-                <DialogDescription className="text-xs mt-0.5">
+                <DialogDescription className="text-xs mt-0.5 text-muted-foreground/60">
                   {isEditing ? "Измените поля задачи" : "Заполните поля для новой задачи"}
                 </DialogDescription>
               </div>
@@ -211,119 +220,104 @@ export function PersonalTaskDialog({
           </DialogHeader>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
-          <div className="space-y-1.5">
-            <FieldLabel icon={Tag}>Название</FieldLabel>
-            <Input
-              id="pt-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Название задачи"
-              aria-invalid={!!errors.title}
-              className="h-9"
-            />
-            {errors.title && (
-              <p className="text-xs text-destructive flex items-center gap-1">
-                <span className="inline-block w-1 h-1 rounded-full bg-destructive" />
-                {errors.title}
-              </p>
-            )}
-          </div>
+        <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+          <SectionBlock icon={Tag} title="Основное">
+            <FieldRow label="Название">
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Название задачи"
+                aria-invalid={!!errors.title}
+              />
+              {errors.title && (
+                <p className="text-xs text-destructive">{errors.title}</p>
+              )}
+            </FieldRow>
+          </SectionBlock>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <FieldLabel icon={CalendarDays}>День</FieldLabel>
-              <Select value={String(dayOfWeek)} onValueChange={(v) => setDayOfWeek(Number(v))}>
-                <SelectTrigger className="h-9">{DAY_NAMES[dayOfWeek]}</SelectTrigger>
+          <SectionBlock icon={Clock} title="Время">
+            <div className="grid grid-cols-3 gap-3">
+              <FieldRow label="День недели">
+                <Select value={String(dayOfWeek)} onValueChange={(v) => setDayOfWeek(Number(v))}>
+                  <SelectTrigger>{DAY_NAMES[dayOfWeek]}</SelectTrigger>
+                  <SelectContent>
+                    {DAY_NAMES.map((name, i) => (
+                      <SelectItem key={i} value={String(i)}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FieldRow>
+              <FieldRow label="Начало">
+                <Input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  aria-invalid={!!errors.startTime}
+                />
+                {errors.startTime && (
+                  <p className="text-xs text-destructive">{errors.startTime}</p>
+                )}
+              </FieldRow>
+              <FieldRow label="Конец">
+                <Input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  aria-invalid={!!errors.endTime}
+                />
+                {errors.endTime && (
+                  <p className="text-xs text-destructive">{errors.endTime}</p>
+                )}
+              </FieldRow>
+            </div>
+          </SectionBlock>
+
+          <SectionBlock icon={ArrowUpDown} title="Детали">
+            <FieldRow label="Приоритет">
+              <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {DAY_NAMES.map((name, i) => (
-                    <SelectItem key={i} value={String(i)}>{name}</SelectItem>
+                  {PRIORITY_OPTIONS.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-1.5">
-              <FieldLabel icon={Clock}>Начало</FieldLabel>
-              <Input
-                id="pt-start"
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                aria-invalid={!!errors.startTime}
-                className="h-9"
+            </FieldRow>
+            <FieldRow label="Комментарий">
+              <Textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Комментарий к задаче"
+                className="min-h-[56px] resize-none"
               />
-              {errors.startTime && (
-                <p className="text-xs text-destructive">{errors.startTime}</p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <FieldLabel icon={Clock}>Конец</FieldLabel>
-              <Input
-                id="pt-end"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                aria-invalid={!!errors.endTime}
-                className="h-9"
-              />
-              {errors.endTime && (
-                <p className="text-xs text-destructive">{errors.endTime}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <FieldLabel icon={ArrowUpDown}>Приоритет</FieldLabel>
-            <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIORITY_OPTIONS.map(({ value, label }) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <FieldLabel icon={MessageSquareText}>Комментарий</FieldLabel>
-            <Textarea
-              id="pt-comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Комментарий к задаче"
-              className="min-h-[60px] resize-none"
-            />
-          </div>
+            </FieldRow>
+          </SectionBlock>
 
           {isEditing && (
-            <>
-              <Separator />
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    if (onToggleComplete && task) {
-                      onToggleComplete(task);
-                    } else {
-                      setCompleted(!completed);
-                    }
-                  }}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded-md hover:bg-accent/50 -ml-2"
-                >
-                  {completed ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  ) : (
-                    <Circle className="h-4 w-4" />
-                  )}
-                  <span>{completed ? "Задача выполнена" : "Отметить как выполненную"}</span>
-                </button>
-              </div>
-            </>
+            <SectionBlock icon={CheckCircle2} title="Статус">
+              <button
+                onClick={() => {
+                  if (onToggleComplete && task) {
+                    onToggleComplete(task);
+                  }
+                  setCompleted(!completed);
+                }}
+                className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1.5 px-3 rounded-md hover:bg-accent/50 -ml-1 w-fit"
+              >
+                {completed ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <Circle className="h-4 w-4" />
+                )}
+                <span>{completed ? "Задача выполнена" : "Отметить как выполненную"}</span>
+              </button>
+            </SectionBlock>
           )}
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t bg-muted/10 gap-2">
+        <DialogFooter className="px-6 py-4 border-t bg-muted/10 m-0 rounded-b-xl gap-3">
           <div className="flex items-center gap-2 flex-1">
             {isEditing && onDelete && task && (
               <Button
@@ -353,25 +347,23 @@ export function PersonalTaskDialog({
               </Button>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              disabled={saving}
-            >
-              Отмена
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSubmit}
-              disabled={saving || !title.trim()}
-              className="min-w-[100px]"
-            >
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isEditing ? "Сохранить" : "Создать"}
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
+            Отмена
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={saving || !title.trim()}
+            className="min-w-[100px]"
+          >
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isEditing ? "Сохранить" : "Создать"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
