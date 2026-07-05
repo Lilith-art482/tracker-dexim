@@ -8,6 +8,8 @@ export const createTaskSchema = z.object({
   startDate: z.string().optional().nullable().default(null),
   endDate: z.string().optional().nullable().default(null),
   assignee: z.string().max(200).optional().nullable().default(null),
+  assignees: z.array(z.string()).optional().default([]),
+  priority: z.enum(["low", "medium", "high"]).optional().default("medium"),
 });
 
 export const updateTaskSchema = z.object({
@@ -19,8 +21,11 @@ export const updateTaskSchema = z.object({
   startDate: z.string().optional().nullable(),
   endDate: z.string().optional().nullable(),
   assignee: z.string().max(200).optional().nullable(),
+  assignees: z.array(z.string()).optional(),
+  priority: z.enum(["low", "medium", "high"]).optional(),
   completed: z.boolean().optional(),
   archived: z.boolean().optional(),
+  archivedAt: z.string().nullable().optional(),
 });
 
 export const createCommentSchema = z.object({

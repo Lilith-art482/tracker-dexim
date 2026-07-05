@@ -18,7 +18,9 @@ function getAdminApp(): App {
 
   if (base64Key) {
     // Декодирование base64 (Node.js)
-    privateKey = Buffer.from(base64Key, "base64").toString("utf-8").replace(/\\n/g, "\n");
+    privateKey = Buffer.from(base64Key, "base64")
+      .toString("utf-8")
+      .replace(/\\n/g, "\n");
   } else if (rawKey) {
     // Замена литеральных \n на реальные переносы
     privateKey = rawKey.replace(/\\n/g, "\n");
@@ -26,7 +28,7 @@ function getAdminApp(): App {
 
   if (!privateKey || !process.env.FIREBASE_CLIENT_EMAIL) {
     throw new Error(
-      "Firebase Admin SDK: missing FIREBASE_CLIENT_EMAIL or FIREBASE_PRIVATE_KEY."
+      "Firebase Admin SDK: missing FIREBASE_CLIENT_EMAIL or FIREBASE_PRIVATE_KEY.",
     );
   }
 
@@ -54,4 +56,3 @@ export function getAdminDb(): Firestore {
   }
   return adminDbInstance;
 }
-
