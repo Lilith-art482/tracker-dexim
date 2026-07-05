@@ -23,7 +23,7 @@ export function TeamOrPersonalView({
   const { mode } = useMode();
 
   if (mode === "personal") {
-    return <PersonalView />;
+    return <PersonalView activeBoard={activeBoard} />;
   }
 
   return (

@@ -71,9 +71,7 @@ export default async function RootLayout({
 
                       {/* Правая часть */}
                       <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
-                        <div className="hidden sm:block">
-                          <ModeToggle />
-                        </div>
+                        <ModeToggle />
                         <HeaderActions />
                       </div>
                     </div>

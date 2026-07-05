@@ -19,7 +19,6 @@ import { useNotifications } from "@/lib/notification-context";
 import { TeamWeekTable } from "@/components/team-week-table";
 import { TeamListView } from "@/components/team-list-view";
 import { TaskFormDialog } from "@/components/task-form-dialog";
-import { BoardMembersManager } from "@/components/board-members-manager";
 import { ArchiveView } from "@/components/archive-view";
 
 const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -168,10 +167,6 @@ export function TeamView({
             <p className="text-xs sm:text-sm text-muted-foreground">{currentMonthLabel}</p>
           </div>
           <div className="flex sm:hidden items-center gap-1.5 mt-1">
-            <BoardMembersManager
-              boardId={activeBoard.id}
-              initialMembers={boardMembers}
-            />
             <div className="flex items-center gap-1 rounded-lg border p-0.5">
               <button
                 onClick={() => setViewMode("table")}
@@ -207,10 +202,6 @@ export function TeamView({
           </div>
         </div>
         <div className="hidden sm:flex items-center gap-2">
-          <BoardMembersManager
-            boardId={activeBoard.id}
-            initialMembers={boardMembers}
-          />
           <Button
             variant="default"
             size="sm"

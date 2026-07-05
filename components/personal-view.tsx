@@ -9,7 +9,7 @@ import {
   Loader2,
   Plus,
 } from "lucide-react";
-import type { PersonalTask } from "@/lib/models";
+import type { PersonalTask, Board } from "@/lib/models";
 import { mockPersonalTasks } from "@/lib/mock-data";
 import { WeeklyTable } from "@/components/weekly-table";
 import { PersonalTaskList } from "@/components/personal-task-list";
@@ -61,7 +61,7 @@ function getWeekDates(weekOffset: number): Date[] {
   });
 }
 
-export function PersonalView() {
+export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   const { addNotification } = useNotifications();
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
   const [selectedDay, setSelectedDay] = useState<number>(() => {
@@ -205,15 +205,12 @@ export function PersonalView() {
 
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-      <div className="mb-4">
-        <CompactModeToggle />
-      </div>
       {/* Header: title + view toggle */}
       <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-start justify-between sm:block">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              Расписание
+              {activeBoard?.name || "Расписание"}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">{currentMonthLabel}</p>
           </div>
