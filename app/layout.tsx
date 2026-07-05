@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { BoardSidebar } from "@/components/board-sidebar";
 import { SidebarToggle } from "@/components/sidebar-toggle";
 import { HeaderNav, HeaderActions } from "@/components/header-nav";
+import { ModeToggle } from "@/components/mode-toggle";
 import { ModeProvider } from "@/lib/mode-context";
 import { SidebarProvider } from "@/lib/sidebar-context";
 import { NotificationProvider } from "@/lib/notification-context";
@@ -68,6 +69,7 @@ export default async function RootLayout({
 
                       {/* Правая часть */}
                       <div className="flex items-center gap-1.5 shrink-0">
+                        <ModeToggle />
                         <HeaderActions />
                       </div>
                     </div>

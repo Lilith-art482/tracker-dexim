@@ -4,6 +4,7 @@ import { isDatabaseAvailable } from "@/lib/db";
 import {
   getBoardsByUser,
   createBoard,
+  createColumn,
   updateBoard,
   deleteBoard,
 } from "@/lib/models";
@@ -76,13 +77,33 @@ export async function POST(request: NextRequest) {
     }
 
     const ownerId = body.ownerId || null;
+    const boardId = crypto.randomUUID();
     const board = await createBoard({
-      id: crypto.randomUUID(),
+      id: boardId,
       name: parsed.data.name,
       type: parsed.data.type,
       ownerId: ownerId || undefined,
       members: ownerId ? [ownerId] : [],
     });
+
+    if (parsed.data.type === "team") {
+      const defaultColumns = [
+        { name: "Надо сделать", order: 0 },
+        { name: "В работе", order: 1 },
+        { name: "Завершено", order: 2 },
+        { name: "Отправлено в архив", order: 3 },
+      ];
+      await Promise.all(
+        defaultColumns.map((col) =>
+          createColumn({
+            id: crypto.randomUUID(),
+            boardId,
+            name: col.name,
+            order: col.order,
+          }),
+        ),
+      );
+    }
 
     return NextResponse.json(board, { status: 201 });
   } catch (error) {
