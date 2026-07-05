@@ -1,6 +1,6 @@
 "use client";
 
-import { PanelLeftOpen, PanelLeftClose } from "lucide-react";
+import { Menu, PanelLeftClose } from "lucide-react";
 import { useSidebar } from "@/lib/sidebar-context";
 
 export function SidebarToggle() {
@@ -8,13 +8,13 @@ export function SidebarToggle() {
   return (
     <button
       onClick={toggle}
-      className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
-      aria-label={collapsed ? "Показать доски" : "Скрыть доски"}
+      className="flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+      aria-label={collapsed ? "Меню" : "Закрыть меню"}
     >
       {collapsed ? (
-        <PanelLeftOpen className="h-4 w-4" />
+        <Menu className="h-4.5 w-4.5" />
       ) : (
-        <PanelLeftClose className="h-4 w-4" />
+        <PanelLeftClose className="h-4.5 w-4.5" />
       )}
     </button>
   );

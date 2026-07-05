@@ -116,6 +116,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 
@@ -207,6 +208,17 @@
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;
+  }
+
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  @media (max-width: 639px) {
+    .container {
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
+    }
   }
 
 

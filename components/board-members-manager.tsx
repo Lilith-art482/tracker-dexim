@@ -121,11 +121,11 @@ export function BoardMembersManager({
           <DialogTitle>Участники доски</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <select
               value={selectedUser || ""}
               onChange={(e) => setSelectedUser(e.target.value || null)}
-              className="rounded-lg border px-3 py-2 bg-muted/10 text-sm w-44"
+              className="rounded-lg border px-3 py-2 bg-muted/10 text-sm w-full sm:w-44"
             >
               <option value="">— Выбрать зарегистрированного —</option>
               {users.map((u) => (
@@ -147,7 +147,7 @@ export function BoardMembersManager({
               onClick={handleAdd}
               disabled={adding || (!newMemberName.trim() && !selectedUser)}
               size="sm"
-              className="gap-1 shrink-0"
+              className="gap-1 shrink-0 w-full sm:w-auto"
             >
               {adding ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

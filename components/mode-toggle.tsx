@@ -17,14 +17,14 @@ export function ModeToggle() {
         <button
           key={value}
           onClick={() => setMode(value)}
-          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+          className={`inline-flex items-center gap-1 rounded-md px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors ${
             mode === value
               ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Icon className="h-4 w-4" />
-          {label}
+          <Icon className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+          <span className="hidden sm:inline">{label}</span>
         </button>
       ))}
     </div>

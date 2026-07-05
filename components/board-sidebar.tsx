@@ -94,6 +94,8 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
     const uid = auth.currentUser?.uid;
     if (uid) params.set("uid", uid);
     router.push(`${pathname}?${params.toString()}`);
+    // Close sidebar on mobile after selecting a board
+    if (window.innerWidth < 1024) toggle();
   };
 
   const handleCreate = async () => {
@@ -196,14 +198,14 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
       )}
       <aside
         className={cn(
-          // Desktop: inline sidebar with collapse
-          "shrink-0 flex-col border-r bg-sidebar transition-all duration-300",
-          "hidden lg:flex",
-          collapsed ? "lg:w-0 lg:overflow-hidden lg:border-0" : "lg:w-60",
-          // Mobile: fixed overlay that slides in
-          "fixed inset-y-0 left-0 z-40 flex w-60 border-r bg-sidebar",
-          "lg:static lg:z-auto",
-          collapsed ? "-translate-x-full lg:translate-x-0" : "translate-x-0",
+          // Mobile: fixed overlay that slides in/out
+          "fixed inset-y-0 left-0 z-40 shrink-0 flex flex-col w-60 border-r bg-sidebar transition-transform duration-300",
+          collapsed ? "-translate-x-full" : "translate-x-0",
+          // Desktop: static position, collapse with width
+          "lg:static lg:z-auto lg:transition-all lg:duration-300",
+          collapsed
+            ? "lg:w-0 lg:overflow-hidden lg:border-0 lg:-translate-x-0"
+            : "lg:w-60 lg:-translate-x-0",
         )}
       >
       {/* Boards header */}

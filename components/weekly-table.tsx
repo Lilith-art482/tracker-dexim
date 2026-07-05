@@ -286,8 +286,8 @@ export function WeeklyTable({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="overflow-x-auto pb-2">
-        <div className="grid" style={{ gridTemplateColumns: `repeat(7, 1fr)` }}>
+      <div className="overflow-x-auto pb-2 -mx-3 sm:mx-0 px-3 sm:px-0">
+        <div className="grid min-w-[700px]" style={{ gridTemplateColumns: `repeat(7, minmax(80px, 1fr))` }}>
           {DAYS.map((_day, dayIdx) => {
             const slots = daySlots[dayIdx];
             return (

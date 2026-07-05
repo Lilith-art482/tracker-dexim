@@ -54,22 +54,26 @@ export default async function RootLayout({
               <ModeProvider>
                 <SidebarProvider>
                   <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                    <div className="flex h-14 items-center px-4 gap-3">
-                      {/* Заголовок и переключатель сайдбара слева */}
-                      <div className="flex items-center gap-2.5 shrink-0">
-                        <span className="text-base font-semibold tracking-tight">
+                    <div className="flex h-14 items-center px-2 sm:px-4 gap-1 sm:gap-3">
+                      {/* Левая часть: app name + toggle */}
+                      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+                        <SidebarToggle />
+                        <span className="text-sm sm:text-base font-semibold tracking-tight">
                           {appName}
                         </span>
-                        <div className="h-5 w-px bg-border/50" />
-                        <SidebarToggle />
+                        <div className="hidden sm:block h-5 w-px bg-border/50" />
                       </div>
 
-                      {/* Навигация */}
-                      <HeaderNav />
+                      {/* Навигация (desktop only) */}
+                      <div className="hidden sm:block flex-1">
+                        <HeaderNav />
+                      </div>
 
                       {/* Правая часть */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <ModeToggle />
+                      <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
+                        <div className="hidden sm:block">
+                          <ModeToggle />
+                        </div>
                         <HeaderActions />
                       </div>
                     </div>
@@ -89,7 +93,7 @@ export default async function RootLayout({
                     >
                       <BoardSidebar />
                     </Suspense>
-                    <main className="flex-1 min-w-0 max-w-full">{children}</main>
+                    <main className="flex-1 min-w-0 pb-4 sm:pb-0">{children}</main>
                   </div>
 
                   <Toaster richColors position="top-right" />
