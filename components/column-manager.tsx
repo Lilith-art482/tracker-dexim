@@ -42,6 +42,7 @@ import {
 import { TaskFormDialog } from "@/components/task-form-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useNotifications } from "@/lib/notification-context";
 
 interface ColumnManagerProps {
   boardId: string;
@@ -218,6 +219,7 @@ function DroppableColumn({
 }
 
 export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
+  const { addNotification } = useNotifications();
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [adding, setAdding] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
@@ -412,7 +414,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
 
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "Ошибка обновления задачи");
+        addNotification(err.error || "Ошибка обновления задачи", "error");
         return;
       }
 
@@ -426,11 +428,12 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
           ),
         };
       });
-      toast.success(
-        updated.completed ? "Задача выполнена" : "Задача возобновлена"
+      addNotification(
+        updated.completed ? "Задача выполнена" : "Задача возобновлена",
+        "success"
       );
     } catch {
-      toast.error("Ошибка обновления задачи");
+      addNotification("Ошибка обновления задачи", "error");
     }
   };
 
@@ -447,9 +450,9 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
         }),
       });
 
-      if (!res.ok) {
+        if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "Ошибка архивирования");
+        addNotification(err.error || "Ошибка архивирования", "error");
         return;
       }
 
@@ -460,7 +463,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
           [task.columnId]: columnTasks.filter((t) => t.id !== task.id),
         };
       });
-      toast.success("Задача отправлена в архив");
+      addNotification("Задача отправлена в архив", "success");
     } catch {
       toast.error("Ошибка архивирования");
     }
@@ -540,7 +543,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
 
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "Ошибка перемещения задачи");
+        addNotification(err.error || "Ошибка перемещения задачи", "error");
         setTasks((prev) => {
           const sourceTasks = [
             ...(prev[targetColumnId] || []).filter((t) => t.id !== prevTask.id),
@@ -558,9 +561,9 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
         return;
       }
 
-      toast.success("Задача перемещена");
+      addNotification("Задача перемещена", "success");
     } catch {
-      toast.error("Ошибка перемещения задачи");
+      addNotification("Ошибка перемещения задачи", "error");
       setTasks((prev) => {
         const sourceTasks = [
           ...(prev[targetColumnId] || []).filter((t) => t.id !== prevTask.id),

@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, CheckCircle2, Circle, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle2,
+  Circle,
+  Trash2,
+  Tag,
+  CalendarDays,
+  Clock,
+  MessageSquareText,
+  GripHorizontal,
+  ArrowUpDown,
+} from "lucide-react";
 import type { PersonalTask, Priority } from "@/lib/models";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +33,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
+import { useNotifications } from "@/lib/notification-context";
 
 interface PersonalTaskDialogProps {
   open: boolean;
@@ -38,11 +51,20 @@ interface PersonalTaskDialogProps {
 
 const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
-const PRIORITY_LABELS: Record<Priority, string> = {
-  low: "Низкий",
-  medium: "Средний",
-  high: "Высокий",
-};
+const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
+  { value: "low", label: "Низкий" },
+  { value: "medium", label: "Средний" },
+  { value: "high", label: "Высокий" },
+];
+
+function FieldLabel({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
+  return (
+    <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+      <Icon className="h-3 w-3" />
+      {children}
+    </Label>
+  );
+}
 
 export function PersonalTaskDialog({
   open,
@@ -54,18 +76,13 @@ export function PersonalTaskDialog({
   onDelete,
   onToggleComplete,
 }: PersonalTaskDialogProps) {
+  const { addNotification } = useNotifications();
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title ?? "");
-  const [dayOfWeek, setDayOfWeek] = useState(
-    task?.dayOfWeek ?? defaultDayOfWeek
-  );
-  const [startTime, setStartTime] = useState(
-    task?.startTime ?? defaultStartTime
-  );
+  const [dayOfWeek, setDayOfWeek] = useState(task?.dayOfWeek ?? defaultDayOfWeek);
+  const [startTime, setStartTime] = useState(task?.startTime ?? defaultStartTime);
   const [endTime, setEndTime] = useState(task?.endTime ?? "10:00");
-  const [priority, setPriority] = useState<Priority>(
-    task?.priority ?? "medium"
-  );
+  const [priority, setPriority] = useState<Priority>(task?.priority ?? "medium");
   const [completed, setCompleted] = useState(task?.completed ?? false);
   const [comment, setComment] = useState(task?.comment ?? "");
   const [saving, setSaving] = useState(false);
@@ -97,6 +114,7 @@ export function PersonalTaskDialog({
     if (!title.trim()) newErrors.title = "Название обязательно";
     if (!startTime) newErrors.startTime = "Время начала обязательно";
     if (!endTime) newErrors.endTime = "Время конца обязательно";
+    if (startTime && endTime && startTime >= endTime) newErrors.endTime = "Время конца должно быть позже начала";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -125,15 +143,15 @@ export function PersonalTaskDialog({
 
         if (!res.ok) {
           const err = await res.json();
-          toast.error(err.error || "Ошибка сохранения задачи");
+          addNotification(err.error || "Ошибка сохранения задачи", "error");
           return;
         }
 
         const updated: PersonalTask = await res.json();
         onSaved(updated);
-        toast.success("Задача обновлена");
+        addNotification("Задача обновлена", "success");
       } else {
-        const ownerId = auth.currentUser?.uid || null;
+        const ownerId = auth?.currentUser?.uid || null;
         const res = await fetch("/api/personal-tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -149,24 +167,24 @@ export function PersonalTaskDialog({
         });
 
         if (res.status === 503) {
-          toast.error("База данных недоступна");
+          addNotification("База данных недоступна", "error");
           return;
         }
 
         if (!res.ok) {
           const err = await res.json();
-          toast.error(err.error || "Ошибка создания задачи");
+          addNotification(err.error || "Ошибка создания задачи", "error");
           return;
         }
 
         const created: PersonalTask = await res.json();
         onSaved(created);
-        toast.success("Задача создана");
+        addNotification("Задача создана", "success");
       }
 
       onOpenChange(false);
     } catch {
-      toast.error("Ошибка сохранения задачи");
+      addNotification("Ошибка сохранения задачи", "error");
     } finally {
       setSaving(false);
     }
@@ -174,103 +192,79 @@ export function PersonalTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Редактировать задачу" : "Создать задачу"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? "Измените поля задачи"
-              : "Заполните поля для новой задачи"}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-lg gap-0 p-0 overflow-hidden">
+        <div className="px-6 pt-6 pb-4 border-b bg-muted/20">
+          <DialogHeader className="p-0">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                <GripHorizontal className="h-4 w-4" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg">
+                  {isEditing ? "Редактировать задачу" : "Создать задачу"}
+                </DialogTitle>
+                <DialogDescription className="text-xs mt-0.5">
+                  {isEditing ? "Измените поля задачи" : "Заполните поля для новой задачи"}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+        </div>
 
-        {isEditing && (
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              if (onToggleComplete && task) {
-                onToggleComplete(task);
-              } else {
-                setCompleted(!completed);
-              }
-            }}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
-          >
-            {completed ? (
-              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-            ) : (
-              <Circle className="h-5 w-5" />
-            )}
-            <span>
-              {completed ? "Задача выполнена" : "Отметить как выполненную"}
-            </span>
-          </button>
-        )}
-
-        <div className="flex flex-col gap-4 py-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="pt-title" className="text-sm font-medium">
-              Название
-            </Label>
+        <div className="px-6 py-5 space-y-5">
+          <div className="space-y-1.5">
+            <FieldLabel icon={Tag}>Название</FieldLabel>
             <Input
               id="pt-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Название задачи"
               aria-invalid={!!errors.title}
+              className="h-9"
             />
             {errors.title && (
-              <p className="text-xs text-destructive">{errors.title}</p>
+              <p className="text-xs text-destructive flex items-center gap-1">
+                <span className="inline-block w-1 h-1 rounded-full bg-destructive" />
+                {errors.title}
+              </p>
             )}
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="pt-day" className="text-sm font-medium">
-              День недели
-            </Label>
-            <Select
-              value={String(dayOfWeek)}
-              onValueChange={(v) => setDayOfWeek(Number(v))}
-            >
-              <SelectTrigger id="pt-day">{DAY_NAMES[dayOfWeek]}</SelectTrigger>
-              <SelectContent>
-                {DAY_NAMES.map((name, i) => (
-                  <SelectItem key={i} value={String(i)}>
-                    {name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="pt-start" className="text-sm font-medium">
-                Время начала
-              </Label>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <FieldLabel icon={CalendarDays}>День</FieldLabel>
+              <Select value={String(dayOfWeek)} onValueChange={(v) => setDayOfWeek(Number(v))}>
+                <SelectTrigger className="h-9">{DAY_NAMES[dayOfWeek]}</SelectTrigger>
+                <SelectContent>
+                  {DAY_NAMES.map((name, i) => (
+                    <SelectItem key={i} value={String(i)}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <FieldLabel icon={Clock}>Начало</FieldLabel>
               <Input
                 id="pt-start"
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 aria-invalid={!!errors.startTime}
+                className="h-9"
               />
               {errors.startTime && (
                 <p className="text-xs text-destructive">{errors.startTime}</p>
               )}
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="pt-end" className="text-sm font-medium">
-                Время конца
-              </Label>
+            <div className="space-y-1.5">
+              <FieldLabel icon={Clock}>Конец</FieldLabel>
               <Input
                 id="pt-end"
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
                 aria-invalid={!!errors.endTime}
+                className="h-9"
               />
               {errors.endTime && (
                 <p className="text-xs text-destructive">{errors.endTime}</p>
@@ -278,31 +272,22 @@ export function PersonalTaskDialog({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="pt-priority" className="text-sm font-medium">
-              Приоритет
-            </Label>
-            <Select
-              value={priority}
-              onValueChange={(v) => setPriority(v as Priority)}
-            >
-              <SelectTrigger id="pt-priority">
+          <div className="space-y-1.5">
+            <FieldLabel icon={ArrowUpDown}>Приоритет</FieldLabel>
+            <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+              <SelectTrigger className="h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
+                {PRIORITY_OPTIONS.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="pt-comment" className="text-sm font-medium">
-              Комментарий
-            </Label>
+          <div className="space-y-1.5">
+            <FieldLabel icon={MessageSquareText}>Комментарий</FieldLabel>
             <Textarea
               id="pt-comment"
               value={comment}
@@ -311,13 +296,38 @@ export function PersonalTaskDialog({
               className="min-h-[60px] resize-none"
             />
           </div>
+
+          {isEditing && (
+            <>
+              <Separator />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    if (onToggleComplete && task) {
+                      onToggleComplete(task);
+                    } else {
+                      setCompleted(!completed);
+                    }
+                  }}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded-md hover:bg-accent/50 -ml-2"
+                >
+                  {completed ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <Circle className="h-4 w-4" />
+                  )}
+                  <span>{completed ? "Задача выполнена" : "Отметить как выполненную"}</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
-        <DialogFooter className="gap-2 sm:justify-between">
-          <div>
+        <DialogFooter className="px-6 py-4 border-t bg-muted/10 gap-2">
+          <div className="flex items-center gap-2 flex-1">
             {isEditing && onDelete && task && (
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
                 onClick={() => {
                   toast("Удалить задачу?", {
@@ -326,6 +336,7 @@ export function PersonalTaskDialog({
                       onClick: () => {
                         onDelete(task);
                         onOpenChange(false);
+                        addNotification("Задача удалена", "success");
                       },
                     },
                     cancel: {
@@ -335,21 +346,28 @@ export function PersonalTaskDialog({
                   });
                 }}
                 disabled={saving}
+                className="text-destructive border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4" />
                 Удалить
               </Button>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Button
-              variant="outline"
+              variant="ghost"
+              size="sm"
               onClick={() => onOpenChange(false)}
               disabled={saving}
             >
               Отмена
             </Button>
-            <Button onClick={handleSubmit} disabled={saving || !title.trim()}>
+            <Button
+              size="sm"
+              onClick={handleSubmit}
+              disabled={saving || !title.trim()}
+              className="min-w-[100px]"
+            >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {isEditing ? "Сохранить" : "Создать"}
             </Button>

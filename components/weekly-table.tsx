@@ -17,8 +17,8 @@ import {
 import type { PersonalTask, Priority } from "@/lib/models";
 import { Badge } from "@/components/ui/badge";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useNotifications } from "@/lib/notification-context";
 
 const DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -175,6 +175,7 @@ export function WeeklyTable({
   onToggleComplete: (task: PersonalTask) => void;
   onDelete: (task: PersonalTask) => void;
 }) {
+  const { addNotification } = useNotifications();
   const [activeTask, setActiveTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogDay, setDialogDay] = useState(0);
@@ -274,11 +275,11 @@ export function WeeklyTable({
 
         if (!res.ok) {
           const err = await res.json();
-          toast.error(err.error || "Ошибка перемещения задачи");
+          addNotification(err.error || "Ошибка перемещения задачи", "error");
           return;
         }
       } catch {
-        toast.error("Ошибка перемещения задачи");
+        addNotification("Ошибка перемещения задачи", "error");
       }
     }
   };

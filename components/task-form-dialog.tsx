@@ -8,6 +8,12 @@ import {
   CheckCircle2,
   Circle,
   Archive,
+  Tag,
+  FileText,
+  CalendarDays,
+  MessageSquareText,
+  Send,
+  LayoutList,
 } from "lucide-react";
 import type { Task, Comment, BoardMember } from "@/lib/models";
 import { createTaskSchema } from "@/lib/validation";
@@ -31,7 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
+import { useNotifications } from "@/lib/notification-context";
 
 interface TaskFormDialogProps {
   open: boolean;
@@ -43,6 +49,15 @@ interface TaskFormDialogProps {
   onArchived?: (taskId: string) => void;
 }
 
+function FieldLabel({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
+  return (
+    <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+      <Icon className="h-3 w-3" />
+      {children}
+    </Label>
+  );
+}
+
 export function TaskFormDialog({
   open,
   onOpenChange,
@@ -52,6 +67,7 @@ export function TaskFormDialog({
   onSaved,
   onArchived,
 }: TaskFormDialogProps) {
+  const { addNotification } = useNotifications();
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
@@ -111,9 +127,7 @@ export function TaskFormDialog({
   }, [boardId]);
 
   useEffect(() => {
-    if (open) {
-      loadMembers();
-    }
+    if (open) loadMembers();
   }, [open, loadMembers]);
 
   const loadComments = useCallback(async () => {
@@ -133,9 +147,7 @@ export function TaskFormDialog({
   }, [task]);
 
   useEffect(() => {
-    if (open && isEditing && task) {
-      loadComments();
-    }
+    if (open && isEditing && task) loadComments();
   }, [open, isEditing, task, loadComments]);
 
   const resetForm = () => {
@@ -150,26 +162,23 @@ export function TaskFormDialog({
 
   const handleArchive = async () => {
     if (!task) return;
-
     setArchiving(true);
     try {
       const res = await fetch("/api/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: task.id, archived: true }),
+        body: JSON.stringify({ id: task.id, boardId, columnId, archived: true }),
       });
-
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "Ошибка архивирования");
+        addNotification(err.error || "Ошибка архивирования", "error");
         return;
       }
-
       onArchived?.(task.id);
       onOpenChange(false);
-      toast.success("Задача отправлена в архив");
+      addNotification("Задача отправлена в архив", "success");
     } catch {
-      toast.error("Ошибка архивирования");
+      addNotification("Ошибка архивирования", "error");
     } finally {
       setArchiving(false);
     }
@@ -188,9 +197,7 @@ export function TaskFormDialog({
 
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
-      for (const [key, issues] of Object.entries(
-        parsed.error.flatten().fieldErrors
-      )) {
+      for (const [key, issues] of Object.entries(parsed.error.flatten().fieldErrors)) {
         fieldErrors[key] = (issues as string[])[0];
       }
       setErrors(fieldErrors);
@@ -220,13 +227,13 @@ export function TaskFormDialog({
 
         if (!res.ok) {
           const err = await res.json();
-          toast.error(err.error || "Ошибка сохранения задачи");
+          addNotification(err.error || "Ошибка сохранения задачи", "error");
           return;
         }
 
         const updated: Task = await res.json();
         onSaved(updated);
-        toast.success("Задача обновлена");
+        addNotification("Задача обновлена", "success");
       } else {
         const res = await fetch("/api/tasks", {
           method: "POST",
@@ -244,18 +251,18 @@ export function TaskFormDialog({
 
         if (!res.ok) {
           const err = await res.json();
-          toast.error(err.error || "Ошибка создания задачи");
+          addNotification(err.error || "Ошибка создания задачи", "error");
           return;
         }
 
         const created: Task = await res.json();
         onSaved(created);
-        toast.success("Задача создана");
+        addNotification("Задача создана", "success");
       }
 
       onOpenChange(false);
     } catch {
-      toast.error("Ошибка сохранения задачи");
+      addNotification("Ошибка сохранения задачи", "error");
     } finally {
       setSaving(false);
     }
@@ -278,16 +285,16 @@ export function TaskFormDialog({
 
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "Ошибка отправки комментария");
+        addNotification(err.error || "Ошибка отправки комментария", "error");
         return;
       }
 
       const created: Comment = await res.json();
       setComments((prev) => [...prev, created]);
       setNewCommentText("");
-      toast.success("Комментарий добавлен");
+      addNotification("Комментарий добавлен", "success");
     } catch {
-      toast.error("Ошибка отправки комментария");
+      addNotification("Ошибка отправки комментария", "error");
     } finally {
       setSendingComment(false);
     }
@@ -301,123 +308,93 @@ export function TaskFormDialog({
         onOpenChange(open);
       }}
     >
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Редактировать задачу" : "Создать задачу"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? "Измените поля задачи"
-              : "Заполните поля для новой задачи"}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto gap-0 p-0">
+        <div className="px-6 pt-6 pb-4 border-b bg-muted/20">
+          <DialogHeader className="p-0">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                <LayoutList className="h-4 w-4" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg">
+                  {isEditing ? "Редактировать задачу" : "Создать задачу"}
+                </DialogTitle>
+                <DialogDescription className="text-xs mt-0.5">
+                  {isEditing ? "Измените поля задачи" : "Заполните поля для новой задачи"}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+        </div>
 
-        {isEditing && (
-          <button
-            onClick={() => setCompleted(!completed)}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
-          >
-            {completed ? (
-              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-            ) : (
-              <Circle className="h-5 w-5" />
-            )}
-            <span>
-              {completed ? "Задача выполнена" : "Отметить как выполненную"}
-            </span>
-          </button>
-        )}
-
-        {isEditing && completed && (
-          <button
-            onClick={handleArchive}
-            disabled={archiving}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-amber-500 transition-colors py-1"
-          >
-            {archiving ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Archive className="h-5 w-5" />
-            )}
-            <span>Отправить в архив</span>
-          </button>
-        )}
-
-        <div className="flex flex-col gap-4 py-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="title" className="text-sm font-medium">
-              Название
-            </Label>
+        <div className="px-6 py-5 space-y-5">
+          <div className="space-y-1.5">
+            <FieldLabel icon={Tag}>Название</FieldLabel>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Название задачи"
               aria-invalid={!!errors.title}
+              className="h-9"
             />
             {errors.title && (
-              <p className="text-xs text-destructive">{errors.title}</p>
+              <p className="text-xs text-destructive flex items-center gap-1">
+                <span className="inline-block w-1 h-1 rounded-full bg-destructive" />
+                {errors.title}
+              </p>
             )}
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="description" className="text-sm font-medium">
-              Описание
-            </Label>
+          <div className="space-y-1.5">
+            <FieldLabel icon={FileText}>Описание</FieldLabel>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Описание задачи"
-              rows={3}
+              rows={2}
+              className="resize-none"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="startDate" className="text-sm font-medium">
-                Дата начала
-              </Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <FieldLabel icon={CalendarDays}>Дата начала</FieldLabel>
               <Input
                 id="startDate"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                className="h-9"
               />
             </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="endDate" className="text-sm font-medium">
-                Дата окончания
-              </Label>
+            <div className="space-y-1.5">
+              <FieldLabel icon={CalendarDays}>Дата окончания</FieldLabel>
               <Input
                 id="endDate"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                className="h-9"
               />
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="assignee" className="text-sm font-medium">
-              Ответственный
-            </Label>
+          <div className="space-y-1.5">
+            <FieldLabel icon={User}>Ответственный</FieldLabel>
             {membersLoading ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="flex items-center gap-2 text-sm text-muted-foreground h-9">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Загрузка участников...
               </div>
             ) : (
               <Select
                 value={assignee}
-                onValueChange={(value) =>
-                  setAssignee(value === "none" || value === null ? "" : value)
-                }
+                onValueChange={(value) => setAssignee(value === "none" || value === null ? "" : value)}
               >
-                <SelectTrigger id="assignee">
-                  <SelectValue placeholder="Выберите ответственного" />
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Не выбран" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Не назначен</SelectItem>
@@ -430,101 +407,134 @@ export function TaskFormDialog({
               </Select>
             )}
           </div>
-        </div>
 
-        {isEditing && (
-          <>
-            <Separator className="my-2" />
-            <div className="flex flex-col gap-3">
-              <h4 className="text-sm font-semibold">
-                Комментарии ({comments.length})
-              </h4>
+          {isEditing && (
+            <>
+              <Separator />
 
-              {commentsLoading ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setCompleted(!completed)}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded-md hover:bg-accent/50 -ml-2"
+                >
+                  {completed ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <Circle className="h-4 w-4" />
+                  )}
+                  <span>{completed ? "Задача выполнена" : "Отметить как выполненную"}</span>
+                </button>
+
+                {completed && (
+                  <button
+                    onClick={handleArchive}
+                    disabled={archiving}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-amber-500 transition-colors py-1 px-2 rounded-md hover:bg-accent/50"
+                  >
+                    {archiving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Archive className="h-4 w-4" />
+                    )}
+                    <span>В архив</span>
+                  </button>
+                )}
+              </div>
+
+              <Separator />
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <MessageSquareText className="h-3.5 w-3.5 text-muted-foreground/70" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+                    Комментарии ({comments.length})
+                  </span>
                 </div>
-              ) : comments.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-2">
-                  Нет комментариев
-                </p>
-              ) : (
-                <div className="flex flex-col gap-3 max-h-48 overflow-y-auto">
-                  {comments.map((comment) => (
-                    <div
-                      key={comment.id}
-                      className="flex flex-col gap-1 rounded-lg border p-3"
-                    >
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <User className="h-3 w-3" />
-                        <span className="font-medium text-foreground">
-                          {comment.author}
-                        </span>
-                        <span>·</span>
-                        <Clock className="h-3 w-3" />
-                        <span>
-                          {new Date(comment.createdAt).toLocaleDateString(
-                            "ru-RU",
-                            {
+
+                {commentsLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : comments.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2 italic">
+                    Нет комментариев
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                    {comments.map((comment) => (
+                      <div
+                        key={comment.id}
+                        className="flex flex-col gap-1 rounded-lg border bg-muted/20 px-3 py-2.5"
+                      >
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <User className="h-3 w-3" />
+                          <span className="font-medium text-foreground">{comment.author}</span>
+                          <span>·</span>
+                          <Clock className="h-3 w-3" />
+                          <span>
+                            {new Date(comment.createdAt).toLocaleDateString("ru-RU", {
                               day: "numeric",
                               month: "short",
                               hour: "2-digit",
                               minute: "2-digit",
-                            }
-                          )}
-                        </span>
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm leading-relaxed">{comment.text}</p>
                       </div>
-                      <p className="text-sm">{comment.text}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
 
-              <div className="flex flex-col gap-2">
-                <Input
-                  value={newCommentAuthor}
-                  onChange={(e) => setNewCommentAuthor(e.target.value)}
-                  placeholder="Ваше имя"
-                  className="h-8 text-sm"
-                />
-                <div className="flex gap-2">
-                  <Textarea
-                    value={newCommentText}
-                    onChange={(e) => setNewCommentText(e.target.value)}
-                    placeholder="Напишите комментарий..."
-                    rows={2}
-                    className="text-sm"
+                <div className="flex flex-col gap-2">
+                  <Input
+                    value={newCommentAuthor}
+                    onChange={(e) => setNewCommentAuthor(e.target.value)}
+                    placeholder="Ваше имя"
+                    className="h-8 text-sm"
                   />
-                  <Button
-                    onClick={handleSendComment}
-                    disabled={
-                      sendingComment ||
-                      !newCommentAuthor.trim() ||
-                      !newCommentText.trim()
-                    }
-                    className="shrink-0 self-end"
-                    size="sm"
-                  >
-                    {sendingComment && (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    )}
-                    Отправить
-                  </Button>
+                  <div className="flex gap-2">
+                    <Textarea
+                      value={newCommentText}
+                      onChange={(e) => setNewCommentText(e.target.value)}
+                      placeholder="Напишите комментарий..."
+                      rows={2}
+                      className="text-sm resize-none"
+                    />
+                    <Button
+                      onClick={handleSendComment}
+                      disabled={sendingComment || !newCommentAuthor.trim() || !newCommentText.trim()}
+                      size="icon"
+                      className="shrink-0 self-end"
+                    >
+                      {sendingComment ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t bg-muted/10 gap-2">
           <Button
-            variant="outline"
+            variant="ghost"
+            size="sm"
             onClick={() => onOpenChange(false)}
             disabled={saving}
           >
             Отмена
           </Button>
-          <Button onClick={handleSubmit} disabled={saving || !title.trim()}>
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={saving || !title.trim()}
+            className="min-w-[100px]"
+          >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEditing ? "Сохранить" : "Создать"}
           </Button>
