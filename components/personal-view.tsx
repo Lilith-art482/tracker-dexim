@@ -212,7 +212,7 @@ export function PersonalView() {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Личное расписание
+            Расписание
           </h1>
           <p className="text-sm text-muted-foreground">{currentMonthLabel}</p>
         </div>
