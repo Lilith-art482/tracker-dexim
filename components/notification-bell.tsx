@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bell, X, CheckCircle2, AlertCircle, Info, CheckCheck } from "lucide-react";
+import {
+  Bell,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  CheckCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/lib/notification-context";
 import { cn } from "@/lib/utils";

@@ -54,7 +54,15 @@ const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
   { value: "high", label: "Высокий" },
 ];
 
-function SectionBlock({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
+function SectionBlock({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: React.ElementType;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-3 rounded-lg border bg-muted/10 p-4">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground/80">
@@ -66,10 +74,18 @@ function SectionBlock({ icon: Icon, title, children }: { icon: React.ElementType
   );
 }
 
-function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+function FieldRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground/70 font-medium">{label}</Label>
+      <Label className="text-xs text-muted-foreground/70 font-medium">
+        {label}
+      </Label>
       {children}
     </div>
   );
@@ -88,10 +104,16 @@ export function PersonalTaskDialog({
   const { addNotification } = useNotifications();
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title ?? "");
-  const [dayOfWeek, setDayOfWeek] = useState(task?.dayOfWeek ?? defaultDayOfWeek);
-  const [startTime, setStartTime] = useState(task?.startTime ?? defaultStartTime);
+  const [dayOfWeek, setDayOfWeek] = useState(
+    task?.dayOfWeek ?? defaultDayOfWeek,
+  );
+  const [startTime, setStartTime] = useState(
+    task?.startTime ?? defaultStartTime,
+  );
   const [endTime, setEndTime] = useState(task?.endTime ?? "10:00");
-  const [priority, setPriority] = useState<Priority>(task?.priority ?? "medium");
+  const [priority, setPriority] = useState<Priority>(
+    task?.priority ?? "medium",
+  );
   const [completed, setCompleted] = useState(task?.completed ?? false);
   const [comment, setComment] = useState(task?.comment ?? "");
   const [saving, setSaving] = useState(false);
@@ -123,7 +145,8 @@ export function PersonalTaskDialog({
     if (!title.trim()) newErrors.title = "Название обязательно";
     if (!startTime) newErrors.startTime = "Время начала обязательно";
     if (!endTime) newErrors.endTime = "Время конца обязательно";
-    if (startTime && endTime && startTime >= endTime) newErrors.endTime = "Время конца должно быть позже начала";
+    if (startTime && endTime && startTime >= endTime)
+      newErrors.endTime = "Время конца должно быть позже начала";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -213,7 +236,9 @@ export function PersonalTaskDialog({
                   {isEditing ? "Редактировать задачу" : "Создать задачу"}
                 </DialogTitle>
                 <DialogDescription className="text-xs mt-0.5 text-muted-foreground/60">
-                  {isEditing ? "Измените поля задачи" : "Заполните поля для новой задачи"}
+                  {isEditing
+                    ? "Измените поля задачи"
+                    : "Заполните поля для новой задачи"}
                 </DialogDescription>
               </div>
             </div>
@@ -238,11 +263,16 @@ export function PersonalTaskDialog({
           <SectionBlock icon={Clock} title="Время">
             <div className="grid grid-cols-3 gap-3">
               <FieldRow label="День недели">
-                <Select value={String(dayOfWeek)} onValueChange={(v) => setDayOfWeek(Number(v))}>
+                <Select
+                  value={String(dayOfWeek)}
+                  onValueChange={(v) => setDayOfWeek(Number(v))}
+                >
                   <SelectTrigger>{DAY_NAMES[dayOfWeek]}</SelectTrigger>
                   <SelectContent>
                     {DAY_NAMES.map((name, i) => (
-                      <SelectItem key={i} value={String(i)}>{name}</SelectItem>
+                      <SelectItem key={i} value={String(i)}>
+                        {name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -274,25 +304,28 @@ export function PersonalTaskDialog({
 
           <SectionBlock icon={ArrowUpDown} title="Детали">
             <FieldRow label="Приоритет">
-              <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+              <Select
+                value={priority}
+                onValueChange={(v) => setPriority(v as Priority)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {PRIORITY_OPTIONS.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </FieldRow>
-            <FieldRow label="Комментарий">
-              <Textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Комментарий к задаче"
-                className="min-h-[56px] resize-none"
-              />
-            </FieldRow>
+            <Textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="комментарий к задаче"
+              className="min-h-[56px] resize-none"
+            />
           </SectionBlock>
 
           {isEditing && (
@@ -311,7 +344,9 @@ export function PersonalTaskDialog({
                 ) : (
                   <Circle className="h-4 w-4" />
                 )}
-                <span>{completed ? "Задача выполнена" : "Отметить как выполненную"}</span>
+                <span>
+                  {completed ? "Задача выполнена" : "Отметить как выполненную"}
+                </span>
               </button>
             </SectionBlock>
           )}

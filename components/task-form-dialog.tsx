@@ -13,6 +13,9 @@ import {
   MessageSquareText,
   Send,
   LayoutList,
+  AlertTriangle,
+  Plus,
+  X,
 } from "lucide-react";
 import type { Task, Comment, BoardMember } from "@/lib/models";
 import { createTaskSchema } from "@/lib/validation";
@@ -48,7 +51,15 @@ interface TaskFormDialogProps {
   onArchived?: (taskId: string) => void;
 }
 
-function SectionBlock({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
+function SectionBlock({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: React.ElementType;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-3 rounded-lg border bg-muted/10 p-4">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground/80">
@@ -60,10 +71,18 @@ function SectionBlock({ icon: Icon, title, children }: { icon: React.ElementType
   );
 }
 
-function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+function FieldRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground/70 font-medium">{label}</Label>
+      <Label className="text-xs text-muted-foreground/70 font-medium">
+        {label}
+      </Label>
       {children}
     </div>
   );
@@ -85,6 +104,10 @@ export function TaskFormDialog({
   const [startDate, setStartDate] = useState(task?.startDate ?? "");
   const [endDate, setEndDate] = useState(task?.endDate ?? "");
   const [assignee, setAssignee] = useState<string>(task?.assignee ?? "");
+  const [assignees, setAssignees] = useState<string[]>(task?.assignees ?? []);
+  const [priority, setPriority] = useState<"low" | "medium" | "high">(
+    task?.priority ?? "medium",
+  );
   const [completed, setCompleted] = useState(task?.completed ?? false);
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -98,6 +121,8 @@ export function TaskFormDialog({
 
   const [members, setMembers] = useState<BoardMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [users, setUsers] = useState<string[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -106,6 +131,8 @@ export function TaskFormDialog({
       setStartDate(task.startDate ?? "");
       setEndDate(task.endDate ?? "");
       setAssignee(task.assignee ?? "");
+      setAssignees(task.assignees ?? []);
+      setPriority(task.priority ?? "medium");
       setCompleted(task.completed);
     } else {
       setTitle("");
@@ -113,6 +140,8 @@ export function TaskFormDialog({
       setStartDate("");
       setEndDate("");
       setAssignee("");
+      setAssignees([]);
+      setPriority("medium");
       setCompleted(false);
     }
     setErrors({});
@@ -137,9 +166,30 @@ export function TaskFormDialog({
     }
   }, [boardId]);
 
+  const loadUsers = useCallback(async () => {
+    setUsersLoading(true);
+    try {
+      const res = await fetch("/api/users");
+      if (res.ok) {
+        const data: { nickname?: string; name?: string }[] = await res.json();
+        const names = data
+          .map((u) => u.nickname || u.name || "")
+          .filter(Boolean);
+        setUsers(names);
+      }
+    } catch {
+      console.error("Ошибка загрузки пользователей");
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    if (open) loadMembers();
-  }, [open, loadMembers]);
+    if (open) {
+      loadMembers();
+      loadUsers();
+    }
+  }, [open, loadMembers, loadUsers]);
 
   const loadComments = useCallback(async () => {
     if (!task) return;
@@ -167,6 +217,8 @@ export function TaskFormDialog({
     setStartDate(task?.startDate ?? "");
     setEndDate(task?.endDate ?? "");
     setAssignee(task?.assignee ?? "");
+    setAssignees(task?.assignees ?? []);
+    setPriority(task?.priority ?? "medium");
     setCompleted(task?.completed ?? false);
     setErrors({});
   };
@@ -178,7 +230,12 @@ export function TaskFormDialog({
       const res = await fetch("/api/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: task.id, boardId, columnId, archived: true }),
+        body: JSON.stringify({
+          id: task.id,
+          boardId,
+          columnId,
+          archived: true,
+        }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -204,11 +261,15 @@ export function TaskFormDialog({
       startDate: startDate || null,
       endDate: endDate || null,
       assignee: assignee || null,
+      assignees,
+      priority,
     });
 
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
-      for (const [key, issues] of Object.entries(parsed.error.flatten().fieldErrors)) {
+      for (const [key, issues] of Object.entries(
+        parsed.error.flatten().fieldErrors,
+      )) {
         fieldErrors[key] = (issues as string[])[0];
       }
       setErrors(fieldErrors);
@@ -232,6 +293,8 @@ export function TaskFormDialog({
             startDate: parsed.data.startDate,
             endDate: parsed.data.endDate,
             assignee: parsed.data.assignee,
+            assignees: parsed.data.assignees,
+            priority: parsed.data.priority,
             completed,
           }),
         });
@@ -257,6 +320,8 @@ export function TaskFormDialog({
             startDate: parsed.data.startDate,
             endDate: parsed.data.endDate,
             assignee: parsed.data.assignee,
+            assignees: parsed.data.assignees,
+            priority: parsed.data.priority,
           }),
         });
 
@@ -331,7 +396,9 @@ export function TaskFormDialog({
                   {isEditing ? "Редактировать задачу" : "Создать задачу"}
                 </DialogTitle>
                 <DialogDescription className="text-xs mt-0.5 text-muted-foreground/60">
-                  {isEditing ? "Измените поля задачи" : "Заполните поля для новой задачи"}
+                  {isEditing
+                    ? "Измените поля задачи"
+                    : "Заполните поля для новой задачи"}
                 </DialogDescription>
               </div>
             </div>
@@ -382,29 +449,97 @@ export function TaskFormDialog({
           </SectionBlock>
 
           <SectionBlock icon={User} title="Команда">
-            <FieldRow label="Ответственный">
-              {membersLoading ? (
+            <FieldRow label="Приоритет">
+              <Select
+                value={priority}
+                onValueChange={(value) =>
+                  setPriority(value as "low" | "medium" | "high")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">
+                    <span className="flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-sky-500" />
+                      Низкий
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="medium">
+                    <span className="flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                      Средний
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="high">
+                    <span className="flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
+                      Высокий
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldRow>
+
+            <FieldRow label="Исполнители">
+              {usersLoading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground h-9">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Загрузка участников...
+                  Загрузка пользователей...
                 </div>
               ) : (
-                <Select
-                  value={assignee}
-                  onValueChange={(value) => setAssignee(value === "none" || value === null ? "" : value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Не выбран" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Не назначен</SelectItem>
-                    {members.map((member) => (
-                      <SelectItem key={member.id} value={member.name}>
-                        {member.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  {assignees.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {assignees.map((name) => (
+                        <span
+                          key={name}
+                          className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-xs px-2 py-0.5"
+                        >
+                          {name}
+                          <button
+                            onClick={() =>
+                              setAssignees((prev) =>
+                                prev.filter((a) => a !== name),
+                              )
+                            }
+                            className="hover:text-destructive transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <Select
+                    value=""
+                    onValueChange={(value) => {
+                      if (value && !assignees.includes(value)) {
+                        setAssignees((prev) => [...prev, value]);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Добавить исполнителя" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users
+                        .filter((u) => !assignees.includes(u))
+                        .map((name) => (
+                          <SelectItem key={name} value={name}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      {users.filter((u) => !assignees.includes(u)).length ===
+                        0 && (
+                        <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                          Все пользователи назначены
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
             </FieldRow>
           </SectionBlock>
@@ -422,7 +557,11 @@ export function TaskFormDialog({
                     ) : (
                       <Circle className="h-4 w-4" />
                     )}
-                    <span>{completed ? "Задача выполнена" : "Отметить как выполненную"}</span>
+                    <span>
+                      {completed
+                        ? "Задача выполнена"
+                        : "Отметить как выполненную"}
+                    </span>
                   </button>
 
                   {completed && (
@@ -467,19 +606,26 @@ export function TaskFormDialog({
                       >
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <User className="h-3 w-3" />
-                          <span className="font-medium text-foreground">{comment.author}</span>
+                          <span className="font-medium text-foreground">
+                            {comment.author}
+                          </span>
                           <span>·</span>
                           <Clock className="h-3 w-3" />
                           <span>
-                            {new Date(comment.createdAt).toLocaleDateString("ru-RU", {
-                              day: "numeric",
-                              month: "short",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {new Date(comment.createdAt).toLocaleDateString(
+                              "ru-RU",
+                              {
+                                day: "numeric",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
                           </span>
                         </div>
-                        <p className="text-sm leading-relaxed">{comment.text}</p>
+                        <p className="text-sm leading-relaxed">
+                          {comment.text}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -502,7 +648,11 @@ export function TaskFormDialog({
                     />
                     <Button
                       onClick={handleSendComment}
-                      disabled={sendingComment || !newCommentAuthor.trim() || !newCommentText.trim()}
+                      disabled={
+                        sendingComment ||
+                        !newCommentAuthor.trim() ||
+                        !newCommentText.trim()
+                      }
                       size="icon"
                       className="shrink-0 self-end"
                     >

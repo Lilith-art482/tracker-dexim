@@ -67,7 +67,7 @@ export function PersonalTaskList({
             className={cn(
               "flex items-start gap-3 rounded-lg border-l-4 p-3 transition-colors hover:bg-accent/50",
               PRIORITY_STYLES[task.priority],
-              task.completed && "opacity-60"
+              task.completed && "opacity-60",
             )}
           >
             <button
@@ -89,7 +89,7 @@ export function PersonalTaskList({
                 <span
                   className={cn(
                     "font-medium text-sm",
-                    task.completed && "line-through text-muted-foreground"
+                    task.completed && "line-through text-muted-foreground",
                   )}
                 >
                   {task.title}

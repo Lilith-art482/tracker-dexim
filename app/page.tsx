@@ -43,22 +43,28 @@ export default async function HomePage({
 
   const dbAvailable = await isDatabaseAvailable();
   let boards: Board[] = [];
-  
+
   if (dbAvailable && uid) {
     try {
       boards = await getBoardsByUser(uid);
     } catch {
-      boards = mockBoards.filter((b) => b.ownerId === uid || b.members?.includes(uid));
+      boards = mockBoards.filter(
+        (b) => b.ownerId === uid || b.members?.includes(uid),
+      );
     }
   } else if (uid) {
     // Static mode with uid - filter mock boards
-    boards = mockBoards.filter((b) => b.ownerId === uid || b.members?.includes(uid));
+    boards = mockBoards.filter(
+      (b) => b.ownerId === uid || b.members?.includes(uid),
+    );
   } else {
     // No uid - show empty state
     boards = [];
   }
 
-  const activeBoard = boardId ? boards.find((b) => b.id === boardId) : undefined;
+  const activeBoard = boardId
+    ? boards.find((b) => b.id === boardId)
+    : undefined;
 
   if (!activeBoard) {
     return (
@@ -67,9 +73,12 @@ export default async function HomePage({
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
             <ClipboardList className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h2 className="text-xl font-semibold tracking-tight">Выберите доску</h2>
+          <h2 className="text-xl font-semibold tracking-tight">
+            Выберите доску
+          </h2>
           <p className="text-sm text-muted-foreground max-w-md text-center">
-            Чтобы увидеть задачи, выберите доску в боковом меню или создайте новую.
+            Чтобы увидеть задачи, выберите доску в боковом меню или создайте
+            новую.
           </p>
         </div>
       </HomeContent>

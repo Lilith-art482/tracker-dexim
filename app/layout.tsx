@@ -50,49 +50,49 @@ export default async function RootLayout({
             children
           ) : (
             <NotificationProvider>
-            <ModeProvider>
-              <SidebarProvider>
-                <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                  <div className="flex h-14 items-center px-4 gap-3">
-                    {/* Заголовок и переключатель сайдбара слева */}
-                    <div className="flex items-center gap-2.5 shrink-0">
-                      <span className="text-base font-semibold tracking-tight">
-                        {appName}
-                      </span>
-                      <div className="h-5 w-px bg-border/50" />
-                      <SidebarToggle />
-                    </div>
+              <ModeProvider>
+                <SidebarProvider>
+                  <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                    <div className="flex h-14 items-center px-4 gap-3">
+                      {/* Заголовок и переключатель сайдбара слева */}
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        <span className="text-base font-semibold tracking-tight">
+                          {appName}
+                        </span>
+                        <div className="h-5 w-px bg-border/50" />
+                        <SidebarToggle />
+                      </div>
 
-                    {/* Навигация */}
-                    <HeaderNav />
+                      {/* Навигация */}
+                      <HeaderNav />
 
-                    {/* Правая часть */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <HeaderActions />
+                      {/* Правая часть */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <HeaderActions />
+                      </div>
                     </div>
+                  </header>
+
+                  <div className="flex flex-1">
+                    <Suspense
+                      fallback={
+                        <aside className="flex w-60 shrink-0 flex-col border-r bg-sidebar">
+                          <div className="border-b px-4 py-3">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
+                              Доски
+                            </span>
+                          </div>
+                        </aside>
+                      }
+                    >
+                      <BoardSidebar />
+                    </Suspense>
+                    <main className="flex-1">{children}</main>
                   </div>
-                </header>
 
-                <div className="flex flex-1">
-                  <Suspense
-                    fallback={
-                      <aside className="flex w-60 shrink-0 flex-col border-r bg-sidebar">
-                        <div className="border-b px-4 py-3">
-                          <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-                            Доски
-                          </span>
-                        </div>
-                      </aside>
-                    }
-                  >
-                    <BoardSidebar />
-                  </Suspense>
-                  <main className="flex-1">{children}</main>
-                </div>
-
-                <Toaster richColors position="top-right" />
-              </SidebarProvider>
-            </ModeProvider>
+                  <Toaster richColors position="top-right" />
+                </SidebarProvider>
+              </ModeProvider>
             </NotificationProvider>
           )}
         </ThemeProvider>

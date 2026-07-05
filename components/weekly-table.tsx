@@ -52,16 +52,11 @@ function DraggableTaskCard({
   onEdit: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    isDragging,
-  } = useDraggable({
-    id: task.id,
-    data: { type: "personalTask", task },
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: task.id,
+      data: { type: "personalTask", task },
+    });
 
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
@@ -292,10 +287,7 @@ export function WeeklyTable({
       onDragEnd={handleDragEnd}
     >
       <div className="overflow-x-auto pb-2">
-        <div
-          className="grid"
-          style={{ gridTemplateColumns: `repeat(7, 1fr)` }}
-        >
+        <div className="grid" style={{ gridTemplateColumns: `repeat(7, 1fr)` }}>
           {DAYS.map((_day, dayIdx) => {
             const slots = daySlots[dayIdx];
             return (

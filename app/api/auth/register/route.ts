@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Некорректные данные", details: parsed.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       await auth.getUserByEmail(parsed.data.email);
       return NextResponse.json(
         { error: "Пользователь с таким email уже существует" },
-        { status: 409 }
+        { status: 409 },
       );
     } catch {
       // Пользователь не найден - можно регистрировать
@@ -64,18 +64,21 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     });
 
-    return NextResponse.json({
-      uid: userRecord.uid,
-      email: userRecord.email,
-      nickname: parsed.data.nickname,
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        uid: userRecord.uid,
+        email: userRecord.email,
+        nickname: parsed.data.nickname,
+      },
+      { status: 201 },
+    );
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error("Register error:", err.message);
-    
+
     return NextResponse.json(
       { error: "Ошибка регистрации: " + err.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

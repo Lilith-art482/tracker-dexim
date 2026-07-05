@@ -13,7 +13,7 @@ import type { Task } from "@/lib/models";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import { useNotifications } from "@/lib/notification-context";
 
 interface ArchiveViewProps {
   boardId: string;
@@ -22,12 +22,18 @@ interface ArchiveViewProps {
 export function ArchiveView({ boardId }: ArchiveViewProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const { addNotification } = useNotifications();
+
+  const notify = (type: "success" | "error" | "info", message: string) =>
+    addNotification(message, type);
 
   const fetchArchived = useCallback(async () => {
     setLoading(true);
     try {
       const uid = auth.currentUser?.uid || "";
-      const res = await fetch(`/api/tasks?archived=true&boardId=${boardId}&uid=${uid}`);
+      const res = await fetch(
+        `/api/tasks?archived=true&boardId=${boardId}&uid=${uid}`,
+      );
       if (res.ok) {
         const data: Task[] = await res.json();
         setTasks(data);
@@ -48,24 +54,24 @@ export function ArchiveView({ boardId }: ArchiveViewProps) {
       const res = await fetch("/api/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          id: task.id, 
+        body: JSON.stringify({
+          id: task.id,
           boardId,
           columnId: task.columnId,
-          archived: false 
+          archived: false,
         }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "Ошибка восстановления задачи");
+        addNotification(err.error || "Ошибка восстановления задачи", "error");
         return;
       }
 
       setTasks((prev) => prev.filter((t) => t.id !== task.id));
-      toast.success("Задача восстановлена на доску");
+      addNotification("Задача восстановлена на доску", "success");
     } catch {
-      toast.error("Ошибка восстановления задачи");
+      addNotification("Ошибка восстановления задачи", "error");
     }
   };
 
@@ -134,7 +140,7 @@ export function ArchiveView({ boardId }: ArchiveViewProps) {
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
                   {new Date(task.endDate + "T00:00:00Z").toLocaleDateString(
-                    "ru-RU"
+                    "ru-RU",
                   )}
                 </span>
               )}

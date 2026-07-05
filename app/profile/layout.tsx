@@ -13,9 +13,7 @@ export default function ProfileLayout({
 }) {
   return (
     <html lang="ru" suppressHydrationWarning>
-      <body className="antialiased min-h-screen bg-background">
-        {children}
-      </body>
+      <body className="antialiased min-h-screen bg-background">{children}</body>
     </html>
   );
 }

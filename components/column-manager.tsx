@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Circle,
   Archive,
+  AlertTriangle,
 } from "lucide-react";
 import {
   DndContext,
@@ -84,7 +85,7 @@ function DraggableTaskCard({
       className={cn(
         "w-full text-left",
         isDragging && "opacity-0",
-        isDraggingSource && "z-50"
+        isDraggingSource && "z-50",
       )}
       style={style}
       {...listeners}
@@ -122,7 +123,7 @@ function TaskCardContent({
         "card-hover border-l-4",
         task.completed
           ? "border-l-emerald-500/40 opacity-75"
-          : "border-l-emerald-500"
+          : "border-l-emerald-500",
       )}
       size="sm"
     >
@@ -131,7 +132,7 @@ function TaskCardContent({
           <CardTitle
             className={cn(
               "text-sm leading-tight",
-              task.completed && "line-through text-muted-foreground"
+              task.completed && "line-through text-muted-foreground",
             )}
           >
             {task.title}
@@ -173,20 +174,37 @@ function TaskCardContent({
           </p>
         )}
         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          {task.assignee && (
+          {task.assignees.length > 0 && (
             <span className="flex items-center gap-1">
               <User className="h-3 w-3" />
-              {task.assignee}
+              {task.assignees[0]}
+              {task.assignees.length > 1 && ` +${task.assignees.length - 1}`}
             </span>
           )}
           {task.endDate && (
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               {new Date(task.endDate + "T00:00:00Z").toLocaleDateString(
-                "ru-RU"
+                "ru-RU",
               )}
             </span>
           )}
+          <span
+            className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+              task.priority === "high"
+                ? "bg-rose-100 text-rose-700"
+                : task.priority === "medium"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-sky-100 text-sky-700"
+            }`}
+          >
+            <AlertTriangle className="h-2.5 w-2.5" />
+            {task.priority === "high"
+              ? "Высокий"
+              : task.priority === "medium"
+                ? "Средний"
+                : "Низкий"}
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -210,7 +228,7 @@ function DroppableColumn({
       ref={setNodeRef}
       className={cn(
         "flex flex-col gap-2 min-h-[120px] rounded-lg transition-colors",
-        isOver && "bg-emerald-500/5 ring-2 ring-emerald-500/30"
+        isOver && "bg-emerald-500/5 ring-2 ring-emerald-500/30",
       )}
     >
       {children}
@@ -255,24 +273,29 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
   }, [boardId]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  const fetchTasks = useCallback(async (columnId: string) => {
-    setLoadingTasks((prev) => ({ ...prev, [columnId]: true }));
-    try {
-      const uid = auth.currentUser?.uid || "";
-      const res = await fetch(`/api/tasks?columnId=${columnId}&boardId=${boardId}&uid=${uid}`);
-      if (res.ok) {
-        const data: Task[] = await res.json();
-        setTasks((prev) => ({ ...prev, [columnId]: data }));
+  const fetchTasks = useCallback(
+    async (columnId: string) => {
+      setLoadingTasks((prev) => ({ ...prev, [columnId]: true }));
+      try {
+        const uid = auth.currentUser?.uid || "";
+        const res = await fetch(
+          `/api/tasks?columnId=${columnId}&boardId=${boardId}&uid=${uid}`,
+        );
+        if (res.ok) {
+          const data: Task[] = await res.json();
+          setTasks((prev) => ({ ...prev, [columnId]: data }));
+        }
+      } catch {
+        console.error("Ошибка загрузки задач");
+      } finally {
+        setLoadingTasks((prev) => ({ ...prev, [columnId]: false }));
       }
-    } catch {
-      console.error("Ошибка загрузки задач");
-    } finally {
-      setLoadingTasks((prev) => ({ ...prev, [columnId]: false }));
-    }
-  }, [boardId]);
+    },
+    [boardId],
+  );
 
   useEffect(() => {
     for (const col of columns) {
@@ -424,13 +447,13 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
         return {
           ...prev,
           [task.columnId]: columnTasks.map((t) =>
-            t.id === task.id ? updated : t
+            t.id === task.id ? updated : t,
           ),
         };
       });
       addNotification(
         updated.completed ? "Задача выполнена" : "Задача возобновлена",
-        "success"
+        "success",
       );
     } catch {
       addNotification("Ошибка обновления задачи", "error");
@@ -442,15 +465,15 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
       const res = await fetch("/api/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          id: task.id, 
+        body: JSON.stringify({
+          id: task.id,
           boardId,
           columnId: task.columnId,
-          archived: true 
+          archived: true,
         }),
       });
 
-        if (!res.ok) {
+      if (!res.ok) {
         const err = await res.json();
         addNotification(err.error || "Ошибка архивирования", "error");
         return;
@@ -517,7 +540,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
     const prevTask = task;
     setTasks((prev) => {
       const sourceTasks = (prev[prevTask.columnId] || []).filter(
-        (t) => t.id !== prevTask.id
+        (t) => t.id !== prevTask.id,
       );
       const targetTasks = [
         ...(prev[targetColumnId] || []),
@@ -534,8 +557,8 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
       const res = await fetch("/api/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          id: task.id, 
+        body: JSON.stringify({
+          id: task.id,
           boardId,
           columnId: targetColumnId,
         }),
@@ -550,7 +573,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
             prevTask,
           ];
           const targetTasks = (prev[targetColumnId] || []).filter(
-            (t) => t.id !== prevTask.id
+            (t) => t.id !== prevTask.id,
           );
           return {
             ...prev,
@@ -570,7 +593,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
           prevTask,
         ];
         const targetTasks = (prev[targetColumnId] || []).filter(
-          (t) => t.id !== prevTask.id
+          (t) => t.id !== prevTask.id,
         );
         return {
           ...prev,

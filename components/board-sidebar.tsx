@@ -32,7 +32,7 @@ interface BoardSidebarProps {
 
 export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   const { collapsed } = useSidebar();
-  const { setMode } = useMode();
+  const { mode, setMode } = useMode();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -47,6 +47,8 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   const [boardsOpen, setBoardsOpen] = useState(true);
 
   const activeBoardId = searchParams.get("boardId");
+
+  const filteredBoards = boards.filter((b) => b.type === mode);
 
   const fetchBoards = useCallback(async () => {
     setLoading(true);
@@ -82,7 +84,10 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   }, [fetchBoards, searchParams, pathname, router]);
 
   const switchBoard = (boardId: string) => {
-    setMode("team");
+    const board = boards.find((b) => b.id === boardId);
+    if (board) {
+      setMode(board.type);
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.set("boardId", boardId);
     const uid = auth.currentUser?.uid;
@@ -100,7 +105,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
       const res = await fetch("/api/boards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, ownerId }),
+        body: JSON.stringify({ name, ownerId, type: mode }),
       });
 
       if (!res.ok) {
@@ -183,14 +188,14 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
     <aside
       className={cn(
         "shrink-0 flex flex-col border-r bg-sidebar transition-all duration-300",
-        collapsed ? "w-0 overflow-hidden border-0" : "w-60"
+        collapsed ? "w-0 overflow-hidden border-0" : "w-60",
       )}
     >
       {/* Boards header */}
       <div
         className={cn(
           "flex items-center gap-2 px-4 py-2.5 transition-opacity duration-300",
-          collapsed ? "opacity-0" : "opacity-100"
+          collapsed ? "opacity-0" : "opacity-100",
         )}
       >
         <button
@@ -218,7 +223,9 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editingBoardId ? "Редактировать доску" : "Новая доска"}</DialogTitle>
+                <DialogTitle>
+                  {editingBoardId ? "Редактировать доску" : "Новая доска"}
+                </DialogTitle>
               </DialogHeader>
               <div className="flex flex-col gap-4">
                 <Input
@@ -229,15 +236,23 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                     else setNewBoardName(e.target.value);
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") (editingBoardId ? handleUpdate() : handleCreate());
+                    if (e.key === "Enter")
+                      editingBoardId ? handleUpdate() : handleCreate();
                   }}
                   autoFocus
                 />
                 <Button
-                  onClick={() => (editingBoardId ? handleUpdate() : handleCreate())}
-                  disabled={creating || (!newBoardName.trim() && !editingBoardName.trim())}
+                  onClick={() =>
+                    editingBoardId ? handleUpdate() : handleCreate()
+                  }
+                  disabled={
+                    creating ||
+                    (!newBoardName.trim() && !editingBoardName.trim())
+                  }
                 >
-                  {(creating || false) && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {(creating || false) && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
                   {editingBoardId ? "Сохранить" : "Создать"}
                 </Button>
               </div>
@@ -251,39 +266,45 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
         <nav
           className={cn(
             "flex-1 space-y-0.5 overflow-y-auto px-2 transition-opacity duration-300",
-            collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+            collapsed ? "opacity-0 pointer-events-none" : "opacity-100",
           )}
         >
-          {boards.map((board) => (
-            <div key={board.id} className="flex items-center gap-2">
-              <button
-                onClick={() => switchBoard(board.id)}
-                className={cn(
-                  "flex-1 text-left text-sm rounded-lg px-3 py-2 transition-colors",
-                  activeBoardId === board.id ||
-                    (!activeBoardId && boards[0]?.id === board.id)
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                )}
-              >
-                <span className="truncate">{board.name}</span>
-              </button>
-              <button
-                onClick={() => startEdit(board)}
-                className="p-1 rounded hover:bg-muted/20 shrink-0"
-                title="Редактировать"
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => handleDelete(board.id)}
-                className="p-1 rounded hover:bg-muted/20 shrink-0"
-                title="Удалить"
-              >
-                <Trash className="h-4 w-4 text-destructive" />
-              </button>
+          {filteredBoards.length === 0 ? (
+            <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+              {mode === "team" ? "Нет командных досок" : "Нет личных досок"}
             </div>
-          ))}
+          ) : (
+            filteredBoards.map((board) => (
+              <div key={board.id} className="flex items-center gap-2">
+                <button
+                  onClick={() => switchBoard(board.id)}
+                  className={cn(
+                    "flex-1 text-left text-sm rounded-lg px-3 py-2 transition-colors",
+                    activeBoardId === board.id ||
+                      (!activeBoardId && boards[0]?.id === board.id)
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                  )}
+                >
+                  <span className="truncate">{board.name}</span>
+                </button>
+                <button
+                  onClick={() => startEdit(board)}
+                  className="p-1 rounded hover:bg-muted/20 shrink-0"
+                  title="Редактировать"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(board.id)}
+                  className="p-1 rounded hover:bg-muted/20 shrink-0"
+                  title="Удалить"
+                >
+                  <Trash className="h-4 w-4 text-destructive" />
+                </button>
+              </div>
+            ))
+          )}
         </nav>
       )}
 
@@ -291,7 +312,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
         <div
           className={cn(
             "flex-1 transition-opacity duration-300",
-            collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+            collapsed ? "opacity-0 pointer-events-none" : "opacity-100",
           )}
         />
       )}

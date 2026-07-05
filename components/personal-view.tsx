@@ -91,7 +91,9 @@ export function PersonalView() {
       setLoading(true);
       try {
         const uid = auth.currentUser?.uid;
-        const url = uid ? `/api/personal-tasks?uid=${uid}` : "/api/personal-tasks";
+        const url = uid
+          ? `/api/personal-tasks?uid=${uid}`
+          : "/api/personal-tasks";
         const res = await fetch(url);
         if (res.ok) {
           const data: PersonalTask[] = await res.json();
@@ -123,57 +125,63 @@ export function PersonalView() {
     });
   }, []);
 
-  const handleToggleComplete = useCallback(async (task: PersonalTask) => {
-    const toggled = { ...task, completed: !task.completed };
-    setTasks((prev) => prev.map((t) => (t.id === task.id ? toggled : t)));
+  const handleToggleComplete = useCallback(
+    async (task: PersonalTask) => {
+      const toggled = { ...task, completed: !task.completed };
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? toggled : t)));
 
-    try {
-      const res = await fetch("/api/personal-tasks", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: task.id, completed: !task.completed }),
-      });
+      try {
+        const res = await fetch("/api/personal-tasks", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: task.id, completed: !task.completed }),
+        });
 
-      if (!res.ok) {
-        const err = await res.json();
-        addNotification(err.error || "Ошибка обновления задачи", "error");
+        if (!res.ok) {
+          const err = await res.json();
+          addNotification(err.error || "Ошибка обновления задачи", "error");
+          setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+          return;
+        }
+
+        const updated: PersonalTask = await res.json();
+        setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+        addNotification(
+          updated.completed ? "Задача выполнена" : "Задача возобновлена",
+          "success",
+        );
+      } catch {
+        addNotification("Ошибка обновления задачи", "error");
         setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-        return;
       }
+    },
+    [addNotification],
+  );
 
-      const updated: PersonalTask = await res.json();
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
-      addNotification(
-        updated.completed ? "Задача выполнена" : "Задача возобновлена",
-        "success"
-      );
-    } catch {
-      addNotification("Ошибка обновления задачи", "error");
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-    }
-  }, [addNotification]);
+  const handleDeleteTask = useCallback(
+    async (task: PersonalTask) => {
+      setTasks((prev) => prev.filter((t) => t.id !== task.id));
 
-  const handleDeleteTask = useCallback(async (task: PersonalTask) => {
-    setTasks((prev) => prev.filter((t) => t.id !== task.id));
+      try {
+        const res = await fetch("/api/personal-tasks", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: task.id }),
+        });
 
-    try {
-      const res = await fetch("/api/personal-tasks", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: task.id }),
-      });
+        if (!res.ok) {
+          const err = await res.json();
+          addNotification(err.error || "Ошибка удаления задачи", "error");
+          return;
+        }
 
-      if (!res.ok) {
-        const err = await res.json();
-        addNotification(err.error || "Ошибка удаления задачи", "error");
-        return;
+        addNotification("Задача удалена", "success");
+      } catch {
+        addNotification("Ошибка удаления задачи", "error");
       }
-
-      addNotification("Задача удалена", "success");
-    } catch {
-      addNotification("Ошибка удаления задачи", "error");
-    }
-  }, [addNotification]);
+    },
+    [addNotification],
+  );
 
   const handleEditTask = useCallback((task: PersonalTask) => {
     setEditingTask(task);
@@ -225,7 +233,7 @@ export function PersonalView() {
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "table"
                   ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Table2 className="h-4 w-4" />
@@ -237,7 +245,7 @@ export function PersonalView() {
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "list"
                   ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <LayoutList className="h-4 w-4" />
@@ -290,7 +298,7 @@ export function PersonalView() {
                 isSelected
                   ? "bg-emerald-500/10 text-emerald-600 font-semibold"
                   : "text-muted-foreground hover:bg-accent",
-                isToday && !isSelected && "ring-1 ring-emerald-500/30"
+                isToday && !isSelected && "ring-1 ring-emerald-500/30",
               )}
             >
               <span className="text-[11px] uppercase tracking-wider">

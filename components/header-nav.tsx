@@ -1,7 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar, DollarSign, ListChecks, Zap, Award, Search, User, Sun, Moon } from "lucide-react";
+import {
+  Calendar,
+  DollarSign,
+  ListChecks,
+  Zap,
+  Award,
+  Search,
+  User,
+  Sun,
+  Moon,
+} from "lucide-react";
 import { useMode } from "@/lib/mode-context";
 import { cn } from "@/lib/utils";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -48,7 +58,7 @@ export function HeaderNav() {
             "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors shrink-0",
             id === "planner" && mode === "personal"
               ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
           )}
         >
           <Icon className="h-3.5 w-3.5" />
