@@ -308,7 +308,7 @@ function CellRow({
       ref={setNodeRef}
       onClick={!task ? onCellClick : undefined}
       className={cn(
-        "h-[56px] px-1.5 py-1 overflow-hidden transition-colors",
+        "min-h-[40px] lg:min-h-[56px] px-1 py-0.5 lg:px-1.5 lg:py-1 overflow-hidden transition-colors",
         !task && "cursor-pointer hover:bg-muted/20",
         isOver && "bg-emerald-500/10",
         task && "bg-card",

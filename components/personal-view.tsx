@@ -204,19 +204,55 @@ export function PersonalView() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <div className="mb-4">
         <CompactModeToggle />
       </div>
       {/* Header: title + view toggle */}
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Расписание
-          </h1>
-          <p className="text-sm text-muted-foreground">{currentMonthLabel}</p>
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-start justify-between sm:block">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+              Расписание
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">{currentMonthLabel}</p>
+          </div>
+          <div className="flex sm:hidden items-center gap-1.5 mt-1">
+            <div className="flex items-center gap-1 rounded-lg border p-0.5">
+              <button
+                onClick={() => setViewMode("table")}
+                className={cn(
+                  "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                  viewMode === "table"
+                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Table2 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={cn(
+                  "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                  viewMode === "list"
+                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <LayoutList className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <Button
+              variant="default"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={handleAddTask}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-2">
           <Button
             variant="default"
             size="sm"
@@ -277,7 +313,7 @@ export function PersonalView() {
       </div>
 
       {/* Day selector */}
-      <div className="mb-4 flex gap-1">
+      <div className="mb-4 flex gap-1 overflow-x-auto lg:overflow-visible -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory scrollbar-none">
         {weekDates.map((date, idx) => {
           const isToday = (() => {
             const now = new Date();
@@ -294,7 +330,7 @@ export function PersonalView() {
               key={idx}
               onClick={() => setSelectedDay(idx)}
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-xs transition-colors",
+                "flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-xs transition-colors min-w-[64px] shrink-0 snap-start lg:flex-1 lg:shrink lg:min-w-0",
                 isSelected
                   ? "bg-emerald-500/10 text-emerald-600 font-semibold"
                   : "text-muted-foreground hover:bg-accent",
@@ -322,7 +358,7 @@ export function PersonalView() {
           onDelete={handleDeleteTask}
         />
       ) : (
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1 min-w-0">
             <PersonalTaskList
               tasks={tasks}
@@ -332,7 +368,7 @@ export function PersonalView() {
               onDelete={handleDeleteTask}
             />
           </div>
-          <div className="w-72 shrink-0">
+          <div className="w-full lg:w-72 shrink-0">
             <PersonalDashboard tasks={tasks} />
           </div>
         </div>

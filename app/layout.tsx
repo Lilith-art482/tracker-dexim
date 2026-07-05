@@ -78,7 +78,7 @@ export default async function RootLayout({
                   <div className="flex flex-1">
                     <Suspense
                       fallback={
-                        <aside className="flex w-60 shrink-0 flex-col border-r bg-sidebar">
+                        <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r bg-sidebar">
                           <div className="border-b px-4 py-3">
                             <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
                               Доски
@@ -89,7 +89,7 @@ export default async function RootLayout({
                     >
                       <BoardSidebar />
                     </Suspense>
-                    <main className="flex-1">{children}</main>
+                    <main className="flex-1 min-w-0 max-w-full">{children}</main>
                   </div>
 
                   <Toaster richColors position="top-right" />

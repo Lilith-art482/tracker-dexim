@@ -201,6 +201,16 @@
     box-shadow: 0 8px 32px -8px #4E6E62/30;
   }
 
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+
+
   /* Hide global chrome (header/sidebar/toaster) on auth pages */
   body.no-chrome header,
   body.no-chrome aside {

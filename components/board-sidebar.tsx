@@ -9,6 +9,7 @@ import {
   Trash,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
@@ -31,7 +32,7 @@ interface BoardSidebarProps {
 }
 
 export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
-  const { collapsed } = useSidebar();
+  const { collapsed, toggle } = useSidebar();
   const { mode, setMode } = useMode();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -185,12 +186,26 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   };
 
   return (
-    <aside
-      className={cn(
-        "shrink-0 flex flex-col border-r bg-sidebar transition-all duration-300",
-        collapsed ? "w-0 overflow-hidden border-0" : "w-60",
+    <>
+      {/* Backdrop for mobile overlay */}
+      {!collapsed && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20 lg:hidden"
+          onClick={toggle}
+        />
       )}
-    >
+      <aside
+        className={cn(
+          // Desktop: inline sidebar with collapse
+          "shrink-0 flex-col border-r bg-sidebar transition-all duration-300",
+          "hidden lg:flex",
+          collapsed ? "lg:w-0 lg:overflow-hidden lg:border-0" : "lg:w-60",
+          // Mobile: fixed overlay that slides in
+          "fixed inset-y-0 left-0 z-40 flex w-60 border-r bg-sidebar",
+          "lg:static lg:z-auto",
+          collapsed ? "-translate-x-full lg:translate-x-0" : "translate-x-0",
+        )}
+      >
       {/* Boards header */}
       <div
         className={cn(
@@ -211,6 +226,12 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
         </button>
 
         <div className="ml-auto flex items-center gap-1">
+          <button
+            onClick={toggle}
+            className="flex lg:hidden h-6 w-6 items-center justify-center rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
           {loading && (
             <Loader2 className="h-3 w-3 animate-spin text-sidebar-foreground/40" />
           )}
@@ -317,5 +338,6 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
         />
       )}
     </aside>
+    </>
   );
 }
