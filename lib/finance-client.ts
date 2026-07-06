@@ -39,11 +39,16 @@ const loansCol = () => collection(db, "FINANCE_LOANS");
 const projectsCol = () => collection(db, "FINANCE_PROJECTS");
 const emergencyFundCol = () => collection(db, "FINANCE_EMERGENCY_FUND");
 
-function toPlain<T>(snap: { id: string; data: () => object | undefined }): T & { id: string } {
+function toPlain<T>(snap: {
+  id: string;
+  data: () => object | undefined;
+}): T & { id: string } {
   return { id: snap.id, ...snap.data()! } as T & { id: string };
 }
 
-export async function getAccountsByUser(uid: string): Promise<FinanceAccount[]> {
+export async function getAccountsByUser(
+  uid: string,
+): Promise<FinanceAccount[]> {
   const q = query(accountsCol(), where("userId", "==", uid));
   const snap = await getDocs(q);
   return snap.docs.map((d) => toPlain<FinanceAccount>(d));
@@ -60,7 +65,9 @@ export async function createAccount(
 
 export async function updateAccount(
   id: string,
-  data: Partial<Omit<FinanceAccount, "id" | "userId" | "createdAt" | "updatedAt">>,
+  data: Partial<
+    Omit<FinanceAccount, "id" | "userId" | "createdAt" | "updatedAt">
+  >,
 ): Promise<FinanceAccount> {
   const ref = doc(accountsCol(), id);
   await updateDoc(ref, clean({ ...data, updatedAt: new Date().toISOString() }));
@@ -72,7 +79,9 @@ export async function deleteAccount(id: string): Promise<void> {
   await deleteDoc(doc(accountsCol(), id));
 }
 
-export async function getCategoriesByUser(uid: string): Promise<TransactionCategory[]> {
+export async function getCategoriesByUser(
+  uid: string,
+): Promise<TransactionCategory[]> {
   const q = query(categoriesCol(), where("userId", "==", uid));
   const snap = await getDocs(q);
   return snap.docs.map((d) => toPlain<TransactionCategory>(d));
@@ -96,14 +105,20 @@ export async function getTransactionsByUser(
 ): Promise<Transaction[]> {
   let q = query(transactionsCol(), where("userId", "==", uid));
   if (filters?.type) q = query(q, where("type", "==", filters.type));
-  if (filters?.categoryId) q = query(q, where("categoryId", "==", filters.categoryId));
-  if (filters?.accountId) q = query(q, where("accountId", "==", filters.accountId));
+  if (filters?.categoryId)
+    q = query(q, where("categoryId", "==", filters.categoryId));
+  if (filters?.accountId)
+    q = query(q, where("accountId", "==", filters.accountId));
   const snap = await getDocs(q);
   let results = snap.docs.map((d) => toPlain<Transaction>(d));
-  if (filters?.dateFrom) results = results.filter((t) => t.date >= filters.dateFrom!);
-  if (filters?.dateTo) results = results.filter((t) => t.date <= filters.dateTo!);
+  if (filters?.dateFrom)
+    results = results.filter((t) => t.date >= filters.dateFrom!);
+  if (filters?.dateTo)
+    results = results.filter((t) => t.date <= filters.dateTo!);
   if (filters?.tags && filters.tags.length > 0) {
-    results = results.filter((t) => filters.tags!.some((tag) => t.tags.includes(tag)));
+    results = results.filter((t) =>
+      filters.tags!.some((tag) => t.tags.includes(tag)),
+    );
   }
   return results;
 }
@@ -119,9 +134,16 @@ export async function createTransaction(
   const accSnap = await getDoc(accRef);
   if (accSnap.exists()) {
     const acc = toPlain<FinanceAccount>(accSnap);
-    const delta = tx.type === "income" ? tx.amount : tx.type === "expense" ? -tx.amount : 0;
+    const delta =
+      tx.type === "income" ? tx.amount : tx.type === "expense" ? -tx.amount : 0;
     if (delta !== 0) {
-      await updateDoc(accRef, clean({ balance: acc.balance + delta, updatedAt: new Date().toISOString() }));
+      await updateDoc(
+        accRef,
+        clean({
+          balance: acc.balance + delta,
+          updatedAt: new Date().toISOString(),
+        }),
+      );
     }
   }
 
@@ -130,19 +152,43 @@ export async function createTransaction(
 
 export async function updateTransaction(
   id: string,
-  data: Partial<Pick<Transaction, "amount" | "description" | "tags" | "date" | "categoryId" | "accountId" | "type">>,
+  data: Partial<
+    Pick<
+      Transaction,
+      | "amount"
+      | "description"
+      | "tags"
+      | "date"
+      | "categoryId"
+      | "accountId"
+      | "type"
+    >
+  >,
 ): Promise<Transaction> {
   const ref = doc(transactionsCol(), id);
   const oldSnap = await getDoc(ref);
   if (oldSnap.exists()) {
     const old = toPlain<Transaction>(oldSnap);
-    const oldDelta = old.type === "income" ? old.amount : old.type === "expense" ? -old.amount : 0;
+    const oldDelta =
+      old.type === "income"
+        ? old.amount
+        : old.type === "expense"
+          ? -old.amount
+          : 0;
 
-    await updateDoc(ref, clean({ ...data, updatedAt: new Date().toISOString() }));
+    await updateDoc(
+      ref,
+      clean({ ...data, updatedAt: new Date().toISOString() }),
+    );
     const newSnap = await getDoc(ref);
     const updated = toPlain<Transaction>(newSnap);
 
-    const newDelta = updated.type === "income" ? updated.amount : updated.type === "expense" ? -updated.amount : 0;
+    const newDelta =
+      updated.type === "income"
+        ? updated.amount
+        : updated.type === "expense"
+          ? -updated.amount
+          : 0;
     const netDelta = newDelta - oldDelta;
 
     if (netDelta !== 0) {
@@ -150,7 +196,13 @@ export async function updateTransaction(
       const accSnap = await getDoc(accRef);
       if (accSnap.exists()) {
         const acc = toPlain<FinanceAccount>(accSnap);
-        await updateDoc(accRef, clean({ balance: acc.balance + netDelta, updatedAt: new Date().toISOString() }));
+        await updateDoc(
+          accRef,
+          clean({
+            balance: acc.balance + netDelta,
+            updatedAt: new Date().toISOString(),
+          }),
+        );
       }
     }
 
@@ -167,13 +219,20 @@ export async function deleteTransaction(id: string): Promise<void> {
   const snap = await getDoc(ref);
   if (snap.exists()) {
     const tx = toPlain<Transaction>(snap);
-    const delta = tx.type === "income" ? -tx.amount : tx.type === "expense" ? tx.amount : 0;
+    const delta =
+      tx.type === "income" ? -tx.amount : tx.type === "expense" ? tx.amount : 0;
     if (delta !== 0) {
       const accRef = doc(accountsCol(), tx.accountId);
       const accSnap = await getDoc(accRef);
       if (accSnap.exists()) {
         const acc = toPlain<FinanceAccount>(accSnap);
-        await updateDoc(accRef, clean({ balance: acc.balance + delta, updatedAt: new Date().toISOString() }));
+        await updateDoc(
+          accRef,
+          clean({
+            balance: acc.balance + delta,
+            updatedAt: new Date().toISOString(),
+          }),
+        );
       }
     }
   }
@@ -226,7 +285,19 @@ export async function createGoal(
 
 export async function updateGoal(
   id: string,
-  data: Partial<Pick<FinanceGoal, "name" | "targetAmount" | "currentAmount" | "deadline" | "priority" | "accountId" | "autoDepositPercent" | "completed">>,
+  data: Partial<
+    Pick<
+      FinanceGoal,
+      | "name"
+      | "targetAmount"
+      | "currentAmount"
+      | "deadline"
+      | "priority"
+      | "accountId"
+      | "autoDepositPercent"
+      | "completed"
+    >
+  >,
 ): Promise<FinanceGoal> {
   const ref = doc(goalsCol(), id);
   await updateDoc(ref, clean({ ...data, updatedAt: new Date().toISOString() }));
@@ -255,7 +326,17 @@ export async function createLoan(
 
 export async function updateLoan(
   id: string,
-  data: Partial<Pick<Loan, "name" | "totalAmount" | "interestRate" | "monthlyPayment" | "remainingAmount" | "nextPaymentDate">>,
+  data: Partial<
+    Pick<
+      Loan,
+      | "name"
+      | "totalAmount"
+      | "interestRate"
+      | "monthlyPayment"
+      | "remainingAmount"
+      | "nextPaymentDate"
+    >
+  >,
 ): Promise<Loan> {
   const ref = doc(loansCol(), id);
   await updateDoc(ref, clean({ ...data, updatedAt: new Date().toISOString() }));
@@ -267,7 +348,9 @@ export async function deleteLoan(id: string): Promise<void> {
   await deleteDoc(doc(loansCol(), id));
 }
 
-export async function getProjectsByUser(uid: string): Promise<FinanceProject[]> {
+export async function getProjectsByUser(
+  uid: string,
+): Promise<FinanceProject[]> {
   const q = query(projectsCol(), where("userId", "==", uid));
   const snap = await getDocs(q);
   return snap.docs.map((d) => toPlain<FinanceProject>(d));
@@ -284,7 +367,20 @@ export async function createProject(
 
 export async function updateProject(
   id: string,
-  data: Partial<Pick<FinanceProject, "name" | "icon" | "targetAmount" | "savedAmount" | "deadline" | "description" | "linkedCategoryIds" | "color" | "completed">>,
+  data: Partial<
+    Pick<
+      FinanceProject,
+      | "name"
+      | "icon"
+      | "targetAmount"
+      | "savedAmount"
+      | "deadline"
+      | "description"
+      | "linkedCategoryIds"
+      | "color"
+      | "completed"
+    >
+  >,
 ): Promise<FinanceProject> {
   const ref = doc(projectsCol(), id);
   await updateDoc(ref, clean({ ...data, updatedAt: new Date().toISOString() }));
@@ -296,7 +392,9 @@ export async function deleteProject(id: string): Promise<void> {
   await deleteDoc(doc(projectsCol(), id));
 }
 
-export async function getEmergencyFund(uid: string): Promise<EmergencyFund | null> {
+export async function getEmergencyFund(
+  uid: string,
+): Promise<EmergencyFund | null> {
   const q = query(emergencyFundCol(), where("userId", "==", uid), limit(1));
   const snap = await getDocs(q);
   if (snap.empty) return null;
@@ -310,7 +408,10 @@ export async function upsertEmergencyFund(
   const q = query(emergencyFundCol(), where("userId", "==", uid), limit(1));
   const existing = await getDocs(q);
   if (existing.empty) {
-    const ref = await addDoc(emergencyFundCol(), clean({ ...data, userId: uid }));
+    const ref = await addDoc(
+      emergencyFundCol(),
+      clean({ ...data, userId: uid }),
+    );
     const snap = await getDoc(ref);
     return toPlain<EmergencyFund>(snap);
   }

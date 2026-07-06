@@ -21,7 +21,12 @@ export interface FinanceAccount {
   updatedAt: string;
 }
 
-export const CURRENCIES: { code: string; symbol: string; label: string; type: string }[] = [
+export const CURRENCIES: {
+  code: string;
+  symbol: string;
+  label: string;
+  type: string;
+}[] = [
   { code: "RUB", symbol: "₽", label: "Российский рубль", type: "fiat" },
   { code: "USD", symbol: "$", label: "Доллар США", type: "fiat" },
   { code: "EUR", symbol: "€", label: "Евро", type: "fiat" },

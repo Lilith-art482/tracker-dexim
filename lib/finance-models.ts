@@ -46,7 +46,9 @@ export async function createAccount(
 
 export async function updateAccount(
   id: string,
-  data: Partial<Omit<FinanceAccount, "id" | "userId" | "createdAt" | "updatedAt">>,
+  data: Partial<
+    Omit<FinanceAccount, "id" | "userId" | "createdAt" | "updatedAt">
+  >,
 ): Promise<FinanceAccount> {
   await getAdminDb()
     .collection(COL("FINANCE_ACCOUNTS"))
