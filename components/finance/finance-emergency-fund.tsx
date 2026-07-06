@@ -121,7 +121,7 @@ export function FinanceEmergencyFund() {
       const res = await fetch("/api/finance/emergency-fund", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetAmount: val }),
+        body: JSON.stringify({ targetAmount: val, userId: uid }),
       });
       if (res.ok) {
         const updated = await res.json();
@@ -149,7 +149,7 @@ export function FinanceEmergencyFund() {
       const res = await fetch("/api/finance/emergency-fund", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentAmount: newCurrent }),
+        body: JSON.stringify({ currentAmount: newCurrent, userId: uid }),
       });
       if (res.ok) {
         const updated = await res.json();
@@ -176,7 +176,7 @@ export function FinanceEmergencyFund() {
       const res = await fetch("/api/finance/emergency-fund", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentAmount: newCurrent }),
+        body: JSON.stringify({ currentAmount: newCurrent, userId: uid }),
       });
       if (res.ok) {
         const updated = await res.json();

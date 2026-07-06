@@ -9,8 +9,8 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
-  const uid = auth.currentUser?.uid;
+export async function GET(request: NextRequest) {
+  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -24,12 +24,11 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const uid = auth.currentUser?.uid;
+  const body = await request.json();
+  const uid = auth.currentUser?.uid || body.userId;
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const body = await request.json();
 
   try {
     const category = await createCategory({
@@ -47,7 +46,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const uid = auth.currentUser?.uid;
+  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

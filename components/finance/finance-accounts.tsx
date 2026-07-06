@@ -280,6 +280,7 @@ export function FinanceAccounts() {
     localStorage.setItem("finance_last_account_currency", formCurrency);
 
     const body: Record<string, unknown> = {
+      userId: uid,
       name: formName.trim(),
       type: formType,
       balance,
@@ -351,6 +352,7 @@ export function FinanceAccounts() {
 
     try {
       const txBody = {
+        userId: uid,
         accountId: transferFrom,
         type: "transfer" as const,
         categoryId: "fin-cat-9",
@@ -369,12 +371,12 @@ export function FinanceAccounts() {
       await fetch(`/api/finance/accounts?id=${transferFrom}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ balance: fromAcc.balance - amount }),
+        body: JSON.stringify({ balance: fromAcc.balance - amount, userId: uid }),
       });
       await fetch(`/api/finance/accounts?id=${transferTo}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ balance: toAcc.balance + amount }),
+        body: JSON.stringify({ balance: toAcc.balance + amount, userId: uid }),
       });
 
       setAccounts((prev) =>
@@ -410,12 +412,13 @@ export function FinanceAccounts() {
         fetch(`/api/finance/accounts?id=${quickAccount.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ balance: newBalance }),
+          body: JSON.stringify({ balance: newBalance, userId: uid }),
         }),
         fetch("/api/finance/transactions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            userId: uid,
             accountId: quickAccount.id,
             type: quickType === "add" ? "income" : "expense",
             categoryId: quickType === "add" ? "fin-cat-9" : "fin-cat-8",

@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const uid = auth.currentUser?.uid;
+  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -52,12 +52,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const uid = auth.currentUser?.uid;
+  const body = await request.json();
+  const uid = auth.currentUser?.uid || body.userId;
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const body = await request.json();
 
   try {
     const transaction = await createTransaction({
@@ -92,7 +91,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const uid = auth.currentUser?.uid;
+  const body = await request.json();
+  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid") || body.userId;
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -103,8 +103,6 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  const body = await request.json();
-
   try {
     const updated = await updateTransaction(id, body);
     return NextResponse.json(updated);
@@ -114,7 +112,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const uid = auth.currentUser?.uid;
+  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

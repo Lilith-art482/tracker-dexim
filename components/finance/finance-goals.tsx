@@ -170,6 +170,7 @@ export function FinanceGoals() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             id: editingGoal.id,
+            userId: uid,
             name: formName.trim(),
             targetAmount,
             currentAmount,
@@ -195,6 +196,7 @@ export function FinanceGoals() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            userId: uid,
             name: formName.trim(),
             targetAmount,
             currentAmount,
@@ -264,7 +266,7 @@ export function FinanceGoals() {
       const res = await fetch("/api/finance/goals", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: goal.id, completed }),
+        body: JSON.stringify({ id: goal.id, completed, userId: uid }),
       });
       if (res.ok) {
         const updated = await res.json();

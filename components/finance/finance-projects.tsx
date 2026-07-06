@@ -117,6 +117,7 @@ export function FinanceProjects() {
   const [formDescription, setFormDescription] = useState("");
   const [formCategoryIds, setFormCategoryIds] = useState<string[]>([]);
   const [formColor, setFormColor] = useState("blue");
+  const uid = auth.currentUser?.uid || "user-1";
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
@@ -212,6 +213,7 @@ export function FinanceProjects() {
     }
 
     const body = {
+      userId: uid,
       name: formName.trim(),
       icon: formIcon,
       targetAmount,
@@ -280,7 +282,7 @@ export function FinanceProjects() {
     const res = await fetch(`/api/finance/projects?id=${project.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed }),
+      body: JSON.stringify({ completed, userId: uid }),
     });
     if (res.ok) {
       const updated = await res.json();
@@ -300,7 +302,7 @@ export function FinanceProjects() {
     const res = await fetch(`/api/finance/projects?id=${addFundsDialog.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ savedAmount: newSaved }),
+      body: JSON.stringify({ savedAmount: newSaved, userId: uid }),
     });
     if (res.ok) {
       const updated = await res.json();

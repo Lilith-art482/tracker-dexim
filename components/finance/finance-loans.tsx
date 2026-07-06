@@ -167,6 +167,7 @@ export function FinanceLoans() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             id: editingLoan.id,
+            userId: uid,
             name: formName,
             totalAmount,
             remainingAmount,
@@ -225,7 +226,7 @@ export function FinanceLoans() {
       const res = await fetch("/api/finance/loans", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: loan.id, paymentAmount }),
+        body: JSON.stringify({ id: loan.id, paymentAmount, userId: uid }),
       });
 
       if (res.ok) {

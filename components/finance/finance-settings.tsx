@@ -88,6 +88,7 @@ export function FinanceSettings() {
   const [catType, setCatType] = useState<"income" | "expense">("expense");
   const [color, setColor] = useState("blue");
   const [icon, setIcon] = useState("MoreHorizontal");
+  const uid = auth.currentUser?.uid || "user-1";
 
   useEffect(() => {
     setDefaultAccount(localStorage.getItem("finance_default_account") || "");
@@ -123,7 +124,7 @@ export function FinanceSettings() {
       toast.error("Введите название категории");
       return;
     }
-    const body = { name: name.trim(), type: catType, color, icon };
+    const body = { userId: uid, name: name.trim(), type: catType, color, icon };
     if (editingCat) {
       const res = await fetch(`/api/finance/categories?id=${editingCat.id}`, {
         method: "PUT",

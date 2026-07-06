@@ -1,6 +1,9 @@
 "use client";
 
+"use client";
+
 import { useMode, type ViewMode } from "@/lib/mode-context";
+import { usePathname } from "next/navigation";
 import { Users, User } from "lucide-react";
 
 const options: { value: ViewMode; label: string; icon: typeof Users }[] = [
@@ -10,6 +13,9 @@ const options: { value: ViewMode; label: string; icon: typeof Users }[] = [
 
 export function ModeToggle() {
   const { mode, setMode } = useMode();
+  const pathname = usePathname();
+
+  if (pathname !== "/") return null;
 
   return (
     <div className="flex items-center gap-1 rounded-lg border p-0.5">

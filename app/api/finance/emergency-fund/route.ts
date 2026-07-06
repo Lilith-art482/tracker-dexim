@@ -5,8 +5,8 @@ import { getEmergencyFund, upsertEmergencyFund } from "@/lib/finance-models";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
-  const uid = auth.currentUser?.uid;
+export async function GET(request: NextRequest) {
+  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -20,12 +20,11 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const uid = auth.currentUser?.uid;
+  const body = await request.json();
+  const uid = auth.currentUser?.uid || body.userId;
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const body = await request.json();
 
   try {
     const fund = await upsertEmergencyFund(uid, {
@@ -40,12 +39,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const uid = auth.currentUser?.uid;
+  const body = await request.json();
+  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid") || body.userId;
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const body = await request.json();
   const { targetAmount, currentAmount } = body;
 
   if (targetAmount == null && currentAmount == null) {

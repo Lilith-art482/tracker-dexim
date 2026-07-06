@@ -326,7 +326,7 @@ export function FinanceTransactions() {
       const res = await fetch("/api/finance/transactions", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, userId: uid }),
       });
       if (res.ok) {
         setTransactions((prev) => prev.filter((t) => t.id !== id));
@@ -355,7 +355,7 @@ export function FinanceTransactions() {
                 fetch("/api/finance/transactions", {
                   method: "DELETE",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ id }),
+                  body: JSON.stringify({ id, userId: uid }),
                 }),
               ),
             );

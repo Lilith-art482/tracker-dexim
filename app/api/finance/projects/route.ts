@@ -10,8 +10,8 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
-  const uid = auth.currentUser?.uid;
+export async function GET(request: NextRequest) {
+  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -25,12 +25,11 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const uid = auth.currentUser?.uid;
+  const body = await request.json();
+  const uid = auth.currentUser?.uid || body.userId;
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const body = await request.json();
   const { name, icon, targetAmount, savedAmount, deadline, description, linkedCategoryIds, color } = body;
 
   if (!name || typeof targetAmount !== "number") {
@@ -61,7 +60,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const uid = auth.currentUser?.uid;
+  const body = await request.json();
+  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid") || body.userId;
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -72,8 +72,6 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  const body = await request.json();
-
   try {
     const updated = await updateProject(id, body);
     return NextResponse.json(updated);
@@ -83,7 +81,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const uid = auth.currentUser?.uid;
+  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
