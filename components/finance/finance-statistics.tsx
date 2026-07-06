@@ -138,7 +138,11 @@ function CategoryBarChart({
       ctx.font = "12px sans-serif";
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
-      ctx.fillText(`${Math.round(item.percentage)}%`, percentX, y + barHeight / 2);
+      ctx.fillText(
+        `${Math.round(item.percentage)}%`,
+        percentX,
+        y + barHeight / 2,
+      );
     });
   }, [data]);
 

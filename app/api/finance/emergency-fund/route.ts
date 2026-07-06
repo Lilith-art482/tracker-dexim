@@ -15,7 +15,10 @@ export async function GET(request: NextRequest) {
     const fund = await getEmergencyFund(uid);
     return NextResponse.json(fund);
   } catch {
-    return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
+    return NextResponse.json(
+      { error: "Database unavailable" },
+      { status: 503 },
+    );
   }
 }
 
@@ -34,13 +37,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(fund, { status: 201 });
   } catch (error) {
     console.error("Error upserting emergency fund:", error);
-    return NextResponse.json({ error: "Failed to save emergency fund" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to save emergency fund" },
+      { status: 500 },
+    );
   }
 }
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json();
-  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid") || body.userId;
+  const uid =
+    auth.currentUser?.uid ||
+    request.nextUrl.searchParams.get("uid") ||
+    body.userId;
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -59,6 +68,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json(fund);
   } catch (error) {
     console.error("Error updating emergency fund:", error);
-    return NextResponse.json({ error: "Failed to update emergency fund" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update emergency fund" },
+      { status: 500 },
+    );
   }
 }

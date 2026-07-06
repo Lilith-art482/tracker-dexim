@@ -187,7 +187,8 @@ export function FinanceLoans() {
           remainingAmount,
           interestRate,
           monthlyPayment,
-          nextPaymentDate: formStartDate || new Date().toISOString().split("T")[0],
+          nextPaymentDate:
+            formStartDate || new Date().toISOString().split("T")[0],
         });
         setLoans((prev) => [...prev, created]);
         toast.success("Готово", { id: toastId });

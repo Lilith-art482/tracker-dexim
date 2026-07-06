@@ -102,15 +102,22 @@ function formatDate(dateStr: string) {
   const d = new Date(dateStr);
   return isNaN(d.getTime())
     ? dateStr
-    : d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" });
+    : d.toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
 }
 
 function formatDateTime(dateStr: string) {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString("ru-RU", {
-    day: "numeric", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -228,8 +235,17 @@ export function FinanceTransactions() {
 
     return result;
   }, [
-    transactions, dateFilter, dateFrom, dateTo, typeFilter,
-    categoryFilter, accountFilter, searchQuery, tagsFilter, sortAsc, today,
+    transactions,
+    dateFilter,
+    dateFrom,
+    dateTo,
+    typeFilter,
+    categoryFilter,
+    accountFilter,
+    searchQuery,
+    tagsFilter,
+    sortAsc,
+    today,
   ]);
 
   const categoryMap = useMemo(() => {
@@ -270,7 +286,13 @@ export function FinanceTransactions() {
     setTagsFilter("");
   };
 
-  const hasActiveFilters = dateFilter !== "all" || typeFilter !== "all" || categoryFilter !== "all" || accountFilter !== "all" || searchQuery.trim() || tagsFilter.trim();
+  const hasActiveFilters =
+    dateFilter !== "all" ||
+    typeFilter !== "all" ||
+    categoryFilter !== "all" ||
+    accountFilter !== "all" ||
+    searchQuery.trim() ||
+    tagsFilter.trim();
 
   const resetForm = () => {
     setTxType("expense");
@@ -310,13 +332,15 @@ export function FinanceTransactions() {
     const isEdit = editTx && editOpen;
 
     const account = accounts.find((a) => a.id === txAccountId);
-    const desc = txDescription.trim() || (account
-      ? txType === "income"
-        ? `Пополнение — ${account.name}`
-        : txType === "expense"
-          ? `Списание — ${account.name}`
-          : `Перевод — ${account.name}`
-      : "");
+    const desc =
+      txDescription.trim() ||
+      (account
+        ? txType === "income"
+          ? `Пополнение — ${account.name}`
+          : txType === "expense"
+            ? `Списание — ${account.name}`
+            : `Перевод — ${account.name}`
+        : "");
 
     const dateValue = txDate.includes("T") ? txDate : txDate + "T12:00:00";
 
@@ -327,7 +351,9 @@ export function FinanceTransactions() {
           type: txType,
           categoryId:
             txCategoryId ||
-            (txType === "transfer" ? "fin-cat-9" : expenseCategories[0]?.id || ""),
+            (txType === "transfer"
+              ? "fin-cat-9"
+              : expenseCategories[0]?.id || ""),
           amount,
           description: desc,
           tags,
@@ -348,7 +374,9 @@ export function FinanceTransactions() {
           type: txType,
           categoryId:
             txCategoryId ||
-            (txType === "transfer" ? "fin-cat-9" : expenseCategories[0]?.id || ""),
+            (txType === "transfer"
+              ? "fin-cat-9"
+              : expenseCategories[0]?.id || ""),
           amount,
           description: desc,
           tags,
@@ -362,7 +390,11 @@ export function FinanceTransactions() {
                   ...a,
                   balance:
                     a.balance +
-                    (txType === "income" ? amount : txType === "expense" ? -amount : 0),
+                    (txType === "income"
+                      ? amount
+                      : txType === "expense"
+                        ? -amount
+                        : 0),
                 }
               : a,
           ),
@@ -392,7 +424,11 @@ export function FinanceTransactions() {
                   ...a,
                   balance:
                     a.balance -
-                    (tx!.type === "income" ? tx!.amount : tx!.type === "expense" ? -tx!.amount : 0),
+                    (tx!.type === "income"
+                      ? tx!.amount
+                      : tx!.type === "expense"
+                        ? -tx!.amount
+                        : 0),
                 }
               : a,
           ),
@@ -503,13 +539,29 @@ export function FinanceTransactions() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Журнал операций</h2>
         <div className="flex items-center gap-1.5">
-          <Button variant="ghost" size="icon-sm" onClick={handleExportCSV} title="CSV">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleExportCSV}
+            title="CSV"
+          >
             <Download className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon-sm" onClick={handleExportJSON} title="JSON">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleExportJSON}
+            title="JSON"
+          >
             <Download className="h-4 w-4" />
           </Button>
-          <Button size="sm" onClick={() => { resetForm(); setAddOpen(true); }}>
+          <Button
+            size="sm"
+            onClick={() => {
+              resetForm();
+              setAddOpen(true);
+            }}
+          >
             <Plus className="h-4 w-4 mr-1" />
             Добавить
           </Button>
@@ -520,7 +572,10 @@ export function FinanceTransactions() {
       <Card>
         <CardContent className="p-2.5">
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={dateFilter} onValueChange={(v) => v && setDateFilter(v as DateFilter)}>
+            <Select
+              value={dateFilter}
+              onValueChange={(v) => v && setDateFilter(v as DateFilter)}
+            >
               <SelectTrigger className="h-7 text-xs w-[130px]">
                 <Calendar className="h-3 w-3 mr-1 shrink-0" />
                 <SelectValue />
@@ -536,44 +591,76 @@ export function FinanceTransactions() {
 
             {dateFilter === "custom" && (
               <>
-                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-7 w-[130px] text-xs" />
-                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-7 w-[130px] text-xs" />
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="h-7 w-[130px] text-xs"
+                />
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="h-7 w-[130px] text-xs"
+                />
               </>
             )}
 
-            <Select value={typeFilter} onValueChange={(v) => { if (v) { setTypeFilter(v as TransactionType | "all"); setCategoryFilter("all"); } }}>
+            <Select
+              value={typeFilter}
+              onValueChange={(v) => {
+                if (v) {
+                  setTypeFilter(v as TransactionType | "all");
+                  setCategoryFilter("all");
+                }
+              }}
+            >
               <SelectTrigger className="h-7 text-xs w-[110px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {FILTER_TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
             {(typeFilter === "expense" || typeFilter === "income") && (
-              <Select value={categoryFilter} onValueChange={(v) => v && setCategoryFilter(v)}>
+              <Select
+                value={categoryFilter}
+                onValueChange={(v) => v && setCategoryFilter(v)}
+              >
                 <SelectTrigger className="h-7 text-xs w-[130px]">
                   <SelectValue placeholder="Категория" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все</SelectItem>
-                  {categories.filter((c) => c.type === typeFilter).map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
+                  {categories
+                    .filter((c) => c.type === typeFilter)
+                    .map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             )}
 
-            <Select value={accountFilter} onValueChange={(v) => v && setAccountFilter(v)}>
+            <Select
+              value={accountFilter}
+              onValueChange={(v) => v && setAccountFilter(v)}
+            >
               <SelectTrigger className="h-7 text-xs w-[130px]">
                 <SelectValue placeholder="Счёт" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все</SelectItem>
                 {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -593,7 +680,12 @@ export function FinanceTransactions() {
             />
 
             {hasActiveFilters && (
-              <Button variant="ghost" size="icon-sm" onClick={clearFilters} className="h-7 w-7">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={clearFilters}
+                className="h-7 w-7"
+              >
                 <X className="h-3 w-3" />
               </Button>
             )}
@@ -608,7 +700,9 @@ export function FinanceTransactions() {
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Filter className="h-10 w-10 mb-2 opacity-40" />
               <p className="text-sm">Операции не найдены</p>
-              <p className="text-xs mt-1">Попробуйте изменить фильтры или добавьте новую операцию</p>
+              <p className="text-xs mt-1">
+                Попробуйте изменить фильтры или добавьте новую операцию
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -695,7 +789,9 @@ export function FinanceTransactions() {
                               TYPE_BGS[tx.type],
                             )}
                           >
-                            <TypeIcon className={cn("h-3.5 w-3.5", typeColor)} />
+                            <TypeIcon
+                              className={cn("h-3.5 w-3.5", typeColor)}
+                            />
                           </div>
                         </td>
                         <td className="px-3 py-2.5 max-w-[200px] truncate font-medium">
@@ -812,11 +908,13 @@ export function FinanceTransactions() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {FILTER_TYPE_OPTIONS.filter((o) => o.value !== "all").map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
+                  {FILTER_TYPE_OPTIONS.filter((o) => o.value !== "all").map(
+                    (opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ),
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -899,13 +997,20 @@ export function FinanceTransactions() {
                         }
                       }}
                     >
-                      {newCatSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : "ОК"}
+                      {newCatSaving ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        "ОК"
+                      )}
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
                       className="h-9 w-9 shrink-0"
-                      onClick={() => { setNewCatOpen(false); setNewCatName(""); }}
+                      onClick={() => {
+                        setNewCatOpen(false);
+                        setNewCatName("");
+                      }}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -1019,11 +1124,13 @@ export function FinanceTransactions() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {FILTER_TYPE_OPTIONS.filter((o) => o.value !== "all").map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
+                  {FILTER_TYPE_OPTIONS.filter((o) => o.value !== "all").map(
+                    (opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ),
+                  )}
                 </SelectContent>
               </Select>
             </div>

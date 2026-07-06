@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
     const categories = await getCategoriesByUser(uid);
     return NextResponse.json(categories);
   } catch {
-    return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
+    return NextResponse.json(
+      { error: "Database unavailable" },
+      { status: 503 },
+    );
   }
 }
 
@@ -41,7 +44,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(category, { status: 201 });
   } catch (error) {
     console.error("Error creating category:", error);
-    return NextResponse.json({ error: "Failed to create category" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create category" },
+      { status: 500 },
+    );
   }
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   LayoutDashboard,
   Wallet,
@@ -24,8 +24,9 @@ import { FinanceStatistics } from "@/components/finance/finance-statistics";
 import { FinanceEmergencyFund } from "@/components/finance/finance-emergency-fund";
 import { FinanceSettings } from "@/components/finance/finance-settings";
 import { cn } from "@/lib/utils";
+import { getHiddenModules } from "@/lib/finance-visibility";
 
-const MODULES = [
+const ALL_MODULES = [
   { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
   { id: "accounts", label: "Счета", icon: Wallet },
   { id: "transactions", label: "Транзакции", icon: Receipt },
@@ -38,10 +39,32 @@ const MODULES = [
   { id: "settings", label: "Настройки", icon: Settings },
 ] as const;
 
-type ModuleId = (typeof MODULES)[number]["id"];
+type ModuleId = (typeof ALL_MODULES)[number]["id"];
 
 export default function FinancePage() {
   const [activeModule, setActiveModule] = useState<ModuleId>("dashboard");
+  const [hiddenModules, setHiddenModules] = useState<string[]>([]);
+
+  useEffect(() => {
+    setHiddenModules(getHiddenModules());
+  }, []);
+
+  const visibleModules = ALL_MODULES.filter(
+    (m) => m.id === "settings" || !hiddenModules.includes(m.id),
+  );
+
+  useEffect(() => {
+    if (hiddenModules.includes(activeModule)) {
+      setActiveModule("settings");
+    }
+  }, [hiddenModules, activeModule]);
+
+  const handleSave = useCallback(() => {
+    setHiddenModules(getHiddenModules());
+    if (getHiddenModules().includes(activeModule)) {
+      setActiveModule("settings");
+    }
+  }, [activeModule]);
 
   const renderModule = () => {
     switch (activeModule) {
@@ -64,7 +87,7 @@ export default function FinancePage() {
       case "emergency":
         return <FinanceEmergencyFund />;
       case "settings":
-        return <FinanceSettings />;
+        return <FinanceSettings onVisibilityChange={handleSave} />;
       default:
         return <FinanceDashboard />;
     }
@@ -73,14 +96,16 @@ export default function FinancePage() {
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Финансы</h1>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+          Финансы
+        </h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
           Управляйте своими финансами
         </p>
       </div>
 
       <div className="mb-6 flex gap-1 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-none">
-        {MODULES.map((mod) => (
+        {visibleModules.map((mod) => (
           <button
             key={mod.id}
             onClick={() => setActiveModule(mod.id)}

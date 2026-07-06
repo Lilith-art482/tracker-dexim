@@ -17,7 +17,11 @@ import {
   AlertTriangle,
   ChevronDown,
 } from "lucide-react";
-import type { FinanceGoal, FinanceAccount, GoalPriority } from "@/lib/finance-types";
+import type {
+  FinanceGoal,
+  FinanceAccount,
+  GoalPriority,
+} from "@/lib/finance-types";
 import {
   getGoalsByUser,
   createGoal,
@@ -67,8 +71,7 @@ function daysBetween(from: string, to: string): number {
 export function FinanceGoals() {
   const uid = auth.currentUser?.uid || "user-1";
   const [goals, setGoals] = useState<FinanceGoal[]>([]);
-  const [accounts, setAccounts] =
-    useState<FinanceAccount[]>([]);
+  const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<FinanceGoal | null>(null);

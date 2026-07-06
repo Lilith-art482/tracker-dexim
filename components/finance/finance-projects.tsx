@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, createElement } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  createElement,
+} from "react";
 import {
   Plus,
   Pencil,
@@ -87,8 +93,22 @@ const COLOR_OPTIONS = [
 ];
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  Laptop, PaintBucket, Plane, Heart, GraduationCap, Car, Home,
-  Smartphone, Shirt, Gift, Utensils, Cross, PiggyBank, Target, Wallet, MoreHorizontal,
+  Laptop,
+  PaintBucket,
+  Plane,
+  Heart,
+  GraduationCap,
+  Car,
+  Home,
+  Smartphone,
+  Shirt,
+  Gift,
+  Utensils,
+  Cross,
+  PiggyBank,
+  Target,
+  Wallet,
+  MoreHorizontal,
 };
 
 const COLOR_MAP: Record<string, string> = {
@@ -112,9 +132,13 @@ export function FinanceProjects() {
   const [projects, setProjects] = useState<FinanceProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [addFundsDialog, setAddFundsDialog] = useState<FinanceProject | null>(null);
+  const [addFundsDialog, setAddFundsDialog] = useState<FinanceProject | null>(
+    null,
+  );
   const [addFundsAmount, setAddFundsAmount] = useState("");
-  const [editingProject, setEditingProject] = useState<FinanceProject | null>(null);
+  const [editingProject, setEditingProject] = useState<FinanceProject | null>(
+    null,
+  );
 
   const [formName, setFormName] = useState("");
   const [formIcon, setFormIcon] = useState("Target");
@@ -222,7 +246,9 @@ export function FinanceProjects() {
       };
       try {
         const updated = await updateProject(editingProject.id, updates);
-        setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+        setProjects((prev) =>
+          prev.map((p) => (p.id === updated.id ? updated : p)),
+        );
         toast.success("Проект обновлён");
       } catch {
         toast.error("Ошибка при обновлении");
@@ -251,8 +277,16 @@ export function FinanceProjects() {
     }
     handleCloseDialog();
   }, [
-    formName, formIcon, formTarget, formSaved, formDeadline,
-    formDescription, formCategoryIds, formColor, editingProject, handleCloseDialog,
+    formName,
+    formIcon,
+    formTarget,
+    formSaved,
+    formDeadline,
+    formDescription,
+    formCategoryIds,
+    formColor,
+    editingProject,
+    handleCloseDialog,
   ]);
 
   const handleDelete = useCallback((project: FinanceProject) => {
@@ -277,7 +311,9 @@ export function FinanceProjects() {
     const completed = !project.completed;
     try {
       const updated = await updateProject(project.id, { completed });
-      setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      setProjects((prev) =>
+        prev.map((p) => (p.id === updated.id ? updated : p)),
+      );
       toast.success(completed ? "Проект завершён!" : "Проект восстановлен");
     } catch {
       toast.error("Ошибка при обновлении");
@@ -296,7 +332,9 @@ export function FinanceProjects() {
       const updated = await updateProject(addFundsDialog.id, {
         savedAmount: newSaved,
       });
-      setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      setProjects((prev) =>
+        prev.map((p) => (p.id === updated.id ? updated : p)),
+      );
       toast.success(`Добавлено ${amount.toLocaleString()} ₽`);
     } catch {
       toast.error("Ошибка при добавлении средств");
@@ -428,7 +466,10 @@ export function FinanceProjects() {
                     </div>
                     <Badge
                       variant="outline"
-                      className={cn("shrink-0 text-xs", getColorClass(project.color))}
+                      className={cn(
+                        "shrink-0 text-xs",
+                        getColorClass(project.color),
+                      )}
                     >
                       {progressPct}%
                     </Badge>
@@ -467,9 +508,7 @@ export function FinanceProjects() {
                   {project.linkedCategoryIds.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {project.linkedCategoryIds.map((catId) => {
-                        const cat = categories.find(
-                          (c) => c.id === catId,
-                        );
+                        const cat = categories.find((c) => c.id === catId);
                         if (!cat) return null;
                         return (
                           <Badge
@@ -487,9 +526,7 @@ export function FinanceProjects() {
                   {linkedExpenses.length > 0 && (
                     <div className="rounded-lg bg-amber-500/10 border border-amber-200 px-3 py-2 text-xs text-amber-700">
                       {linkedExpenses.map((e) => {
-                        const cat = categories.find(
-                          (c) => c.id === e.catId,
-                        );
+                        const cat = categories.find((c) => c.id === e.catId);
                         return (
                           <div key={e.catId}>
                             {`Расход в "${cat?.name || e.catId}": `}
@@ -621,10 +658,9 @@ export function FinanceProjects() {
                       <SelectItem key={opt.value} value={opt.value}>
                         <div className="flex items-center gap-2">
                           <span className="w-4 h-4 flex items-center justify-center">
-                            {createElement(
-                              ICON_MAP[opt.value] || Circle,
-                              { className: "h-4 w-4" },
-                            )}
+                            {createElement(ICON_MAP[opt.value] || Circle, {
+                              className: "h-4 w-4",
+                            })}
                           </span>
                           {opt.label}
                         </div>
@@ -703,9 +739,7 @@ export function FinanceProjects() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Связанные категории
-              </label>
+              <label className="text-sm font-medium">Связанные категории</label>
               <div className="flex flex-wrap gap-2">
                 {categories
                   .filter((c) => c.type === "expense")

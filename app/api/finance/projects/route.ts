@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
     const projects = await getProjectsByUser(uid);
     return NextResponse.json(projects);
   } catch {
-    return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
+    return NextResponse.json(
+      { error: "Database unavailable" },
+      { status: 503 },
+    );
   }
 }
 
@@ -36,7 +39,16 @@ export async function POST(request: NextRequest) {
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const { name, icon, targetAmount, savedAmount, deadline, description, linkedCategoryIds, color } = body;
+  const {
+    name,
+    icon,
+    targetAmount,
+    savedAmount,
+    deadline,
+    description,
+    linkedCategoryIds,
+    color,
+  } = body;
 
   if (!name || typeof targetAmount !== "number") {
     return NextResponse.json(
@@ -61,13 +73,19 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json(project);
   } catch {
-    return NextResponse.json({ error: "Failed to create project" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create project" },
+      { status: 500 },
+    );
   }
 }
 
 export async function PUT(request: NextRequest) {
   const body = await request.json();
-  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid") || body.userId;
+  const uid =
+    auth.currentUser?.uid ||
+    request.nextUrl.searchParams.get("uid") ||
+    body.userId;
   if (!uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

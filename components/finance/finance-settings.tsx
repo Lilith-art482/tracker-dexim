@@ -94,6 +94,7 @@ import {
   Soup,
   Cookie,
   CupSoda,
+  EyeOff,
 } from "lucide-react";
 import type { TransactionCategory, FinanceAccount } from "@/lib/finance-types";
 import { CURRENCIES } from "@/lib/finance-types";
@@ -125,6 +126,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { HideModulesDialog } from "@/components/finance/hide-modules-dialog";
 
 const COLORS = [
   { value: "red", bg: "bg-red-500", label: "Красный" },
@@ -145,7 +147,11 @@ const COLORS = [
   { value: "slate", bg: "bg-slate-500", label: "Серый" },
 ];
 
-const ICON_OPTIONS: { value: string; label: string; icon: React.ElementType }[] = [
+const ICON_OPTIONS: {
+  value: string;
+  label: string;
+  icon: React.ElementType;
+}[] = [
   // Еда и напитки
   { value: "Utensils", label: "Еда", icon: Utensils },
   { value: "Coffee", label: "Кофе", icon: Coffee },
@@ -244,12 +250,19 @@ const ICON_OPTIONS: { value: string; label: string; icon: React.ElementType }[] 
 
 const FIAT_CURRENCIES = CURRENCIES.filter((c) => c.type === "fiat");
 
-export function FinanceSettings() {
+interface Props {
+  onVisibilityChange?: () => void;
+}
+
+export function FinanceSettings({ onVisibilityChange }: Props) {
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
-  const [editingCat, setEditingCat] = useState<TransactionCategory | null>(null);
+  const [showHideDialog, setShowHideDialog] = useState(false);
+  const [editingCat, setEditingCat] = useState<TransactionCategory | null>(
+    null,
+  );
   const [defaultAccount, setDefaultAccount] = useState("");
   const [currency, setCurrency] = useState("RUB");
   const [name, setName] = useState("");
@@ -261,14 +274,13 @@ export function FinanceSettings() {
   useEffect(() => {
     setDefaultAccount(localStorage.getItem("finance_default_account") || "");
     setCurrency(localStorage.getItem("finance_currency") || "RUB");
-    Promise.all([
-      getCategoriesByUser(uid),
-      getAccountsByUser(uid),
-    ]).then(([cats, accts]) => {
-      setCategories(cats);
-      setAccounts(accts);
-      setLoading(false);
-    });
+    Promise.all([getCategoriesByUser(uid), getAccountsByUser(uid)]).then(
+      ([cats, accts]) => {
+        setCategories(cats);
+        setAccounts(accts);
+        setLoading(false);
+      },
+    );
   }, [uid]);
 
   const saveCurrency = useCallback((val: string) => {
@@ -349,7 +361,11 @@ export function FinanceSettings() {
   }, []);
 
   const exportAll = useCallback(() => {
-    const data = JSON.stringify({ categories, accounts, currency, defaultAccount }, null, 2);
+    const data = JSON.stringify(
+      { categories, accounts, currency, defaultAccount },
+      null,
+      2,
+    );
     const blob = new Blob([data], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -426,7 +442,10 @@ export function FinanceSettings() {
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             <label className="text-sm font-medium sm:w-36">Валюта</label>
-            <Select value={currency} onValueChange={(v) => v && saveCurrency(v)}>
+            <Select
+              value={currency}
+              onValueChange={(v) => v && saveCurrency(v)}
+            >
               <SelectTrigger className="w-full sm:w-40">
                 <SelectValue />
               </SelectTrigger>
@@ -440,8 +459,13 @@ export function FinanceSettings() {
             </Select>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-            <label className="text-sm font-medium sm:w-36">Счёт по умолчанию</label>
-            <Select value={defaultAccount} onValueChange={(v) => v && saveDefaultAccount(v)}>
+            <label className="text-sm font-medium sm:w-36">
+              Счёт по умолчанию
+            </label>
+            <Select
+              value={defaultAccount}
+              onValueChange={(v) => v && saveDefaultAccount(v)}
+            >
               <SelectTrigger className="w-full sm:w-60">
                 <SelectValue placeholder="Не выбран" />
               </SelectTrigger>
@@ -479,13 +503,22 @@ export function FinanceSettings() {
                   className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-muted/50 transition-colors border border-border/40"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", colorInfo?.bg || "bg-gray-500")}>
-                      <span className="text-white">{renderIcon(cat.icon, "h-4 w-4")}</span>
+                    <div
+                      className={cn(
+                        "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                        colorInfo?.bg || "bg-gray-500",
+                      )}
+                    >
+                      <span className="text-white">
+                        {renderIcon(cat.icon, "h-4 w-4")}
+                      </span>
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{cat.name}</p>
                       <Badge
-                        variant={cat.type === "income" ? "default" : "secondary"}
+                        variant={
+                          cat.type === "income" ? "default" : "secondary"
+                        }
                         className="text-[10px] px-1.5 py-0 h-4 mt-0.5"
                       >
                         {cat.type === "income" ? "доход" : "расход"}
@@ -514,6 +547,30 @@ export function FinanceSettings() {
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Скрыть пункты */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <EyeOff className="h-4 w-4" />
+            Скрыть пункты
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-3">
+            Отключите ненужные разделы, чтобы они не отображались в навигации.
+            Настройки всегда видны.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowHideDialog(true)}
+          >
+            <EyeOff className="h-3.5 w-3.5 mr-1.5" />
+            Настроить видимость
+          </Button>
         </CardContent>
       </Card>
 
@@ -548,6 +605,13 @@ export function FinanceSettings() {
         </CardContent>
       </Card>
 
+      {/* Диалог скрытия пунктов */}
+      <HideModulesDialog
+        open={showHideDialog}
+        onOpenChange={setShowHideDialog}
+        onSave={() => onVisibilityChange?.()}
+      />
+
       {/* Диалог категории */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
@@ -569,7 +633,9 @@ export function FinanceSettings() {
               <label className="text-sm font-medium mb-1 block">Тип</label>
               <Select
                 value={catType}
-                onValueChange={(v) => v && setCatType(v as "income" | "expense")}
+                onValueChange={(v) =>
+                  v && setCatType(v as "income" | "expense")
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -590,7 +656,8 @@ export function FinanceSettings() {
                     className={cn(
                       "h-7 w-7 rounded-full transition-all",
                       c.bg,
-                      color === c.value && "ring-2 ring-offset-2 ring-foreground",
+                      color === c.value &&
+                        "ring-2 ring-offset-2 ring-foreground",
                     )}
                     onClick={() => setColor(c.value)}
                   />
