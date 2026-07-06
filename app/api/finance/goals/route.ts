@@ -10,6 +10,12 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+function genId(): string {
+  return typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export async function GET(request: NextRequest) {
   const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
   if (!uid) {
@@ -33,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const goal = await createGoal({
-      id: body.id || crypto.randomUUID(),
+      id: body.id || genId(),
       userId: uid,
       name: body.name,
       targetAmount: body.targetAmount,
