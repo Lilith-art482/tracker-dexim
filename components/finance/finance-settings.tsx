@@ -11,7 +11,6 @@ import {
   Download,
   Upload,
   AlertTriangle,
-  RefreshCw,
   Globe,
   Wallet,
   ShoppingCart,
@@ -26,6 +25,20 @@ import {
   MoreHorizontal,
   DollarSign,
   PiggyBank,
+  Coffee,
+  Zap,
+  Wifi,
+  Shirt,
+  Dumbbell,
+  BookOpen,
+  Music,
+  Film,
+  Cat,
+  Dog,
+  Sun,
+  Moon,
+  Cloud,
+  Star,
 } from "lucide-react";
 import type { TransactionCategory, FinanceAccount } from "@/lib/finance-types";
 import {
@@ -58,27 +71,52 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const COLORS = [
-  { value: "red", bg: "bg-red-500" },
-  { value: "blue", bg: "bg-blue-500" },
-  { value: "green", bg: "bg-green-500" },
-  { value: "yellow", bg: "bg-yellow-500" },
-  { value: "purple", bg: "bg-purple-500" },
-  { value: "pink", bg: "bg-pink-500" },
-  { value: "orange", bg: "bg-orange-500" },
-  { value: "teal", bg: "bg-teal-500" },
+  { value: "red", bg: "bg-red-500", label: "Красный" },
+  { value: "blue", bg: "bg-blue-500", label: "Синий" },
+  { value: "green", bg: "bg-green-500", label: "Зелёный" },
+  { value: "yellow", bg: "bg-yellow-500", label: "Жёлтый" },
+  { value: "purple", bg: "bg-purple-500", label: "Фиолетовый" },
+  { value: "pink", bg: "bg-pink-500", label: "Розовый" },
+  { value: "orange", bg: "bg-orange-500", label: "Оранжевый" },
+  { value: "teal", bg: "bg-teal-500", label: "Бирюзовый" },
+  { value: "indigo", bg: "bg-indigo-500", label: "Индиго" },
+  { value: "cyan", bg: "bg-cyan-500", label: "Голубой" },
+  { value: "lime", bg: "bg-lime-500", label: "Лаймовый" },
+  { value: "amber", bg: "bg-amber-500", label: "Янтарный" },
+  { value: "violet", bg: "bg-violet-500", label: "Сиреневый" },
+  { value: "rose", bg: "bg-rose-500", label: "Розовый" },
+  { value: "fuchsia", bg: "bg-fuchsia-500", label: "Фуксия" },
+  { value: "slate", bg: "bg-slate-500", label: "Серый" },
 ];
 
-const ICON_OPTIONS = [
-  "ShoppingCart",
-  "Home",
-  "Car",
-  "Heart",
-  "GraduationCap",
-  "Plane",
-  "Smartphone",
-  "Gift",
-  "Utensils",
-  "MoreHorizontal",
+const ICON_OPTIONS: { value: string; label: string; icon: React.ElementType }[] = [
+  { value: "ShoppingCart", label: "Покупки", icon: ShoppingCart },
+  { value: "Home", label: "Дом", icon: Home },
+  { value: "Car", label: "Машина", icon: Car },
+  { value: "Heart", label: "Здоровье", icon: Heart },
+  { value: "GraduationCap", label: "Образование", icon: GraduationCap },
+  { value: "Plane", label: "Путешествия", icon: Plane },
+  { value: "Smartphone", label: "Телефон", icon: Smartphone },
+  { value: "Gift", label: "Подарки", icon: Gift },
+  { value: "Utensils", label: "Еда", icon: Utensils },
+  { value: "Coffee", label: "Кофе", icon: Coffee },
+  { value: "Zap", label: "Электричество", icon: Zap },
+  { value: "Wifi", label: "Интернет", icon: Wifi },
+  { value: "Shirt", label: "Одежда", icon: Shirt },
+  { value: "Dumbbell", label: "Спорт", icon: Dumbbell },
+  { value: "BookOpen", label: "Книги", icon: BookOpen },
+  { value: "Music", label: "Музыка", icon: Music },
+  { value: "Film", label: "Кино", icon: Film },
+  { value: "Cat", label: "Питомцы", icon: Cat },
+  { value: "Dog", label: "Собака", icon: Dog },
+  { value: "Sun", label: "Солнце", icon: Sun },
+  { value: "Moon", label: "Луна", icon: Moon },
+  { value: "Cloud", label: "Облако", icon: Cloud },
+  { value: "Star", label: "Звезда", icon: Star },
+  { value: "DollarSign", label: "Зарплата", icon: DollarSign },
+  { value: "PiggyBank", label: "Копилка", icon: PiggyBank },
+  { value: "Wallet", label: "Кошелёк", icon: Wallet },
+  { value: "MoreHorizontal", label: "Другое", icon: MoreHorizontal },
 ];
 
 const CURRENCIES = ["RUB", "USD", "EUR", "KZT"];
@@ -237,6 +275,13 @@ export function FinanceSettings() {
     });
   }, []);
 
+  const renderIcon = (iconName: string, className = "h-4 w-4") => {
+    const opt = ICON_OPTIONS.find((i) => i.value === iconName);
+    if (!opt) return <MoreHorizontal className={className} />;
+    const Icon = opt.icon;
+    return <Icon className={className} />;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -246,7 +291,8 @@ export function FinanceSettings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Основные настройки */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -255,10 +301,10 @@ export function FinanceSettings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium w-32">Валюта</label>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <label className="text-sm font-medium sm:w-36">Валюта</label>
             <Select value={currency} onValueChange={(v) => v && saveCurrency(v)}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full sm:w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -270,10 +316,10 @@ export function FinanceSettings() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium w-32">Счёт по умолчанию</label>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <label className="text-sm font-medium sm:w-36">Счёт по умолчанию</label>
             <Select value={defaultAccount} onValueChange={(v) => v && saveDefaultAccount(v)}>
-              <SelectTrigger className="w-60">
+              <SelectTrigger className="w-full sm:w-60">
                 <SelectValue placeholder="Не выбран" />
               </SelectTrigger>
               <SelectContent>
@@ -288,6 +334,7 @@ export function FinanceSettings() {
         </CardContent>
       </Card>
 
+      {/* Категории */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -300,51 +347,54 @@ export function FinanceSettings() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="space-y-1">
-            {categories.map((cat) => (
-              <div
-                key={cat.id}
-                className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      "h-3 w-3 rounded-full",
-                      COLORS.find((c) => c.value === cat.color)?.bg,
-                    )}
-                  />
-                  <Badge
-                    variant={cat.type === "income" ? "default" : "secondary"}
-                    className="text-[10px] px-1.5 py-0 h-4"
-                  >
-                    {cat.type === "income" ? "доход" : "расход"}
-                  </Badge>
-                  <span className="text-sm">{cat.name}</span>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {categories.map((cat) => {
+              const colorInfo = COLORS.find((c) => c.value === cat.color);
+              return (
+                <div
+                  key={cat.id}
+                  className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-muted/50 transition-colors border border-border/40"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", colorInfo?.bg || "bg-gray-500")}>
+                      <span className="text-white">{renderIcon(cat.icon, "h-4 w-4")}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{cat.name}</p>
+                      <Badge
+                        variant={cat.type === "income" ? "default" : "secondary"}
+                        className="text-[10px] px-1.5 py-0 h-4 mt-0.5"
+                      >
+                        {cat.type === "income" ? "доход" : "расход"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => openEdit(cat)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive"
+                      onClick={() => handleDeleteCategory(cat.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => openEdit(cat)}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive"
-                    onClick={() => handleDeleteCategory(cat.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
+      {/* Управление данными */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -375,6 +425,7 @@ export function FinanceSettings() {
         </CardContent>
       </Card>
 
+      {/* Диалог категории */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
           <DialogHeader>
@@ -408,10 +459,11 @@ export function FinanceSettings() {
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block">Цвет</label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {COLORS.map((c) => (
                   <button
                     key={c.value}
+                    title={c.label}
                     className={cn(
                       "h-7 w-7 rounded-full transition-all",
                       c.bg,
@@ -424,18 +476,25 @@ export function FinanceSettings() {
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block">Иконка</label>
-              <Select value={icon} onValueChange={(v) => v && setIcon(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ICON_OPTIONS.map((ic) => (
-                    <SelectItem key={ic} value={ic}>
-                      {ic}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-4 gap-1.5 max-h-[200px] overflow-y-auto">
+                {ICON_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    className={cn(
+                      "flex flex-col items-center gap-1 rounded-lg border p-2 transition-colors",
+                      icon === opt.value
+                        ? "border-primary bg-primary/10"
+                        : "border-input hover:bg-muted",
+                    )}
+                    onClick={() => setIcon(opt.value)}
+                  >
+                    <opt.icon className="h-5 w-5" />
+                    <span className="text-[9px] text-muted-foreground text-center leading-tight">
+                      {opt.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
