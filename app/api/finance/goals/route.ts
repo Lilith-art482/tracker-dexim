@@ -7,7 +7,8 @@ import {
   updateGoal,
   deleteGoal,
 } from "@/lib/finance-models";
-import { mockFinanceGoals } from "@/lib/finance-mock";
+import { mockStore } from "@/lib/finance-mock-store";
+import type { FinanceGoal } from "@/lib/finance-types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,13 +19,15 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const goals = await getGoalsByUser(uid);
-    return NextResponse.json(goals);
-  } catch {
-    const filtered = mockFinanceGoals.filter((g) => g.userId === uid);
-    return NextResponse.json(filtered);
+  if (await isDatabaseAvailable()) {
+    try {
+      const goals = await getGoalsByUser(uid);
+      return NextResponse.json(goals);
+    } catch {}
   }
+
+  const filtered = mockStore.goals.filter((g) => g.userId === uid);
+  return NextResponse.json(filtered);
 }
 
 export async function POST(request: NextRequest) {
@@ -33,36 +36,44 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const dbAvailable = await isDatabaseAvailable();
-  if (!dbAvailable) {
-    return NextResponse.json(
-      { error: "Database unavailable" },
-      { status: 503 },
-    );
+  const body = await request.json();
+
+  if (await isDatabaseAvailable()) {
+    try {
+      const goal = await createGoal({
+        id: body.id || crypto.randomUUID(),
+        userId: uid,
+        name: body.name,
+        targetAmount: body.targetAmount,
+        currentAmount: body.currentAmount,
+        deadline: body.deadline,
+        priority: body.priority,
+        accountId: body.accountId,
+        autoDepositPercent: body.autoDepositPercent,
+        completed: false,
+      });
+      return NextResponse.json(goal, { status: 201 });
+    } catch (error) {
+      console.error("Error creating goal:", error);
+    }
   }
 
-  try {
-    const body = await request.json();
-    const goal = await createGoal({
-      id: body.id || crypto.randomUUID(),
-      userId: uid,
-      name: body.name,
-      targetAmount: body.targetAmount,
-      currentAmount: body.currentAmount,
-      deadline: body.deadline,
-      priority: body.priority,
-      accountId: body.accountId,
-      autoDepositPercent: body.autoDepositPercent,
-      completed: false,
-    });
-    return NextResponse.json(goal, { status: 201 });
-  } catch (error) {
-    console.error("Error creating goal:", error);
-    return NextResponse.json(
-      { error: "Failed to create goal" },
-      { status: 500 },
-    );
-  }
+  const goal: FinanceGoal = {
+    id: body.id || crypto.randomUUID(),
+    userId: uid,
+    name: body.name,
+    targetAmount: body.targetAmount,
+    currentAmount: body.currentAmount,
+    deadline: body.deadline,
+    priority: body.priority,
+    accountId: body.accountId,
+    autoDepositPercent: body.autoDepositPercent,
+    completed: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  mockStore.goals.push(goal);
+  return NextResponse.json(goal, { status: 201 });
 }
 
 export async function PATCH(request: NextRequest) {
@@ -71,29 +82,33 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const dbAvailable = await isDatabaseAvailable();
-  if (!dbAvailable) {
-    return NextResponse.json(
-      { error: "Database unavailable" },
-      { status: 503 },
-    );
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  try {
-    const body = await request.json();
-    const { id, ...fields } = body;
-    if (!id) {
-      return NextResponse.json({ error: "id is required" }, { status: 400 });
+  const body = await request.json();
+
+  if (await isDatabaseAvailable()) {
+    try {
+      const updated = await updateGoal(id, body);
+      return NextResponse.json(updated);
+    } catch {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    const goal = await updateGoal(id, fields);
-    return NextResponse.json(goal);
-  } catch (error) {
-    console.error("Error updating goal:", error);
-    return NextResponse.json(
-      { error: "Failed to update goal" },
-      { status: 500 },
-    );
   }
+
+  const idx = mockStore.goals.findIndex((g) => g.id === id);
+  if (idx === -1) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  mockStore.goals[idx] = {
+    ...mockStore.goals[idx],
+    ...body,
+    updatedAt: new Date().toISOString(),
+  };
+  return NextResponse.json(mockStore.goals[idx]);
 }
 
 export async function DELETE(request: NextRequest) {
@@ -102,26 +117,25 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const dbAvailable = await isDatabaseAvailable();
-  if (!dbAvailable) {
-    return NextResponse.json(
-      { error: "Database unavailable" },
-      { status: 503 },
-    );
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  try {
-    const body = await request.json();
-    if (!body.id) {
-      return NextResponse.json({ error: "id is required" }, { status: 400 });
+  if (await isDatabaseAvailable()) {
+    try {
+      await deleteGoal(id);
+      return NextResponse.json({ success: true });
+    } catch {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    await deleteGoal(body.id);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting goal:", error);
-    return NextResponse.json(
-      { error: "Failed to delete goal" },
-      { status: 500 },
-    );
   }
+
+  const idx = mockStore.goals.findIndex((g) => g.id === id);
+  if (idx === -1) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  mockStore.goals.splice(idx, 1);
+  return NextResponse.json({ success: true });
 }

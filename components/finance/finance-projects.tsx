@@ -24,9 +24,12 @@ import {
   MoreHorizontal,
   Circle,
   Wallet,
+  Loader2,
 } from "lucide-react";
 
+import type { FinanceProject, TransactionCategory } from "@/lib/finance-types";
 import { mockFinanceCategories, mockFinanceTransactions } from "@/lib/finance-mock";
+import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,46 +51,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-interface FinanceProject {
-  id: string;
-  name: string;
-  icon: string;
-  targetAmount: number;
-  savedAmount: number;
-  deadline: string;
-  description: string;
-  linkedCategoryIds: string[];
-  color: string;
-  completed: boolean;
-}
-
-const DEFAULT_PROJECTS: FinanceProject[] = [
-  {
-    id: "p1",
-    name: "Ремонт",
-    icon: "PaintBucket",
-    targetAmount: 300000,
-    savedAmount: 50000,
-    deadline: "2026-12-31",
-    description: "Косметический ремонт квартиры",
-    linkedCategoryIds: ["fin-cat-3"],
-    color: "blue",
-    completed: false,
-  },
-  {
-    id: "p2",
-    name: "Новый MacBook",
-    icon: "Laptop",
-    targetAmount: 250000,
-    savedAmount: 100000,
-    deadline: "2026-09-01",
-    description: "MacBook Pro M4",
-    linkedCategoryIds: ["fin-cat-7"],
-    color: "purple",
-    completed: false,
-  },
-];
 
 const ICON_OPTIONS = [
   { value: "Laptop", label: "Ноутбук" },
@@ -118,22 +81,8 @@ const COLOR_OPTIONS = [
 ];
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  Laptop,
-  PaintBucket,
-  Plane,
-  Heart,
-  GraduationCap,
-  Car,
-  Home,
-  Smartphone,
-  Shirt,
-  Gift,
-  Utensils,
-  Cross,
-  PiggyBank,
-  Target,
-  Wallet,
-  MoreHorizontal,
+  Laptop, PaintBucket, Plane, Heart, GraduationCap, Car, Home,
+  Smartphone, Shirt, Gift, Utensils, Cross, PiggyBank, Target, Wallet, MoreHorizontal,
 };
 
 const COLOR_MAP: Record<string, string> = {
@@ -145,16 +94,6 @@ const COLOR_MAP: Record<string, string> = {
   pink: "text-pink-500 border-pink-200 bg-pink-500/10",
 };
 
-const STORAGE_KEY = "finance-projects";
-
-function saveProjects(projects: FinanceProject[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-  } catch {
-  }
-}
-
 function getIconComponent(iconName: string) {
   return ICON_MAP[iconName] || Circle;
 }
@@ -163,24 +102,9 @@ function getColorClass(color: string) {
   return COLOR_MAP[color] || COLOR_MAP.blue;
 }
 
-function generateId(): string {
-  return "p-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
-}
-
 export function FinanceProjects() {
-  const [projects, setProjects] = useState<FinanceProject[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch {}
-    }
-    return DEFAULT_PROJECTS;
-  });
-
+  const [projects, setProjects] = useState<FinanceProject[]>([]);
+  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addFundsDialog, setAddFundsDialog] = useState<FinanceProject | null>(null);
   const [addFundsAmount, setAddFundsAmount] = useState("");
@@ -196,8 +120,18 @@ export function FinanceProjects() {
   const [formColor, setFormColor] = useState("blue");
 
   useEffect(() => {
-    saveProjects(projects);
-  }, [projects]);
+    const uid = auth.currentUser?.uid;
+    fetch("/api/finance/projects")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        setProjects(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setProjects([]);
+        setLoading(false);
+      });
+  }, []);
 
   const resetForm = useCallback(() => {
     setFormName("");
@@ -253,8 +187,8 @@ export function FinanceProjects() {
     setFormIcon(project.icon);
     setFormTarget(String(project.targetAmount));
     setFormSaved(String(project.savedAmount));
-    setFormDeadline(project.deadline);
-    setFormDescription(project.description);
+    setFormDeadline(project.deadline || "");
+    setFormDescription(project.description || "");
     setFormCategoryIds(project.linkedCategoryIds);
     setFormColor(project.color);
     setDialogOpen(true);
@@ -266,7 +200,7 @@ export function FinanceProjects() {
     setEditingProject(null);
   }, [resetForm]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!formName.trim() || !formTarget) {
       toast.error("Заполните обязательные поля");
       return;
@@ -278,93 +212,104 @@ export function FinanceProjects() {
       return;
     }
 
+    const body = {
+      name: formName.trim(),
+      icon: formIcon,
+      targetAmount,
+      savedAmount,
+      deadline: formDeadline,
+      description: formDescription,
+      linkedCategoryIds: formCategoryIds,
+      color: formColor,
+    };
+
     if (editingProject) {
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === editingProject.id
-            ? {
-                ...p,
-                name: formName.trim(),
-                icon: formIcon,
-                targetAmount,
-                savedAmount,
-                deadline: formDeadline,
-                description: formDescription,
-                linkedCategoryIds: formCategoryIds,
-                color: formColor,
-              }
-            : p,
-        ),
-      );
-      toast.success("Проект обновлён");
+      const res = await fetch(`/api/finance/projects?id=${editingProject.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+        toast.success("Проект обновлён");
+      } else {
+        toast.error("Ошибка при обновлении");
+      }
     } else {
-      const newProject: FinanceProject = {
-        id: generateId(),
-        name: formName.trim(),
-        icon: formIcon,
-        targetAmount,
-        savedAmount,
-        deadline: formDeadline,
-        description: formDescription,
-        linkedCategoryIds: formCategoryIds,
-        color: formColor,
-        completed: false,
-      };
-      setProjects((prev) => [...prev, newProject]);
-      toast.success("Проект создан");
+      const res = await fetch("/api/finance/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setProjects((prev) => [...prev, created]);
+        toast.success("Проект создан");
+      } else {
+        toast.error("Ошибка при создании");
+      }
     }
     handleCloseDialog();
   }, [
-    formName,
-    formIcon,
-    formTarget,
-    formSaved,
-    formDeadline,
-    formDescription,
-    formCategoryIds,
-    formColor,
-    editingProject,
-    handleCloseDialog,
+    formName, formIcon, formTarget, formSaved, formDeadline,
+    formDescription, formCategoryIds, formColor, editingProject, handleCloseDialog,
   ]);
 
   const handleDelete = useCallback((project: FinanceProject) => {
     toast("Удалить проект?", {
       action: {
         label: "Удалить",
-        onClick: () => {
-          setProjects((prev) => prev.filter((p) => p.id !== project.id));
-          toast.success("Проект удалён");
+        onClick: async () => {
+          const res = await fetch(`/api/finance/projects?id=${project.id}`, {
+            method: "DELETE",
+          });
+          if (res.ok) {
+            setProjects((prev) => prev.filter((p) => p.id !== project.id));
+            toast.success("Проект удалён");
+          } else {
+            toast.error("Ошибка при удалении");
+          }
         },
       },
       cancel: { label: "Отмена", onClick: () => {} },
     });
   }, []);
 
-  const handleToggleComplete = useCallback((project: FinanceProject) => {
+  const handleToggleComplete = useCallback(async (project: FinanceProject) => {
     const completed = !project.completed;
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === project.id ? { ...p, completed } : p,
-      ),
-    );
-    toast.success(completed ? "Проект завершён!" : "Проект восстановлен");
+    const res = await fetch(`/api/finance/projects?id=${project.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      toast.success(completed ? "Проект завершён!" : "Проект восстановлен");
+    }
   }, []);
 
-  const handleAddFunds = useCallback(() => {
+  const handleAddFunds = useCallback(async () => {
     if (!addFundsDialog) return;
     const amount = Number(addFundsAmount);
     if (!amount || amount <= 0) {
       toast.error("Введите сумму больше 0");
       return;
     }
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === addFundsDialog.id
-          ? { ...p, savedAmount: p.savedAmount + amount }
-          : p,
-      ),
-    );
-    toast.success(`Добавлено ${amount.toLocaleString()} ₽`);
+    const newSaved = addFundsDialog.savedAmount + amount;
+    const res = await fetch(`/api/finance/projects?id=${addFundsDialog.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ savedAmount: newSaved }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      toast.success(`Добавлено ${amount.toLocaleString()} ₽`);
+    } else {
+      toast.error("Ошибка при добавлении средств");
+    }
     setAddFundsDialog(null);
     setAddFundsAmount("");
   }, [addFundsDialog, addFundsAmount]);
@@ -377,16 +322,16 @@ export function FinanceProjects() {
     );
   }, []);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="text-xs text-muted-foreground">
-            Данные сохраняются локально
-          </p>
-        </div>
-      </div>
-
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -557,8 +502,7 @@ export function FinanceProjects() {
                         return (
                           <div key={e.catId}>
                             {`Расход в "${cat?.name || e.catId}": `}
-                            {e.amount.toLocaleString()} ₽ за 30 дн. — можно
-                            вычесть из проекта
+                            {e.amount.toLocaleString()} ₽ за 30 дн.
                           </div>
                         );
                       })}
@@ -794,8 +738,7 @@ export function FinanceProjects() {
                   })}
               </div>
               <p className="text-xs text-muted-foreground">
-                Расходы в выбранных категориях будут предлагаться для вычета из
-                проекта
+                Расходы в выбранных категориях будут отслеживаться
               </p>
             </div>
           </div>

@@ -1,20 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Wallet,
   TrendingUp,
   TrendingDown,
   PiggyBank,
-  Plus,
-  ArrowRightLeft,
-  Receipt,
   Target,
-  Landmark,
   AlertTriangle,
   Loader2,
-  Pencil,
-  Trash2,
+  CalendarArrowUp,
+  Plus,
+  ArrowRightLeft,
+  Landmark,
+  RefreshCw,
 } from "lucide-react";
 import type {
   FinanceAccount,
@@ -23,7 +22,6 @@ import type {
   EmergencyFund,
   BudgetPlan,
 } from "@/lib/finance-types";
-import { mockFinanceAccounts } from "@/lib/finance-mock";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,13 +54,58 @@ const CATEGORY_NAMES: Record<string, string> = {
   "fin-cat-10": "Фриланс",
 };
 
-function LineChart({
-  data,
-  color = "#4E6E62",
-}: {
-  data: { date: string; value: number }[];
-  color?: string;
-}) {
+type Period = "week" | "month" | "quarter" | "halfyear" | "year" | "custom";
+
+const PERIOD_LABELS: Record<Period, string> = {
+  week: "Неделя",
+  month: "Месяц",
+  quarter: "Квартал",
+  halfyear: "Полгода",
+  year: "Год",
+  custom: "Свой",
+};
+
+function getPeriodRange(period: Period): { start: string; end: string; label: string } {
+  const now = new Date();
+  const end = now.toISOString().split("T")[0];
+  let start: Date;
+
+  switch (period) {
+    case "week":
+      start = new Date(now);
+      start.setDate(now.getDate() - 7);
+      break;
+    case "month":
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+    case "quarter":
+      start = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      break;
+    case "halfyear":
+      start = new Date(now.getFullYear(), Math.floor(now.getMonth() / 6) * 6, 1);
+      break;
+    case "year":
+      start = new Date(now.getFullYear(), 0, 1);
+      break;
+    default:
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  return { start: start.toISOString().split("T")[0], end, label: PERIOD_LABELS[period] };
+}
+
+function getDaysInRange(start: string, end: string): string[] {
+  const days: string[] = [];
+  const current = new Date(start + "T00:00:00Z");
+  const last = new Date(end + "T00:00:00Z");
+  while (current <= last) {
+    days.push(current.toISOString().split("T")[0]);
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+  return days;
+}
+
+function LineChart({ data, color = "#4E6E62" }: { data: { date: string; value: number }[]; color?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -100,9 +143,7 @@ function LineChart({
     ctx.lineWidth = 2;
     ctx.lineJoin = "round";
     ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
-    }
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
     ctx.stroke();
 
     ctx.fillStyle = color + "15";
@@ -141,15 +182,22 @@ function LineChart({
 }
 
 export function FinanceDashboard() {
-  const [accounts, setAccounts] =
-    useState<FinanceAccount[]>(mockFinanceAccounts);
+  const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [budget, setBudget] = useState<BudgetPlan | null>(null);
-  const [emergencyFund, setEmergencyFund] = useState<EmergencyFund | null>(
-    null,
-  );
+  const [emergencyFund, setEmergencyFund] = useState<EmergencyFund | null>(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>("month");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+
+  const range = useMemo(() => {
+    if (period === "custom") {
+      return { start: customStart || "2026-01-01", end: customEnd || new Date().toISOString().split("T")[0], label: "Свой" };
+    }
+    return getPeriodRange(period);
+  }, [period, customStart, customEnd]);
 
   const uid = auth.currentUser?.uid || "user-1";
 
@@ -181,40 +229,38 @@ export function FinanceDashboard() {
     }
   }, [uid]);
 
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
   useEffect(() => {
-    fetchAll();
+    const onVisible = () => { if (!document.hidden) fetchAll(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [fetchAll]);
+
+  useEffect(() => {
+    const interval = setInterval(fetchAll, 30000);
+    return () => clearInterval(interval);
   }, [fetchAll]);
 
   const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    .toISOString()
-    .split("T")[0];
-  const monthIncome = transactions
-    .filter((t) => t.type === "income" && t.date >= monthStart)
-    .reduce((sum, t) => sum + t.amount, 0);
-  const monthExpenses = transactions
-    .filter((t) => t.type === "expense" && t.date >= monthStart)
-    .reduce((sum, t) => sum + t.amount, 0);
-  const monthlyObligations = transactions
-    .filter(
-      (t) =>
-        t.type === "expense" &&
-        t.date >= monthStart &&
-        (t.categoryId === "fin-cat-3" || t.categoryId === "fin-cat-6"),
-    )
-    .reduce((sum, t) => sum + t.amount, 0);
-  const freeMoney = monthIncome - monthExpenses - monthlyObligations;
 
-  const last30Days = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date(now);
-    d.setDate(d.getDate() - (29 - i));
-    return d.toISOString().split("T")[0];
-  });
+  const periodTxns = useMemo(
+    () => transactions.filter((t) => t.date >= range.start && t.date <= range.end),
+    [transactions, range],
+  );
+
+  const periodIncome = periodTxns.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
+  const periodExpenses = periodTxns.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const periodObligations = periodTxns
+    .filter((t) => t.type === "expense" && (t.categoryId === "fin-cat-3" || t.categoryId === "fin-cat-6"))
+    .reduce((s, t) => s + t.amount, 0);
+  const freeMoney = periodIncome - periodExpenses - periodObligations;
+
+  const days = getDaysInRange(range.start, range.end);
 
   let runningBalance = totalBalance;
-  const balanceTrend = last30Days.map((date) => {
-    const dayTxns = transactions.filter((t) => t.date === date);
+  const balanceTrend = days.map((date) => {
+    const dayTxns = periodTxns.filter((t) => t.date === date);
     for (const t of dayTxns) {
       if (t.type === "income") runningBalance -= t.amount;
       else if (t.type === "expense") runningBalance += t.amount;
@@ -222,58 +268,124 @@ export function FinanceDashboard() {
     return { date, value: runningBalance };
   });
 
-  const recentTxns = [...transactions]
-    .sort(
-      (a, b) =>
-        b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt),
-    )
-    .slice(0, 10);
-
-  const healthRatio = monthIncome > 0 ? monthExpenses / monthIncome : 1;
+  const healthRatio = periodIncome > 0 ? periodExpenses / periodIncome : 1;
   const healthColor =
-    healthRatio <= 0.5
-      ? "text-emerald-500"
-      : healthRatio <= 0.8
-        ? "text-amber-500"
-        : "text-rose-500";
+    healthRatio <= 0.5 ? "text-emerald-500" : healthRatio <= 0.8 ? "text-amber-500" : "text-rose-500";
   const healthBg =
-    healthRatio <= 0.5
-      ? "bg-emerald-500/10"
-      : healthRatio <= 0.8
-        ? "bg-amber-500/10"
-        : "bg-rose-500/10";
+    healthRatio <= 0.5 ? "bg-emerald-500/10" : healthRatio <= 0.8 ? "bg-amber-500/10" : "bg-rose-500/10";
   const healthLabel =
-    healthRatio <= 0.5
-      ? "Отлично"
-      : healthRatio <= 0.8
-        ? "Нормально"
-        : "Тревожно";
+    healthRatio <= 0.5 ? "Отлично" : healthRatio <= 0.8 ? "Нормально" : "Тревожно";
+
+  const expenseCategories = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const tx of periodTxns) {
+      if (tx.type !== "expense") continue;
+      map[tx.categoryId] = (map[tx.categoryId] || 0) + tx.amount;
+    }
+    const sorted = Object.entries(map)
+      .map(([id, amount]) => ({ id, name: CATEGORY_NAMES[id] || id, amount, color: CATEGORY_COLORS[id] || "#6b7280" }))
+      .sort((a, b) => b.amount - a.amount);
+    return sorted;
+  }, [periodTxns]);
+
+  const topCategories = expenseCategories.slice(0, 6);
+  const otherAmount = expenseCategories.slice(6).reduce((s, c) => s + c.amount, 0);
+  const totalExpenses = periodExpenses;
+
+  const dailyAvgExpense = days.length > 0 ? periodExpenses / days.length : 0;
+  const dailyAvgIncome = days.length > 0 ? periodIncome / days.length : 0;
+  const projectedRemaining = periodIncome - periodExpenses;
+
+  const prevRange = useMemo(() => {
+    const periodMs = new Date(range.end).getTime() - new Date(range.start).getTime() + 86400000;
+    const prevEnd = new Date(new Date(range.start).getTime() - 86400000);
+    const prevStart = new Date(prevEnd.getTime() - periodMs + 86400000);
+    return {
+      start: prevStart.toISOString().split("T")[0],
+      end: prevEnd.toISOString().split("T")[0],
+    };
+  }, [range]);
+
+  const prevPeriodExpenses = useMemo(
+    () =>
+      transactions
+        .filter((t) => t.type === "expense" && t.date >= prevRange.start && t.date <= prevRange.end)
+        .reduce((s, t) => s + t.amount, 0),
+    [transactions, prevRange],
+  );
+
+  const expenseChange = prevPeriodExpenses > 0
+    ? ((periodExpenses - prevPeriodExpenses) / prevPeriodExpenses) * 100
+    : 0;
+
+  const budgetLoad = useMemo(() => {
+    if (!budget || !budget.categoryBudgets.length) return null;
+    const totalLimit = budget.categoryBudgets.reduce((s, cb) => s + cb.limit, 0);
+    const categories = budget.categoryBudgets.map((cb) => {
+      const spent = periodTxns
+        .filter((t) => t.type === "expense" && t.categoryId === cb.categoryId)
+        .reduce((s, t) => s + t.amount, 0);
+      return {
+        id: cb.categoryId,
+        name: CATEGORY_NAMES[cb.categoryId] || cb.categoryId,
+        color: CATEGORY_COLORS[cb.categoryId] || "#6b7280",
+        limit: cb.limit,
+        spent,
+        pct: cb.limit > 0 ? Math.min(Math.round((spent / cb.limit) * 100), 100) : 0,
+      };
+    });
+    const totalSpent = categories.reduce((s, c) => s + c.spent, 0);
+    const totalPct = totalLimit > 0 ? Math.min(Math.round((totalSpent / totalLimit) * 100), 100) : 0;
+    return { totalLimit, totalSpent, totalPct, categories };
+  }, [budget, periodTxns]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
   }
-
-  const handleDeleteTransaction = async (id: string) => {
-    try {
-      const res = await fetch("/api/finance/transactions", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      if (res.ok) {
-        setTransactions((prev) => prev.filter((t) => t.id !== id));
-      }
-    } catch {
-      console.error("Failed to delete transaction");
-    }
-  };
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={fetchAll}
+          className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          title="Обновить"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </button>
+        {(Object.entries(PERIOD_LABELS) as [Period, string][]).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setPeriod(key)}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              period === key
+                ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+        {period === "custom" && (
+          <div className="flex items-center gap-2 ml-2">
+            <input
+              type="date"
+              value={customStart}
+              onChange={(e) => setCustomStart(e.target.value)}
+              className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+            />
+            <span className="text-xs text-muted-foreground">—</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={(e) => setCustomEnd(e.target.value)}
+              className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+            />
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -283,35 +395,37 @@ export function FinanceDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
-              {totalBalance.toLocaleString()} ₽
-            </p>
+            <p className="text-2xl font-bold">{totalBalance.toLocaleString()} ₽</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-emerald-600">
               <TrendingUp className="h-4 w-4" />
-              Доходы за месяц
+              Доходы
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-emerald-600">
-              {monthIncome.toLocaleString()} ₽
-            </p>
+            <p className="text-2xl font-bold text-emerald-600">{periodIncome.toLocaleString()} ₽</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{range.label}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-rose-600">
               <TrendingDown className="h-4 w-4" />
-              Расходы за месяц
+              Расходы
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-rose-600">
-              {monthExpenses.toLocaleString()} ₽
-            </p>
+            <p className="text-2xl font-bold text-rose-600">{periodExpenses.toLocaleString()} ₽</p>
+            <div className="flex items-center gap-1 mt-0.5">
+              {prevPeriodExpenses > 0 && (
+                <span className={cn("text-xs", expenseChange > 0 ? "text-rose-500" : "text-emerald-500")}>
+                  {expenseChange > 0 ? "↑" : "↓"} {Math.abs(Math.round(expenseChange))}%
+                </span>
+              )}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -322,12 +436,7 @@ export function FinanceDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p
-              className={cn(
-                "text-2xl font-bold",
-                freeMoney >= 0 ? "text-sky-600" : "text-rose-600",
-              )}
-            >
+            <p className={cn("text-2xl font-bold", freeMoney >= 0 ? "text-sky-600" : "text-rose-600")}>
               {freeMoney.toLocaleString()} ₽
             </p>
           </CardContent>
@@ -336,9 +445,7 @@ export function FinanceDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium">
-            Динамика баланса (30 дней)
-          </CardTitle>
+          <CardTitle className="text-sm font-medium">Динамика баланса</CardTitle>
         </CardHeader>
         <CardContent>
           {balanceTrend.length >= 2 ? (
@@ -354,72 +461,54 @@ export function FinanceDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-sm font-medium">
-              Последние операции
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Расходы по категориям</CardTitle>
           </CardHeader>
-          <CardContent>
-            {recentTxns.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                Нет операций
-              </p>
+          <CardContent className="space-y-3">
+            {totalExpenses === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">Нет расходов за период</p>
             ) : (
-              <div className="space-y-1">
-                {recentTxns.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div
-                        className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-full shrink-0",
-                          tx.type === "income"
-                            ? "bg-emerald-500/10"
-                            : "bg-rose-500/10",
-                        )}
-                      >
-                        {tx.type === "income" ? (
-                          <TrendingUp className="h-4 w-4 text-emerald-600" />
-                        ) : (
-                          <TrendingDown className="h-4 w-4 text-rose-600" />
-                        )}
+              <>
+                {topCategories.map((cat) => {
+                  const pct = (cat.amount / totalExpenses) * 100;
+                  return (
+                    <div key={cat.id} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                          <span className="truncate">{cat.name}</span>
+                        </div>
+                        <span className="font-medium tabular-nums ml-2">{cat.amount.toLocaleString()} ₽</span>
+                        <span className="text-xs text-muted-foreground w-10 text-right">{Math.round(pct)}%</span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">
-                          {tx.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {CATEGORY_NAMES[tx.categoryId] || tx.categoryId}
-                          {" · "}
-                          {new Date(tx.date + "T00:00:00Z").toLocaleDateString(
-                            "ru-RU",
-                          )}
-                        </p>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${pct}%`, backgroundColor: cat.color }}
+                        />
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        className={cn(
-                          "text-sm font-semibold tabular-nums",
-                          tx.type === "income"
-                            ? "text-emerald-600"
-                            : "text-rose-600",
-                        )}
-                      >
-                        {tx.type === "income" ? "+" : "-"}
-                        {tx.amount.toLocaleString()} ₽
-                      </span>
-                      <button
-                        onClick={() => handleDeleteTransaction(tx.id)}
-                        className="p-1 text-muted-foreground/40 hover:text-destructive transition-colors"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                  );
+                })}
+                {otherAmount > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="h-3 w-3 rounded-full shrink-0 bg-muted-foreground/40" />
+                        <span>Прочее</span>
+                      </div>
+                      <span className="tabular-nums ml-2">{otherAmount.toLocaleString()} ₽</span>
+                      <span className="text-xs w-10 text-right">{Math.round((otherAmount / totalExpenses) * 100)}%</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full rounded-full bg-muted-foreground/40" style={{ width: `${(otherAmount / totalExpenses) * 100}%` }} />
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
+                <div className="flex justify-between text-sm font-medium pt-2 border-t">
+                  <span>Всего расходов</span>
+                  <span>{totalExpenses.toLocaleString()} ₽</span>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -433,24 +522,12 @@ export function FinanceDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div
-                className={cn(
-                  "flex items-center gap-3 rounded-lg p-3",
-                  healthBg,
-                )}
-              >
-                <div
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full",
-                    healthBg,
-                  )}
-                >
+              <div className={cn("flex items-center gap-3 rounded-lg p-3", healthBg)}>
+                <div className={cn("flex h-10 w-10 items-center justify-center rounded-full", healthBg)}>
                   <AlertTriangle className={cn("h-5 w-5", healthColor)} />
                 </div>
                 <div>
-                  <p className={cn("text-sm font-semibold", healthColor)}>
-                    {healthLabel}
-                  </p>
+                  <p className={cn("text-sm font-semibold", healthColor)}>{healthLabel}</p>
                   <p className="text-xs text-muted-foreground">
                     {Math.round(healthRatio * 100)}% расходов от доходов
                   </p>
@@ -465,11 +542,7 @@ export function FinanceDashboard() {
                   <div
                     className={cn(
                       "h-full rounded-full transition-all",
-                      healthRatio <= 0.5
-                        ? "bg-emerald-500"
-                        : healthRatio <= 0.8
-                          ? "bg-amber-500"
-                          : "bg-rose-500",
+                      healthRatio <= 0.5 ? "bg-emerald-500" : healthRatio <= 0.8 ? "bg-amber-500" : "bg-rose-500",
                     )}
                     style={{ width: `${Math.min(healthRatio * 100, 100)}%` }}
                   />
@@ -477,6 +550,89 @@ export function FinanceDashboard() {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <CalendarArrowUp className="h-4 w-4" />
+                Прогноз
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Средний расход в день</span>
+                <span className="font-medium">{Math.round(dailyAvgExpense).toLocaleString()} ₽</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Средний доход в день</span>
+                <span className="font-medium">{Math.round(dailyAvgIncome).toLocaleString()} ₽</span>
+              </div>
+              <div className={cn("flex justify-between text-sm font-medium pt-2 border-t", projectedRemaining >= 0 ? "text-sky-600" : "text-rose-600")}>
+                <span>Прогноз остатка</span>
+                <span>{projectedRemaining.toLocaleString()} ₽</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Если траты сохранятся на текущем уровне
+              </p>
+            </CardContent>
+          </Card>
+
+          {budgetLoad && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Target className="h-4 w-4" />
+                  Нагрузка на бюджет
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Всего расходов</span>
+                  <span className="font-semibold">{budgetLoad.totalSpent.toLocaleString()} ₽</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Лимит бюджета</span>
+                  <span>{budgetLoad.totalLimit.toLocaleString()} ₽</span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all",
+                      budgetLoad.totalPct <= 50 ? "bg-emerald-500" : budgetLoad.totalPct <= 80 ? "bg-amber-500" : "bg-rose-500",
+                    )}
+                    style={{ width: `${budgetLoad.totalPct}%` }}
+                  />
+                </div>
+                <p className={cn("text-xs text-center font-medium", budgetLoad.totalPct <= 50 ? "text-emerald-600" : budgetLoad.totalPct <= 80 ? "text-amber-600" : "text-rose-600")}>
+                  Использовано {budgetLoad.totalPct}% бюджета
+                </p>
+                <div className="space-y-2 pt-1">
+                  {budgetLoad.categories.slice(0, 5).map((cat) => (
+                    <div key={cat.id} className="space-y-0.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                          <span className="truncate">{cat.name}</span>
+                        </div>
+                        <span className="tabular-nums ml-1">
+                          {cat.spent.toLocaleString()} / {cat.limit.toLocaleString()} ₽
+                        </span>
+                      </div>
+                      <div className="h-1 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            cat.pct > 100 ? "bg-rose-500" : cat.pct > 80 ? "bg-amber-500" : "bg-emerald-500",
+                          )}
+                          style={{ width: `${Math.min(cat.pct, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {emergencyFund && (
             <Card>
@@ -489,9 +645,7 @@ export function FinanceDashboard() {
               <CardContent className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Накоплено</span>
-                  <span className="font-semibold">
-                    {emergencyFund.currentAmount.toLocaleString()} ₽
-                  </span>
+                  <span className="font-semibold">{emergencyFund.currentAmount.toLocaleString()} ₽</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Цель</span>
@@ -500,17 +654,11 @@ export function FinanceDashboard() {
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
                   <div
                     className="h-full rounded-full bg-emerald-500 transition-all"
-                    style={{
-                      width: `${Math.min((emergencyFund.currentAmount / emergencyFund.targetAmount) * 100, 100)}%`,
-                    }}
+                    style={{ width: `${Math.min((emergencyFund.currentAmount / emergencyFund.targetAmount) * 100, 100)}%` }}
                   />
                 </div>
                 <p className="text-xs text-muted-foreground text-center">
-                  {Math.round(
-                    (emergencyFund.currentAmount / emergencyFund.targetAmount) *
-                      100,
-                  )}
-                  % от цели
+                  {Math.round((emergencyFund.currentAmount / emergencyFund.targetAmount) * 100)}% от цели
                 </p>
               </CardContent>
             </Card>

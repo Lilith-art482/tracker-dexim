@@ -7,7 +7,8 @@ import {
   updateBudgetPlan,
   deleteBudgetPlan,
 } from "@/lib/finance-models";
-import { mockFinanceBudgetPlans } from "@/lib/finance-mock";
+import { mockStore } from "@/lib/finance-mock-store";
+import type { BudgetPlan } from "@/lib/finance-types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,13 +19,15 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const budgets = await getBudgetPlansByUser(uid);
-    return NextResponse.json(budgets);
-  } catch {
-    const filtered = mockFinanceBudgetPlans.filter((b) => b.userId === uid);
-    return NextResponse.json(filtered);
+  if (await isDatabaseAvailable()) {
+    try {
+      const budgets = await getBudgetPlansByUser(uid);
+      return NextResponse.json(budgets);
+    } catch {}
   }
+
+  const filtered = mockStore.budgets.filter((b) => b.userId === uid);
+  return NextResponse.json(filtered);
 }
 
 export async function POST(request: NextRequest) {
@@ -33,33 +36,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const dbAvailable = await isDatabaseAvailable();
-  if (!dbAvailable) {
-    return NextResponse.json(
-      { error: "Database unavailable" },
-      { status: 503 },
-    );
+  const body = await request.json();
+
+  if (await isDatabaseAvailable()) {
+    try {
+      const budget = await createBudgetPlan({
+        id: crypto.randomUUID(),
+        userId: uid,
+        period: body.period,
+        periodStart: body.periodStart,
+        periodEnd: body.periodEnd,
+        expectedIncome: body.expectedIncome,
+        categoryBudgets: body.categoryBudgets,
+      });
+      return NextResponse.json(budget, { status: 201 });
+    } catch (error) {
+      console.error("Error creating budget:", error);
+    }
   }
 
-  try {
-    const body = await request.json();
-    const budget = await createBudgetPlan({
-      id: crypto.randomUUID(),
-      userId: uid,
-      period: body.period,
-      periodStart: body.periodStart,
-      periodEnd: body.periodEnd,
-      expectedIncome: body.expectedIncome,
-      categoryBudgets: body.categoryBudgets,
-    });
-    return NextResponse.json(budget, { status: 201 });
-  } catch (error) {
-    console.error("Error creating budget:", error);
-    return NextResponse.json(
-      { error: "Failed to create budget" },
-      { status: 500 },
-    );
-  }
+  const budget: BudgetPlan = {
+    id: crypto.randomUUID(),
+    userId: uid,
+    period: body.period,
+    periodStart: body.periodStart,
+    periodEnd: body.periodEnd,
+    expectedIncome: body.expectedIncome,
+    categoryBudgets: body.categoryBudgets,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  mockStore.budgets.push(budget);
+  return NextResponse.json(budget, { status: 201 });
 }
 
 export async function PATCH(request: NextRequest) {
@@ -68,29 +76,33 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const dbAvailable = await isDatabaseAvailable();
-  if (!dbAvailable) {
-    return NextResponse.json(
-      { error: "Database unavailable" },
-      { status: 503 },
-    );
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  try {
-    const body = await request.json();
-    const { id, ...fields } = body;
-    if (!id) {
-      return NextResponse.json({ error: "id is required" }, { status: 400 });
+  const body = await request.json();
+
+  if (await isDatabaseAvailable()) {
+    try {
+      const updated = await updateBudgetPlan(id, body);
+      return NextResponse.json(updated);
+    } catch {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    const budget = await updateBudgetPlan(id, fields);
-    return NextResponse.json(budget);
-  } catch (error) {
-    console.error("Error updating budget:", error);
-    return NextResponse.json(
-      { error: "Failed to update budget" },
-      { status: 500 },
-    );
   }
+
+  const idx = mockStore.budgets.findIndex((b) => b.id === id);
+  if (idx === -1) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  mockStore.budgets[idx] = {
+    ...mockStore.budgets[idx],
+    ...body,
+    updatedAt: new Date().toISOString(),
+  };
+  return NextResponse.json(mockStore.budgets[idx]);
 }
 
 export async function DELETE(request: NextRequest) {
@@ -99,26 +111,25 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const dbAvailable = await isDatabaseAvailable();
-  if (!dbAvailable) {
-    return NextResponse.json(
-      { error: "Database unavailable" },
-      { status: 503 },
-    );
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  try {
-    const body = await request.json();
-    if (!body.id) {
-      return NextResponse.json({ error: "id is required" }, { status: 400 });
+  if (await isDatabaseAvailable()) {
+    try {
+      await deleteBudgetPlan(id);
+      return NextResponse.json({ success: true });
+    } catch {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    await deleteBudgetPlan(body.id);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting budget:", error);
-    return NextResponse.json(
-      { error: "Failed to delete budget" },
-      { status: 500 },
-    );
   }
+
+  const idx = mockStore.budgets.findIndex((b) => b.id === id);
+  if (idx === -1) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  mockStore.budgets.splice(idx, 1);
+  return NextResponse.json({ success: true });
 }
