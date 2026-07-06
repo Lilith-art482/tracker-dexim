@@ -6,6 +6,7 @@ import type {
   BudgetPlan,
   FinanceGoal,
   Loan,
+  FinanceProject,
   EmergencyFund,
   TransactionFilters,
 } from "./finance-types";
@@ -295,6 +296,62 @@ export async function updateLoan(
 
 export async function deleteLoan(id: string): Promise<void> {
   await getAdminDb().collection(COL("FINANCE_LOANS")).doc(id).delete();
+}
+
+// --- Projects ---
+
+export async function getProjectsByUser(
+  uid: string,
+): Promise<FinanceProject[]> {
+  const snap = await getAdminDb()
+    .collection(COL("FINANCE_PROJECTS"))
+    .where("userId", "==", uid)
+    .get();
+  return snap.docs.map((d) => toPlain(d) as FinanceProject);
+}
+
+export async function createProject(
+  data: Omit<FinanceProject, "createdAt" | "updatedAt">,
+): Promise<FinanceProject> {
+  const now = new Date().toISOString();
+  const project: FinanceProject = { ...data, createdAt: now, updatedAt: now };
+  await getAdminDb()
+    .collection(COL("FINANCE_PROJECTS"))
+    .doc(project.id)
+    .set(project);
+  return project;
+}
+
+export async function updateProject(
+  id: string,
+  data: Partial<
+    Pick<
+      FinanceProject,
+      | "name"
+      | "icon"
+      | "targetAmount"
+      | "savedAmount"
+      | "deadline"
+      | "description"
+      | "linkedCategoryIds"
+      | "color"
+      | "completed"
+    >
+  >,
+): Promise<FinanceProject> {
+  await getAdminDb()
+    .collection(COL("FINANCE_PROJECTS"))
+    .doc(id)
+    .update({ ...data, updatedAt: new Date().toISOString() });
+  const snap = await getAdminDb()
+    .collection(COL("FINANCE_PROJECTS"))
+    .doc(id)
+    .get();
+  return toPlain(snap) as FinanceProject;
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  await getAdminDb().collection(COL("FINANCE_PROJECTS")).doc(id).delete();
 }
 
 // --- Emergency Fund ---
