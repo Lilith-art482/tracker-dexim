@@ -16,12 +16,16 @@ import {
   Target,
   Wallet,
   RotateCcw,
+  ArrowDown,
+  Banknote,
+  Percent,
 } from "lucide-react";
 import type { EmergencyFund, Transaction } from "@/lib/finance-types";
 import {
   getEmergencyFund,
   upsertEmergencyFund,
   getTransactionsByUser,
+  createTransaction,
 } from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -112,6 +116,10 @@ export function FinanceEmergencyFund() {
     );
   }, [fetchFund, fetchTransactions]);
 
+  const fundTx = transactions.filter(
+    (t) => t.tags.includes("emergency") || t.description.toLowerCase().includes("подушка"),
+  );
+
   const handleSaveTarget = async () => {
     const val = parseInt(targetInput, 10);
     if (isNaN(val) || val <= 0) {
@@ -138,18 +146,26 @@ export function FinanceEmergencyFund() {
 
   const handleAddFunds = async () => {
     const val = parseInt(addInput, 10);
-    if (isNaN(val) || val <= 0) {
-      toast.error("Укажите корректную сумму");
-      return;
-    }
+    if (isNaN(val) || val <= 0) return;
     setSaving(true);
     const newCurrent = (fund?.currentAmount ?? 0) + val;
     try {
-      const updated = await upsertEmergencyFund(uid, {
-        currentAmount: newCurrent,
-        targetAmount,
-      });
+      const [updated] = await Promise.all([
+        upsertEmergencyFund(uid, { currentAmount: newCurrent, targetAmount }),
+        createTransaction({
+          id: crypto.randomUUID(),
+          userId: uid,
+          accountId: "emergency-fund",
+          type: "income",
+          categoryId: "fin-cat-9",
+          amount: val,
+          description: "Пополнение подушки безопасности",
+          tags: ["emergency", "topup"],
+          date: new Date().toISOString(),
+        }),
+      ]);
       setFund(updated);
+      await fetchTransactions();
       toast.success(`Добавлено ${val.toLocaleString()} ₽`);
     } catch {
       setFund((prev) => (prev ? { ...prev, currentAmount: newCurrent } : prev));
@@ -162,18 +178,26 @@ export function FinanceEmergencyFund() {
 
   const handleWithdrawFunds = async () => {
     const val = parseInt(withdrawInput, 10);
-    if (isNaN(val) || val <= 0) {
-      toast.error("Укажите корректную сумму");
-      return;
-    }
+    if (isNaN(val) || val <= 0) return;
     setSaving(true);
     const newCurrent = Math.max(0, (fund?.currentAmount ?? 0) - val);
     try {
-      const updated = await upsertEmergencyFund(uid, {
-        currentAmount: newCurrent,
-        targetAmount,
-      });
+      const [updated] = await Promise.all([
+        upsertEmergencyFund(uid, { currentAmount: newCurrent, targetAmount }),
+        createTransaction({
+          id: crypto.randomUUID(),
+          userId: uid,
+          accountId: "emergency-fund",
+          type: "expense",
+          categoryId: "fin-cat-8",
+          amount: val,
+          description: "Снятие с подушки безопасности",
+          tags: ["emergency", "withdrawal"],
+          date: new Date().toISOString(),
+        }),
+      ]);
       setFund(updated);
+      await fetchTransactions();
       toast.success(`Снято ${val.toLocaleString()} ₽`);
     } catch {
       setFund((prev) => (prev ? { ...prev, currentAmount: newCurrent } : prev));
@@ -217,30 +241,13 @@ export function FinanceEmergencyFund() {
           <CardContent className="flex flex-col items-center py-6">
             <div className="relative flex items-center justify-center">
               <svg width="180" height="180" className="-rotate-90">
+                <circle cx="90" cy="90" r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth="12" />
                 <circle
-                  cx="90"
-                  cy="90"
-                  r={radius}
+                  cx="90" cy="90" r={radius}
                   fill="none"
-                  stroke="hsl(var(--muted))"
-                  strokeWidth="12"
-                />
-                <circle
-                  cx="90"
-                  cy="90"
-                  r={radius}
-                  fill="none"
-                  stroke={
-                    coverageLevel === "safe"
-                      ? "#22c55e"
-                      : coverageLevel === "medium"
-                        ? "#f59e0b"
-                        : "#ef4444"
-                  }
-                  strokeWidth="12"
-                  strokeLinecap="round"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={offset}
+                  stroke={coverageLevel === "safe" ? "#22c55e" : coverageLevel === "medium" ? "#f59e0b" : "#ef4444"}
+                  strokeWidth="12" strokeLinecap="round"
+                  strokeDasharray={circumference} strokeDashoffset={offset}
                   className="transition-all duration-700"
                 />
               </svg>
@@ -261,15 +268,11 @@ export function FinanceEmergencyFund() {
                 <Target className="h-4 w-4" />
                 Цель
               </div>
-              <p className="text-xl font-bold">
-                {targetAmount.toLocaleString()} ₽
-              </p>
+              <p className="text-xl font-bold">{targetAmount.toLocaleString()} ₽</p>
               {targetAmount > 0 && (
                 <div className="flex items-center gap-1.5 text-xs">
                   <ArrowUp className="h-3 w-3 text-emerald-500" />
-                  <span className="text-muted-foreground">
-                    Осталось {shortfall.toLocaleString()} ₽
-                  </span>
+                  <span className="text-muted-foreground">Осталось {shortfall.toLocaleString()} ₽</span>
                 </div>
               )}
             </CardContent>
@@ -281,15 +284,11 @@ export function FinanceEmergencyFund() {
                 <Wallet className="h-4 w-4" />
                 Накоплено
               </div>
-              <p className="text-xl font-bold">
-                {currentAmount.toLocaleString()} ₽
-              </p>
+              <p className="text-xl font-bold">{currentAmount.toLocaleString()} ₽</p>
               {monthlyExpenses > 0 && (
                 <div className="flex items-center gap-1.5 text-xs">
                   <CoverageIcon className={cn("h-3 w-3", coverageColor)} />
-                  <span className={coverageColor}>
-                    хватит на {monthsCovered} мес.
-                  </span>
+                  <span className={coverageColor}>хватит на {monthsCovered} мес.</span>
                 </div>
               )}
             </CardContent>
@@ -301,16 +300,9 @@ export function FinanceEmergencyFund() {
                 <TrendingUp className="h-4 w-4" />
                 Расходы в мес.
               </div>
-              <p className="text-xl font-bold">
-                {monthlyExpenses.toLocaleString()} ₽
-              </p>
+              <p className="text-xl font-bold">{monthlyExpenses.toLocaleString()} ₽</p>
               {monthlyExpenses > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto p-0 text-xs text-primary hover:bg-transparent hover:underline"
-                  onClick={handleRecalcExpenses}
-                >
+                <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary hover:bg-transparent hover:underline" onClick={handleRecalcExpenses}>
                   <RefreshCw className="h-3 w-3 mr-1" />
                   Пересчитать
                 </Button>
@@ -330,18 +322,10 @@ export function FinanceEmergencyFund() {
                 </div>
                 <div>
                   <p className={cn("text-sm font-semibold", coverageColor)}>
-                    {monthsCovered < 1
-                      ? "Менее 1 мес."
-                      : monthsCovered < 3
-                        ? `${monthsCovered} мес.`
-                        : `> ${monthsCovered} мес.`}
+                    {monthsCovered < 1 ? "Менее 1 мес." : monthsCovered < 3 ? `${monthsCovered} мес.` : `> ${monthsCovered} мес.`}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {monthsCovered >= 3
-                      ? "Достаточно"
-                      : monthsCovered >= 1
-                        ? "Средне"
-                        : "Критично"}
+                    {monthsCovered >= 3 ? "Достаточно" : monthsCovered >= 1 ? "Средне" : "Критично"}
                   </p>
                 </div>
               </div>
@@ -350,86 +334,69 @@ export function FinanceEmergencyFund() {
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Управление */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium">Управление</CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs text-destructive h-7"
-            onClick={() => {
-              toast("Сбросить подушку безопасности?", {
-                action: {
-                  label: "Сбросить",
-                  onClick: async () => {
-                    try {
-                      const updated = await upsertEmergencyFund(uid, {
-                        targetAmount: 0,
-                        currentAmount: 0,
-                      });
-                      setFund(updated);
-                      toast.success("Подушка сброшена");
-                    } catch {
-                      setFund(null);
-                      toast.success("Подушка сброшена");
-                    }
-                  },
+          <Button variant="ghost" size="sm" className="text-xs text-destructive h-7" onClick={() => {
+            toast("Сбросить подушку безопасности?", {
+              action: {
+                label: "Сбросить",
+                onClick: async () => {
+                  try {
+                    const updated = await upsertEmergencyFund(uid, { targetAmount: 0, currentAmount: 0 });
+                    setFund(updated);
+                    toast.success("Подушка сброшена");
+                  } catch {
+                    setFund(null);
+                    toast.success("Подушка сброшена");
+                  }
                 },
-                cancel: { label: "Отмена", onClick: () => {} },
-              });
-            }}
-          >
+              },
+              cancel: { label: "Отмена", onClick: () => {} },
+            });
+          }}>
             <RotateCcw className="h-3 w-3 mr-1" />
             Сбросить
           </Button>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">Цель (₽)</label>
+            <div className="rounded-lg border border-border/50 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <Target className="h-3.5 w-3.5" />
+                Цель
+              </div>
               <div className="flex gap-2">
-                <Input
-                  type="number"
-                  placeholder={targetAmount > 0 ? targetAmount.toLocaleString() : "0"}
-                  value={targetInput}
-                  onChange={(e) => setTargetInput(e.target.value)}
-                  className="h-8"
-                />
+                <Input type="number" placeholder={targetAmount > 0 ? targetAmount.toLocaleString() : "Сумма"} value={targetInput} onChange={(e) => setTargetInput(e.target.value)} className="h-8 text-xs" />
                 <Button onClick={handleSaveTarget} size="sm" className="h-8 shrink-0" disabled={saving}>
                   {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "ОК"}
                 </Button>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">Пополнить (₽)</label>
+            <div className="rounded-lg border border-emerald-200/50 bg-emerald-500/[0.03] p-3 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-emerald-600">
+                <Banknote className="h-3.5 w-3.5" />
+                Пополнить
+              </div>
               <div className="flex gap-2">
-                <Input
-                  type="number"
-                  placeholder="Сумма"
-                  value={addInput}
-                  onChange={(e) => setAddInput(e.target.value)}
-                  className="h-8"
-                />
-                <Button onClick={handleAddFunds} size="sm" className="h-8 shrink-0" disabled={saving}>
-                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                <Input type="number" placeholder="Сумма" value={addInput} onChange={(e) => setAddInput(e.target.value)} className="h-8 text-xs" />
+                <Button onClick={handleAddFunds} size="sm" className="h-8 shrink-0 bg-emerald-600 hover:bg-emerald-700" disabled={saving}>
+                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUp className="h-3 w-3" />}
                 </Button>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">Снять (₽)</label>
+            <div className="rounded-lg border border-rose-200/50 bg-rose-500/[0.03] p-3 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-rose-600">
+                <ArrowDown className="h-3.5 w-3.5" />
+                Снять
+              </div>
               <div className="flex gap-2">
-                <Input
-                  type="number"
-                  placeholder="Сумма"
-                  value={withdrawInput}
-                  onChange={(e) => setWithdrawInput(e.target.value)}
-                  className="h-8"
-                />
-                <Button onClick={handleWithdrawFunds} size="sm" variant="outline" className="h-8 shrink-0" disabled={saving}>
-                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
+                <Input type="number" placeholder="Сумма" value={withdrawInput} onChange={(e) => setWithdrawInput(e.target.value)} className="h-8 text-xs" />
+                <Button onClick={handleWithdrawFunds} size="sm" variant="outline" className="h-8 shrink-0 border-rose-200 text-rose-600 hover:bg-rose-500/10" disabled={saving}>
+                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowDown className="h-3 w-3" />}
                 </Button>
               </div>
             </div>
@@ -437,7 +404,7 @@ export function FinanceEmergencyFund() {
         </CardContent>
       </Card>
 
-      {/* History + Recommendations side by side */}
+      {/* Recommendations + History */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
         <Card>
           <CardHeader>
@@ -445,15 +412,14 @@ export function FinanceEmergencyFund() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Рекомендуемый размер подушки —{" "}
-              <strong>3–6 месяцев</strong> ежемесячных расходов.
+              Рекомендуемый размер подушки — <strong>3–6 месяцев</strong> ежемесячных расходов.
             </p>
-            {monthlyExpenses > 0 && (
+            {monthlyExpenses > 0 ? (
               <>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Текущий уровень</span>
-                    <span className={coverageColor}>{monthsCovered} мес.</span>
+                    <span className={cn("font-medium", coverageColor)}>{monthsCovered} мес.</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Минимум (3 мес.)</span>
@@ -464,22 +430,22 @@ export function FinanceEmergencyFund() {
                     <span>{(monthlyExpenses * 6).toLocaleString()} ₽</span>
                   </div>
                 </div>
-                <div
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg p-3",
-                    coverageBg,
-                  )}
-                >
+                <div className={cn("flex items-center gap-3 rounded-lg p-3", coverageBg)}>
                   <CoverageIcon className={cn("h-5 w-5 shrink-0", coverageColor)} />
                   <p className={cn("text-sm font-medium", coverageColor)}>
-                    {monthsCovered >= 3
-                      ? "Хороший уровень защиты"
-                      : monthsCovered >= 1
-                        ? "Средний уровень защиты"
-                        : "Критически низкий уровень"}
+                    {monthsCovered >= 3 ? "Хороший уровень защиты" : monthsCovered >= 1 ? "Средний уровень защиты" : "Критически низкий уровень"}
                   </p>
                 </div>
+                <Button variant="outline" size="sm" className="w-full text-xs" onClick={handleRecalcExpenses}>
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Пересчитать цель по расходам
+                </Button>
               </>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-4 text-muted-foreground">
+                <Percent className="h-8 w-8 opacity-40" />
+                <p className="text-sm text-center">Добавьте расходы, чтобы рассчитать рекомендуемый размер подушки</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -489,50 +455,29 @@ export function FinanceEmergencyFund() {
             <CardTitle className="text-sm font-medium">История операций</CardTitle>
           </CardHeader>
           <CardContent>
-            {transactions.length === 0 ? (
+            {fundTx.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
                 <PiggyBank className="h-8 w-8 mb-2 opacity-40" />
-                <p className="text-sm">Нет операций</p>
-                <p className="text-xs mt-1">Пополните подушку</p>
+                <p className="text-sm">Нет операций с подушкой</p>
+                <p className="text-xs mt-1">Пополнения и снятия будут отображаться здесь</p>
               </div>
             ) : (
-              <div className="space-y-1 max-h-[240px] overflow-y-auto">
-                {transactions.slice(0, 10).map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-muted/50 transition-colors"
-                  >
+              <div className="space-y-1 max-h-[260px] overflow-y-auto">
+                {fundTx.slice(0, 20).map((tx) => (
+                  <div key={tx.id} className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className={cn(
-                          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full",
-                          tx.type === "income"
-                            ? "bg-emerald-500/10"
-                            : "bg-rose-500/10",
-                        )}
-                      >
-                        {tx.type === "income" ? (
-                          <Plus className="h-3 w-3 text-emerald-600" />
-                        ) : (
-                          <Minus className="h-3 w-3 text-rose-600" />
-                        )}
+                      <div className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full", tx.type === "income" ? "bg-emerald-500/10" : "bg-rose-500/10")}>
+                        {tx.type === "income" ? <Plus className="h-3 w-3 text-emerald-600" /> : <Minus className="h-3 w-3 text-rose-600" />}
                       </div>
                       <div className="truncate">
                         <p className="text-xs font-medium truncate">{tx.description}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          {new Date(tx.date + "T00:00:00Z").toLocaleDateString("ru-RU")}
+                          {new Date(tx.date).toLocaleDateString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
                     </div>
-                    <span
-                      className={cn(
-                        "text-xs font-semibold tabular-nums shrink-0 ml-2",
-                        tx.type === "income"
-                          ? "text-emerald-600"
-                          : "text-rose-600",
-                      )}
-                    >
-                      {tx.type === "income" ? "+" : "-"}{tx.amount.toLocaleString()} ₽
+                    <span className={cn("text-xs font-semibold tabular-nums shrink-0 ml-2", tx.type === "income" ? "text-emerald-600" : "text-rose-600")}>
+                      {tx.type === "income" ? "+" : "−"}{tx.amount.toLocaleString()} ₽
                     </span>
                   </div>
                 ))}
