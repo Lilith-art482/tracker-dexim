@@ -28,7 +28,14 @@ import {
   PiggyBank,
 } from "lucide-react";
 import type { TransactionCategory, FinanceAccount } from "@/lib/finance-types";
-import { auth } from "@/lib/firebase";
+import {
+  getCategoriesByUser,
+  createCategory,
+  deleteCategory,
+  getAccountsByUser,
+} from "@/lib/finance-client";
+import { doc, updateDoc } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,18 +101,14 @@ export function FinanceSettings() {
     setDefaultAccount(localStorage.getItem("finance_default_account") || "");
     setCurrency(localStorage.getItem("finance_currency") || "RUB");
     Promise.all([
-      fetch("/api/finance/categories").then((r) =>
-        r.ok ? r.json() : [],
-      ),
-      fetch("/api/finance/accounts").then((r) =>
-        r.ok ? r.json() : [],
-      ),
+      getCategoriesByUser(uid),
+      getAccountsByUser(uid),
     ]).then(([cats, accts]) => {
-      setCategories(Array.isArray(cats) ? cats : cats?.categories || []);
-      setAccounts(Array.isArray(accts) ? accts : accts?.accounts || []);
+      setCategories(cats);
+      setAccounts(accts);
       setLoading(false);
     });
-  }, []);
+  }, [uid]);
 
   const saveCurrency = useCallback((val: string) => {
     setCurrency(val);
@@ -126,30 +129,25 @@ export function FinanceSettings() {
     }
     const body = { userId: uid, name: name.trim(), type: catType, color, icon };
     if (editingCat) {
-      const res = await fetch(`/api/finance/categories?id=${editingCat.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
+      try {
+        const ref = doc(db, "FINANCE_CATEGORIES", editingCat.id);
+        await updateDoc(ref, {
+          ...body,
+          updatedAt: new Date().toISOString(),
+        });
         setCategories((prev) =>
           prev.map((c) => (c.id === editingCat.id ? { ...c, ...body } : c)),
         );
         toast.success("Категория обновлена");
-      } else {
+      } catch {
         toast.error("Ошибка при обновлении");
       }
     } else {
-      const res = await fetch("/api/finance/categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCategories((prev) => [...prev, data]);
+      try {
+        const created = await createCategory(body);
+        setCategories((prev) => [...prev, created]);
         toast.success("Категория создана");
-      } else {
+      } catch {
         toast.error("Ошибка при создании");
       }
     }
@@ -159,16 +157,14 @@ export function FinanceSettings() {
     setCatType("expense");
     setColor("blue");
     setIcon("MoreHorizontal");
-  }, [name, catType, color, icon, editingCat]);
+  }, [name, catType, color, icon, editingCat, uid]);
 
   const handleDeleteCategory = useCallback(async (id: string) => {
-    const res = await fetch(`/api/finance/categories?id=${id}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
+    try {
+      await deleteCategory(id);
       setCategories((prev) => prev.filter((c) => c.id !== id));
       toast.success("Категория удалена");
-    } else {
+    } catch {
       toast.error("Ошибка при удалении");
     }
   }, []);

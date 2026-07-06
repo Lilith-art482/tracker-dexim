@@ -22,6 +22,15 @@ import type {
   TransactionType,
 } from "@/lib/finance-types";
 
+import {
+  getTransactionsByUser,
+  createTransaction,
+  updateTransaction,
+  deleteTransaction,
+  getAccountsByUser,
+  updateAccount as updateAccountModel,
+  getCategoriesByUser,
+} from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,17 +123,14 @@ export function FinanceTransactions() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [txRes, accRes, catRes] = await Promise.all([
-        fetch(`/api/finance/transactions?uid=${uid}`),
-        fetch(`/api/finance/accounts?uid=${uid}`),
-        fetch(`/api/finance/categories?uid=${uid}`),
+      const [txs, accs, cats] = await Promise.all([
+        getTransactionsByUser(uid),
+        getAccountsByUser(uid),
+        getCategoriesByUser(uid),
       ]);
-      if (txRes.ok) {
-        const data = await txRes.json();
-        setTransactions(Array.isArray(data) ? data : []);
-      }
-      if (accRes.ok) setAccounts(await accRes.json());
-      if (catRes.ok) setCategories(await catRes.json());
+      setTransactions(txs);
+      setAccounts(accs);
+      setCategories(cats);
     } catch {
       console.error("Failed to load finance data");
     } finally {
@@ -282,37 +288,61 @@ export function FinanceTransactions() {
       .filter(Boolean);
     const isEdit = editTx && editOpen;
 
-    const body = {
-      id: isEdit ? editTx!.id : getNextTxId(transactions),
-      userId: uid,
-      accountId: txAccountId,
-      type: txType,
-      categoryId:
-        txCategoryId ||
-        (txType === "transfer" ? "fin-cat-9" : expenseCategories[0]?.id || ""),
-      amount,
-      description: txDescription.trim(),
-      tags,
-      date: txDate,
-    };
-
     try {
-      const method = isEdit ? "PATCH" : "POST";
-      const res = await fetch("/api/finance/transactions", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        const saved: Transaction = await res.json();
-        setTransactions((prev) => {
-          if (isEdit) return prev.map((t) => (t.id === saved.id ? saved : t));
-          return [saved, ...prev];
+      if (isEdit) {
+        const saved = await updateTransaction(editTx!.id, {
+          accountId: txAccountId,
+          type: txType,
+          categoryId:
+            txCategoryId ||
+            (txType === "transfer" ? "fin-cat-9" : expenseCategories[0]?.id || ""),
+          amount,
+          description: txDescription.trim(),
+          tags,
+          date: txDate,
         });
-        if (isEdit) setEditOpen(false);
-        else setAddOpen(false);
+        setTransactions((prev) =>
+          prev.map((t) => (t.id === saved.id ? saved : t)),
+        );
+        setEditOpen(false);
         resetForm();
-        toast.success(isEdit ? "Операция обновлена" : "Операция добавлена");
+        toast.success("Операция обновлена");
+      } else {
+        const id = crypto.randomUUID();
+        const saved = await createTransaction({
+          id,
+          userId: uid,
+          accountId: txAccountId,
+          type: txType,
+          categoryId:
+            txCategoryId ||
+            (txType === "transfer" ? "fin-cat-9" : expenseCategories[0]?.id || ""),
+          amount,
+          description: txDescription.trim(),
+          tags,
+          date: txDate,
+        });
+        setTransactions((prev) => [saved, ...prev]);
+
+        const account = accounts.find((a) => a.id === txAccountId);
+        if (account) {
+          const balanceDelta =
+            txType === "income" ? amount : txType === "expense" ? -amount : 0;
+          if (balanceDelta !== 0) {
+            const updatedAccount = await updateAccountModel(txAccountId, {
+              balance: account.balance + balanceDelta,
+            });
+            setAccounts((prev) =>
+              prev.map((a) =>
+                a.id === updatedAccount.id ? updatedAccount : a,
+              ),
+            );
+          }
+        }
+
+        setAddOpen(false);
+        resetForm();
+        toast.success("Операция добавлена");
       }
     } catch {
       toast.error("Ошибка сохранения");
@@ -323,20 +353,14 @@ export function FinanceTransactions() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch("/api/finance/transactions", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, userId: uid }),
+      await deleteTransaction(id);
+      setTransactions((prev) => prev.filter((t) => t.id !== id));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
       });
-      if (res.ok) {
-        setTransactions((prev) => prev.filter((t) => t.id !== id));
-        setSelectedIds((prev) => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
-        toast.success("Операция удалена");
-      }
+      toast.success("Операция удалена");
     } catch {
       toast.error("Ошибка удаления");
     }
@@ -351,13 +375,7 @@ export function FinanceTransactions() {
           const ids = Array.from(selectedIds);
           try {
             await Promise.all(
-              ids.map((id) =>
-                fetch("/api/finance/transactions", {
-                  method: "DELETE",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ id, userId: uid }),
-                }),
-              ),
+              ids.map((id) => deleteTransaction(id)),
             );
             setTransactions((prev) =>
               prev.filter((t) => !selectedIds.has(t.id)),

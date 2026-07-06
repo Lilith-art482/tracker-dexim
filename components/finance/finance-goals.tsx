@@ -17,7 +17,13 @@ import {
   AlertTriangle,
   ChevronDown,
 } from "lucide-react";
-import type { FinanceGoal, FinanceAccount } from "@/lib/finance-types";
+import type { FinanceGoal, FinanceAccount, GoalPriority } from "@/lib/finance-types";
+import {
+  getGoalsByUser,
+  createGoal,
+  updateGoal,
+  deleteGoal,
+} from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,11 +96,8 @@ export function FinanceGoals() {
   const fetchGoals = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/finance/goals?uid=${uid}`);
-      if (res.ok) {
-        const data = await res.json();
-        setGoals(Array.isArray(data) ? data : []);
-      }
+      const data = await getGoalsByUser(uid);
+      setGoals(data);
     } catch {
       console.error("Failed to load goals");
     } finally {
@@ -165,56 +168,37 @@ export function FinanceGoals() {
 
     try {
       if (editingGoal) {
-        const res = await fetch("/api/finance/goals", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: editingGoal.id,
-            userId: uid,
-            name: formName.trim(),
-            targetAmount,
-            currentAmount,
-            deadline: formDeadline,
-            priority: formPriority,
-            accountId: formAccountId || undefined,
-            autoDepositPercent,
-          }),
+        const updated = await updateGoal(editingGoal.id, {
+          name: formName.trim(),
+          targetAmount,
+          currentAmount,
+          deadline: formDeadline,
+          priority: formPriority as GoalPriority,
+          accountId: formAccountId || undefined,
+          autoDepositPercent,
         });
-        if (res.ok) {
-          const updated = await res.json();
-          setGoals((prev) =>
-            prev.map((g) => (g.id === editingGoal.id ? updated : g)),
-          );
-          toast.success("Цель обновлена", { id: toastId });
-          handleCloseDialog();
-        } else {
-          const err = await res.json();
-          toast.error(err.error || "Ошибка обновления", { id: toastId });
-        }
+        setGoals((prev) =>
+          prev.map((g) => (g.id === editingGoal.id ? updated : g)),
+        );
+        toast.success("Цель обновлена", { id: toastId });
+        handleCloseDialog();
       } else {
-        const res = await fetch("/api/finance/goals", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: uid,
-            name: formName.trim(),
-            targetAmount,
-            currentAmount,
-            deadline: formDeadline,
-            priority: formPriority,
-            accountId: formAccountId || undefined,
-            autoDepositPercent,
-          }),
+        const id = crypto.randomUUID();
+        const created = await createGoal({
+          id,
+          userId: uid,
+          name: formName.trim(),
+          targetAmount,
+          currentAmount,
+          deadline: formDeadline,
+          priority: formPriority as GoalPriority,
+          accountId: formAccountId || undefined,
+          autoDepositPercent,
+          completed: false,
         });
-        if (res.ok) {
-          const created = await res.json();
-          setGoals((prev) => [...prev, created]);
-          toast.success("Цель создана", { id: toastId });
-          handleCloseDialog();
-        } else {
-          const err = await res.json();
-          toast.error(err.error || "Ошибка создания", { id: toastId });
-        }
+        setGoals((prev) => [...prev, created]);
+        toast.success("Цель создана", { id: toastId });
+        handleCloseDialog();
       }
     } catch {
       toast.error("Ошибка сети", { id: toastId });
@@ -236,18 +220,9 @@ export function FinanceGoals() {
   const handleDelete = useCallback(async (goal: FinanceGoal) => {
     const toastId = toast.loading("Удаляем...");
     try {
-      const res = await fetch("/api/finance/goals", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: goal.id }),
-      });
-      if (res.ok) {
-        setGoals((prev) => prev.filter((g) => g.id !== goal.id));
-        toast.success("Цель удалена", { id: toastId });
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Ошибка удаления", { id: toastId });
-      }
+      await deleteGoal(goal.id);
+      setGoals((prev) => prev.filter((g) => g.id !== goal.id));
+      toast.success("Цель удалена", { id: toastId });
     } catch {
       toast.error("Ошибка сети", { id: toastId });
     }
@@ -263,15 +238,8 @@ export function FinanceGoals() {
       completed ? "Завершаем..." : "Восстанавливаем...",
     );
     try {
-      const res = await fetch("/api/finance/goals", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: goal.id, completed, userId: uid }),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setGoals((prev) => prev.map((g) => (g.id === goal.id ? updated : g)));
-      }
+      const updated = await updateGoal(goal.id, { completed });
+      setGoals((prev) => prev.map((g) => (g.id === goal.id ? updated : g)));
       toast.success(completed ? "Цель завершена!" : "Цель восстановлена", {
         id: toastId,
       });

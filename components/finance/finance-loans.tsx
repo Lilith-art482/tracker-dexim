@@ -15,6 +15,12 @@ import {
   CreditCard,
 } from "lucide-react";
 import type { Loan } from "@/lib/finance-types";
+import {
+  getLoansByUser,
+  createLoan,
+  updateLoan,
+  deleteLoan,
+} from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,11 +94,8 @@ export function FinanceLoans() {
   const fetchLoans = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/finance/loans?uid=${uid}`);
-      if (res.ok) {
-        const data = await res.json();
-        setLoans(Array.isArray(data) ? data : []);
-      }
+      const data = await getLoansByUser(uid);
+      setLoans(data);
     } catch {
       console.error("Failed to load loans");
     } finally {
@@ -162,56 +165,33 @@ export function FinanceLoans() {
 
     try {
       if (editingLoan) {
-        const res = await fetch("/api/finance/loans", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: editingLoan.id,
-            userId: uid,
-            name: formName,
-            totalAmount,
-            remainingAmount,
-            interestRate,
-            monthlyPayment,
-            startDate: formStartDate,
-          }),
+        const updated = await updateLoan(editingLoan.id, {
+          name: formName,
+          totalAmount,
+          remainingAmount,
+          interestRate,
+          monthlyPayment,
         });
-
-        if (res.ok) {
-          const updated = await res.json();
-          setLoans((prev) =>
-            prev.map((l) => (l.id === editingLoan.id ? updated : l)),
-          );
-          toast.success("Готово", { id: toastId });
-          closeDialog();
-        } else {
-          const err = await res.json();
-          toast.error(err.error || "Ошибка при сохранении", { id: toastId });
-        }
+        setLoans((prev) =>
+          prev.map((l) => (l.id === editingLoan.id ? updated : l)),
+        );
+        toast.success("Готово", { id: toastId });
+        closeDialog();
       } else {
-        const res = await fetch("/api/finance/loans", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: formName,
-            totalAmount,
-            remainingAmount,
-            interestRate,
-            monthlyPayment,
-            startDate: formStartDate,
-            userId: uid,
-          }),
+        const id = crypto.randomUUID();
+        const created = await createLoan({
+          id,
+          userId: uid,
+          name: formName,
+          totalAmount,
+          remainingAmount,
+          interestRate,
+          monthlyPayment,
+          nextPaymentDate: formStartDate || new Date().toISOString().split("T")[0],
         });
-
-        if (res.ok) {
-          const created = await res.json();
-          setLoans((prev) => [...prev, created]);
-          toast.success("Готово", { id: toastId });
-          closeDialog();
-        } else {
-          const err = await res.json();
-          toast.error(err.error || "Ошибка при создании", { id: toastId });
-        }
+        setLoans((prev) => [...prev, created]);
+        toast.success("Готово", { id: toastId });
+        closeDialog();
       }
     } catch {
       toast.error("Ошибка сети", { id: toastId });
@@ -223,20 +203,12 @@ export function FinanceLoans() {
     const toastId = toast.loading("Проводим платёж...");
 
     try {
-      const res = await fetch("/api/finance/loans", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: loan.id, paymentAmount, userId: uid }),
+      const newRemaining = Math.max(0, loan.remainingAmount - paymentAmount);
+      const updated = await updateLoan(loan.id, {
+        remainingAmount: newRemaining,
       });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setLoans((prev) => prev.map((l) => (l.id === loan.id ? updated : l)));
-        toast.success("Платёж проведён", { id: toastId });
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Ошибка платежа", { id: toastId });
-      }
+      setLoans((prev) => prev.map((l) => (l.id === loan.id ? updated : l)));
+      toast.success("Платёж проведён", { id: toastId });
     } catch {
       toast.error("Ошибка сети", { id: toastId });
     }
@@ -249,17 +221,9 @@ export function FinanceLoans() {
         onClick: async () => {
           const toastId = toast.loading("Удаляем...");
           try {
-            const res = await fetch("/api/finance/loans", {
-              method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id: loan.id }),
-            });
-            if (res.ok) {
-              setLoans((prev) => prev.filter((l) => l.id !== loan.id));
-              toast.success("Удалено", { id: toastId });
-            } else {
-              toast.error("Ошибка при удалении", { id: toastId });
-            }
+            await deleteLoan(loan.id);
+            setLoans((prev) => prev.filter((l) => l.id !== loan.id));
+            toast.success("Удалено", { id: toastId });
           } catch {
             toast.error("Ошибка сети", { id: toastId });
           }

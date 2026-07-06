@@ -28,6 +28,13 @@ import {
 } from "lucide-react";
 
 import type { FinanceProject, TransactionCategory } from "@/lib/finance-types";
+import {
+  getProjectsByUser,
+  createProject,
+  updateProject,
+  deleteProject,
+  getCategoriesByUser,
+} from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,18 +127,11 @@ export function FinanceProjects() {
   const uid = auth.currentUser?.uid || "user-1";
 
   useEffect(() => {
-    const uid = auth.currentUser?.uid;
-    fetch("/api/finance/projects")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        setProjects(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(() => {
-        setProjects([]);
-        setLoading(false);
-      });
-  }, []);
+    getProjectsByUser(uid)
+      .then(setProjects)
+      .catch(() => setProjects([]))
+      .finally(() => setLoading(false));
+  }, [uid]);
 
   const resetForm = useCallback(() => {
     setFormName("");
@@ -163,13 +163,10 @@ export function FinanceProjects() {
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
 
   useEffect(() => {
-    fetch("/api/finance/categories")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        setCategories(Array.isArray(data) ? data : []);
-      })
+    getCategoriesByUser(uid)
+      .then(setCategories)
       .catch(() => setCategories([]));
-  }, []);
+  }, [uid]);
 
   const recentLinkedExpenses = useMemo<Record<string, number>>(() => {
     return {};
@@ -225,29 +222,20 @@ export function FinanceProjects() {
     };
 
     if (editingProject) {
-      const res = await fetch(`/api/finance/projects?id=${editingProject.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        const updated = await res.json();
+      try {
+        const updated = await updateProject(editingProject.id, body);
         setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
         toast.success("Проект обновлён");
-      } else {
+      } catch {
         toast.error("Ошибка при обновлении");
       }
     } else {
-      const res = await fetch("/api/finance/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        const created = await res.json();
+      try {
+        const id = crypto.randomUUID();
+        const created = await createProject({ id, completed: false, ...body });
         setProjects((prev) => [...prev, created]);
         toast.success("Проект создан");
-      } else {
+      } catch {
         toast.error("Ошибка при создании");
       }
     }
@@ -262,13 +250,11 @@ export function FinanceProjects() {
       action: {
         label: "Удалить",
         onClick: async () => {
-          const res = await fetch(`/api/finance/projects?id=${project.id}`, {
-            method: "DELETE",
-          });
-          if (res.ok) {
+          try {
+            await deleteProject(project.id);
             setProjects((prev) => prev.filter((p) => p.id !== project.id));
             toast.success("Проект удалён");
-          } else {
+          } catch {
             toast.error("Ошибка при удалении");
           }
         },
@@ -279,15 +265,12 @@ export function FinanceProjects() {
 
   const handleToggleComplete = useCallback(async (project: FinanceProject) => {
     const completed = !project.completed;
-    const res = await fetch(`/api/finance/projects?id=${project.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed, userId: uid }),
-    });
-    if (res.ok) {
-      const updated = await res.json();
+    try {
+      const updated = await updateProject(project.id, { completed });
       setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
       toast.success(completed ? "Проект завершён!" : "Проект восстановлен");
+    } catch {
+      toast.error("Ошибка при обновлении");
     }
   }, []);
 
@@ -299,16 +282,13 @@ export function FinanceProjects() {
       return;
     }
     const newSaved = addFundsDialog.savedAmount + amount;
-    const res = await fetch(`/api/finance/projects?id=${addFundsDialog.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ savedAmount: newSaved, userId: uid }),
-    });
-    if (res.ok) {
-      const updated = await res.json();
+    try {
+      const updated = await updateProject(addFundsDialog.id, {
+        savedAmount: newSaved,
+      });
       setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
       toast.success(`Добавлено ${amount.toLocaleString()} ₽`);
-    } else {
+    } catch {
       toast.error("Ошибка при добавлении средств");
     }
     setAddFundsDialog(null);

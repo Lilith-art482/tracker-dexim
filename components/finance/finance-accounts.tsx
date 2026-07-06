@@ -52,6 +52,13 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import {
+  getAccountsByUser,
+  createAccount,
+  updateAccount as updateAccountModel,
+  deleteAccount,
+  createTransaction,
+} from "@/lib/finance-client";
 
 type AccountType = FinanceAccount["type"];
 const CARD_TYPES = [
@@ -207,11 +214,8 @@ export function FinanceAccounts() {
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/finance/accounts?uid=${uid}`);
-      if (res.ok) {
-        const data = await res.json();
-        setAccounts(data);
-      }
+      const data = await getAccountsByUser(uid);
+      setAccounts(data);
     } catch {
       console.error("Failed to load accounts");
     } finally {
@@ -301,24 +305,22 @@ export function FinanceAccounts() {
     }
 
     try {
-      const method = editId ? "PATCH" : "POST";
-      const url = editId
-        ? `/api/finance/accounts?id=${editId}`
-        : "/api/finance/accounts";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        const saved: FinanceAccount = await res.json();
-        setAccounts((prev) => {
-          if (editId) return prev.map((a) => (a.id === saved.id ? saved : a));
-          return [...prev, saved];
-        });
-        setDialogOpen(false);
-        resetForm();
+      let saved: FinanceAccount;
+      if (editId) {
+        const { userId: _, ...updates } = body;
+        saved = await updateAccountModel(editId, updates as Parameters<typeof updateAccountModel>[1]);
+      } else {
+        saved = await createAccount({
+          id: crypto.randomUUID(),
+          ...body,
+        } as Parameters<typeof createAccount>[0]);
       }
+      setAccounts((prev) => {
+        if (editId) return prev.map((a) => (a.id === saved.id ? saved : a));
+        return [...prev, saved];
+      });
+      setDialogOpen(false);
+      resetForm();
     } catch {
       console.error("Failed to save account");
     } finally {
@@ -328,12 +330,8 @@ export function FinanceAccounts() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/finance/accounts?id=${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setAccounts((prev) => prev.filter((a) => a.id !== id));
-      }
+      await deleteAccount(id);
+      setAccounts((prev) => prev.filter((a) => a.id !== id));
     } catch {
       console.error("Failed to delete account");
     }
@@ -351,33 +349,20 @@ export function FinanceAccounts() {
     if (!fromAcc || !toAcc || fromAcc.balance < amount) { setSaving(false); return; }
 
     try {
-      const txBody = {
+      await createTransaction({
+        id: crypto.randomUUID(),
         userId: uid,
         accountId: transferFrom,
-        type: "transfer" as const,
+        type: "transfer",
         categoryId: "fin-cat-9",
         amount,
         description: transferDescription.trim() || "Перевод между счетами",
         tags: ["transfer"],
         date: new Date().toISOString().split("T")[0],
-      };
-      const txRes = await fetch("/api/finance/transactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(txBody),
       });
-      if (!txRes.ok) return;
 
-      await fetch(`/api/finance/accounts?id=${transferFrom}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ balance: fromAcc.balance - amount, userId: uid }),
-      });
-      await fetch(`/api/finance/accounts?id=${transferTo}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ balance: toAcc.balance + amount, userId: uid }),
-      });
+      await updateAccountModel(transferFrom, { balance: fromAcc.balance - amount });
+      await updateAccountModel(transferTo, { balance: toAcc.balance + amount });
 
       setAccounts((prev) =>
         prev.map((a) => {
@@ -409,24 +394,17 @@ export function FinanceAccounts() {
 
     try {
       await Promise.all([
-        fetch(`/api/finance/accounts?id=${quickAccount.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ balance: newBalance, userId: uid }),
-        }),
-        fetch("/api/finance/transactions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: uid,
-            accountId: quickAccount.id,
-            type: quickType === "add" ? "income" : "expense",
-            categoryId: quickType === "add" ? "fin-cat-9" : "fin-cat-8",
-            amount,
-            description: quickType === "add" ? "Пополнение счёта" : "Снятие со счёта",
-            tags: [quickType === "add" ? "topup" : "withdrawal"],
-            date: new Date().toISOString().split("T")[0],
-          }),
+        updateAccountModel(quickAccount.id, { balance: newBalance }),
+        createTransaction({
+          id: crypto.randomUUID(),
+          userId: uid,
+          accountId: quickAccount.id,
+          type: quickType === "add" ? "income" : "expense",
+          categoryId: quickType === "add" ? "fin-cat-9" : "fin-cat-8",
+          amount,
+          description: quickType === "add" ? "Пополнение счёта" : "Снятие со счёта",
+          tags: [quickType === "add" ? "topup" : "withdrawal"],
+          date: new Date().toISOString().split("T")[0],
         }),
       ]);
 

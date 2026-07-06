@@ -14,6 +14,11 @@ import {
   TrendingUp,
 } from "lucide-react";
 import type { EmergencyFund, Transaction } from "@/lib/finance-types";
+import {
+  getEmergencyFund,
+  upsertEmergencyFund,
+  getTransactionsByUser,
+} from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,11 +88,8 @@ export function FinanceEmergencyFund() {
 
   const fetchFund = useCallback(async () => {
     try {
-      const res = await fetch(`/api/finance/emergency-fund?uid=${uid}`);
-      if (res.ok) {
-        const data = await res.json();
-        setFund(data);
-      }
+      const data = await getEmergencyFund(uid);
+      setFund(data);
     } catch {
       // use mock fallback
     }
@@ -95,11 +97,8 @@ export function FinanceEmergencyFund() {
 
   const fetchTransactions = useCallback(async () => {
     try {
-      const res = await fetch(`/api/finance/transactions?uid=${uid}`);
-      if (res.ok) {
-        const data = await res.json();
-        setTransactions(Array.isArray(data) ? data : []);
-      }
+      const data = await getTransactionsByUser(uid);
+      setTransactions(data);
     } catch {
       // use mock fallback
     }
@@ -118,19 +117,13 @@ export function FinanceEmergencyFund() {
       return;
     }
     try {
-      const res = await fetch("/api/finance/emergency-fund", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetAmount: val, userId: uid }),
+      const updated = await upsertEmergencyFund(uid, {
+        targetAmount: val,
+        currentAmount,
       });
-      if (res.ok) {
-        const updated = await res.json();
-        setFund(updated);
-        setTargetInput("");
-        toast.success("Цель обновлена");
-      } else {
-        toast.error("Не удалось сохранить цель");
-      }
+      setFund(updated);
+      setTargetInput("");
+      toast.success("Цель обновлена");
     } catch {
       setFund((prev) => (prev ? { ...prev, targetAmount: val } : prev));
       setTargetInput("");
@@ -146,18 +139,12 @@ export function FinanceEmergencyFund() {
     }
     const newCurrent = (fund?.currentAmount ?? 0) + val;
     try {
-      const res = await fetch("/api/finance/emergency-fund", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentAmount: newCurrent, userId: uid }),
+      const updated = await upsertEmergencyFund(uid, {
+        currentAmount: newCurrent,
+        targetAmount,
       });
-      if (res.ok) {
-        const updated = await res.json();
-        setFund(updated);
-        toast.success(`Добавлено ${val.toLocaleString()} ₽`);
-      } else {
-        toast.error("Не удалось пополнить");
-      }
+      setFund(updated);
+      toast.success(`Добавлено ${val.toLocaleString()} ₽`);
     } catch {
       setFund((prev) => (prev ? { ...prev, currentAmount: newCurrent } : prev));
       toast.success(`Добавлено ${val.toLocaleString()} ₽ (локально)`);
@@ -173,18 +160,12 @@ export function FinanceEmergencyFund() {
     }
     const newCurrent = Math.max(0, (fund?.currentAmount ?? 0) - val);
     try {
-      const res = await fetch("/api/finance/emergency-fund", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentAmount: newCurrent, userId: uid }),
+      const updated = await upsertEmergencyFund(uid, {
+        currentAmount: newCurrent,
+        targetAmount,
       });
-      if (res.ok) {
-        const updated = await res.json();
-        setFund(updated);
-        toast.success(`Снято ${val.toLocaleString()} ₽`);
-      } else {
-        toast.error("Не удалось снять средства");
-      }
+      setFund(updated);
+      toast.success(`Снято ${val.toLocaleString()} ₽`);
     } catch {
       setFund((prev) => (prev ? { ...prev, currentAmount: newCurrent } : prev));
       toast.success(`Снято ${val.toLocaleString()} ₽ (локально)`);

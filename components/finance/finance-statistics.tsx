@@ -11,6 +11,10 @@ import {
   Activity,
 } from "lucide-react";
 import type { Transaction, TransactionCategory } from "@/lib/finance-types";
+import {
+  getTransactionsByUser,
+  getCategoriesByUser,
+} from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -277,21 +281,12 @@ export function FinanceStatistics() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [txRes, catRes] = await Promise.all([
-        fetch(`/api/finance/transactions?uid=${uid}`),
-        fetch(`/api/finance/categories?uid=${uid}`),
+      const [txs, cats] = await Promise.all([
+        getTransactionsByUser(uid),
+        getCategoriesByUser(uid),
       ]);
-      if (txRes.ok) {
-        const data = await txRes.json();
-        setTransactions(Array.isArray(data) ? data : []);
-      } else {
-        setTransactions([]);
-      }
-      if (catRes.ok) {
-        setCategories(await catRes.json());
-      } else {
-        setCategories([]);
-      }
+      setTransactions(txs);
+      setCategories(cats);
     } catch {
       setTransactions([]);
       setCategories([]);

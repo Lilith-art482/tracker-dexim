@@ -19,6 +19,14 @@ import type {
   Transaction,
 } from "@/lib/finance-types";
 
+import {
+  getBudgetPlansByUser,
+  createBudgetPlan,
+  updateBudgetPlan,
+  deleteBudgetPlan,
+  getTransactionsByUser,
+  getCategoriesByUser,
+} from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,41 +121,29 @@ export function FinancePlanning() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [budRes, catRes, txRes] = await Promise.all([
-        fetch(`/api/finance/budgets?uid=${uid}`),
-        fetch(`/api/finance/categories?uid=${uid}`),
-        fetch(`/api/finance/transactions?uid=${uid}`),
+      const [budgets, cats, txs] = await Promise.all([
+        getBudgetPlansByUser(uid),
+        getCategoriesByUser(uid),
+        getTransactionsByUser(uid),
       ]);
-      if (budRes.ok) {
-        const data: BudgetPlan[] = await budRes.json();
-        setAllBudgets(data);
-        const current = data.find(
-          (b) => b.period === period && b.periodStart === periodStart,
-        );
-        setBudgetPlan(current || null);
-        if (current) {
-          setExpectedIncome(String(current.expectedIncome));
-          const limits: Record<string, string> = {};
-          for (const cb of current.categoryBudgets) {
-            limits[cb.categoryId] = String(cb.limit);
-          }
-          setCategoryLimits(limits);
-        } else {
-          setExpectedIncome("");
-          setCategoryLimits({});
+      setAllBudgets(budgets);
+      const current = budgets.find(
+        (b) => b.period === period && b.periodStart === periodStart,
+      );
+      setBudgetPlan(current || null);
+      if (current) {
+        setExpectedIncome(String(current.expectedIncome));
+        const limits: Record<string, string> = {};
+        for (const cb of current.categoryBudgets) {
+          limits[cb.categoryId] = String(cb.limit);
         }
-      }
-      if (catRes.ok) {
-        setCategories(await catRes.json());
+        setCategoryLimits(limits);
       } else {
-        setCategories([]);
+        setExpectedIncome("");
+        setCategoryLimits({});
       }
-      if (txRes.ok) {
-        const data = await txRes.json();
-        setTransactions(Array.isArray(data) ? data : []);
-      } else {
-        setTransactions([]);
-      }
+      setCategories(cats);
+      setTransactions(txs);
     } catch {
       setCategories([]);
       setTransactions([]);
@@ -228,25 +224,30 @@ export function FinancePlanning() {
       categoryBudgets,
     };
     try {
-      const method = budgetPlan ? "PATCH" : "POST";
-      const res = await fetch("/api/finance/budgets", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        const saved: BudgetPlan = await res.json();
-        setBudgetPlan(saved);
-        setAllBudgets((prev) => {
-          if (budgetPlan) {
-            return prev.map((b) => (b.id === saved.id ? saved : b));
-          }
-          return [...prev, saved];
+      if (budgetPlan) {
+        const saved = await updateBudgetPlan(budgetPlan.id, {
+          expectedIncome: parseFloat(expectedIncome) || 0,
+          categoryBudgets,
         });
-        toast.success("Бюджет сохранён");
+        setBudgetPlan(saved);
+        setAllBudgets((prev) =>
+          prev.map((b) => (b.id === saved.id ? saved : b)),
+        );
       } else {
-        toast.error("Ошибка при сохранении");
+        const id = crypto.randomUUID();
+        const saved = await createBudgetPlan({
+          id,
+          userId: uid,
+          period,
+          periodStart,
+          periodEnd,
+          expectedIncome: parseFloat(expectedIncome) || 0,
+          categoryBudgets,
+        });
+        setBudgetPlan(saved);
+        setAllBudgets((prev) => [...prev, saved]);
       }
+      toast.success("Бюджет сохранён");
     } catch {
       toast.error("Ошибка при сохранении");
     } finally {
@@ -282,27 +283,6 @@ export function FinancePlanning() {
       return;
     }
 
-    try {
-      const res = await fetch(
-        `/api/finance/budgets?uid=${uid}&periodStart=${prevStartStr}&periodEnd=${prevEndStr}`,
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const found = Array.isArray(data) ? data[0] : data;
-        if (found) {
-          setExpectedIncome(String(found.expectedIncome));
-          const limits: Record<string, string> = {};
-          for (const cb of found.categoryBudgets) {
-            limits[cb.categoryId] = String(cb.limit);
-          }
-          setCategoryLimits(limits);
-          toast.success("Бюджет скопирован из прошлого месяца");
-          return;
-        }
-      }
-    } catch {
-      // fall through
-    }
     toast.error("Бюджет за прошлый месяц не найден");
   };
 
