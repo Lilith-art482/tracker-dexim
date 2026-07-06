@@ -59,6 +59,7 @@ import {
   deleteAccount,
   createTransaction,
 } from "@/lib/finance-client";
+import { toast } from "sonner";
 
 type AccountType = FinanceAccount["type"];
 const CARD_TYPES = [
@@ -216,8 +217,8 @@ export function FinanceAccounts() {
     try {
       const data = await getAccountsByUser(uid);
       setAccounts(data);
-    } catch {
-      console.error("Failed to load accounts");
+    } catch (e) {
+      console.error("Failed to load accounts:", e);
     } finally {
       setLoading(false);
     }
@@ -321,8 +322,9 @@ export function FinanceAccounts() {
       });
       setDialogOpen(false);
       resetForm();
-    } catch {
-      console.error("Failed to save account");
+    } catch (e) {
+      console.error("Failed to save account:", e);
+      toast.error(e instanceof Error ? e.message : "Ошибка сохранения");
     } finally {
       setSaving(false);
     }
@@ -332,8 +334,8 @@ export function FinanceAccounts() {
     try {
       await deleteAccount(id);
       setAccounts((prev) => prev.filter((a) => a.id !== id));
-    } catch {
-      console.error("Failed to delete account");
+    } catch (e) {
+      console.error("Failed to delete account:", e);
     }
   };
 
@@ -376,8 +378,8 @@ export function FinanceAccounts() {
       setTransferTo("");
       setTransferAmount("");
       setTransferDescription("");
-    } catch {
-      console.error("Failed to transfer");
+    } catch (e) {
+      console.error("Failed to transfer:", e);
     } finally {
       setSaving(false);
     }
@@ -413,8 +415,8 @@ export function FinanceAccounts() {
       );
       setQuickAccount(null);
       setQuickAmount("");
-    } catch {
-      console.error("Failed to update balance");
+    } catch (e) {
+      console.error("Failed to update balance:", e);
     }
   }, [quickAccount, quickType, quickAmount]);
 
