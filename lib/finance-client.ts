@@ -17,6 +17,8 @@ import {
 function clean<T>(data: T): T {
   return JSON.parse(JSON.stringify(data)) as T;
 }
+
+export { db } from "./firebase";
 import type {
   FinanceAccount,
   Transaction,
@@ -112,7 +114,18 @@ export async function createTransaction(
 ): Promise<Transaction> {
   const now = new Date().toISOString();
   const tx: Transaction = { ...data, createdAt: now, updatedAt: now };
-  await setDoc(doc(transactionsCol(), tx.id), clean(clean(tx)));
+  await setDoc(doc(transactionsCol(), tx.id), clean(tx));
+
+  const accRef = doc(accountsCol(), tx.accountId);
+  const accSnap = await getDoc(accRef);
+  if (accSnap.exists()) {
+    const acc = toPlain<FinanceAccount>(accSnap);
+    const delta = tx.type === "income" ? tx.amount : tx.type === "expense" ? -tx.amount : 0;
+    if (delta !== 0) {
+      await updateDoc(accRef, clean({ balance: acc.balance + delta, updatedAt: new Date().toISOString() }));
+    }
+  }
+
   return tx;
 }
 
@@ -121,13 +134,51 @@ export async function updateTransaction(
   data: Partial<Pick<Transaction, "amount" | "description" | "tags" | "date" | "categoryId" | "accountId" | "type">>,
 ): Promise<Transaction> {
   const ref = doc(transactionsCol(), id);
+  const oldSnap = await getDoc(ref);
+  if (oldSnap.exists()) {
+    const old = toPlain<Transaction>(oldSnap);
+    const oldDelta = old.type === "income" ? old.amount : old.type === "expense" ? -old.amount : 0;
+
+    await updateDoc(ref, clean({ ...data, updatedAt: new Date().toISOString() }));
+    const newSnap = await getDoc(ref);
+    const updated = toPlain<Transaction>(newSnap);
+
+    const newDelta = updated.type === "income" ? updated.amount : updated.type === "expense" ? -updated.amount : 0;
+    const netDelta = newDelta - oldDelta;
+
+    if (netDelta !== 0) {
+      const accRef = doc(accountsCol(), updated.accountId);
+      const accSnap = await getDoc(accRef);
+      if (accSnap.exists()) {
+        const acc = toPlain<FinanceAccount>(accSnap);
+        await updateDoc(accRef, clean({ balance: acc.balance + netDelta, updatedAt: new Date().toISOString() }));
+      }
+    }
+
+    return updated;
+  }
+
   await updateDoc(ref, clean({ ...data, updatedAt: new Date().toISOString() }));
   const snap = await getDoc(ref);
   return toPlain<Transaction>(snap);
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
-  await deleteDoc(doc(transactionsCol(), id));
+  const ref = doc(transactionsCol(), id);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const tx = toPlain<Transaction>(snap);
+    const delta = tx.type === "income" ? -tx.amount : tx.type === "expense" ? tx.amount : 0;
+    if (delta !== 0) {
+      const accRef = doc(accountsCol(), tx.accountId);
+      const accSnap = await getDoc(accRef);
+      if (accSnap.exists()) {
+        const acc = toPlain<FinanceAccount>(accSnap);
+        await updateDoc(accRef, clean({ balance: acc.balance + delta, updatedAt: new Date().toISOString() }));
+      }
+    }
+  }
+  await deleteDoc(ref);
 }
 
 export async function getBudgetPlansByUser(uid: string): Promise<BudgetPlan[]> {
