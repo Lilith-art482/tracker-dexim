@@ -208,138 +208,138 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
             : "lg:w-60 lg:-translate-x-0",
         )}
       >
-      {/* Boards header */}
-      <div
-        className={cn(
-          "flex items-center gap-2 px-4 py-2.5 transition-opacity duration-300",
-          collapsed ? "opacity-0" : "opacity-100",
-        )}
-      >
-        <button
-          onClick={() => setBoardsOpen(!boardsOpen)}
-          className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60"
-        >
-          {boardsOpen ? (
-            <ChevronDown className="h-3 w-3" />
-          ) : (
-            <ChevronRight className="h-3 w-3" />
-          )}
-          Доски
-        </button>
-
-        <div className="ml-auto flex items-center gap-1">
-          <button
-            onClick={toggle}
-            className="flex lg:hidden h-6 w-6 items-center justify-center rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </button>
-          {loading && (
-            <Loader2 className="h-3 w-3 animate-spin text-sidebar-foreground/40" />
-          )}
-
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger>
-              <Button size="sm" variant="ghost" className="gap-2 h-6 w-6 p-0">
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {editingBoardId ? "Редактировать доску" : "Новая доска"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col gap-4">
-                <Input
-                  placeholder="Название доски"
-                  value={editingBoardId ? editingBoardName : newBoardName}
-                  onChange={(e) => {
-                    if (editingBoardId) setEditingBoardName(e.target.value);
-                    else setNewBoardName(e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter")
-                      editingBoardId ? handleUpdate() : handleCreate();
-                  }}
-                  autoFocus
-                />
-                <Button
-                  onClick={() =>
-                    editingBoardId ? handleUpdate() : handleCreate()
-                  }
-                  disabled={
-                    creating ||
-                    (!newBoardName.trim() && !editingBoardName.trim())
-                  }
-                >
-                  {(creating || false) && (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  )}
-                  {editingBoardId ? "Сохранить" : "Создать"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      {/* Boards list */}
-      {boardsOpen && (
-        <nav
-          className={cn(
-            "flex-1 space-y-0.5 overflow-y-auto px-2 transition-opacity duration-300",
-            collapsed ? "opacity-0 pointer-events-none" : "opacity-100",
-          )}
-        >
-          {filteredBoards.length === 0 ? (
-            <div className="px-3 py-4 text-xs text-muted-foreground text-center">
-              {mode === "team" ? "Нет командных досок" : "Нет личных досок"}
-            </div>
-          ) : (
-            filteredBoards.map((board) => (
-              <div key={board.id} className="flex items-center gap-2">
-                <button
-                  onClick={() => switchBoard(board.id)}
-                  className={cn(
-                    "flex-1 text-left text-sm rounded-lg px-3 py-2 transition-colors",
-                    activeBoardId === board.id ||
-                      (!activeBoardId && boards[0]?.id === board.id)
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                  )}
-                >
-                  <span className="truncate">{board.name}</span>
-                </button>
-                <button
-                  onClick={() => startEdit(board)}
-                  className="p-1 rounded hover:bg-muted/20 shrink-0"
-                  title="Редактировать"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(board.id)}
-                  className="p-1 rounded hover:bg-muted/20 shrink-0"
-                  title="Удалить"
-                >
-                  <Trash className="h-4 w-4 text-destructive" />
-                </button>
-              </div>
-            ))
-          )}
-        </nav>
-      )}
-
-      {!boardsOpen && (
+        {/* Boards header */}
         <div
           className={cn(
-            "flex-1 transition-opacity duration-300",
-            collapsed ? "opacity-0 pointer-events-none" : "opacity-100",
+            "flex items-center gap-2 px-4 py-2.5 transition-opacity duration-300",
+            collapsed ? "opacity-0" : "opacity-100",
           )}
-        />
-      )}
-    </aside>
+        >
+          <button
+            onClick={() => setBoardsOpen(!boardsOpen)}
+            className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60"
+          >
+            {boardsOpen ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+            Доски
+          </button>
+
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              onClick={toggle}
+              className="flex lg:hidden h-6 w-6 items-center justify-center rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            {loading && (
+              <Loader2 className="h-3 w-3 animate-spin text-sidebar-foreground/40" />
+            )}
+
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger>
+                <Button size="sm" variant="ghost" className="gap-2 h-6 w-6 p-0">
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingBoardId ? "Редактировать доску" : "Новая доска"}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-4">
+                  <Input
+                    placeholder="Название доски"
+                    value={editingBoardId ? editingBoardName : newBoardName}
+                    onChange={(e) => {
+                      if (editingBoardId) setEditingBoardName(e.target.value);
+                      else setNewBoardName(e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter")
+                        editingBoardId ? handleUpdate() : handleCreate();
+                    }}
+                    autoFocus
+                  />
+                  <Button
+                    onClick={() =>
+                      editingBoardId ? handleUpdate() : handleCreate()
+                    }
+                    disabled={
+                      creating ||
+                      (!newBoardName.trim() && !editingBoardName.trim())
+                    }
+                  >
+                    {(creating || false) && (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+                    {editingBoardId ? "Сохранить" : "Создать"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* Boards list */}
+        {boardsOpen && (
+          <nav
+            className={cn(
+              "flex-1 space-y-0.5 overflow-y-auto px-2 transition-opacity duration-300",
+              collapsed ? "opacity-0 pointer-events-none" : "opacity-100",
+            )}
+          >
+            {filteredBoards.length === 0 ? (
+              <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+                {mode === "team" ? "Нет командных досок" : "Нет личных досок"}
+              </div>
+            ) : (
+              filteredBoards.map((board) => (
+                <div key={board.id} className="flex items-center gap-2">
+                  <button
+                    onClick={() => switchBoard(board.id)}
+                    className={cn(
+                      "flex-1 text-left text-sm rounded-lg px-3 py-2 transition-colors",
+                      activeBoardId === board.id ||
+                        (!activeBoardId && boards[0]?.id === board.id)
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                    )}
+                  >
+                    <span className="truncate">{board.name}</span>
+                  </button>
+                  <button
+                    onClick={() => startEdit(board)}
+                    className="p-1 rounded hover:bg-muted/20 shrink-0"
+                    title="Редактировать"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(board.id)}
+                    className="p-1 rounded hover:bg-muted/20 shrink-0"
+                    title="Удалить"
+                  >
+                    <Trash className="h-4 w-4 text-destructive" />
+                  </button>
+                </div>
+              ))
+            )}
+          </nav>
+        )}
+
+        {!boardsOpen && (
+          <div
+            className={cn(
+              "flex-1 transition-opacity duration-300",
+              collapsed ? "opacity-0 pointer-events-none" : "opacity-100",
+            )}
+          />
+        )}
+      </aside>
     </>
   );
 }

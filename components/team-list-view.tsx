@@ -33,7 +33,11 @@ function formatDate(dateStr: string): string {
 
 function taskHasDateOnDay(task: Task, dayStr: string): boolean {
   if (task.archived) return false;
-  if (task.startDate && task.startDate <= dayStr && (!task.endDate || task.endDate >= dayStr))
+  if (
+    task.startDate &&
+    task.startDate <= dayStr &&
+    (!task.endDate || task.endDate >= dayStr)
+  )
     return true;
   if (!task.startDate && task.endDate && task.endDate >= dayStr) return true;
   return false;
@@ -52,9 +56,7 @@ export function TeamListView({
   columns: Column[];
   onEdit: (task: Task) => void;
 }) {
-  const columnNames = Object.fromEntries(
-    columns.map((c) => [c.id, c.name]),
-  );
+  const columnNames = Object.fromEntries(columns.map((c) => [c.id, c.name]));
 
   const dayStr = weekDates[selectedDay]?.toISOString().split("T")[0] || "";
 
@@ -87,9 +89,7 @@ export function TeamListView({
           <List className="h-8 w-8 text-muted-foreground" />
         </div>
         <h2 className="text-xl font-semibold tracking-tight">Нет задач</h2>
-        <p className="text-sm text-muted-foreground">
-          На {dayLabel} нет задач
-        </p>
+        <p className="text-sm text-muted-foreground">На {dayLabel} нет задач</p>
       </div>
     );
   }

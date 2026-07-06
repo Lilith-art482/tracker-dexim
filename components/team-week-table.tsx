@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState, useMemo, useRef } from "react";
-import { Plus, CheckCircle2, Circle, AlertTriangle, Calendar, User } from "lucide-react";
+import {
+  Plus,
+  CheckCircle2,
+  Circle,
+  AlertTriangle,
+  Calendar,
+  User,
+} from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -23,7 +30,8 @@ const ROWS = 12;
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: "bg-rose-500/10 border-l-rose-500 text-rose-600 dark:text-rose-400",
-  medium: "bg-amber-500/10 border-l-amber-500 text-amber-600 dark:text-amber-400",
+  medium:
+    "bg-amber-500/10 border-l-amber-500 text-amber-600 dark:text-amber-400",
   low: "bg-sky-500/10 border-l-sky-500 text-sky-600 dark:text-sky-400",
 };
 
@@ -36,7 +44,11 @@ const PRIORITY_LABELS: Record<string, string> = {
 function taskOverlapsDay(task: Task, dayStr: string): boolean {
   if (task.archived) return false;
   if (!task.startDate && !task.endDate) return false;
-  if (task.startDate && task.startDate <= dayStr && (!task.endDate || task.endDate >= dayStr))
+  if (
+    task.startDate &&
+    task.startDate <= dayStr &&
+    (!task.endDate || task.endDate >= dayStr)
+  )
     return true;
   if (!task.startDate && task.endDate && task.endDate >= dayStr) return true;
   return false;
@@ -254,7 +266,10 @@ export function TeamWeekTable({
       onDragEnd={handleDragEnd}
     >
       <div className="overflow-x-auto pb-2 -mx-3 sm:mx-0 px-3 sm:px-0">
-        <div className="grid min-w-[700px]" style={{ gridTemplateColumns: `repeat(7, minmax(80px, 1fr))` }}>
+        <div
+          className="grid min-w-[700px]"
+          style={{ gridTemplateColumns: `repeat(7, minmax(80px, 1fr))` }}
+        >
           {DAYS.map((_day, dayIdx) => {
             const slots = daySlots[dayIdx];
             return (

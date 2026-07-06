@@ -212,7 +212,9 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
               {activeBoard?.name || "Расписание"}
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">{currentMonthLabel}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              {currentMonthLabel}
+            </p>
           </div>
           <div className="flex sm:hidden items-center gap-1.5 mt-1">
             <div className="flex items-center gap-1 rounded-lg border p-0.5">

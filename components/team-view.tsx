@@ -24,8 +24,18 @@ import { ArchiveView } from "@/components/archive-view";
 const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 const MONTH_NAMES = [
-  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
 ];
 
 function getMonday(d: Date): Date {
@@ -110,20 +120,17 @@ export function TeamView({
     fetchTasks();
   }, [fetchTasks]);
 
-  const handleTaskSaved = useCallback(
-    (task: Task) => {
-      setTasks((prev) => {
-        const idx = prev.findIndex((t) => t.id === task.id);
-        if (idx >= 0) {
-          const updated = [...prev];
-          updated[idx] = task;
-          return updated;
-        }
-        return [...prev, task];
-      });
-    },
-    [],
-  );
+  const handleTaskSaved = useCallback((task: Task) => {
+    setTasks((prev) => {
+      const idx = prev.findIndex((t) => t.id === task.id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = task;
+        return updated;
+      }
+      return [...prev, task];
+    });
+  }, []);
 
   const handleAddTask = useCallback(() => {
     const firstCol = columns[0];
@@ -164,7 +171,9 @@ export function TeamView({
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
               {activeBoard?.name}
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">{currentMonthLabel}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              {currentMonthLabel}
+            </p>
           </div>
           <div className="flex sm:hidden items-center gap-1.5 mt-1">
             <div className="flex items-center gap-1 rounded-lg border p-0.5">

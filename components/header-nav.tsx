@@ -45,6 +45,10 @@ export function HeaderNav() {
       router.push(`${pathname}?${params.toString()}`);
       return;
     }
+    if (id === "finance") {
+      router.push("/finance");
+      return;
+    }
     toast.info("Страница в разработке");
   };
 
@@ -56,7 +60,8 @@ export function HeaderNav() {
           onClick={() => handleNavClick(id)}
           className={cn(
             "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors shrink-0",
-            id === "planner" && mode === "personal"
+            (id === "planner" && mode === "personal") ||
+              (id === "finance" && pathname === "/finance")
               ? "bg-primary/10 text-primary font-medium"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
           )}
