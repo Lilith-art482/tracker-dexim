@@ -71,25 +71,20 @@ export function FinanceEmergencyFund() {
     : 0;
   const shortfall = targetAmount - currentAmount;
 
+  const isConfigured = targetAmount > 0;
   const coverageLevel =
-    monthsCovered >= 3 ? "safe" : monthsCovered >= 1 ? "medium" : "low";
+    !isConfigured ? "none" : monthsCovered >= 3 ? "safe" : monthsCovered >= 1 ? "medium" : "low";
   const coverageColor =
-    coverageLevel === "safe"
-      ? "text-emerald-500"
-      : coverageLevel === "medium"
-        ? "text-amber-500"
+    coverageLevel === "safe" ? "text-emerald-500"
+      : coverageLevel === "medium" ? "text-amber-500"
         : "text-rose-500";
   const coverageBg =
-    coverageLevel === "safe"
-      ? "bg-emerald-500/10"
-      : coverageLevel === "medium"
-        ? "bg-amber-500/10"
+    coverageLevel === "safe" ? "bg-emerald-500/10"
+      : coverageLevel === "medium" ? "bg-amber-500/10"
         : "bg-rose-500/10";
   const CoverageIcon =
-    coverageLevel === "safe"
-      ? ShieldCheck
-      : coverageLevel === "medium"
-        ? Shield
+    coverageLevel === "safe" ? ShieldCheck
+      : coverageLevel === "medium" ? Shield
         : ShieldAlert;
 
   const fetchFund = useCallback(async () => {
@@ -245,7 +240,7 @@ export function FinanceEmergencyFund() {
                 <circle
                   cx="90" cy="90" r={radius}
                   fill="none"
-                  stroke={coverageLevel === "safe" ? "#22c55e" : coverageLevel === "medium" ? "#f59e0b" : "#ef4444"}
+                  stroke={!isConfigured ? "#6b7280" : coverageLevel === "safe" ? "#22c55e" : coverageLevel === "medium" ? "#f59e0b" : "#ef4444"}
                   strokeWidth="12" strokeLinecap="round"
                   strokeDasharray={circumference} strokeDashoffset={offset}
                   className="transition-all duration-700"
@@ -322,10 +317,10 @@ export function FinanceEmergencyFund() {
                 </div>
                 <div>
                   <p className={cn("text-sm font-semibold", coverageColor)}>
-                    {monthsCovered < 1 ? "Менее 1 мес." : monthsCovered < 3 ? `${monthsCovered} мес.` : `> ${monthsCovered} мес.`}
+                    {!isConfigured ? "—" : monthsCovered < 1 ? "Менее 1 мес." : monthsCovered < 3 ? `${monthsCovered} мес.` : `> ${monthsCovered} мес.`}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {monthsCovered >= 3 ? "Достаточно" : monthsCovered >= 1 ? "Средне" : "Критично"}
+                    {!isConfigured ? "Не настроено" : monthsCovered >= 3 ? "Достаточно" : monthsCovered >= 1 ? "Средне" : "Критично"}
                   </p>
                 </div>
               </div>
@@ -414,7 +409,7 @@ export function FinanceEmergencyFund() {
             <p className="text-sm text-muted-foreground">
               Рекомендуемый размер подушки — <strong>3–6 месяцев</strong> ежемесячных расходов.
             </p>
-            {monthlyExpenses > 0 ? (
+            {isConfigured && monthlyExpenses > 0 ? (
               <>
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs">
@@ -444,7 +439,11 @@ export function FinanceEmergencyFund() {
             ) : (
               <div className="flex flex-col items-center gap-2 py-4 text-muted-foreground">
                 <Percent className="h-8 w-8 opacity-40" />
-                <p className="text-sm text-center">Добавьте расходы, чтобы рассчитать рекомендуемый размер подушки</p>
+                <p className="text-sm text-center">
+                  {!isConfigured
+                    ? "Установите цель, чтобы отслеживать прогресс"
+                    : "Добавьте расходы, чтобы рассчитать рекомендуемый размер подушки"}
+                </p>
               </div>
             )}
           </CardContent>
