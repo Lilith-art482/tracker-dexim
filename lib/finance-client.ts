@@ -10,7 +10,6 @@ import {
   addDoc,
   query,
   where,
-  orderBy,
   limit,
 } from "firebase/firestore";
 
@@ -95,7 +94,7 @@ export async function getTransactionsByUser(
   uid: string,
   filters?: TransactionFilters,
 ): Promise<Transaction[]> {
-  let q = query(transactionsCol(), where("userId", "==", uid), orderBy("date", "desc"));
+  let q = query(transactionsCol(), where("userId", "==", uid));
   if (filters?.type) q = query(q, where("type", "==", filters.type));
   if (filters?.categoryId) q = query(q, where("categoryId", "==", filters.categoryId));
   if (filters?.accountId) q = query(q, where("accountId", "==", filters.accountId));

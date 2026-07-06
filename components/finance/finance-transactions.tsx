@@ -152,20 +152,18 @@ export function FinanceTransactions() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    try {
-      const [txs, accs, cats] = await Promise.all([
-        getTransactionsByUser(uid),
-        getAccountsByUser(uid),
-        getCategoriesByUser(uid),
-      ]);
-      setTransactions(txs);
-      setAccounts(accs || []);
-      setCategories(cats || []);
-    } catch {
-      console.error("Failed to load finance data");
-    } finally {
-      setLoading(false);
-    }
+    const [txs, accs, cats] = await Promise.allSettled([
+      getTransactionsByUser(uid),
+      getAccountsByUser(uid),
+      getCategoriesByUser(uid),
+    ]);
+    if (txs.status === "fulfilled") setTransactions(txs.value);
+    else console.error("Failed to load transactions:", txs.reason);
+    if (accs.status === "fulfilled") setAccounts(accs.value || []);
+    else console.error("Failed to load accounts:", accs.reason);
+    if (cats.status === "fulfilled") setCategories(cats.value || []);
+    else console.error("Failed to load categories:", cats.reason);
+    setLoading(false);
   }, [uid]);
 
   useEffect(() => {
@@ -504,183 +502,99 @@ export function FinanceTransactions() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Журнал операций</h2>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV}>
-            <Download className="h-4 w-4 mr-1" />
-            CSV
+        <div className="flex items-center gap-1.5">
+          <Button variant="ghost" size="icon-sm" onClick={handleExportCSV} title="CSV">
+            <Download className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportJSON}>
-            <Download className="h-4 w-4 mr-1" />
-            JSON
+          <Button variant="ghost" size="icon-sm" onClick={handleExportJSON} title="JSON">
+            <Download className="h-4 w-4" />
           </Button>
-          <Button
-            size="sm"
-            onClick={() => {
-              resetForm();
-              setAddOpen(true);
-            }}
-          >
+          <Button size="sm" onClick={() => { resetForm(); setAddOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" />
             Добавить
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Compact filters */}
       <Card>
-        <CardContent className="pt-4 space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Date filter */}
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                Период
-              </Label>
-              <Select
-                value={dateFilter}
-                onValueChange={(v) => v && setDateFilter(v as DateFilter)}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все</SelectItem>
-                  <SelectItem value="today">Сегодня</SelectItem>
-                  <SelectItem value="week">Последние 7 дней</SelectItem>
-                  <SelectItem value="month">Этот месяц</SelectItem>
-                  <SelectItem value="custom">Произвольно</SelectItem>
-                </SelectContent>
-              </Select>
-              {dateFilter === "custom" && (
-                <div className="flex gap-1.5 mt-1.5">
-                  <Input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="h-7 text-xs"
-                    placeholder="с"
-                  />
-                  <Input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="h-7 text-xs"
-                    placeholder="по"
-                  />
-                </div>
-              )}
-            </div>
+        <CardContent className="p-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={dateFilter} onValueChange={(v) => v && setDateFilter(v as DateFilter)}>
+              <SelectTrigger className="h-7 text-xs w-[130px]">
+                <Calendar className="h-3 w-3 mr-1 shrink-0" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все</SelectItem>
+                <SelectItem value="today">Сегодня</SelectItem>
+                <SelectItem value="week">7 дней</SelectItem>
+                <SelectItem value="month">Месяц</SelectItem>
+                <SelectItem value="custom">Свой</SelectItem>
+              </SelectContent>
+            </Select>
 
-            {/* Type filter */}
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                Тип
-              </Label>
-              <Select
-                value={typeFilter}
-                onValueChange={(v) => {
-                  if (v) {
-                    setTypeFilter(v as TransactionType | "all");
-                    setCategoryFilter("all");
-                  }
-                }}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {FILTER_TYPE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Category filter */}
-            {(typeFilter === "expense" || typeFilter === "income") && (
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Категория</Label>
-                <Select
-                  value={categoryFilter}
-                  onValueChange={(v) => v && setCategoryFilter(v)}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все</SelectItem>
-                    {categories
-                      .filter((c) => c.type === typeFilter)
-                      .map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {dateFilter === "custom" && (
+              <>
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-7 w-[130px] text-xs" />
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-7 w-[130px] text-xs" />
+              </>
             )}
 
-            {/* Account filter */}
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Счёт</Label>
-              <Select
-                value={accountFilter}
-                onValueChange={(v) => v && setAccountFilter(v)}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
+            <Select value={typeFilter} onValueChange={(v) => { if (v) { setTypeFilter(v as TransactionType | "all"); setCategoryFilter("all"); } }}>
+              <SelectTrigger className="h-7 text-xs w-[110px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FILTER_TYPE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {(typeFilter === "expense" || typeFilter === "income") && (
+              <Select value={categoryFilter} onValueChange={(v) => v && setCategoryFilter(v)}>
+                <SelectTrigger className="h-7 text-xs w-[130px]">
+                  <SelectValue placeholder="Категория" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все</SelectItem>
-                  {accounts.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.name}
-                    </SelectItem>
+                  {categories.filter((c) => c.type === typeFilter).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          </div>
+            )}
 
-          {/* Second row: search + tags + reset */}
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="flex-1 min-w-[140px] max-w-[200px] space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <Search className="h-3 w-3" />
-                Поиск
-              </Label>
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Описание..."
-                className="h-8 text-xs"
-              />
-            </div>
-            <div className="flex-1 min-w-[140px] max-w-[200px] space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <Tags className="h-3 w-3" />
-                Теги
-              </Label>
-              <Input
-                value={tagsFilter}
-                onChange={(e) => setTagsFilter(e.target.value)}
-                placeholder="тег1, тег2"
-                className="h-8 text-xs"
-              />
-            </div>
+            <Select value={accountFilter} onValueChange={(v) => v && setAccountFilter(v)}>
+              <SelectTrigger className="h-7 text-xs w-[130px]">
+                <SelectValue placeholder="Счёт" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все</SelectItem>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск..."
+              className="h-7 text-xs w-[120px]"
+            />
+
+            <Input
+              value={tagsFilter}
+              onChange={(e) => setTagsFilter(e.target.value)}
+              placeholder="Теги"
+              className="h-7 text-xs w-[100px]"
+            />
+
             {hasActiveFilters && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearFilters}
-                className="h-8 text-xs"
-              >
-                <X className="h-3 w-3 mr-1" />
-                Сбросить фильтры
+              <Button variant="ghost" size="icon-sm" onClick={clearFilters} className="h-7 w-7">
+                <X className="h-3 w-3" />
               </Button>
             )}
           </div>
