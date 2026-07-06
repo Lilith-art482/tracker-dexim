@@ -28,7 +28,6 @@ import {
   updateTransaction,
   deleteTransaction,
   getAccountsByUser,
-  updateAccount as updateAccountModel,
   getCategoriesByUser,
 } from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
@@ -288,6 +287,15 @@ export function FinanceTransactions() {
       .filter(Boolean);
     const isEdit = editTx && editOpen;
 
+    const account = accounts.find((a) => a.id === txAccountId);
+    const desc = txDescription.trim() || (account
+      ? txType === "income"
+        ? `Пополнение — ${account.name}`
+        : txType === "expense"
+          ? `Списание — ${account.name}`
+          : `Перевод — ${account.name}`
+      : "");
+
     try {
       if (isEdit) {
         const saved = await updateTransaction(editTx!.id, {
@@ -297,7 +305,7 @@ export function FinanceTransactions() {
             txCategoryId ||
             (txType === "transfer" ? "fin-cat-9" : expenseCategories[0]?.id || ""),
           amount,
-          description: txDescription.trim(),
+          description: desc,
           tags,
           date: txDate,
         });
@@ -318,28 +326,23 @@ export function FinanceTransactions() {
             txCategoryId ||
             (txType === "transfer" ? "fin-cat-9" : expenseCategories[0]?.id || ""),
           amount,
-          description: txDescription.trim(),
+          description: desc,
           tags,
           date: txDate,
         });
         setTransactions((prev) => [saved, ...prev]);
-
-        const account = accounts.find((a) => a.id === txAccountId);
-        if (account) {
-          const balanceDelta =
-            txType === "income" ? amount : txType === "expense" ? -amount : 0;
-          if (balanceDelta !== 0) {
-            const updatedAccount = await updateAccountModel(txAccountId, {
-              balance: account.balance + balanceDelta,
-            });
-            setAccounts((prev) =>
-              prev.map((a) =>
-                a.id === updatedAccount.id ? updatedAccount : a,
-              ),
-            );
-          }
-        }
-
+        setAccounts((prev) =>
+          prev.map((a) =>
+            a.id === txAccountId
+              ? {
+                  ...a,
+                  balance:
+                    a.balance +
+                    (txType === "income" ? amount : txType === "expense" ? -amount : 0),
+                }
+              : a,
+          ),
+        );
         setAddOpen(false);
         resetForm();
         toast.success("Операция добавлена");
@@ -352,9 +355,24 @@ export function FinanceTransactions() {
   };
 
   const handleDelete = async (id: string) => {
+    const tx = transactions.find((t) => t.id === id);
     try {
       await deleteTransaction(id);
       setTransactions((prev) => prev.filter((t) => t.id !== id));
+      if (tx) {
+        setAccounts((prev) =>
+          prev.map((a) =>
+            a.id === tx!.accountId
+              ? {
+                  ...a,
+                  balance:
+                    a.balance -
+                    (tx!.type === "income" ? tx!.amount : tx!.type === "expense" ? -tx!.amount : 0),
+                }
+              : a,
+          ),
+        );
+      }
       setSelectedIds((prev) => {
         const next = new Set(prev);
         next.delete(id);

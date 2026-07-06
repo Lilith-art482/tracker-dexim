@@ -174,7 +174,7 @@ export function FinanceGoals() {
           currentAmount,
           deadline: formDeadline,
           priority: formPriority as GoalPriority,
-          accountId: formAccountId || undefined,
+          ...(formAccountId ? { accountId: formAccountId } : {}),
           autoDepositPercent,
         });
         setGoals((prev) =>
@@ -192,7 +192,7 @@ export function FinanceGoals() {
           currentAmount,
           deadline: formDeadline,
           priority: formPriority as GoalPriority,
-          accountId: formAccountId || undefined,
+          ...(formAccountId ? { accountId: formAccountId } : {}),
           autoDepositPercent,
           completed: false,
         });

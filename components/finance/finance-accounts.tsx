@@ -290,19 +290,19 @@ export function FinanceAccounts() {
       type: formType,
       balance,
       currency: formCurrency,
-      notes: formNotes || undefined,
     };
+    if (formNotes) body.notes = formNotes;
 
     if (formType === "card") body.cardType = formCardType;
     if (formType === "crypto") {
       body.cryptoCoin = formCryptoCoin;
-      body.walletName = formWalletName || undefined;
-      body.walletAddress = formWalletAddress || undefined;
+      if (formWalletName) body.walletName = formWalletName;
+      if (formWalletAddress) body.walletAddress = formWalletAddress;
     }
     if (formType === "deposit") {
-      body.interestRate = formInterestRate ? parseFloat(formInterestRate) : undefined;
-      body.termMonths = formTermMonths ? parseInt(formTermMonths) : undefined;
-      body.startDate = formStartDate || undefined;
+      if (formInterestRate) body.interestRate = parseFloat(formInterestRate);
+      if (formTermMonths) body.termMonths = parseInt(formTermMonths);
+      if (formStartDate) body.startDate = formStartDate;
     }
 
     try {

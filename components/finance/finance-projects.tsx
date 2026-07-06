@@ -209,21 +209,19 @@ export function FinanceProjects() {
       return;
     }
 
-    const body = {
-      userId: uid,
-      name: formName.trim(),
-      icon: formIcon,
-      targetAmount,
-      savedAmount,
-      deadline: formDeadline,
-      description: formDescription,
-      linkedCategoryIds: formCategoryIds,
-      color: formColor,
-    };
-
     if (editingProject) {
+      const updates: Parameters<typeof updateProject>[1] = {
+        name: formName.trim(),
+        icon: formIcon,
+        targetAmount,
+        savedAmount,
+        color: formColor,
+        deadline: formDeadline || undefined,
+        description: formDescription || undefined,
+        linkedCategoryIds: formCategoryIds,
+      };
       try {
-        const updated = await updateProject(editingProject.id, body);
+        const updated = await updateProject(editingProject.id, updates);
         setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
         toast.success("Проект обновлён");
       } catch {
@@ -232,7 +230,19 @@ export function FinanceProjects() {
     } else {
       try {
         const id = crypto.randomUUID();
-        const created = await createProject({ id, completed: false, ...body });
+        const created = await createProject({
+          id,
+          userId: uid,
+          name: formName.trim(),
+          icon: formIcon,
+          targetAmount,
+          savedAmount,
+          color: formColor,
+          deadline: formDeadline || undefined,
+          description: formDescription || undefined,
+          linkedCategoryIds: formCategoryIds,
+          completed: false,
+        });
         setProjects((prev) => [...prev, created]);
         toast.success("Проект создан");
       } catch {
