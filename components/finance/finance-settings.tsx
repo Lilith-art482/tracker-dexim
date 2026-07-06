@@ -39,8 +39,64 @@ import {
   Moon,
   Cloud,
   Star,
+  Stethoscope,
+  Pill,
+  Syringe,
+  Bike,
+  Tent,
+  Tv,
+  Radio,
+  Cable,
+  Gamepad2,
+  Clapperboard,
+  Drama,
+  Paintbrush,
+  Scissors,
+  Wrench,
+  Nut,
+  Fuel,
+  Church,
+  Building2,
+  TreePine,
+  Flower2,
+  Baby,
+  ToyBrick,
+  ShowerHead,
+  Lightbulb,
+  Flame,
+  Snowflake,
+  Fan,
+  Bug,
+  Sparkles,
+  Hand,
+  ScrollText,
+  ChartPie,
+  Banknote,
+  Landmark,
+  Award,
+  Crown,
+  Gem,
+  Ticket,
+  Train,
+  Bus,
+  Ship,
+  Footprints,
+  Circle,
+  Egg,
+  Apple,
+  Sandwich,
+  Beef,
+  Milk,
+  Candy,
+  Wine,
+  Beer,
+  ChefHat,
+  Soup,
+  Cookie,
+  CupSoda,
 } from "lucide-react";
 import type { TransactionCategory, FinanceAccount } from "@/lib/finance-types";
+import { CURRENCIES } from "@/lib/finance-types";
 import {
   getCategoriesByUser,
   createCategory,
@@ -90,36 +146,103 @@ const COLORS = [
 ];
 
 const ICON_OPTIONS: { value: string; label: string; icon: React.ElementType }[] = [
-  { value: "ShoppingCart", label: "Покупки", icon: ShoppingCart },
-  { value: "Home", label: "Дом", icon: Home },
-  { value: "Car", label: "Машина", icon: Car },
-  { value: "Heart", label: "Здоровье", icon: Heart },
-  { value: "GraduationCap", label: "Образование", icon: GraduationCap },
-  { value: "Plane", label: "Путешествия", icon: Plane },
-  { value: "Smartphone", label: "Телефон", icon: Smartphone },
-  { value: "Gift", label: "Подарки", icon: Gift },
+  // Еда и напитки
   { value: "Utensils", label: "Еда", icon: Utensils },
   { value: "Coffee", label: "Кофе", icon: Coffee },
+  { value: "CupSoda", label: "Напитки", icon: CupSoda },
+  { value: "Apple", label: "Фрукты", icon: Apple },
+  { value: "Sandwich", label: "Сэндвич", icon: Sandwich },
+  { value: "Beef", label: "Мясо", icon: Beef },
+  { value: "Milk", label: "Молоко", icon: Milk },
+  { value: "Candy", label: "Сладости", icon: Candy },
+  { value: "Cookie", label: "Печенье", icon: Cookie },
+  { value: "Egg", label: "Яйца", icon: Egg },
+  { value: "Soup", label: "Суп", icon: Soup },
+  { value: "ChefHat", label: "Готовка", icon: ChefHat },
+  { value: "Wine", label: "Вино", icon: Wine },
+  { value: "Beer", label: "Пиво", icon: Beer },
+  // Дом и быт
+  { value: "Home", label: "Дом", icon: Home },
   { value: "Zap", label: "Электричество", icon: Zap },
+  { value: "Flame", label: "Отопление", icon: Flame },
+  { value: "Snowflake", label: "Кондиционер", icon: Snowflake },
+  { value: "Fan", label: "Вентиляция", icon: Fan },
+  { value: "Lightbulb", label: "Лампочка", icon: Lightbulb },
+  { value: "ShowerHead", label: "Вода", icon: ShowerHead },
   { value: "Wifi", label: "Интернет", icon: Wifi },
+  { value: "Cable", label: "Кабельное", icon: Cable },
+  { value: "Radio", label: "Радио", icon: Radio },
+  { value: "Tv", label: "Телевидение", icon: Tv },
+  { value: "ScrollText", label: "Коммуналка", icon: ScrollText },
+  { value: "Wrench", label: "Ремонт", icon: Wrench },
+  { value: "Paintbrush", label: "Краска", icon: Paintbrush },
+  { value: "Scissors", label: "Ножницы", icon: Scissors },
+  { value: "Bug", label: "Дератизация", icon: Bug },
+  { value: "Sparkles", label: "Уборка", icon: Sparkles },
+  // Транспорт
+  { value: "Car", label: "Автомобиль", icon: Car },
+  { value: "Bike", label: "Велосипед", icon: Bike },
+  { value: "Tent", label: "Мотоцикл", icon: Tent },
+  { value: "Fuel", label: "Топливо", icon: Fuel },
+  { value: "Nut", label: "Запчасти", icon: Nut },
+  { value: "Train", label: "Поезд", icon: Train },
+  { value: "Bus", label: "Автобус", icon: Bus },
+  { value: "Ship", label: "Корабль", icon: Ship },
+  { value: "Plane", label: "Самолёт", icon: Plane },
+  { value: "Footprints", label: "Пешком", icon: Footprints },
+  // Здоровье
+  { value: "Heart", label: "Здоровье", icon: Heart },
+  { value: "Stethoscope", label: "Врач", icon: Stethoscope },
+  { value: "Pill", label: "Таблетки", icon: Pill },
+  { value: "Syringe", label: "Уколы", icon: Syringe },
+  { value: "Dumbbell", label: "Спортзал", icon: Dumbbell },
+  // Одежда
   { value: "Shirt", label: "Одежда", icon: Shirt },
-  { value: "Dumbbell", label: "Спорт", icon: Dumbbell },
+  { value: "Gem", label: "Украшения", icon: Gem },
+  // Образование
+  { value: "GraduationCap", label: "Образование", icon: GraduationCap },
   { value: "BookOpen", label: "Книги", icon: BookOpen },
-  { value: "Music", label: "Музыка", icon: Music },
+  // Развлечения
   { value: "Film", label: "Кино", icon: Film },
-  { value: "Cat", label: "Питомцы", icon: Cat },
+  { value: "Clapperboard", label: "Видео", icon: Clapperboard },
+  { value: "Music", label: "Музыка", icon: Music },
+  { value: "Drama", label: "Театр", icon: Drama },
+  { value: "Gamepad2", label: "Игры", icon: Gamepad2 },
+  { value: "Ticket", label: "Билеты", icon: Ticket },
+  { value: "Award", label: "Достижения", icon: Award },
+  { value: "Crown", label: "Премиум", icon: Crown },
+  // Связь и подписки
+  { value: "Smartphone", label: "Телефон", icon: Smartphone },
+  { value: "ChartPie", label: "Подписки", icon: ChartPie },
+  // Подарки
+  { value: "Gift", label: "Подарки", icon: Gift },
+  { value: "ToyBrick", label: "Игрушки", icon: ToyBrick },
+  { value: "Baby", label: "Дети", icon: Baby },
+  // Природа
+  { value: "TreePine", label: "Природа", icon: TreePine },
+  { value: "Flower2", label: "Цветы", icon: Flower2 },
+  { value: "Cat", label: "Кошка", icon: Cat },
   { value: "Dog", label: "Собака", icon: Dog },
-  { value: "Sun", label: "Солнце", icon: Sun },
-  { value: "Moon", label: "Луна", icon: Moon },
-  { value: "Cloud", label: "Облако", icon: Cloud },
-  { value: "Star", label: "Звезда", icon: Star },
+  // Финансы
   { value: "DollarSign", label: "Зарплата", icon: DollarSign },
   { value: "PiggyBank", label: "Копилка", icon: PiggyBank },
   { value: "Wallet", label: "Кошелёк", icon: Wallet },
+  { value: "Banknote", label: "Наличные", icon: Banknote },
+  { value: "Landmark", label: "Банк", icon: Landmark },
+  // Прочее
+  { value: "ShoppingCart", label: "Покупки", icon: ShoppingCart },
+  { value: "Hand", label: "Услуги", icon: Hand },
+  { value: "Building2", label: "Офис", icon: Building2 },
+  { value: "Church", label: "Религия", icon: Church },
+  { value: "Circle", label: "Цель", icon: Circle },
+  { value: "Cloud", label: "Облако", icon: Cloud },
+  { value: "Sun", label: "Солнце", icon: Sun },
+  { value: "Moon", label: "Луна", icon: Moon },
+  { value: "Star", label: "Звезда", icon: Star },
   { value: "MoreHorizontal", label: "Другое", icon: MoreHorizontal },
 ];
 
-const CURRENCIES = ["RUB", "USD", "EUR", "KZT"];
+const FIAT_CURRENCIES = CURRENCIES.filter((c) => c.type === "fiat");
 
 export function FinanceSettings() {
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
@@ -307,10 +430,10 @@ export function FinanceSettings() {
               <SelectTrigger className="w-full sm:w-40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                {CURRENCIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
+              <SelectContent className="max-h-[300px]">
+                {FIAT_CURRENCIES.map((c) => (
+                  <SelectItem key={c.code} value={c.code}>
+                    {c.symbol} {c.code} — {c.label}
                   </SelectItem>
                 ))}
               </SelectContent>

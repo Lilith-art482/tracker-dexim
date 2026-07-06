@@ -15,6 +15,7 @@ import {
   ArrowUp,
   Target,
   Wallet,
+  RotateCcw,
 } from "lucide-react";
 import type { EmergencyFund, Transaction } from "@/lib/finance-types";
 import {
@@ -351,8 +352,37 @@ export function FinanceEmergencyFund() {
 
       {/* Actions */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium">Управление</CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-destructive h-7"
+            onClick={() => {
+              toast("Сбросить подушку безопасности?", {
+                action: {
+                  label: "Сбросить",
+                  onClick: async () => {
+                    try {
+                      const updated = await upsertEmergencyFund(uid, {
+                        targetAmount: 0,
+                        currentAmount: 0,
+                      });
+                      setFund(updated);
+                      toast.success("Подушка сброшена");
+                    } catch {
+                      setFund(null);
+                      toast.success("Подушка сброшена");
+                    }
+                  },
+                },
+                cancel: { label: "Отмена", onClick: () => {} },
+              });
+            }}
+          >
+            <RotateCcw className="h-3 w-3 mr-1" />
+            Сбросить
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-3">
