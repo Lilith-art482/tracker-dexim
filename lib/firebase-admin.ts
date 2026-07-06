@@ -1,11 +1,12 @@
 import "firebase-admin";
 import { initializeApp, getApps, cert, App } from "firebase-admin/app";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
+import { db as clientDb } from "./firebase";
 
 let adminApp: App | null = null;
 let adminDbInstance: Firestore | null = null;
 
-function getAdminApp(): App {
+function getAdminApp(): App | null {
   if (adminApp) return adminApp;
   if (getApps().length > 0) {
     adminApp = getApps()[0];
@@ -17,19 +18,18 @@ function getAdminApp(): App {
   let privateKey: string | undefined;
 
   if (base64Key) {
-    // Декодирование base64 (Node.js)
     privateKey = Buffer.from(base64Key, "base64")
       .toString("utf-8")
       .replace(/\\n/g, "\n");
   } else if (rawKey) {
-    // Замена литеральных \n на реальные переносы
     privateKey = rawKey.replace(/\\n/g, "\n");
   }
 
   if (!privateKey || !process.env.FIREBASE_CLIENT_EMAIL) {
-    throw new Error(
-      "Firebase Admin SDK: missing FIREBASE_CLIENT_EMAIL or FIREBASE_PRIVATE_KEY.",
+    console.warn(
+      "Firebase Admin SDK not configured. Falling back to Client SDK.",
     );
+    return null;
   }
 
   try {
@@ -43,16 +43,22 @@ function getAdminApp(): App {
   } catch (e: unknown) {
     const err = e instanceof Error ? e : new Error(String(e));
     console.error("Firebase init error:", err.message);
-    throw err;
+    return null;
   }
 
   return adminApp;
 }
 
 export function getAdminDb(): Firestore {
-  if (!adminDbInstance) {
-    const app = getAdminApp();
+  if (adminDbInstance) return adminDbInstance;
+
+  const app = getAdminApp();
+  if (app) {
     adminDbInstance = getFirestore(app);
+    return adminDbInstance;
   }
+
+  // Fall back to Client SDK when Admin SDK isn't available
+  adminDbInstance = clientDb as unknown as Firestore;
   return adminDbInstance;
 }
