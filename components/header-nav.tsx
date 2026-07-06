@@ -40,9 +40,7 @@ export function HeaderNav() {
       setMode("personal");
       const params = new URLSearchParams(searchParams.toString());
       params.delete("boardId");
-      const uid = searchParams.get("uid");
-      if (uid) params.set("uid", uid);
-      router.push(`${pathname}?${params.toString()}`);
+      router.push(`/?${params.toString()}`);
       return;
     }
     if (id === "finance") {
@@ -60,8 +58,8 @@ export function HeaderNav() {
           onClick={() => handleNavClick(id)}
           className={cn(
             "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors shrink-0",
-            (id === "planner" && mode === "personal") ||
-              (id === "finance" && pathname === "/finance")
+            (id === "planner" && pathname === "/") ||
+              (id === "finance" && pathname.startsWith("/finance"))
               ? "bg-primary/10 text-primary font-medium"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
           )}

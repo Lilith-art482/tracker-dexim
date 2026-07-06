@@ -28,7 +28,6 @@ import {
   PiggyBank,
 } from "lucide-react";
 import type { TransactionCategory, FinanceAccount } from "@/lib/finance-types";
-import { mockFinanceCategories, mockFinanceAccounts } from "@/lib/finance-mock";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,14 +94,14 @@ export function FinanceSettings() {
     setCurrency(localStorage.getItem("finance_currency") || "RUB");
     Promise.all([
       fetch("/api/finance/categories").then((r) =>
-        r.ok ? r.json() : mockFinanceCategories,
+        r.ok ? r.json() : [],
       ),
       fetch("/api/finance/accounts").then((r) =>
-        r.ok ? r.json() : mockFinanceAccounts,
+        r.ok ? r.json() : [],
       ),
     ]).then(([cats, accts]) => {
-      setCategories(Array.isArray(cats) ? cats : cats?.categories || mockFinanceCategories);
-      setAccounts(Array.isArray(accts) ? accts : accts?.accounts || mockFinanceAccounts);
+      setCategories(Array.isArray(cats) ? cats : cats?.categories || []);
+      setAccounts(Array.isArray(accts) ? accts : accts?.accounts || []);
       setLoading(false);
     });
   }, []);
@@ -231,7 +230,7 @@ export function FinanceSettings() {
         onClick: () => {
           localStorage.removeItem("finance_default_account");
           localStorage.removeItem("finance_currency");
-          setCategories(mockFinanceCategories);
+          setCategories([]);
           setDefaultAccount("");
           setCurrency("RUB");
           toast.success("Данные сброшены");

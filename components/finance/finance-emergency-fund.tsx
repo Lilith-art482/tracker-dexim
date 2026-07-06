@@ -14,7 +14,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 import type { EmergencyFund, Transaction } from "@/lib/finance-types";
-import { mockFinanceEmergencyFund, mockFinanceTransactions } from "@/lib/finance-mock";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,8 +38,8 @@ function computeMonthlyExpenses(transactions: Transaction[]): number {
 export function FinanceEmergencyFund() {
   const uid = auth.currentUser?.uid || "user-1";
 
-  const [fund, setFund] = useState<EmergencyFund>(mockFinanceEmergencyFund);
-  const [transactions, setTransactions] = useState<Transaction[]>(mockFinanceTransactions);
+  const [fund, setFund] = useState<EmergencyFund | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [targetInput, setTargetInput] = useState("");
@@ -51,14 +50,16 @@ export function FinanceEmergencyFund() {
   const [autoPercent, setAutoPercent] = useState(5);
 
   const monthlyExpenses = computeMonthlyExpenses(transactions);
+  const currentAmount = fund?.currentAmount ?? 0;
+  const targetAmount = fund?.targetAmount ?? 0;
   const monthsCovered =
     monthlyExpenses > 0
-      ? Math.round((fund.currentAmount / monthlyExpenses) * 10) / 10
+      ? Math.round((currentAmount / monthlyExpenses) * 10) / 10
       : 0;
-  const percent = fund.targetAmount > 0
-    ? Math.round((fund.currentAmount / fund.targetAmount) * 100)
+  const percent = targetAmount > 0
+    ? Math.round((currentAmount / targetAmount) * 100)
     : 0;
-  const shortfall = fund.targetAmount - fund.currentAmount;
+  const shortfall = targetAmount - currentAmount;
 
   const coverageColor =
     monthsCovered >= 3
@@ -97,7 +98,7 @@ export function FinanceEmergencyFund() {
       const res = await fetch(`/api/finance/transactions?uid=${uid}`);
       if (res.ok) {
         const data = await res.json();
-        setTransactions(Array.isArray(data) ? data : mockFinanceTransactions);
+        setTransactions(Array.isArray(data) ? data : []);
       }
     } catch {
       // use mock fallback
@@ -131,7 +132,7 @@ export function FinanceEmergencyFund() {
         toast.error("Не удалось сохранить цель");
       }
     } catch {
-      setFund((prev) => ({ ...prev, targetAmount: val }));
+      setFund((prev) => (prev ? { ...prev, targetAmount: val } : prev));
       setTargetInput("");
       toast.success("Цель обновлена (локально)");
     }
@@ -143,7 +144,7 @@ export function FinanceEmergencyFund() {
       toast.error("Укажите корректную сумму");
       return;
     }
-    const newCurrent = fund.currentAmount + val;
+    const newCurrent = (fund?.currentAmount ?? 0) + val;
     try {
       const res = await fetch("/api/finance/emergency-fund", {
         method: "PATCH",
@@ -158,7 +159,7 @@ export function FinanceEmergencyFund() {
         toast.error("Не удалось пополнить");
       }
     } catch {
-      setFund((prev) => ({ ...prev, currentAmount: newCurrent }));
+      setFund((prev) => (prev ? { ...prev, currentAmount: newCurrent } : prev));
       toast.success(`Добавлено ${val.toLocaleString()} ₽ (локально)`);
     }
     setAddInput("");
@@ -170,7 +171,7 @@ export function FinanceEmergencyFund() {
       toast.error("Укажите корректную сумму");
       return;
     }
-    const newCurrent = Math.max(0, fund.currentAmount - val);
+    const newCurrent = Math.max(0, (fund?.currentAmount ?? 0) - val);
     try {
       const res = await fetch("/api/finance/emergency-fund", {
         method: "PATCH",
@@ -185,7 +186,7 @@ export function FinanceEmergencyFund() {
         toast.error("Не удалось снять средства");
       }
     } catch {
-      setFund((prev) => ({ ...prev, currentAmount: newCurrent }));
+      setFund((prev) => (prev ? { ...prev, currentAmount: newCurrent } : prev));
       toast.success(`Снято ${val.toLocaleString()} ₽ (локально)`);
     }
     setWithdrawInput("");
@@ -198,7 +199,7 @@ export function FinanceEmergencyFund() {
       return;
     }
     const suggested = avg * 6;
-    setFund((prev) => ({ ...prev, targetAmount: suggested }));
+    setFund((prev) => (prev ? { ...prev, targetAmount: suggested } : prev));
     toast.success(
       `Среднемесячные расходы: ${avg.toLocaleString()} ₽. Рекомендуемая цель: ${suggested.toLocaleString()} ₽`,
     );
@@ -257,8 +258,8 @@ export function FinanceEmergencyFund() {
               <div className="absolute flex flex-col items-center">
                 <span className="text-3xl font-bold">{percent}%</span>
                 <span className="text-xs text-muted-foreground">
-                  {fund.currentAmount.toLocaleString()} ₽ /{" "}
-                  {fund.targetAmount.toLocaleString()} ₽
+                   {currentAmount.toLocaleString()} ₽ /{" "}
+                   {targetAmount.toLocaleString()} ₽
                 </span>
               </div>
             </div>
@@ -294,7 +295,7 @@ export function FinanceEmergencyFund() {
               </label>
               <Input
                 type="number"
-                placeholder={fund.targetAmount.toLocaleString()}
+                placeholder={targetAmount > 0 ? targetAmount.toLocaleString() : "0"}
                 value={targetInput}
                 onChange={(e) => setTargetInput(e.target.value)}
               />

@@ -187,7 +187,8 @@ export function FinanceDashboard() {
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [budget, setBudget] = useState<BudgetPlan | null>(null);
   const [emergencyFund, setEmergencyFund] = useState<EmergencyFund | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>("month");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -201,8 +202,9 @@ export function FinanceDashboard() {
 
   const uid = auth.currentUser?.uid || "user-1";
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
+  const fetchAll = useCallback(async (isInitial = false) => {
+    if (isInitial) setInitialLoading(true);
+    else setRefreshing(true);
     try {
       const [accRes, txRes, catRes, budRes, emRes] = await Promise.all([
         fetch(`/api/finance/accounts?uid=${uid}`),
@@ -225,22 +227,12 @@ export function FinanceDashboard() {
     } catch {
       console.error("Failed to load finance data");
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setRefreshing(false);
     }
   }, [uid]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
-
-  useEffect(() => {
-    const onVisible = () => { if (!document.hidden) fetchAll(); };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [fetchAll]);
-
-  useEffect(() => {
-    const interval = setInterval(fetchAll, 30000);
-    return () => clearInterval(interval);
-  }, [fetchAll]);
+  useEffect(() => { fetchAll(true); }, [fetchAll]);
 
   const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
 
@@ -268,13 +260,11 @@ export function FinanceDashboard() {
     return { date, value: runningBalance };
   });
 
-  const healthRatio = periodIncome > 0 ? periodExpenses / periodIncome : 1;
-  const healthColor =
-    healthRatio <= 0.5 ? "text-emerald-500" : healthRatio <= 0.8 ? "text-amber-500" : "text-rose-500";
-  const healthBg =
-    healthRatio <= 0.5 ? "bg-emerald-500/10" : healthRatio <= 0.8 ? "bg-amber-500/10" : "bg-rose-500/10";
-  const healthLabel =
-    healthRatio <= 0.5 ? "Отлично" : healthRatio <= 0.8 ? "Нормально" : "Тревожно";
+  const hasData = periodIncome > 0 || periodExpenses > 0;
+  const healthRatio = hasData ? (periodIncome > 0 ? periodExpenses / periodIncome : 1) : 0;
+  const healthColor = !hasData ? "text-muted-foreground" : healthRatio <= 0.5 ? "text-emerald-500" : healthRatio <= 0.8 ? "text-amber-500" : "text-rose-500";
+  const healthBg = !hasData ? "bg-muted/50" : healthRatio <= 0.5 ? "bg-emerald-500/10" : healthRatio <= 0.8 ? "bg-amber-500/10" : "bg-rose-500/10";
+  const healthLabel = !hasData ? "Нет данных" : healthRatio <= 0.5 ? "Отлично" : healthRatio <= 0.8 ? "Нормально" : "Тревожно";
 
   const expenseCategories = useMemo(() => {
     const map: Record<string, number> = {};
@@ -339,7 +329,7 @@ export function FinanceDashboard() {
     return { totalLimit, totalSpent, totalPct, categories };
   }, [budget, periodTxns]);
 
-  if (loading) {
+  if (initialLoading) {
     return <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
   }
 
@@ -347,11 +337,11 @@ export function FinanceDashboard() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
         <button
-          onClick={fetchAll}
+          onClick={() => fetchAll(false)}
           className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
           title="Обновить"
         >
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
         </button>
         {(Object.entries(PERIOD_LABELS) as [Period, string][]).map(([key, label]) => (
           <button
@@ -528,26 +518,28 @@ export function FinanceDashboard() {
                 </div>
                 <div>
                   <p className={cn("text-sm font-semibold", healthColor)}>{healthLabel}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {Math.round(healthRatio * 100)}% расходов от доходов
-                  </p>
+                    <p className="text-xs text-muted-foreground">
+                      {hasData ? `${Math.round(healthRatio * 100)}% расходов от доходов` : "Нет операций за период"}
+                    </p>
                 </div>
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Расходы / Доходы</span>
-                  <span>{Math.round(healthRatio * 100)}%</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all",
-                      healthRatio <= 0.5 ? "bg-emerald-500" : healthRatio <= 0.8 ? "bg-amber-500" : "bg-rose-500",
-                    )}
-                    style={{ width: `${Math.min(healthRatio * 100, 100)}%` }}
-                  />
-                </div>
-              </div>
+                  {hasData && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Расходы / Доходы</span>
+                        <span>{Math.round(healthRatio * 100)}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            healthRatio <= 0.5 ? "bg-emerald-500" : healthRatio <= 0.8 ? "bg-amber-500" : "bg-rose-500",
+                          )}
+                          style={{ width: `${Math.min(healthRatio * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
             </CardContent>
           </Card>
 

@@ -21,11 +21,7 @@ import type {
   FinanceAccount,
   TransactionType,
 } from "@/lib/finance-types";
-import {
-  mockFinanceTransactions,
-  mockFinanceAccounts,
-  mockFinanceCategories,
-} from "@/lib/finance-mock";
+
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,14 +79,10 @@ function getNextTxId(transactions: Transaction[]): string {
 }
 
 export function FinanceTransactions() {
-  const [transactions, setTransactions] = useState<Transaction[]>(
-    mockFinanceTransactions,
-  );
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] =
-    useState<FinanceAccount[]>(mockFinanceAccounts);
-  const [categories, setCategories] = useState<TransactionCategory[]>(
-    mockFinanceCategories,
-  );
+    useState<FinanceAccount[]>([]);
+  const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
@@ -129,7 +121,7 @@ export function FinanceTransactions() {
       ]);
       if (txRes.ok) {
         const data = await txRes.json();
-        setTransactions(Array.isArray(data) ? data : mockFinanceTransactions);
+        setTransactions(Array.isArray(data) ? data : []);
       }
       if (accRes.ok) setAccounts(await accRes.json());
       if (catRes.ok) setCategories(await catRes.json());

@@ -18,7 +18,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import type { FinanceGoal, FinanceAccount } from "@/lib/finance-types";
-import { mockFinanceGoals, mockFinanceAccounts } from "@/lib/finance-mock";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,9 +60,9 @@ function daysBetween(from: string, to: string): number {
 
 export function FinanceGoals() {
   const uid = auth.currentUser?.uid || "user-1";
-  const [goals, setGoals] = useState<FinanceGoal[]>(mockFinanceGoals);
+  const [goals, setGoals] = useState<FinanceGoal[]>([]);
   const [accounts, setAccounts] =
-    useState<FinanceAccount[]>(mockFinanceAccounts);
+    useState<FinanceAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<FinanceGoal | null>(null);

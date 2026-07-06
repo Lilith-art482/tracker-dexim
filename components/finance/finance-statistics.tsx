@@ -11,10 +11,6 @@ import {
   Activity,
 } from "lucide-react";
 import type { Transaction, TransactionCategory } from "@/lib/finance-types";
-import {
-  mockFinanceTransactions,
-  mockFinanceCategories,
-} from "@/lib/finance-mock";
 import { auth } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -289,16 +285,16 @@ export function FinanceStatistics() {
         const data = await txRes.json();
         setTransactions(Array.isArray(data) ? data : []);
       } else {
-        setTransactions(mockFinanceTransactions);
+        setTransactions([]);
       }
       if (catRes.ok) {
         setCategories(await catRes.json());
       } else {
-        setCategories(mockFinanceCategories);
+        setCategories([]);
       }
     } catch {
-      setTransactions(mockFinanceTransactions);
-      setCategories(mockFinanceCategories);
+      setTransactions([]);
+      setCategories([]);
     } finally {
       setLoading(false);
     }
@@ -312,9 +308,6 @@ export function FinanceStatistics() {
     const map = new Map<string, TransactionCategory>();
     for (const cat of categories) {
       map.set(cat.id, cat);
-    }
-    for (const cat of mockFinanceCategories) {
-      if (!map.has(cat.id)) map.set(cat.id, cat);
     }
     return map;
   }, [categories]);

@@ -18,11 +18,7 @@ import type {
   TransactionCategory,
   Transaction,
 } from "@/lib/finance-types";
-import {
-  mockFinanceBudgetPlans,
-  mockFinanceCategories,
-  mockFinanceTransactions,
-} from "@/lib/finance-mock";
+
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -140,50 +136,21 @@ export function FinancePlanning() {
           setExpectedIncome("");
           setCategoryLimits({});
         }
-      } else {
-        const budgets = mockFinanceBudgetPlans;
-        setAllBudgets(budgets);
-        const current = budgets.find(
-          (b) => b.period === period && b.periodStart === periodStart,
-        );
-        setBudgetPlan(current || null);
-        if (current) {
-          setExpectedIncome(String(current.expectedIncome));
-          const limits: Record<string, string> = {};
-          for (const cb of current.categoryBudgets) {
-            limits[cb.categoryId] = String(cb.limit);
-          }
-          setCategoryLimits(limits);
-        }
       }
       if (catRes.ok) {
         setCategories(await catRes.json());
       } else {
-        setCategories(mockFinanceCategories);
+        setCategories([]);
       }
       if (txRes.ok) {
         const data = await txRes.json();
         setTransactions(Array.isArray(data) ? data : []);
       } else {
-        setTransactions(mockFinanceTransactions);
+        setTransactions([]);
       }
     } catch {
-      const budgets = mockFinanceBudgetPlans;
-      setAllBudgets(budgets);
-      const current = budgets.find(
-        (b) => b.period === period && b.periodStart === periodStart,
-      );
-      setBudgetPlan(current || null);
-      if (current) {
-        setExpectedIncome(String(current.expectedIncome));
-        const limits: Record<string, string> = {};
-        for (const cb of current.categoryBudgets) {
-          limits[cb.categoryId] = String(cb.limit);
-        }
-        setCategoryLimits(limits);
-      }
-      setCategories(mockFinanceCategories);
-      setTransactions(mockFinanceTransactions);
+      setCategories([]);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }

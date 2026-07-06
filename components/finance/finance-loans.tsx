@@ -15,7 +15,6 @@ import {
   CreditCard,
 } from "lucide-react";
 import type { Loan } from "@/lib/finance-types";
-import { mockFinanceLoans } from "@/lib/finance-mock";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,7 +66,7 @@ type CalcResult = CalcSuccess | { error: string };
 export function FinanceLoans() {
   const uid = auth.currentUser?.uid || "user-1";
 
-  const [loans, setLoans] = useState<Loan[]>(mockFinanceLoans);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);

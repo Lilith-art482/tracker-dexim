@@ -28,7 +28,6 @@ import {
 } from "lucide-react";
 
 import type { FinanceProject, TransactionCategory } from "@/lib/finance-types";
-import { mockFinanceCategories, mockFinanceTransactions } from "@/lib/finance-mock";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -160,19 +159,19 @@ export function FinanceProjects() {
     return { total, totalTarget, totalSaved };
   }, [projects]);
 
-  const recentLinkedExpenses = useMemo(() => {
-    const map: Record<string, number> = {};
-    const today = new Date().toISOString().split("T")[0];
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const cutoff = thirtyDaysAgo.toISOString().split("T")[0];
+  const [categories, setCategories] = useState<TransactionCategory[]>([]);
 
-    for (const tx of mockFinanceTransactions) {
-      if (tx.type !== "expense") continue;
-      if (tx.date < cutoff || tx.date > today) continue;
-      map[tx.categoryId] = (map[tx.categoryId] || 0) + tx.amount;
-    }
-    return map;
+  useEffect(() => {
+    fetch("/api/finance/categories")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        setCategories(Array.isArray(data) ? data : []);
+      })
+      .catch(() => setCategories([]));
+  }, []);
+
+  const recentLinkedExpenses = useMemo<Record<string, number>>(() => {
+    return {};
   }, []);
 
   const openAddDialog = useCallback(() => {
@@ -476,7 +475,7 @@ export function FinanceProjects() {
                   {project.linkedCategoryIds.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {project.linkedCategoryIds.map((catId) => {
-                        const cat = mockFinanceCategories.find(
+                        const cat = categories.find(
                           (c) => c.id === catId,
                         );
                         if (!cat) return null;
@@ -496,7 +495,7 @@ export function FinanceProjects() {
                   {linkedExpenses.length > 0 && (
                     <div className="rounded-lg bg-amber-500/10 border border-amber-200 px-3 py-2 text-xs text-amber-700">
                       {linkedExpenses.map((e) => {
-                        const cat = mockFinanceCategories.find(
+                        const cat = categories.find(
                           (c) => c.id === e.catId,
                         );
                         return (
@@ -716,7 +715,7 @@ export function FinanceProjects() {
                 Связанные категории
               </label>
               <div className="flex flex-wrap gap-2">
-                {mockFinanceCategories
+                {categories
                   .filter((c) => c.type === "expense")
                   .map((cat) => {
                     const selected = formCategoryIds.includes(cat.id);
