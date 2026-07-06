@@ -23,7 +23,7 @@ import {
   ChevronDown,
   Check,
 } from "lucide-react";
-import type { FinanceAccount } from "@/lib/finance-types";
+import type { FinanceAccount, TransactionCategory, Loan as LoanType } from "@/lib/finance-types";
 import { CURRENCIES } from "@/lib/finance-types";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,11 @@ import {
   updateAccount as updateAccountModel,
   deleteAccount,
   createTransaction,
+  getCategoriesByUser,
+  createCategory,
+  getLoansByUser,
+  createLoan,
+  updateLoan as updateLoanModel,
 } from "@/lib/finance-client";
 import { toast } from "sonner";
 
@@ -208,6 +213,23 @@ export function FinanceAccounts() {
   const [quickAccount, setQuickAccount] = useState<FinanceAccount | null>(null);
   const [quickType, setQuickType] = useState<"add" | "withdraw">("add");
   const [quickAmount, setQuickAmount] = useState("");
+  const [quickCategoryId, setQuickCategoryId] = useState("");
+  const [quickTags, setQuickTags] = useState("");
+  const [quickDescription, setQuickDescription] = useState("");
+  const [quickLinkLoan, setQuickLinkLoan] = useState(false);
+  const [quickLoanId, setQuickLoanId] = useState("");
+  const [categories, setCategories] = useState<TransactionCategory[]>([]);
+  const [loans, setLoans] = useState<LoanType[]>([]);
+  const [newCatOpen, setNewCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatSaving, setNewCatSaving] = useState(false);
+
+  // New loan creation fields (shown when quickLinkLoan is on for income)
+  const [newLoanName, setNewLoanName] = useState("");
+  const [newLoanTotal, setNewLoanTotal] = useState("");
+  const [newLoanRate, setNewLoanRate] = useState("");
+  const [newLoanMonthly, setNewLoanMonthly] = useState("");
+  const [newLoanNextPayment, setNewLoanNextPayment] = useState("");
 
   const uid = auth.currentUser?.uid || "user-1";
   const dialogTitle = editId ? "Редактировать счёт" : "Новый счёт";
@@ -215,8 +237,14 @@ export function FinanceAccounts() {
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAccountsByUser(uid);
+      const [data, cats, ln] = await Promise.all([
+        getAccountsByUser(uid),
+        getCategoriesByUser(uid),
+        getLoansByUser(uid),
+      ]);
       setAccounts(data);
+      setCategories(cats);
+      setLoans(ln);
     } catch (e) {
       console.error("Failed to load accounts:", e);
     } finally {
@@ -394,31 +422,77 @@ export function FinanceAccounts() {
     const newBalance = quickAccount.balance + delta;
     if (newBalance < 0) return;
 
+    const cat = categories.find((c) => c.id === quickCategoryId);
+    const desc = quickDescription.trim() || (cat
+      ? quickType === "add"
+        ? `Пополнение — ${quickAccount.name} (${cat.name})`
+        : `Списание — ${quickAccount.name} (${cat.name})`
+      : quickType === "add"
+        ? `Пополнение — ${quickAccount.name}`
+        : `Списание — ${quickAccount.name}`);
+    const tags = quickTags.split(",").map((s) => s.trim()).filter(Boolean);
+
     try {
-      await Promise.all([
-        updateAccountModel(quickAccount.id, { balance: newBalance }),
-        createTransaction({
-          id: crypto.randomUUID(),
-          userId: uid,
-          accountId: quickAccount.id,
-          type: quickType === "add" ? "income" : "expense",
-          categoryId: quickType === "add" ? "fin-cat-9" : "fin-cat-8",
-          amount,
-          description: quickType === "add" ? "Пополнение счёта" : "Снятие со счёта",
-          tags: [quickType === "add" ? "topup" : "withdrawal"],
-          date: new Date().toISOString().split("T")[0],
-        }),
-      ]);
+      await createTransaction({
+        id: crypto.randomUUID(),
+        userId: uid,
+        accountId: quickAccount.id,
+        type: quickType === "add" ? "income" : "expense",
+        categoryId: quickCategoryId || (quickType === "add" ? "fin-cat-9" : "fin-cat-8"),
+        amount,
+        description: desc,
+        tags: tags.length > 0 ? tags : [quickType === "add" ? "topup" : "withdrawal"],
+        date: new Date().toISOString().split("T")[0],
+      });
+
+      // Handle loan integration
+      if (quickLinkLoan) {
+        if (quickType === "add") {
+          // Income — create a new loan
+          if (newLoanName && newLoanTotal) {
+            await createLoan({
+              id: crypto.randomUUID(),
+              userId: uid,
+              name: newLoanName.trim(),
+              totalAmount: parseFloat(newLoanTotal),
+              interestRate: parseFloat(newLoanRate) || 0,
+              monthlyPayment: parseFloat(newLoanMonthly) || 0,
+              remainingAmount: parseFloat(newLoanTotal),
+              nextPaymentDate: newLoanNextPayment || new Date().toISOString().split("T")[0],
+            });
+          }
+        } else {
+          // Expense — update existing loan remaining amount
+          if (quickLoanId) {
+            const loan = loans.find((l) => l.id === quickLoanId);
+            if (loan) {
+              await updateLoanModel(quickLoanId, {
+                remainingAmount: Math.max(0, loan.remainingAmount - amount),
+              });
+            }
+          }
+        }
+      }
 
       setAccounts((prev) =>
         prev.map((a) => (a.id === quickAccount.id ? { ...a, balance: newBalance } : a)),
       );
       setQuickAccount(null);
       setQuickAmount("");
+      setQuickCategoryId("");
+      setQuickTags("");
+      setQuickDescription("");
+      setQuickLinkLoan(false);
+      setQuickLoanId("");
+      setNewLoanName("");
+      setNewLoanTotal("");
+      setNewLoanRate("");
+      setNewLoanMonthly("");
+      setNewLoanNextPayment("");
     } catch (e) {
       console.error("Failed to update balance:", e);
     }
-  }, [quickAccount, quickType, quickAmount]);
+  }, [quickAccount, quickType, quickAmount, quickCategoryId, quickTags, quickDescription, quickLinkLoan, quickLoanId, newLoanName, newLoanTotal, newLoanRate, newLoanMonthly, newLoanNextPayment, categories, loans, uid]);
 
   const projectedBalance = useMemo(() => {
     if (formType !== "deposit" || !formBalance || !formInterestRate || !formTermMonths) return null;
@@ -516,7 +590,21 @@ export function FinanceAccounts() {
               <div className="flex border-t">
                 <button
                   className="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium text-emerald-600 hover:bg-emerald-500/5 transition-colors rounded-bl-xl"
-                  onClick={() => { setQuickAccount(account); setQuickType("add"); setQuickAmount(""); }}
+                  onClick={() => {
+                    setQuickAccount(account);
+                    setQuickType("add");
+                    setQuickAmount("");
+                    setQuickCategoryId("");
+                    setQuickTags("");
+                    setQuickDescription("");
+                    setQuickLinkLoan(false);
+                    setQuickLoanId("");
+                    setNewLoanName("");
+                    setNewLoanTotal("");
+                    setNewLoanRate("");
+                    setNewLoanMonthly("");
+                    setNewLoanNextPayment("");
+                  }}
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Пополнить
@@ -524,7 +612,21 @@ export function FinanceAccounts() {
                 <div className="w-px bg-border" />
                 <button
                   className="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium text-rose-600 hover:bg-rose-500/5 transition-colors rounded-br-xl"
-                  onClick={() => { setQuickAccount(account); setQuickType("withdraw"); setQuickAmount(""); }}
+                  onClick={() => {
+                    setQuickAccount(account);
+                    setQuickType("withdraw");
+                    setQuickAmount("");
+                    setQuickCategoryId("");
+                    setQuickTags("");
+                    setQuickDescription("");
+                    setQuickLinkLoan(false);
+                    setQuickLoanId("");
+                    setNewLoanName("");
+                    setNewLoanTotal("");
+                    setNewLoanRate("");
+                    setNewLoanMonthly("");
+                    setNewLoanNextPayment("");
+                  }}
                 >
                   <TrendingDown className="h-3.5 w-3.5" />
                   Снять
@@ -765,8 +867,23 @@ export function FinanceAccounts() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!quickAccount} onOpenChange={(open) => { if (!open) { setQuickAccount(null); setQuickAmount(""); } }}>
-        <DialogContent className="sm:max-w-xs">
+      <Dialog open={!!quickAccount} onOpenChange={(open) => {
+        if (!open) {
+          setQuickAccount(null);
+          setQuickAmount("");
+          setQuickCategoryId("");
+          setQuickTags("");
+          setQuickDescription("");
+          setQuickLinkLoan(false);
+          setQuickLoanId("");
+          setNewLoanName("");
+          setNewLoanTotal("");
+          setNewLoanRate("");
+          setNewLoanMonthly("");
+          setNewLoanNextPayment("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {quickType === "add" ? (
@@ -780,7 +897,7 @@ export function FinanceAccounts() {
               {quickAccount?.name} · Баланс: {quickAccount?.balance.toLocaleString()} {quickAccount?.currency}
             </p>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="space-y-3 py-2 max-h-[65vh] overflow-y-auto pr-1">
             <div className="space-y-1.5">
               <Label className="text-xs">Сумма</Label>
               <Input
@@ -792,6 +909,229 @@ export function FinanceAccounts() {
                 autoFocus
               />
             </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Категория</Label>
+                {!newCatOpen && (
+                  <button
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => setNewCatOpen(true)}
+                  >
+                    + Новая
+                  </button>
+                )}
+              </div>
+              {newCatOpen ? (
+                <div className="flex gap-2">
+                  <Input
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    placeholder="Название категории"
+                    className="h-7 text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs shrink-0"
+                    disabled={!newCatName.trim() || newCatSaving}
+                    onClick={async () => {
+                      if (!newCatName.trim()) return;
+                      setNewCatSaving(true);
+                      try {
+                        const created = await createCategory({
+                          userId: uid,
+                          name: newCatName.trim(),
+                          icon: quickType === "add" ? "trending-up" : "trending-down",
+                          type: quickType === "add" ? "income" : "expense",
+                          color: quickType === "add" ? "emerald" : "rose",
+                        });
+                        setCategories((prev) => [...prev, created]);
+                        setQuickCategoryId(created.id);
+                        setNewCatName("");
+                        setNewCatOpen(false);
+                      } catch {
+                        toast.error("Ошибка создания категории");
+                      } finally {
+                        setNewCatSaving(false);
+                      }
+                    }}
+                  >
+                    {newCatSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : "ОК"}
+                  </Button>
+                </div>
+              ) : (
+                <Select
+                  value={quickCategoryId}
+                  onValueChange={(v) => v && setQuickCategoryId(v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите категорию" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories
+                      .filter((c) => c.type === (quickType === "add" ? "income" : "expense"))
+                      .map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Описание</Label>
+              <Textarea
+                value={quickDescription}
+                onChange={(e) => setQuickDescription(e.target.value)}
+                placeholder={
+                  quickType === "add"
+                    ? "Например: Аванс, Пополнение карты..."
+                    : "Например: Продукты, Коммунальные..."
+                }
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Теги</Label>
+              <Input
+                value={quickTags}
+                onChange={(e) => setQuickTags(e.target.value)}
+                placeholder="тег1, тег2"
+              />
+            </div>
+
+            {/* Loan integration */}
+            {quickType === "add" ? (
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={quickLinkLoan}
+                    onChange={(e) => setQuickLinkLoan(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-xs font-medium">Оформить как кредит</span>
+                </label>
+                {quickLinkLoan && (
+                  <div className="rounded-lg border p-3 space-y-2.5 bg-muted/30">
+                    <p className="text-xs font-medium text-muted-foreground">Новый кредит</p>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px]">Название</Label>
+                      <Input
+                        value={newLoanName}
+                        onChange={(e) => setNewLoanName(e.target.value)}
+                        placeholder="Например: Потребительский кредит"
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px]">Сумма</Label>
+                        <Input
+                          type="number"
+                          value={newLoanTotal}
+                          onChange={(e) => setNewLoanTotal(e.target.value)}
+                          placeholder="0"
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px]">Ставка %</Label>
+                        <Input
+                          type="number"
+                          value={newLoanRate}
+                          onChange={(e) => setNewLoanRate(e.target.value)}
+                          placeholder="15"
+                          className="h-7 text-xs"
+                          step="0.1"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px]">Платёж/мес</Label>
+                        <Input
+                          type="number"
+                          value={newLoanMonthly}
+                          onChange={(e) => setNewLoanMonthly(e.target.value)}
+                          placeholder="0"
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px]">След. платёж</Label>
+                        <Input
+                          type="date"
+                          value={newLoanNextPayment}
+                          onChange={(e) => setNewLoanNextPayment(e.target.value)}
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              loans.length > 0 && (
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={quickLinkLoan}
+                      onChange={(e) => setQuickLinkLoan(e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    <span className="text-xs font-medium">Погашение кредита</span>
+                  </label>
+                  {quickLinkLoan && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Кредит</Label>
+                      <Select
+                        value={quickLoanId}
+                        onValueChange={(v) => v && setQuickLoanId(v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите кредит" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {loans.map((l) => (
+                            <SelectItem key={l.id} value={l.id}>
+                              {l.name} — остаток {l.remainingAmount.toLocaleString()} ₽
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {quickLoanId && (() => {
+                        const loan = loans.find((l) => l.id === quickLoanId);
+                        return loan ? (
+                          <div className="rounded-lg bg-muted/30 p-2 space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Всего</span>
+                              <span>{loan.totalAmount.toLocaleString()} ₽</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Остаток</span>
+                              <span>{loan.remainingAmount.toLocaleString()} ₽</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">После оплаты</span>
+                              <span className="font-medium">
+                                {Math.max(0, loan.remainingAmount - (parseFloat(quickAmount) || 0)).toLocaleString()} ₽
+                              </span>
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )
+            )}
+
             {quickAccount && quickAmount && (
               <div className="rounded-lg bg-muted/50 p-2.5 space-y-1">
                 <div className="flex justify-between text-sm">
@@ -817,7 +1157,20 @@ export function FinanceAccounts() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => { setQuickAccount(null); setQuickAmount(""); }}>
+            <Button variant="outline" size="sm" onClick={() => {
+              setQuickAccount(null);
+              setQuickAmount("");
+              setQuickCategoryId("");
+              setQuickTags("");
+              setQuickDescription("");
+              setQuickLinkLoan(false);
+              setQuickLoanId("");
+              setNewLoanName("");
+              setNewLoanTotal("");
+              setNewLoanRate("");
+              setNewLoanMonthly("");
+              setNewLoanNextPayment("");
+            }}>
               Отмена
             </Button>
             <Button
@@ -825,6 +1178,7 @@ export function FinanceAccounts() {
               onClick={handleQuickAmount}
               disabled={!quickAmount || parseFloat(quickAmount) <= 0 || !!(quickType === "withdraw" && quickAccount && parseFloat(quickAmount) > quickAccount.balance)}
             >
+              {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               {quickType === "add" ? "Пополнить" : "Снять"}
             </Button>
           </DialogFooter>

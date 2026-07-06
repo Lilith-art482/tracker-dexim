@@ -82,7 +82,7 @@ export async function getCategoriesByUser(uid: string): Promise<TransactionCateg
 export async function createCategory(
   data: Omit<TransactionCategory, "id">,
 ): Promise<TransactionCategory> {
-  const ref = await addDoc(categoriesCol(), clean(clean(data)));
+  const ref = await addDoc(categoriesCol(), clean(data));
   const snap = await getDoc(ref);
   return toPlain<TransactionCategory>(snap);
 }
