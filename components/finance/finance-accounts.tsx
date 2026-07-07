@@ -285,6 +285,8 @@ export function FinanceAccounts() {
   const [formTermMonths, setFormTermMonths] = useState("");
   const [formStartDate, setFormStartDate] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formCapitalize, setFormCapitalize] = useState(true);
+  const [formGracePeriod, setFormGracePeriod] = useState("");
   const [formShowCalc, setFormShowCalc] = useState(false);
   const [depositCalc, setDepositCalc] = useState<FinanceAccount | null>(null);
 
@@ -368,6 +370,8 @@ export function FinanceAccounts() {
     setFormTermMonths("");
     setFormStartDate("");
     setFormNotes("");
+    setFormCapitalize(true);
+    setFormGracePeriod("");
     setFormShowCalc(false);
     setEditId(null);
   }, []);
@@ -392,6 +396,10 @@ export function FinanceAccounts() {
     setFormTermMonths(account.termMonths ? String(account.termMonths) : "");
     setFormStartDate(account.startDate || "");
     setFormNotes(account.notes || "");
+    setFormCapitalize(account.capitalizeInterest ?? true);
+    setFormGracePeriod(
+      account.gracePeriodDays ? String(account.gracePeriodDays) : "",
+    );
     setFormShowCalc(false);
     setEditId(account.id);
     setDialogOpen(true);
@@ -418,16 +426,22 @@ export function FinanceAccounts() {
     };
     if (formNotes) body.notes = formNotes;
 
-    if (formType === "card") body.cardType = formCardType;
+    if (formType === "card") {
+      body.cardType = formCardType;
+      if (formCardType === "credit" && formGracePeriod) {
+        body.gracePeriodDays = parseInt(formGracePeriod);
+      }
+    }
     if (formType === "crypto") {
       body.cryptoCoin = formCryptoCoin;
       if (formWalletName) body.walletName = formWalletName;
       if (formWalletAddress) body.walletAddress = formWalletAddress;
     }
-    if (formType === "deposit") {
+    if (formType === "deposit" || formType === "savings") {
       if (formInterestRate) body.interestRate = parseFloat(formInterestRate);
       if (formTermMonths) body.termMonths = parseInt(formTermMonths);
       if (formStartDate) body.startDate = formStartDate;
+      body.capitalizeInterest = formCapitalize;
     }
 
     try {
@@ -634,7 +648,7 @@ export function FinanceAccounts() {
 
   const projectedBalance = useMemo(() => {
     if (
-      formType !== "deposit" ||
+      (formType !== "deposit" && formType !== "savings") ||
       !formBalance ||
       !formInterestRate ||
       !formTermMonths
@@ -652,7 +666,7 @@ export function FinanceAccounts() {
 
   const depositProjections = useCallback((account: FinanceAccount) => {
     if (
-      account.type !== "deposit" ||
+      (account.type !== "deposit" && account.type !== "savings") ||
       !account.interestRate ||
       !account.termMonths
     )
@@ -679,9 +693,17 @@ export function FinanceAccounts() {
       earning: Math.round(p * (annualRate / per.perYear)),
     }));
 
-    const ratePerMonth = annualRate / 12;
-    const projectedEnd = Math.round(p * Math.pow(1 + ratePerMonth, months));
-    const earnedTotal = projectedEnd - p;
+    const capitalize = account.capitalizeInterest ?? true;
+    let projectedEnd: number;
+    let earnedTotal: number;
+    if (capitalize) {
+      const ratePerMonth = annualRate / 12;
+      projectedEnd = Math.round(p * Math.pow(1 + ratePerMonth, months));
+      earnedTotal = projectedEnd - p;
+    } else {
+      earnedTotal = Math.round(p * annualRate * (months / 12));
+      projectedEnd = p + earnedTotal;
+    }
 
     let currentEarned = 0;
     if (startDate) {
@@ -697,6 +719,7 @@ export function FinanceAccounts() {
       annualRate: account.interestRate,
       termMonths: months,
       perPeriod,
+      capitalize,
       currentEarned,
       projectedEnd,
       earnedTotal,
@@ -748,8 +771,11 @@ export function FinanceAccounts() {
         {accounts.map((account) => {
           const cfg = TYPE_CONFIG[account.type] || TYPE_CONFIG.cash;
           const Icon = cfg.icon;
-          const isDeposit = account.type === "deposit";
-          const projections = isDeposit ? depositProjections(account) : null;
+          const isDepositOrSavings =
+            account.type === "deposit" || account.type === "savings";
+          const projections = isDepositOrSavings
+            ? depositProjections(account)
+            : null;
           return (
             <Card key={account.id}>
               <CardHeader className="pb-2">
@@ -814,7 +840,7 @@ export function FinanceAccounts() {
                       {account.walletName && ` · ${account.walletName}`}
                     </span>
                   )}
-                  {isDeposit && account.interestRate != null && (
+                  {isDepositOrSavings && account.interestRate != null && (
                     <button
                       className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 transition-colors"
                       onClick={() => setDepositCalc(account)}
@@ -825,16 +851,31 @@ export function FinanceAccounts() {
                       <ChartLine className="h-3 w-3 ml-0.5" />
                     </button>
                   )}
+                  {isDepositOrSavings && account.interestRate == null && (
+                    <span className="text-xs text-muted-foreground">
+                      {account.type === "deposit"
+                        ? "Вклад"
+                        : "Сберегательный счёт"}
+                    </span>
+                  )}
+                  {account.type === "card" &&
+                    account.cardType === "credit" &&
+                    account.gracePeriodDays && (
+                      <span className="text-xs text-muted-foreground">
+                        Грейс {account.gracePeriodDays} дн.
+                      </span>
+                    )}
                   {account.type === "investment" && (
                     <span className="text-xs text-muted-foreground">
                       Инвестиционный счёт
                     </span>
                   )}
-                  {account.type === "savings" && (
-                    <span className="text-xs text-muted-foreground">
-                      Сберегательный счёт
-                    </span>
-                  )}
+                  {account.type === "savings" &&
+                    account.interestRate == null && (
+                      <span className="text-xs text-muted-foreground">
+                        Сберегательный счёт
+                      </span>
+                    )}
                   {account.type === "cash" && (
                     <span className="text-xs text-muted-foreground">
                       Наличные средства
@@ -936,6 +977,11 @@ export function FinanceAccounts() {
                         {proj.termMonths} мес.
                       </p>
                     </div>
+                  </div>
+                  <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-center text-muted-foreground">
+                    {proj.capitalize
+                      ? "Проценты капитализируются ежемесячно"
+                      : "Проценты без капитализации"}
                   </div>
 
                   {proj.currentEarned > 0 && (
@@ -1076,24 +1122,37 @@ export function FinanceAccounts() {
             </div>
 
             {formType === "card" && (
-              <div className="space-y-1.5">
-                <Label className="text-xs">Тип карты</Label>
-                <div className="flex gap-2">
-                  {CARD_TYPES.map((ct) => (
-                    <button
-                      key={ct.value}
-                      className={cn(
-                        "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors",
-                        formCardType === ct.value
-                          ? "border-blue-500 bg-blue-500/10 text-blue-600"
-                          : "border-input hover:bg-muted",
-                      )}
-                      onClick={() => setFormCardType(ct.value)}
-                    >
-                      {ct.label}
-                    </button>
-                  ))}
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Тип карты</Label>
+                  <div className="flex gap-2">
+                    {CARD_TYPES.map((ct) => (
+                      <button
+                        key={ct.value}
+                        className={cn(
+                          "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors",
+                          formCardType === ct.value
+                            ? "border-blue-500 bg-blue-500/10 text-blue-600"
+                            : "border-input hover:bg-muted",
+                        )}
+                        onClick={() => setFormCardType(ct.value)}
+                      >
+                        {ct.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                {formCardType === "credit" && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Грейс-период (дней)</Label>
+                    <Input
+                      type="number"
+                      value={formGracePeriod}
+                      onChange={(e) => setFormGracePeriod(e.target.value)}
+                      placeholder="120"
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -1137,7 +1196,7 @@ export function FinanceAccounts() {
               </>
             )}
 
-            {formType === "deposit" && (
+            {(formType === "deposit" || formType === "savings") && (
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -1160,6 +1219,20 @@ export function FinanceAccounts() {
                     />
                   </div>
                 </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formCapitalize}
+                    onChange={(e) => setFormCapitalize(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-xs font-medium">
+                    Капитализация процентов
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    (сложный процент)
+                  </span>
+                </label>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Дата открытия</Label>
                   <Input

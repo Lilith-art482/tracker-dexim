@@ -16,6 +16,8 @@ export interface FinanceAccount {
   interestRate?: number;
   termMonths?: number;
   startDate?: string;
+  capitalizeInterest?: boolean;
+  gracePeriodDays?: number;
   notes?: string;
   createdAt: string;
   updatedAt: string;

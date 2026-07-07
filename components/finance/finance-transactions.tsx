@@ -618,7 +618,8 @@ export function FinanceTransactions() {
             >
               <SelectTrigger className="h-7 text-xs w-[110px]">
                 <SelectValue>
-                  {FILTER_TYPE_OPTIONS.find((o) => o.value === typeFilter)?.label || typeFilter}
+                  {FILTER_TYPE_OPTIONS.find((o) => o.value === typeFilter)
+                    ?.label || typeFilter}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -909,7 +910,8 @@ export function FinanceTransactions() {
               >
                 <SelectTrigger className="w-full h-9">
                   <SelectValue>
-                    {FILTER_TYPE_OPTIONS.find((o) => o.value === txType)?.label || txType}
+                    {FILTER_TYPE_OPTIONS.find((o) => o.value === txType)
+                      ?.label || txType}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -1125,7 +1127,8 @@ export function FinanceTransactions() {
               >
                 <SelectTrigger className="w-full h-9">
                   <SelectValue>
-                    {FILTER_TYPE_OPTIONS.find((o) => o.value === txType)?.label || txType}
+                    {FILTER_TYPE_OPTIONS.find((o) => o.value === txType)
+                      ?.label || txType}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>

@@ -14,6 +14,7 @@ import {
   ArrowRightLeft,
   Landmark,
   RefreshCw,
+  Clock,
 } from "lucide-react";
 import type {
   FinanceAccount,
@@ -23,6 +24,13 @@ import type {
   BudgetPlan,
 } from "@/lib/finance-types";
 import { auth } from "@/lib/firebase";
+import {
+  getAccountsByUser,
+  getTransactionsByUser,
+  getCategoriesByUser,
+  getBudgetPlansByUser,
+  getEmergencyFund,
+} from "@/lib/finance-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -237,26 +245,20 @@ export function FinanceDashboard() {
       if (isInitial) setInitialLoading(true);
       else setRefreshing(true);
       try {
-        const [accRes, txRes, catRes, budRes, emRes] = await Promise.all([
-          fetch(`/api/finance/accounts?uid=${uid}`),
-          fetch(`/api/finance/transactions?uid=${uid}`),
-          fetch(`/api/finance/categories?uid=${uid}`),
-          fetch(`/api/finance/budgets?uid=${uid}`),
-          fetch(`/api/finance/emergency-fund?uid=${uid}`),
+        const [accs, txs, cats, buds, em] = await Promise.all([
+          getAccountsByUser(uid),
+          getTransactionsByUser(uid),
+          getCategoriesByUser(uid),
+          getBudgetPlansByUser(uid),
+          getEmergencyFund(uid),
         ]);
-        if (accRes.ok) setAccounts(await accRes.json());
-        if (txRes.ok) {
-          const data = await txRes.json();
-          setTransactions(Array.isArray(data) ? data : []);
-        }
-        if (catRes.ok) setCategories(await catRes.json());
-        if (budRes.ok) {
-          const data = await budRes.json();
-          setBudget(Array.isArray(data) && data.length > 0 ? data[0] : null);
-        }
-        if (emRes.ok) setEmergencyFund(await emRes.json());
-      } catch {
-        console.error("Failed to load finance data");
+        setAccounts(accs);
+        setTransactions(txs);
+        setCategories(cats);
+        setBudget(buds.length > 0 ? buds[0] : null);
+        setEmergencyFund(em);
+      } catch (e) {
+        console.error("Failed to load finance data", e);
       } finally {
         setInitialLoading(false);
         setRefreshing(false);
@@ -742,6 +744,65 @@ export function FinanceDashboard() {
               <p className="text-xs text-muted-foreground">
                 Если траты сохранятся на текущем уровне
               </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Clock className="h-4 w-4" />
+                Последние операции
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {transactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  Нет операций
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {transactions
+                    .sort((a, b) => (a.date < b.date ? 1 : -1))
+                    .slice(0, 5)
+                    .map((tx) => {
+                      const cat = categoryMap.get(tx.categoryId);
+                      const color =
+                        CATEGORY_COLORS_HEX[cat?.color || ""] || "#6b7280";
+                      return (
+                        <div
+                          key={tx.id}
+                          className="flex items-center justify-between text-sm"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div
+                              className="h-2 w-2 rounded-full shrink-0"
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className="truncate">
+                              {cat?.name || "Без категории"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span
+                              className={cn(
+                                "font-medium tabular-nums",
+                                tx.type === "income"
+                                  ? "text-emerald-600"
+                                  : "text-rose-600",
+                              )}
+                            >
+                              {tx.type === "income" ? "+" : "-"}
+                              {tx.amount.toLocaleString()} ₽
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {tx.date.slice(5)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
             </CardContent>
           </Card>
 

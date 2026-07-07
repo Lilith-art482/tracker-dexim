@@ -17,9 +17,11 @@ import type {
   BudgetPlan,
   TransactionCategory,
   Transaction,
+  FinanceAccount,
 } from "@/lib/finance-types";
 
 import {
+  getAccountsByUser,
   getBudgetPlansByUser,
   createBudgetPlan,
   updateBudgetPlan,
@@ -87,6 +89,12 @@ function getDaysInRange(start: string, end: string): number {
   return Math.floor((e - s) / 86400000) + 1;
 }
 
+function genId(): string {
+  return typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function getDaysElapsed(start: string): number {
   const s = new Date(start + "T00:00:00Z").getTime();
   return Math.max(1, Math.ceil((Date.now() - s) / 86400000));
@@ -106,6 +114,7 @@ export function FinancePlanning() {
   const [allBudgets, setAllBudgets] = useState<BudgetPlan[]>([]);
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expectedIncome, setExpectedIncome] = useState("");
@@ -121,11 +130,13 @@ export function FinancePlanning() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [budgets, cats, txs] = await Promise.all([
+      const [budgets, cats, txs, accs] = await Promise.all([
         getBudgetPlansByUser(uid),
         getCategoriesByUser(uid),
         getTransactionsByUser(uid),
+        getAccountsByUser(uid),
       ]);
+      setAccounts(accs);
       setAllBudgets(budgets);
       const current = budgets.find(
         (b) => b.period === period && b.periodStart === periodStart,
@@ -197,7 +208,8 @@ export function FinancePlanning() {
   const elapsedDays = getDaysElapsed(periodStart);
   const dailyAvg = elapsedDays > 0 ? totalSpent / elapsedDays : 0;
   const projectedTotal = dailyAvg * periodDays;
-  const income = parseFloat(expectedIncome) || 0;
+  const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
+  const income = parseFloat(expectedIncome) || totalBalance;
   const projectedRemaining = income - projectedTotal;
 
   const handleLimitChange = (categoryId: string, value: string) => {
@@ -234,7 +246,7 @@ export function FinancePlanning() {
           prev.map((b) => (b.id === saved.id ? saved : b)),
         );
       } else {
-        const id = crypto.randomUUID();
+        const id = genId();
         const saved = await createBudgetPlan({
           id,
           userId: uid,
@@ -334,8 +346,13 @@ export function FinancePlanning() {
                 type="number"
                 value={expectedIncome}
                 onChange={(e) => setExpectedIncome(e.target.value)}
-                placeholder="0"
+                placeholder={totalBalance > 0 ? String(totalBalance) : "0"}
               />
+              {!expectedIncome.trim() && totalBalance > 0 && (
+                <p className="text-[10px] text-muted-foreground">
+                  Используется баланс счетов: {totalBalance.toLocaleString()} ₽
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">

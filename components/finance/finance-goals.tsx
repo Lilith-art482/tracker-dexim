@@ -578,7 +578,13 @@ export function FinanceGoals() {
                 >
                   <SelectTrigger>
                     <SelectValue>
-                      {formPriority === "high" ? "Высокий" : formPriority === "medium" ? "Средний" : formPriority === "low" ? "Низкий" : formPriority}
+                      {formPriority === "high"
+                        ? "Высокий"
+                        : formPriority === "medium"
+                          ? "Средний"
+                          : formPriority === "low"
+                            ? "Низкий"
+                            : formPriority}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
