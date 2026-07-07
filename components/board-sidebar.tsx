@@ -13,8 +13,6 @@ import {
   Calendar,
   DollarSign,
   ListChecks,
-  Zap,
-  Award,
 } from "lucide-react";
 import { Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
@@ -368,8 +366,6 @@ const NAV_ITEMS = [
   { id: "planner", label: "Планнер", icon: Calendar },
   { id: "finance", label: "Финансы", icon: DollarSign },
   { id: "habits", label: "Привычки", icon: ListChecks },
-  { id: "sport", label: "Спорт", icon: Zap },
-  { id: "challenges", label: "Челленджи", icon: Award },
 ] as const;
 
 function MobileNavLinks({
