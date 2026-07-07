@@ -217,30 +217,6 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
             </p>
           </div>
           <div className="flex sm:hidden items-center gap-1.5 mt-1">
-            <div className="flex items-center gap-1 rounded-lg border p-0.5">
-              <button
-                onClick={() => setViewMode("table")}
-                className={cn(
-                  "inline-flex items-center rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                  viewMode === "table"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Table2 className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={cn(
-                  "inline-flex items-center rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                  viewMode === "list"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <LayoutList className="h-4 w-4" />
-              </button>
-            </div>
             <Button
               variant="default"
               size="sm"
@@ -348,30 +324,46 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
         })}
       </div>
 
-      {/* Content */}
-      {viewMode === "table" ? (
-        <WeeklyTable
-          tasks={tasks}
-          onSaved={handleTaskSaved}
-          onToggleComplete={handleToggleComplete}
-          onDelete={handleDeleteTask}
-        />
-      ) : (
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="flex-1 min-w-0">
-            <PersonalTaskList
-              tasks={tasks}
-              selectedDay={selectedDay}
-              onEdit={handleEditTask}
-              onToggleComplete={handleToggleComplete}
-              onDelete={handleDeleteTask}
-            />
-          </div>
-          <div className="w-full lg:w-72 shrink-0">
+      {/* Content: mobile всегда список, desktop — по выбору */}
+      <div className="sm:hidden">
+        <div className="flex flex-col gap-6">
+          <PersonalTaskList
+            tasks={tasks}
+            selectedDay={selectedDay}
+            onEdit={handleEditTask}
+            onToggleComplete={handleToggleComplete}
+            onDelete={handleDeleteTask}
+          />
+          <div className="w-full shrink-0">
             <PersonalDashboard tasks={tasks} />
           </div>
         </div>
-      )}
+      </div>
+      <div className="hidden sm:block">
+        {viewMode === "table" ? (
+          <WeeklyTable
+            tasks={tasks}
+            onSaved={handleTaskSaved}
+            onToggleComplete={handleToggleComplete}
+            onDelete={handleDeleteTask}
+          />
+        ) : (
+          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex-1 min-w-0">
+              <PersonalTaskList
+                tasks={tasks}
+                selectedDay={selectedDay}
+                onEdit={handleEditTask}
+                onToggleComplete={handleToggleComplete}
+                onDelete={handleDeleteTask}
+              />
+            </div>
+            <div className="w-full lg:w-72 shrink-0">
+              <PersonalDashboard tasks={tasks} />
+            </div>
+          </div>
+        )}
+      </div>
 
       <PersonalTaskDialog
         open={dialogOpen}

@@ -176,30 +176,6 @@ export function TeamView({
             </p>
           </div>
           <div className="flex sm:hidden items-center gap-1.5 mt-1">
-            <div className="flex items-center gap-1 rounded-lg border p-0.5">
-              <button
-                onClick={() => setViewMode("table")}
-                className={cn(
-                  "inline-flex items-center rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                  viewMode === "table"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Table2 className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={cn(
-                  "inline-flex items-center rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                  viewMode === "list"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <LayoutList className="h-4 w-4" />
-              </button>
-            </div>
             <Button
               variant="default"
               size="sm"
@@ -305,36 +281,8 @@ export function TeamView({
         })}
       </div>
 
-      {viewMode === "table" ? (
-        <TeamWeekTable
-          tasks={tasks}
-          columns={columns}
-          weekDates={weekDates}
-          onSaved={handleTaskSaved}
-          onEdit={handleEditTask}
-          onCellClick={(dayIdx, colId) => {
-            const dayStr = weekDates[dayIdx].toISOString().split("T")[0];
-            setEditingTask({
-              id: "",
-              boardId: activeBoard.id,
-              columnId: colId || columns[0]?.id || "",
-              title: "",
-              description: "",
-              startDate: dayStr,
-              endDate: null,
-              assignee: null,
-              assignees: [],
-              priority: "medium",
-              completed: false,
-              archived: false,
-              archivedAt: null,
-              createdAt: "",
-              updatedAt: "",
-            } as Task);
-            setDialogOpen(true);
-          }}
-        />
-      ) : (
+      {/* Content: mobile всегда список, desktop — по выбору */}
+      <div className="sm:hidden">
         <TeamListView
           tasks={tasks}
           selectedDay={selectedDay}
@@ -342,7 +290,47 @@ export function TeamView({
           columns={columns}
           onEdit={handleEditTask}
         />
-      )}
+      </div>
+      <div className="hidden sm:block">
+        {viewMode === "table" ? (
+          <TeamWeekTable
+            tasks={tasks}
+            columns={columns}
+            weekDates={weekDates}
+            onSaved={handleTaskSaved}
+            onEdit={handleEditTask}
+            onCellClick={(dayIdx, colId) => {
+              const dayStr = weekDates[dayIdx].toISOString().split("T")[0];
+              setEditingTask({
+                id: "",
+                boardId: activeBoard.id,
+                columnId: colId || columns[0]?.id || "",
+                title: "",
+                description: "",
+                startDate: dayStr,
+                endDate: null,
+                assignee: null,
+                assignees: [],
+                priority: "medium",
+                completed: false,
+                archived: false,
+                archivedAt: null,
+                createdAt: "",
+                updatedAt: "",
+              } as Task);
+              setDialogOpen(true);
+            }}
+          />
+        ) : (
+          <TeamListView
+            tasks={tasks}
+            selectedDay={selectedDay}
+            weekDates={weekDates}
+            columns={columns}
+            onEdit={handleEditTask}
+          />
+        )}
+      </div>
 
       <TaskFormDialog
         open={dialogOpen}
