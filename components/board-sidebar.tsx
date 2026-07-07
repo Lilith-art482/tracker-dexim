@@ -204,7 +204,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
       <aside
         className={cn(
           // Mobile: fixed overlay that slides in/out
-          "fixed inset-y-0 left-0 z-40 shrink-0 flex flex-col w-72 border-r bg-sidebar transition-transform duration-300",
+          "fixed inset-y-0 left-0 z-40 shrink-0 flex flex-col w-72 border-r bg-sidebar transition-transform duration-300 pt-14 lg:pt-0",
           collapsed ? "-translate-x-full" : "translate-x-0",
           // Desktop: static position, collapse with width
           "lg:static lg:z-auto lg:transition-all lg:duration-300",
