@@ -57,7 +57,7 @@ export default async function RootLayout({
                     <div className="flex h-14 items-center px-2 sm:px-4 gap-1 sm:gap-3">
                       {/* Левая часть: app name + toggle */}
                       <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-                        {pathname === "/" && <SidebarToggle />}
+                        <SidebarToggle />
                         <span className="text-sm sm:text-base font-semibold tracking-tight">
                           {appName}
                         </span>
@@ -78,21 +78,19 @@ export default async function RootLayout({
                   </header>
 
                   <div className="flex flex-1">
-                    {pathname === "/" && (
-                      <Suspense
-                        fallback={
-                          <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r bg-sidebar">
-                            <div className="border-b px-4 py-3">
-                              <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-                                Доски
-                              </span>
-                            </div>
-                          </aside>
-                        }
-                      >
-                        <BoardSidebar />
-                      </Suspense>
-                    )}
+                    <Suspense
+                      fallback={
+                        <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r bg-sidebar">
+                          <div className="border-b px-4 py-3">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
+                              Доски
+                            </span>
+                          </div>
+                        </aside>
+                      }
+                    >
+                      <BoardSidebar />
+                    </Suspense>
                     <main className="flex-1 min-w-0 pb-16 sm:pb-0">
                       {children}
                     </main>
