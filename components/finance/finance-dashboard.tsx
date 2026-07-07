@@ -28,30 +28,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const CATEGORY_COLORS: Record<string, string> = {
-  "fin-cat-1": "#ef4444",
-  "fin-cat-2": "#f97316",
-  "fin-cat-3": "#eab308",
-  "fin-cat-4": "#22c55e",
-  "fin-cat-5": "#3b82f6",
-  "fin-cat-6": "#ec4899",
-  "fin-cat-7": "#8b5cf6",
-  "fin-cat-8": "#6b7280",
-  "fin-cat-9": "#10b981",
-  "fin-cat-10": "#06b6d4",
-};
-
-const CATEGORY_NAMES: Record<string, string> = {
-  "fin-cat-1": "Еда",
-  "fin-cat-2": "Транспорт",
-  "fin-cat-3": "Жильё",
-  "fin-cat-4": "Одежда",
-  "fin-cat-5": "Развлечения",
-  "fin-cat-6": "Здоровье",
-  "fin-cat-7": "Образование",
-  "fin-cat-8": "Прочее",
-  "fin-cat-9": "Зарплата",
-  "fin-cat-10": "Фриланс",
+const CATEGORY_COLORS_HEX: Record<string, string> = {
+  red: "#ef4444",
+  orange: "#f97316",
+  yellow: "#eab308",
+  green: "#22c55e",
+  blue: "#3b82f6",
+  pink: "#ec4899",
+  purple: "#8b5cf6",
+  teal: "#14b8a6",
+  indigo: "#6366f1",
+  cyan: "#06b6d4",
+  lime: "#84cc16",
+  amber: "#f59e0b",
+  violet: "#8b5cf6",
+  rose: "#f43f5e",
+  fuchsia: "#d946ef",
+  slate: "#6b7280",
 };
 
 type Period = "week" | "month" | "quarter" | "halfyear" | "year" | "custom";
@@ -229,6 +222,14 @@ export function FinanceDashboard() {
     return getPeriodRange(period);
   }, [period, customStart, customEnd]);
 
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, TransactionCategory>();
+    for (const cat of categories) {
+      map.set(cat.id, cat);
+    }
+    return map;
+  }, [categories]);
+
   const uid = auth.currentUser?.uid || "user-1";
 
   const fetchAll = useCallback(
@@ -338,15 +339,18 @@ export function FinanceDashboard() {
       map[tx.categoryId] = (map[tx.categoryId] || 0) + tx.amount;
     }
     const sorted = Object.entries(map)
-      .map(([id, amount]) => ({
-        id,
-        name: CATEGORY_NAMES[id] || id,
-        amount,
-        color: CATEGORY_COLORS[id] || "#6b7280",
-      }))
+      .map(([id, amount]) => {
+        const cat = categoryMap.get(id);
+        return {
+          id,
+          name: cat?.name || "Без категории",
+          amount,
+          color: CATEGORY_COLORS_HEX[cat?.color || ""] || "#6b7280",
+        };
+      })
       .sort((a, b) => b.amount - a.amount);
     return sorted;
-  }, [periodTxns]);
+  }, [periodTxns, categoryMap]);
 
   const topCategories = expenseCategories.slice(0, 6);
   const otherAmount = expenseCategories
@@ -399,10 +403,11 @@ export function FinanceDashboard() {
       const spent = periodTxns
         .filter((t) => t.type === "expense" && t.categoryId === cb.categoryId)
         .reduce((s, t) => s + t.amount, 0);
+      const cat = categoryMap.get(cb.categoryId);
       return {
         id: cb.categoryId,
-        name: CATEGORY_NAMES[cb.categoryId] || cb.categoryId,
-        color: CATEGORY_COLORS[cb.categoryId] || "#6b7280",
+        name: cat?.name || "Без категории",
+        color: CATEGORY_COLORS_HEX[cat?.color || ""] || "#6b7280",
         limit: cb.limit,
         spent,
         pct:
@@ -829,31 +834,52 @@ export function FinanceDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Накоплено</span>
-                  <span className="font-semibold">
-                    {emergencyFund.currentAmount.toLocaleString()} ₽
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Цель</span>
-                  <span>{emergencyFund.targetAmount.toLocaleString()} ₽</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-emerald-500 transition-all"
-                    style={{
-                      width: `${Math.min((emergencyFund.currentAmount / emergencyFund.targetAmount) * 100, 100)}%`,
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground text-center">
-                  {Math.round(
-                    (emergencyFund.currentAmount / emergencyFund.targetAmount) *
-                      100,
-                  )}
-                  % от цели
-                </p>
+                {emergencyFund.targetAmount > 0 ? (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Накоплено</span>
+                      <span className="font-semibold">
+                        {emergencyFund.currentAmount.toLocaleString()} ₽
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Цель</span>
+                      <span>
+                        {emergencyFund.targetAmount.toLocaleString()} ₽
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all"
+                        style={{
+                          width: `${Math.min((emergencyFund.currentAmount / emergencyFund.targetAmount) * 100, 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      {Math.round(
+                        (emergencyFund.currentAmount /
+                          emergencyFund.targetAmount) *
+                          100,
+                      )}
+                      % от цели
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                      <PiggyBank className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Не настроено
+                      </p>
+                      <p className="text-xs text-muted-foreground/60">
+                        Установите цель в разделе Подушка
+                      </p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

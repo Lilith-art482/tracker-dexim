@@ -22,6 +22,10 @@ import {
   Search,
   ChevronDown,
   Check,
+  MoreVertical,
+  Eye,
+  ChartLine,
+  Clock,
 } from "lucide-react";
 import type {
   FinanceAccount,
@@ -54,7 +58,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   getAccountsByUser,
@@ -274,6 +286,7 @@ export function FinanceAccounts() {
   const [formStartDate, setFormStartDate] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [formShowCalc, setFormShowCalc] = useState(false);
+  const [depositCalc, setDepositCalc] = useState<FinanceAccount | null>(null);
 
   const [transferFrom, setTransferFrom] = useState("");
   const [transferTo, setTransferTo] = useState("");
@@ -637,6 +650,62 @@ export function FinanceAccounts() {
     return { projected: Math.round(projected), earned: Math.round(earned) };
   }, [formType, formBalance, formInterestRate, formTermMonths]);
 
+  const depositProjections = useCallback((account: FinanceAccount) => {
+    if (
+      account.type !== "deposit" ||
+      !account.interestRate ||
+      !account.termMonths
+    )
+      return null;
+    const p = account.balance;
+    const annualRate = account.interestRate / 100;
+    const months = account.termMonths;
+    const startDate = account.startDate
+      ? new Date(account.startDate + "T00:00:00Z")
+      : null;
+    const now = new Date();
+
+    const periods = [
+      { label: "День", divider: 365, monthsDivider: 1 / 30 },
+      { label: "Неделя", divider: 52, monthsDivider: 7 / 30 },
+      { label: "Месяц", divider: 12, monthsDivider: 1 },
+      { label: "Квартал", divider: 4, monthsDivider: 3 },
+      { label: "Полгода", divider: 2, monthsDivider: 6 },
+      { label: "Год", divider: 1, monthsDivider: 12 },
+    ] as const;
+
+    const periodProjections = periods.map((period) => {
+      const ratePerPeriod = annualRate / period.divider;
+      const periodsInTerm = months / period.monthsDivider;
+      const projected = p * Math.pow(1 + ratePerPeriod, periodsInTerm);
+      const earned = projected - p;
+      return {
+        label: period.label,
+        earned: Math.round(earned),
+        projected: Math.round(projected),
+      };
+    });
+
+    let currentEarned = 0;
+    if (startDate) {
+      const monthsElapsed =
+        (now.getFullYear() - startDate.getFullYear()) * 12 +
+        (now.getMonth() - startDate.getMonth());
+      const actualMonths = Math.min(Math.max(0, monthsElapsed), months);
+      const ratePerMonth = annualRate / 12;
+      const currentVal = p * Math.pow(1 + ratePerMonth, actualMonths);
+      currentEarned = Math.round(currentVal - p);
+    }
+
+    return {
+      initialBalance: p,
+      annualRate: account.interestRate,
+      termMonths: months,
+      currentEarned,
+      periodProjections,
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -682,21 +751,23 @@ export function FinanceAccounts() {
         {accounts.map((account) => {
           const cfg = TYPE_CONFIG[account.type] || TYPE_CONFIG.cash;
           const Icon = cfg.icon;
+          const isDeposit = account.type === "deposit";
+          const projections = isDeposit ? depositProjections(account) : null;
           return (
             <Card key={account.id}>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-xl",
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
                         cfg.color,
                       )}
                     >
                       <Icon className="h-5 w-5" />
                     </div>
-                    <div>
-                      <CardTitle className="text-sm font-medium">
+                    <div className="min-w-0">
+                      <CardTitle className="text-sm font-medium truncate">
                         {account.name}
                       </CardTitle>
                       <p className="text-xs text-muted-foreground mt-0.5">
@@ -704,63 +775,80 @@ export function FinanceAccounts() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-0.5 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => openEdit(account)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => handleDelete(account.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0 -mr-1 -mt-1 outline-none">
+                      <MoreVertical className="h-4 w-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem onClick={() => openEdit(account)}>
+                        <Pencil className="h-3.5 w-3.5 mr-2" />
+                        Редактировать
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => handleDelete(account.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                        Удалить
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-3">
                 <p className="text-xl font-bold tabular-nums">
                   {account.balance.toLocaleString()}{" "}
                   <span className="text-sm font-normal text-muted-foreground">
                     {account.currency}
                   </span>
                 </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {account.cardType && (
-                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">
-                      {
-                        CARD_TYPES.find((c) => c.value === account.cardType)
-                          ?.label
-                      }
-                    </Badge>
+
+                <div className="min-h-[1.25rem]">
+                  {account.type === "card" && account.cardType && (
+                    <span className="text-xs text-muted-foreground">
+                      {CARD_TYPES.find((c) => c.value === account.cardType)
+                        ?.label || account.cardType}
+                    </span>
                   )}
-                  {account.cryptoCoin && (
-                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                  {account.type === "crypto" && (
+                    <span className="text-xs text-muted-foreground">
                       {account.cryptoCoin}
-                    </Badge>
+                      {account.walletName && ` · ${account.walletName}`}
+                    </span>
                   )}
-                  {account.interestRate != null && (
-                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">
-                      {account.interestRate}%
-                    </Badge>
-                  )}
-                  {account.walletName && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] h-4 px-1.5 truncate max-w-[120px]"
+                  {isDeposit && account.interestRate != null && (
+                    <button
+                      className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 transition-colors"
+                      onClick={() => setDepositCalc(account)}
                     >
-                      {account.walletName}
-                    </Badge>
+                      <Percent className="h-3 w-3" />
+                      {account.interestRate}% годовых
+                      {account.termMonths && ` · ${account.termMonths} мес.`}
+                      <ChartLine className="h-3 w-3 ml-0.5" />
+                    </button>
+                  )}
+                  {account.type === "investment" && (
+                    <span className="text-xs text-muted-foreground">
+                      Инвестиционный счёт
+                    </span>
+                  )}
+                  {account.type === "savings" && (
+                    <span className="text-xs text-muted-foreground">
+                      Сберегательный счёт
+                    </span>
+                  )}
+                  {account.type === "cash" && (
+                    <span className="text-xs text-muted-foreground">
+                      Наличные средства
+                    </span>
                   )}
                 </div>
               </CardContent>
-              <div className="flex border-t">
+              <Separator />
+              <div className="flex">
                 <button
-                  className="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium text-emerald-600 hover:bg-emerald-500/5 transition-colors rounded-bl-xl"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-emerald-600 hover:bg-emerald-500/5 transition-colors rounded-bl-xl"
                   onClick={() => {
                     setQuickAccount(account);
                     setQuickType("add");
@@ -782,7 +870,7 @@ export function FinanceAccounts() {
                 </button>
                 <div className="w-px bg-border" />
                 <button
-                  className="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium text-rose-600 hover:bg-rose-500/5 transition-colors rounded-br-xl"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-rose-600 hover:bg-rose-500/5 transition-colors rounded-br-xl"
                   onClick={() => {
                     setQuickAccount(account);
                     setQuickType("withdraw");
@@ -807,6 +895,118 @@ export function FinanceAccounts() {
           );
         })}
       </div>
+
+      {/* Deposit projection dialog */}
+      <Dialog
+        open={!!depositCalc}
+        onOpenChange={(open) => {
+          if (!open) setDepositCalc(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-rose-600" />
+              Расчёт доходности
+            </DialogTitle>
+            {depositCalc && (
+              <p className="text-sm text-muted-foreground">
+                {depositCalc.name} · {depositCalc.balance.toLocaleString()}{" "}
+                {depositCalc.currency}
+              </p>
+            )}
+          </DialogHeader>
+          {depositCalc &&
+            (() => {
+              const proj = depositProjections(depositCalc);
+              if (!proj) return null;
+              return (
+                <div className="space-y-4 py-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-muted/50 p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                        Ставка
+                      </p>
+                      <p className="text-lg font-bold text-rose-600">
+                        {proj.annualRate}%
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                        Срок
+                      </p>
+                      <p className="text-lg font-bold">
+                        {proj.termMonths} мес.
+                      </p>
+                    </div>
+                  </div>
+
+                  {proj.currentEarned > 0 && (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-500/5 p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Заработано сейчас
+                      </p>
+                      <p className="text-lg font-bold text-emerald-600">
+                        +{proj.currentEarned.toLocaleString()}{" "}
+                        {depositCalc.currency}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <ChartLine className="h-3 w-3" />
+                      Прогноз доходности
+                    </p>
+                    <div className="space-y-1.5">
+                      {proj.periodProjections.map((p) => (
+                        <div
+                          key={p.label}
+                          className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2"
+                        >
+                          <span className="text-sm">{p.label}</span>
+                          <div className="text-right">
+                            <span className="text-sm font-semibold text-emerald-600">
+                              +{p.earned.toLocaleString()}
+                            </span>
+                            <span className="text-xs text-muted-foreground ml-1">
+                              {depositCalc.currency}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg bg-emerald-500/10 p-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Начальная сумма
+                      </span>
+                      <span className="font-medium">
+                        {proj.initialBalance.toLocaleString()}{" "}
+                        {depositCalc.currency}
+                      </span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between text-sm font-semibold">
+                      <span>Итого за срок</span>
+                      <span className="text-emerald-600">
+                        {(
+                          proj.initialBalance +
+                          proj.periodProjections[
+                            proj.periodProjections.length - 1
+                          ].earned
+                        ).toLocaleString()}{" "}
+                        {depositCalc.currency}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={dialogOpen}
@@ -862,10 +1062,8 @@ export function FinanceAccounts() {
                       ][]
                     ).map(([key, cfg]) => (
                       <SelectItem key={key} value={key}>
-                        <span className="flex items-center gap-2">
-                          <cfg.icon className="h-3.5 w-3.5" />
-                          {cfg.label}
-                        </span>
+                        <cfg.icon className="h-3.5 w-3.5" />
+                        {cfg.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

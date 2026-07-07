@@ -427,10 +427,15 @@ export function FinanceProjects() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {activeProjects.map((project) => {
-            const progressPct = Math.min(
-              Math.round((project.savedAmount / project.targetAmount) * 100),
-              100,
-            );
+            const progressPct =
+              project.targetAmount > 0
+                ? Math.min(
+                    Math.round(
+                      (project.savedAmount / project.targetAmount) * 100,
+                    ),
+                    100,
+                  )
+                : 0;
             const IconComp = getIconComponent(project.icon);
 
             const linkedExpenses = project.linkedCategoryIds
@@ -529,7 +534,7 @@ export function FinanceProjects() {
                         const cat = categories.find((c) => c.id === e.catId);
                         return (
                           <div key={e.catId}>
-                            {`Расход в "${cat?.name || e.catId}": `}
+                            {`Расход в "${cat?.name || "Без категории"}": `}
                             {e.amount.toLocaleString()} ₽ за 30 дн.
                           </div>
                         );

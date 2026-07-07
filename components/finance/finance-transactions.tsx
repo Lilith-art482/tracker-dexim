@@ -612,6 +612,7 @@ export function FinanceTransactions() {
                 if (v) {
                   setTypeFilter(v as TransactionType | "all");
                   setCategoryFilter("all");
+                  setAccountFilter("all");
                 }
               }}
             >
@@ -805,11 +806,11 @@ export function FinanceTransactions() {
                               TYPE_BADGE[tx.type],
                             )}
                           >
-                            {cat?.name || tx.categoryId}
+                            {cat?.name || "Без категории"}
                           </Badge>
                         </td>
                         <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                          {acc?.name || tx.accountId}
+                          {acc?.name || "Без счёта"}
                         </td>
                         <td className="px-3 py-2.5 text-right font-semibold tabular-nums whitespace-nowrap">
                           <span className={typeColor}>
@@ -936,12 +937,10 @@ export function FinanceTransactions() {
                   )}
                   {accounts.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{a.name}</span>
-                        <span className="text-muted-foreground">
-                          {a.balance.toLocaleString()} {a.currency}
-                        </span>
-                      </div>
+                      {a.name}
+                      <span className="text-muted-foreground ml-auto">
+                        {a.balance.toLocaleString()} {a.currency}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

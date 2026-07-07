@@ -344,10 +344,13 @@ export function FinanceGoals() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {activeGoals.map((goal) => {
-            const progressPct = Math.min(
-              Math.round((goal.currentAmount / goal.targetAmount) * 100),
-              100,
-            );
+            const progressPct =
+              goal.targetAmount > 0
+                ? Math.min(
+                    Math.round((goal.currentAmount / goal.targetAmount) * 100),
+                    100,
+                  )
+                : 0;
             const daysRemaining = daysBetween(today, goal.deadline);
             const remaining = goal.targetAmount - goal.currentAmount;
             const perDay =

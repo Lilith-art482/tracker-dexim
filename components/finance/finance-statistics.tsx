@@ -381,7 +381,7 @@ export function FinanceStatistics() {
         const cat = categoryMap.get(categoryId);
         return {
           categoryId,
-          name: cat?.name || categoryId,
+          name: cat?.name || "Без категории",
           color: cat?.color || "#6b7280",
           amount,
           percentage: expenseTotal > 0 ? (amount / expenseTotal) * 100 : 0,
