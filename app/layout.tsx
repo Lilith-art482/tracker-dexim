@@ -91,7 +91,7 @@ export default async function RootLayout({
                     >
                       <BoardSidebar />
                     </Suspense>
-                    <main className="flex-1 min-w-0 pb-4 sm:pb-0">
+                    <main className="flex-1 min-w-0 pb-16 sm:pb-0">
                       {children}
                     </main>
                   </div>
