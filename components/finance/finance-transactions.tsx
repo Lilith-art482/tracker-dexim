@@ -578,7 +578,7 @@ export function FinanceTransactions() {
             >
               <SelectTrigger className="h-7 text-xs w-[130px]">
                 <Calendar className="h-3 w-3 mr-1 shrink-0" />
-                <SelectValue />
+                <SelectValue placeholder="Все" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все</SelectItem>
@@ -617,7 +617,9 @@ export function FinanceTransactions() {
               }}
             >
               <SelectTrigger className="h-7 text-xs w-[110px]">
-                <SelectValue />
+                <SelectValue>
+                  {FILTER_TYPE_OPTIONS.find((o) => o.value === typeFilter)?.label || typeFilter}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {FILTER_TYPE_OPTIONS.map((opt) => (
@@ -906,7 +908,9 @@ export function FinanceTransactions() {
                 }}
               >
                 <SelectTrigger className="w-full h-9">
-                  <SelectValue />
+                  <SelectValue>
+                    {FILTER_TYPE_OPTIONS.find((o) => o.value === txType)?.label || txType}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {FILTER_TYPE_OPTIONS.filter((o) => o.value !== "all").map(
@@ -1120,7 +1124,9 @@ export function FinanceTransactions() {
                 }}
               >
                 <SelectTrigger className="w-full h-9">
-                  <SelectValue />
+                  <SelectValue>
+                    {FILTER_TYPE_OPTIONS.find((o) => o.value === txType)?.label || txType}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {FILTER_TYPE_OPTIONS.filter((o) => o.value !== "all").map(

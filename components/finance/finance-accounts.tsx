@@ -666,43 +666,40 @@ export function FinanceAccounts() {
     const now = new Date();
 
     const periods = [
-      { label: "День", divider: 365, monthsDivider: 1 / 30 },
-      { label: "Неделя", divider: 52, monthsDivider: 7 / 30 },
-      { label: "Месяц", divider: 12, monthsDivider: 1 },
-      { label: "Квартал", divider: 4, monthsDivider: 3 },
-      { label: "Полгода", divider: 2, monthsDivider: 6 },
-      { label: "Год", divider: 1, monthsDivider: 12 },
+      { label: "в день", perYear: 365 },
+      { label: "в неделю", perYear: 52 },
+      { label: "в месяц", perYear: 12 },
+      { label: "в квартал", perYear: 4 },
+      { label: "в полгода", perYear: 2 },
+      { label: "в год", perYear: 1 },
     ] as const;
 
-    const periodProjections = periods.map((period) => {
-      const ratePerPeriod = annualRate / period.divider;
-      const periodsInTerm = months / period.monthsDivider;
-      const projected = p * Math.pow(1 + ratePerPeriod, periodsInTerm);
-      const earned = projected - p;
-      return {
-        label: period.label,
-        earned: Math.round(earned),
-        projected: Math.round(projected),
-      };
-    });
+    const perPeriod = periods.map((per) => ({
+      label: per.label,
+      earning: Math.round(p * (annualRate / per.perYear)),
+    }));
+
+    const ratePerMonth = annualRate / 12;
+    const projectedEnd = Math.round(p * Math.pow(1 + ratePerMonth, months));
+    const earnedTotal = projectedEnd - p;
 
     let currentEarned = 0;
     if (startDate) {
-      const monthsElapsed =
-        (now.getFullYear() - startDate.getFullYear()) * 12 +
-        (now.getMonth() - startDate.getMonth());
-      const actualMonths = Math.min(Math.max(0, monthsElapsed), months);
-      const ratePerMonth = annualRate / 12;
-      const currentVal = p * Math.pow(1 + ratePerMonth, actualMonths);
-      currentEarned = Math.round(currentVal - p);
+      const daysElapsed = Math.floor(
+        (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      const clampedDays = Math.max(0, Math.min(daysElapsed, months * 30));
+      currentEarned = Math.round(p * annualRate * (clampedDays / 365));
     }
 
     return {
       initialBalance: p,
       annualRate: account.interestRate,
       termMonths: months,
+      perPeriod,
       currentEarned,
-      periodProjections,
+      projectedEnd,
+      earnedTotal,
     };
   }, []);
 
@@ -956,18 +953,18 @@ export function FinanceAccounts() {
                   <div>
                     <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
                       <ChartLine className="h-3 w-3" />
-                      Прогноз доходности
+                      Начисление процентов
                     </p>
                     <div className="space-y-1.5">
-                      {proj.periodProjections.map((p) => (
+                      {proj.perPeriod.map((per) => (
                         <div
-                          key={p.label}
+                          key={per.label}
                           className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2"
                         >
-                          <span className="text-sm">{p.label}</span>
+                          <span className="text-sm">{per.label}</span>
                           <div className="text-right">
                             <span className="text-sm font-semibold text-emerald-600">
-                              +{p.earned.toLocaleString()}
+                              +{per.earning.toLocaleString()}
                             </span>
                             <span className="text-xs text-muted-foreground ml-1">
                               {depositCalc.currency}
@@ -989,15 +986,20 @@ export function FinanceAccounts() {
                       </span>
                     </div>
                     <Separator className="my-2" />
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Проценты за {proj.termMonths} мес.
+                      </span>
+                      <span className="font-semibold text-emerald-600">
+                        +{proj.earnedTotal.toLocaleString()}{" "}
+                        {depositCalc.currency}
+                      </span>
+                    </div>
+                    <Separator className="my-2" />
                     <div className="flex justify-between text-sm font-semibold">
                       <span>Итого за срок</span>
                       <span className="text-emerald-600">
-                        {(
-                          proj.initialBalance +
-                          proj.periodProjections[
-                            proj.periodProjections.length - 1
-                          ].earned
-                        ).toLocaleString()}{" "}
+                        {proj.projectedEnd.toLocaleString()}{" "}
                         {depositCalc.currency}
                       </span>
                     </div>
@@ -1052,7 +1054,9 @@ export function FinanceAccounts() {
                   onValueChange={(v) => v && setFormType(v as AccountType)}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {TYPE_CONFIG[formType]?.label || formType}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {(

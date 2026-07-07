@@ -577,7 +577,9 @@ export function FinanceGoals() {
                   onValueChange={(v) => v && setFormPriority(v)}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {formPriority === "high" ? "Высокий" : formPriority === "medium" ? "Средний" : formPriority === "low" ? "Низкий" : formPriority}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="high">Высокий</SelectItem>
