@@ -10,6 +10,11 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronLeft,
+  Calendar,
+  DollarSign,
+  ListChecks,
+  Zap,
+  Award,
 } from "lucide-react";
 import { Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
@@ -199,7 +204,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
       <aside
         className={cn(
           // Mobile: fixed overlay that slides in/out
-          "fixed inset-y-0 left-0 z-40 shrink-0 flex flex-col w-60 border-r bg-sidebar transition-transform duration-300",
+          "fixed inset-y-0 left-0 z-40 shrink-0 flex flex-col w-72 border-r bg-sidebar transition-transform duration-300",
           collapsed ? "-translate-x-full" : "translate-x-0",
           // Desktop: static position, collapse with width
           "lg:static lg:z-auto lg:transition-all lg:duration-300",
@@ -208,6 +213,21 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
             : "lg:w-60 lg:-translate-x-0",
         )}
       >
+        {/* Mobile navigation */}
+        <div className="lg:hidden border-b border-border/40 px-3 py-2">
+          <div className="flex flex-col gap-0.5">
+            <span className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+              Навигация
+            </span>
+            <MobileNavLinks
+              collapsed={collapsed}
+              onNavClick={() => {
+                if (window.innerWidth < 1024) toggle();
+              }}
+            />
+          </div>
+        </div>
+
         {/* Boards header */}
         <div
           className={cn(
@@ -341,5 +361,70 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
         )}
       </aside>
     </>
+  );
+}
+
+const NAV_ITEMS = [
+  { id: "planner", label: "Планнер", icon: Calendar },
+  { id: "finance", label: "Финансы", icon: DollarSign },
+  { id: "habits", label: "Привычки", icon: ListChecks },
+  { id: "sport", label: "Спорт", icon: Zap },
+  { id: "challenges", label: "Челленджи", icon: Award },
+] as const;
+
+function MobileNavLinks({
+  collapsed,
+  onNavClick,
+}: {
+  collapsed: boolean;
+  onNavClick: () => void;
+}) {
+  const { mode, setMode } = useMode();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const handleNavClick = (id: string) => {
+    if (id === "planner") {
+      setMode("personal");
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("boardId");
+      router.push(`/?${params.toString()}`);
+      onNavClick();
+      return;
+    }
+    if (id === "finance") {
+      router.push("/finance");
+      onNavClick();
+      return;
+    }
+    toast.info("Страница в разработке");
+    onNavClick();
+  };
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-0.5 transition-opacity duration-300",
+        collapsed ? "opacity-0" : "opacity-100",
+      )}
+    >
+      {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+        <button
+          key={id}
+          onClick={() => handleNavClick(id)}
+          className={cn(
+            "flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors w-full text-left",
+            (id === "planner" && pathname === "/") ||
+              (id === "finance" && pathname.startsWith("/finance"))
+              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+          )}
+        >
+          <Icon className="h-4 w-4 shrink-0" />
+          <span>{label}</span>
+        </button>
+      ))}
+    </div>
   );
 }

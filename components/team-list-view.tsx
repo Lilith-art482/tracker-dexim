@@ -95,8 +95,8 @@ export function TeamListView({
   }
 
   return (
-    <div className="space-y-1">
-      <p className="text-sm text-muted-foreground mb-4">
+    <div className="space-y-1.5 sm:space-y-1">
+      <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
         {sorted.length}{" "}
         {sorted.length === 1
           ? "задача"
@@ -109,19 +109,19 @@ export function TeamListView({
           key={task.id}
           onClick={() => onEdit(task)}
           className={cn(
-            "w-full text-left rounded-lg border-l-4 p-4 transition-colors hover:bg-muted/50",
+            "w-full text-left rounded-lg border-l-4 p-3 sm:p-4 transition-colors hover:bg-muted/50 active:bg-muted/70",
             priorityColors[task.priority] || "border-l-border",
           )}
         >
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-3 sm:gap-4">
             <div className="flex-1 min-w-0 space-y-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {task.completed && (
                   <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                 )}
                 <h3
                   className={cn(
-                    "font-medium truncate",
+                    "text-sm sm:text-base font-medium truncate",
                     task.completed && "line-through text-muted-foreground",
                   )}
                 >
@@ -129,11 +129,11 @@ export function TeamListView({
                 </h3>
               </div>
               {task.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2">
+                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
                   {task.description}
                 </p>
               )}
-              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-1">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-muted-foreground pt-1">
                 {task.assignees.length > 0 && (
                   <span className="flex items-center gap-1">
                     <User className="h-3 w-3" />
@@ -159,7 +159,7 @@ export function TeamListView({
             </div>
             <span
               className={cn(
-                "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0",
+                "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 mt-0.5",
                 task.priority === "high"
                   ? "bg-rose-100 text-rose-700"
                   : task.priority === "medium"
