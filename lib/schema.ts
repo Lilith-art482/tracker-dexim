@@ -1,5 +1,4 @@
 export const TableName = {
-  SERVICES: "services",
   BOARDS: "boards",
   COLUMNS: "columns",
   TASKS: "tasks",
@@ -13,6 +12,10 @@ export const TableName = {
   FINANCE_GOALS: "finance_goals",
   FINANCE_LOANS: "finance_loans",
   FINANCE_EMERGENCY_FUND: "finance_emergency_fund",
+  HABITS: "habits",
+  HABIT_LOGS: "habit_logs",
+  ACHIEVEMENTS: "achievements",
+  REMINDERS: "reminders",
 } as const;
 
 export type TableName = (typeof TableName)[keyof typeof TableName];
