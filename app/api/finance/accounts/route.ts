@@ -55,8 +55,6 @@ export async function POST(request: NextRequest) {
       interestRate: body.interestRate,
       termMonths: body.termMonths,
       startDate: body.startDate,
-      capitalizeInterest: body.capitalizeInterest,
-      gracePeriodDays: body.gracePeriodDays,
       notes: body.notes,
     });
     return NextResponse.json(account, { status: 201 });
