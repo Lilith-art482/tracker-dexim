@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   LayoutDashboard,
   ListChecks,
@@ -10,7 +10,9 @@ import {
   Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Habit, HabitLog, HabitLogStatus } from "@/lib/habits-types";
 import { HabitsDashboard } from "@/components/habits/habits-dashboard";
+import { HabitsList } from "@/components/habits/habits-list";
 
 const TABS = [
   { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
@@ -23,13 +25,117 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
+const STORAGE_KEY_HABITS = "tracker-habits";
+const STORAGE_KEY_LOGS = "tracker-habit-logs";
+
+function loadHabits(): Habit[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_HABITS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function loadLogs(): HabitLog[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_LOGS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function getToday(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
 export default function HabitsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [logs, setLogs] = useState<HabitLog[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setHabits(loadHabits());
+    setLogs(loadLogs());
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (loaded) {
+      localStorage.setItem(STORAGE_KEY_HABITS, JSON.stringify(habits));
+    }
+  }, [habits, loaded]);
+
+  useEffect(() => {
+    if (loaded) {
+      localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+    }
+  }, [logs, loaded]);
+
+  const handleAddHabit = useCallback((habit: Habit) => {
+    setHabits((prev) => [...prev, habit]);
+  }, []);
+
+  const handleUpdateHabit = useCallback((habit: Habit) => {
+    setHabits((prev) => prev.map((h) => (h.id === habit.id ? habit : h)));
+  }, []);
+
+  const handleDeleteHabit = useCallback((id: string) => {
+    setHabits((prev) => prev.filter((h) => h.id !== id));
+    setLogs((prev) => prev.filter((l) => l.habitId !== id));
+  }, []);
+
+  const handleToggleLog = useCallback(
+    (habitId: string, status: HabitLogStatus) => {
+      const today = getToday();
+      setLogs((prev) => {
+        const existing = prev.findIndex(
+          (l) => l.habitId === habitId && l.date === today,
+        );
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = { ...updated[existing], status };
+          return updated;
+        }
+        return [
+          ...prev,
+          {
+            id: `log-${habitId}-${today}`,
+            habitId,
+            date: today,
+            status,
+            completedAt:
+              status === "done" ? new Date().toISOString() : undefined,
+          },
+        ];
+      });
+    },
+    [],
+  );
 
   const renderTab = () => {
     switch (activeTab) {
       case "dashboard":
-        return <HabitsDashboard />;
+        return (
+          <HabitsDashboard
+            habits={habits}
+            logs={logs}
+            onToggleLog={handleToggleLog}
+          />
+        );
+      case "list":
+        return (
+          <HabitsList
+            habits={habits}
+            onAdd={handleAddHabit}
+            onUpdate={handleUpdateHabit}
+            onDelete={handleDeleteHabit}
+          />
+        );
       default:
         return (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
