@@ -70,7 +70,7 @@ export default async function RootLayout({
                       </div>
 
                       {/* Правая часть */}
-                      <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0 ml-auto">
+                      <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
                         <ModeToggle />
                         <HeaderActions />
                       </div>
@@ -91,7 +91,7 @@ export default async function RootLayout({
                     >
                       <BoardSidebar />
                     </Suspense>
-                    <main className="flex-1 min-w-0 pb-16 sm:pb-0">
+                    <main className="flex-1 min-w-0 pb-4 sm:pb-0">
                       {children}
                     </main>
                   </div>

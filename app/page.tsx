@@ -77,7 +77,7 @@ export default async function HomePage({
             Выберите доску
           </h2>
           <p className="text-sm text-muted-foreground max-w-md text-center">
-            Чтобы увидеть задачи, выберите доску в меню или создайте
+            Чтобы увидеть задачи, выберите доску в боковом меню или создайте
             новую.
           </p>
         </div>
