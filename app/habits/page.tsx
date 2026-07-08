@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import type { Habit, HabitLog, HabitLogStatus } from "@/lib/habits-types";
 import { HabitsDashboard } from "@/components/habits/habits-dashboard";
 import { HabitsList } from "@/components/habits/habits-list";
+import { HabitsCalendar } from "@/components/habits/habits-calendar";
 
 const TABS = [
   { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
@@ -90,11 +91,11 @@ export default function HabitsPage() {
   }, []);
 
   const handleToggleLog = useCallback(
-    (habitId: string, status: HabitLogStatus) => {
-      const today = getToday();
+    (habitId: string, status: HabitLogStatus, date?: string) => {
+      const targetDate = date ?? getToday();
       setLogs((prev) => {
         const existing = prev.findIndex(
-          (l) => l.habitId === habitId && l.date === today,
+          (l) => l.habitId === habitId && l.date === targetDate,
         );
         if (existing >= 0) {
           const updated = [...prev];
@@ -104,9 +105,9 @@ export default function HabitsPage() {
         return [
           ...prev,
           {
-            id: `log-${habitId}-${today}`,
+            id: `log-${habitId}-${targetDate}`,
             habitId,
-            date: today,
+            date: targetDate,
             status,
             completedAt:
               status === "done" ? new Date().toISOString() : undefined,
@@ -134,6 +135,14 @@ export default function HabitsPage() {
             onAdd={handleAddHabit}
             onUpdate={handleUpdateHabit}
             onDelete={handleDeleteHabit}
+          />
+        );
+      case "calendar":
+        return (
+          <HabitsCalendar
+            habits={habits}
+            logs={logs}
+            onToggleLog={handleToggleLog}
           />
         );
       default:
