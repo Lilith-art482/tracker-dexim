@@ -23,7 +23,7 @@ import type {
   WeeklyChartData,
   HabitLogStatus,
 } from "@/lib/habits-types";
-import { CATEGORY_LABELS } from "@/lib/habits-types";
+import { getCategoryLabel } from "@/lib/habits-types";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -223,7 +223,7 @@ function HabitRow({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{habit.name}</p>
         <p className="text-xs text-muted-foreground">
-          {CATEGORY_LABELS[habit.category]}
+          {getCategoryLabel(habit)}
           {habit.timeMinutes && ` · ${habit.timeMinutes} мин`}
         </p>
       </div>

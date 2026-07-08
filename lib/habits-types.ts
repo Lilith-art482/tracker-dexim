@@ -50,6 +50,13 @@ export const COMPLEXITY_LABELS: Record<HabitComplexity, string> = {
   hard: "Сложная",
 };
 
+export function getCategoryLabel(habit: { category: HabitCategory; customCategory?: string }): string {
+  if (habit.category === "other" && habit.customCategory) {
+    return habit.customCategory;
+  }
+  return CATEGORY_LABELS[habit.category];
+}
+
 export type HabitStatus = "active" | "completed" | "archived";
 
 export type HabitLogStatus = "done" | "skipped" | "missed";
@@ -58,6 +65,7 @@ export interface Habit {
   id: string;
   name: string;
   category: HabitCategory;
+  customCategory?: string;
   frequency: HabitFrequency;
   reminder: boolean;
   reminderTime?: string; // HH:mm
