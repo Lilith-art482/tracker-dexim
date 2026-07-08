@@ -7,7 +7,7 @@ import {
   calculateBestDay,
   calculateWorstDay,
   getCategoryCompletion,
-} from "@/lib/habit-models";
+} from "@/lib/habit-utils";
 import { cn } from "@/lib/utils";
 import {
   TrendingUpIcon,

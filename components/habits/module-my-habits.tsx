@@ -22,7 +22,7 @@ import {
   DIFFICULTY_LABELS,
   WEEKDAYS,
 } from "@/lib/habit-types";
-import { calculateStreak, calculateCompletionPercentage } from "@/lib/habit-models";
+import { calculateStreak, calculateCompletionPercentage } from "@/lib/habit-utils";
 import { useHabits } from "@/components/habits/habits-context";
 import { HabitDialog } from "@/components/habits/module-habit-dialog";
 import { Button } from "@/components/ui/button";

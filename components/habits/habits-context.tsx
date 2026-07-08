@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import type { Habit, HabitLog, HabitCategory, HabitFrequencyType, HabitStatus, Achievement, Reminder } from "@/lib/habit-types";
-import { calculateStreak, calculateLongestStreak, calculateCompletionPercentage, getWeeklyProgress } from "@/lib/habit-models";
+import { calculateStreak, calculateLongestStreak, calculateCompletionPercentage, getWeeklyProgress } from "@/lib/habit-utils";
 
 interface TodayHabit {
   habit: Habit;
