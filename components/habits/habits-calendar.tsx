@@ -32,7 +32,6 @@ function getToday(): string {
 
 function isPlannedOnDate(habit: Habit, date: Date): boolean {
   const dayOfWeek = date.getDay();
-  const dateStr = date.toISOString().split("T")[0];
 
   switch (habit.frequency.type) {
     case "daily":
@@ -143,8 +142,9 @@ function DayPopover({
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 w-72 animate-in fade-in slide-in-from-top-2 duration-200">
-        <Card className="shadow-xl border-border/60">
-          <CardHeader className="p-3 pb-1.5">
+        <Card className="relative overflow-hidden border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/70 to-white/20 dark:from-white/[0.12] dark:to-white/[0.06] backdrop-blur-xl shadow-xl">
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none" />
+          <CardHeader className="p-3 pb-1.5 relative">
             <CardTitle className="text-sm font-medium">
               {day.date.toLocaleDateString("ru-RU", {
                 day: "numeric",
@@ -157,9 +157,9 @@ function DayPopover({
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-3 pt-1.5 space-y-1 max-h-64 overflow-y-auto">
+          <CardContent className="p-3 pt-1.5 space-y-1 max-h-64 overflow-y-auto relative">
             {plannedHabits.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-2 text-center">
+              <p className="text-xs text-foreground/40 py-2 text-center">
                 Нет запланированных привычек
               </p>
             ) : (
@@ -167,22 +167,23 @@ function DayPopover({
                 <div
                   key={habit.id}
                   className={cn(
-                    "flex items-center gap-2 p-2 rounded-md transition-colors text-sm",
+                    "flex items-center gap-2 p-2 rounded-xl transition-colors text-sm",
+                    "border border-white/5 dark:border-white/[0.02]",
                     log?.status === "done"
-                      ? "bg-emerald-500/5"
+                      ? "bg-emerald-500/10"
                       : log?.status === "skipped"
-                        ? "bg-amber-500/5"
-                        : "hover:bg-muted/30",
+                        ? "bg-amber-500/10"
+                        : "hover:bg-white/50 dark:hover:bg-white/[0.06]",
                   )}
                 >
-                  <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">
+                  <span className="text-xs text-foreground/60 truncate flex-1 min-w-0">
                     {habit.name}
                   </span>
                   <div className="flex items-center gap-0.5 shrink-0">
                     {log?.status === "done" ? (
                       <button
                         onClick={() => onToggleLog(habit.id, "missed", day.dateStr)}
-                        className="flex h-6 w-6 items-center justify-center rounded text-emerald-600 hover:bg-emerald-500/10 transition-colors"
+                        className="flex h-6 w-6 items-center justify-center rounded text-emerald-600 hover:bg-emerald-500/15 transition-colors"
                         title="Отменить"
                       >
                         <CheckCircle2 className="h-3.5 w-3.5" />
@@ -195,7 +196,7 @@ function DayPopover({
                             "flex h-6 w-6 items-center justify-center rounded transition-colors",
                             log?.status === "skipped"
                               ? "text-amber-500 hover:bg-emerald-500/10 hover:text-emerald-600"
-                              : "text-muted-foreground/40 hover:text-emerald-600 hover:bg-emerald-500/10",
+                              : "text-foreground/30 hover:text-emerald-600 hover:bg-emerald-500/10",
                           )}
                           title="Выполнить"
                         >
@@ -206,8 +207,8 @@ function DayPopover({
                           className={cn(
                             "flex h-6 w-6 items-center justify-center rounded transition-colors",
                             log?.status === "skipped"
-                              ? "bg-amber-500/10 text-amber-600"
-                              : "text-muted-foreground/30 hover:text-amber-500 hover:bg-amber-500/10",
+                              ? "bg-amber-500/15 text-amber-600"
+                              : "text-foreground/20 hover:text-amber-500 hover:bg-amber-500/10",
                           )}
                           title="Пропустить"
                         >
@@ -290,7 +291,7 @@ export function HabitsCalendar({
   return (
     <div className="space-y-4">
       {/* Stats summary */}
-      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+      <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-foreground/50">
         <div className="flex items-center gap-1.5">
           <Flame className="h-3.5 w-3.5 text-amber-500" />
           <span>
@@ -312,57 +313,63 @@ export function HabitsCalendar({
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
+      <div className="relative rounded-2xl border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/50 to-white/10 dark:from-white/[0.06] dark:to-white/[0.02] backdrop-blur-sm p-2 shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => goToMonth(-12)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-foreground/40 hover:text-foreground hover:bg-white/50 dark:hover:bg-white/[0.06] transition-colors"
+              title="Прошлый год"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => goToMonth(-1)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-foreground/40 hover:text-foreground hover:bg-white/50 dark:hover:bg-white/[0.06] transition-colors"
+              title="Прошлый месяц"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <h2 className="text-lg font-semibold min-w-[180px] text-center tabular-nums">
+              {MONTH_NAMES[viewDate.month]} {viewDate.year}
+            </h2>
+            <button
+              onClick={() => goToMonth(1)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-foreground/40 hover:text-foreground hover:bg-white/50 dark:hover:bg-white/[0.06] transition-colors"
+              title="Следующий месяц"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => goToMonth(12)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-foreground/40 hover:text-foreground hover:bg-white/50 dark:hover:bg-white/[0.06] transition-colors"
+              title="Следующий год"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </button>
+          </div>
           <button
-            onClick={() => goToMonth(-12)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-            title="Прошлый год"
+            onClick={goToToday}
+            className="text-xs font-medium text-primary hover:text-primary/80 transition-colors px-3 py-1.5 rounded-lg hover:bg-primary/5"
           >
-            <ChevronsLeft className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => goToMonth(-1)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-            title="Прошлый месяц"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <h2 className="text-lg font-semibold min-w-[180px] text-center tabular-nums">
-            {MONTH_NAMES[viewDate.month]} {viewDate.year}
-          </h2>
-          <button
-            onClick={() => goToMonth(1)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-            title="Следующий месяц"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => goToMonth(12)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-            title="Следующий год"
-          >
-            <ChevronsRight className="h-4 w-4" />
+            Сегодня
           </button>
         </div>
-        <button
-          onClick={goToToday}
-          className="text-xs font-medium text-primary hover:text-primary/80 transition-colors px-2 py-1 rounded-md hover:bg-primary/5"
-        >
-          Сегодня
-        </button>
       </div>
 
       {/* Calendar Grid */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-0">
+      <Card className="relative overflow-hidden border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/60 to-white/20 dark:from-white/[0.10] dark:to-white/[0.04] backdrop-blur-sm shadow-lg">
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none" />
+        <CardContent className="p-0 relative">
           {/* Day headers */}
-          <div className="grid grid-cols-7 border-b border-border/40">
-            {DAY_NAMES.map((name) => (
+          <div className="grid grid-cols-7 border-b border-white/10 dark:border-white/5">
+            {DAY_NAMES.map((name, i) => (
               <div
                 key={name}
-                className="py-2 text-center text-xs font-medium text-muted-foreground/60"
+                className={cn(
+                  "py-2.5 text-center text-xs font-medium",
+                  i >= 5 ? "text-foreground/30" : "text-foreground/50",
+                )}
               >
                 {name}
               </div>
@@ -370,7 +377,7 @@ export function HabitsCalendar({
           </div>
 
           {/* Weeks */}
-          <div className="divide-y divide-border/40">
+          <div className="divide-y divide-white/5 dark:divide-white/[0.02]">
             {weeks.map((week, wi) => (
               <div key={wi} className="grid grid-cols-7">
                 {week.map((day) => {
@@ -378,7 +385,9 @@ export function HabitsCalendar({
                   return (
                     <div
                       key={day.dateStr}
-                      className="relative min-h-[72px] sm:min-h-[88px] p-1.5 border-r border-border/20 last:border-r-0 transition-colors"
+                      className={cn(
+                        "relative min-h-[76px] sm:min-h-[92px] p-1 border-r border-white/5 dark:border-white/[0.02] last:border-r-0 transition-colors",
+                      )}
                     >
                       <button
                         onClick={() => {
@@ -389,19 +398,19 @@ export function HabitsCalendar({
                           }
                         }}
                         className={cn(
-                          "relative flex flex-col w-full h-full rounded-lg p-1 transition-all text-left group",
-                          !day.isCurrentMonth && "opacity-25 pointer-events-none",
-                          day.isCurrentMonth && "hover:bg-muted/40 cursor-pointer",
-                          day.isToday && "bg-primary/5 ring-1 ring-primary/20",
-                          selectedDay?.dateStr === day.dateStr && "ring-2 ring-primary",
+                          "relative flex flex-col w-full h-full rounded-xl p-1.5 transition-all duration-200 text-left group",
+                          !day.isCurrentMonth && "opacity-20 pointer-events-none",
+                          day.isCurrentMonth && "hover:bg-white/50 dark:hover:bg-white/[0.06] cursor-pointer",
+                          day.isToday && "bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/20",
+                          selectedDay?.dateStr === day.dateStr && "ring-2 ring-primary shadow-lg shadow-primary/10",
                         )}
                       >
                         <span
                           className={cn(
-                            "text-xs font-medium mb-0.5",
+                            "text-xs font-semibold mb-1",
                             day.isToday
                               ? "text-primary"
-                              : "text-muted-foreground",
+                              : "text-foreground/50",
                           )}
                         >
                           {day.date.getDate()}
@@ -413,7 +422,7 @@ export function HabitsCalendar({
                               <StatusDot key={habit.id} status={log?.status} />
                             ))}
                             {plannedHabits.length > 5 && (
-                              <span className="text-[9px] text-muted-foreground/60 leading-none">
+                              <span className="text-[9px] text-foreground/40 leading-none ml-0.5">
                                 +{plannedHabits.length - 5}
                               </span>
                             )}
@@ -423,10 +432,10 @@ export function HabitsCalendar({
                         {day.isCurrentMonth && day.done > 0 && day.total > 0 && (
                           <span
                             className={cn(
-                              "absolute top-1.5 right-1.5 text-[9px] font-medium leading-none",
+                              "absolute top-1.5 right-1.5 text-[9px] font-semibold leading-none",
                               day.done === day.total
                                 ? "text-emerald-500"
-                                : "text-muted-foreground/40",
+                                : "text-foreground/30",
                             )}
                           >
                             {day.done}/{day.total}

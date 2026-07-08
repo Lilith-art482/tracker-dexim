@@ -178,7 +178,7 @@ export function HabitsList({ habits, onAdd, onUpdate, onDelete }: HabitsListProp
             return (
               <Card
                 key={habit.id}
-                className="group relative overflow-hidden border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/40 to-white/5 dark:from-white/5 dark:to-white/[0.02] backdrop-blur-sm hover:shadow-lg hover:shadow-black/[0.02] dark:hover:shadow-black/5 transition-all duration-300"
+                className="group relative overflow-hidden border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/70 to-white/20 dark:from-white/[0.10] dark:to-white/[0.04] backdrop-blur-sm hover:shadow-lg transition-all duration-300"
               >
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <CardContent className="p-3 sm:p-4 relative">

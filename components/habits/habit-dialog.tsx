@@ -77,7 +77,7 @@ function FieldRow({ label, children }: { label: string; children: React.ReactNod
 
 function GlassSection({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
-    <div className="relative rounded-2xl border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/40 to-white/5 dark:from-white/5 dark:to-white/[0.02] backdrop-blur-xl p-4 space-y-3 shadow-lg shadow-black/[0.02] dark:shadow-black/10">
+    <div className="relative rounded-2xl border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/70 to-white/20 dark:from-white/[0.12] dark:to-white/[0.06] backdrop-blur-xl p-4 space-y-3 shadow-lg">
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none" />
       <div className="flex items-center gap-2.5 relative">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-primary/10 text-primary">
@@ -191,8 +191,6 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
     onSave(updated);
   };
 
-  const selectedComplexity = COMPLEXITY_LIST.find((c) => c.value === complexity);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -240,7 +238,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                       placeholder="Например: Утренняя зарядка"
                       aria-invalid={!!errors.name}
                       className={cn(
-                        "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/[0.04] backdrop-blur-sm",
+                        "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
                         "placeholder:text-foreground/30",
                         "focus-visible:ring-primary/30 focus-visible:border-primary/30",
                         errors.name && "ring-2 ring-destructive/30 border-destructive/30",
@@ -265,12 +263,12 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                       onValueChange={(v) => setCategory(v as HabitCategory)}
                     >
                       <SelectTrigger className={cn(
-                        "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/[0.04] backdrop-blur-sm",
+                        "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
                         "focus-visible:ring-primary/30 focus-visible:border-primary/30",
                       )}>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl border-white/10 bg-background/80 backdrop-blur-2xl">
+                      <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-2xl">
                         {HABIT_CATEGORIES.map(({ value, label }) => (
                           <SelectItem key={value} value={value} className="rounded-lg">
                             {label}
@@ -286,7 +284,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                         onChange={(e) => setCustomCategory(e.target.value)}
                         placeholder="Введите название категории"
                         className={cn(
-                          "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/[0.04] backdrop-blur-sm",
+                          "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
                           "placeholder:text-foreground/30",
                           "focus-visible:ring-primary/30 focus-visible:border-primary/30",
                         )}
@@ -308,7 +306,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                             "border",
                             complexity === value
                               ? "border-primary/30 bg-gradient-to-b from-primary/10 to-primary/5 shadow-lg shadow-primary/5"
-                              : "border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/[0.04] hover:bg-white/60 dark:hover:bg-white/[0.06]",
+                              : "border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] hover:bg-white/90 dark:hover:bg-white/[0.14]",
                           )}
                         >
                           <span className={cn(
@@ -342,7 +340,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                           "rounded-xl p-3 text-left transition-all duration-200 border",
                           frequencyType === value
                             ? "border-primary/30 bg-gradient-to-b from-primary/10 to-primary/5 shadow-lg shadow-primary/5"
-                            : "border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/[0.04] hover:bg-white/60 dark:hover:bg-white/[0.06]",
+                            : "border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] hover:bg-white/90 dark:hover:bg-white/[0.14]",
                         )}
                       >
                         <div className="text-xs font-semibold mb-0.5">{label}</div>
@@ -366,7 +364,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                               "h-9 w-9 rounded-full text-xs font-medium transition-all duration-200",
                               active
                                 ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20 scale-105"
-                                : "bg-white/40 dark:bg-white/[0.04] text-foreground/50 hover:text-foreground hover:bg-white/60 dark:hover:bg-white/[0.06] border border-white/20 dark:border-white/10",
+                                : "bg-white/80 dark:bg-white/[0.12] text-foreground/50 hover:text-foreground hover:bg-white/90 dark:hover:bg-white/[0.14] border border-white/20 dark:border-white/10",
                             )}
                           >
                             {label}
@@ -393,7 +391,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                         onChange={(e) => setIntervalDays(Number(e.target.value))}
                         aria-invalid={!!errors.intervalDays}
                         className={cn(
-                          "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/[0.04] backdrop-blur-sm",
+                          "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
                           "focus-visible:ring-primary/30 focus-visible:border-primary/30",
                         )}
                       />
@@ -415,7 +413,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                         value={scheduledTime}
                         onChange={(e) => setScheduledTime(e.target.value)}
                         className={cn(
-                          "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/[0.04] backdrop-blur-sm",
+                          "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
                           "focus-visible:ring-primary/30 focus-visible:border-primary/30",
                         )}
                       />
@@ -434,7 +432,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                       value={timeMinutes}
                       onChange={(e) => setTimeMinutes(Number(e.target.value))}
                       className={cn(
-                        "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/[0.04] backdrop-blur-sm",
+                        "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
                         "focus-visible:ring-primary/30 focus-visible:border-primary/30",
                       )}
                     />
@@ -445,7 +443,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                       onChange={(e) => setGoal(e.target.value)}
                       placeholder="Например: 30 дней подряд"
                       className={cn(
-                        "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/[0.04] backdrop-blur-sm",
+                        "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
                         "placeholder:text-foreground/30",
                         "focus-visible:ring-primary/30 focus-visible:border-primary/30",
                       )}
@@ -458,7 +456,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Любые дополнительные заметки о привычке"
                     className={cn(
-                      "min-h-[60px] resize-none rounded-xl border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/[0.04] backdrop-blur-sm",
+                      "min-h-[60px] resize-none rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
                       "placeholder:text-foreground/30",
                       "focus-visible:ring-primary/30 focus-visible:border-primary/30",
                     )}
@@ -471,7 +469,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                 "rounded-2xl border p-4 transition-all duration-300",
                 reminder
                   ? "border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5"
-                  : "border-white/10 dark:border-white/5 bg-white/40 dark:bg-white/[0.04] backdrop-blur-sm",
+                  : "border-white/10 dark:border-white/5 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
               )}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -479,7 +477,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                       "flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-300",
                       reminder
                         ? "bg-gradient-to-br from-primary/30 to-primary/10 text-primary"
-                        : "bg-white/20 dark:bg-white/[0.04] text-foreground/30",
+                        : "bg-white/60 dark:bg-white/[0.10] text-foreground/30",
                     )}>
                       <Bell className="h-4 w-4" />
                     </div>
@@ -503,7 +501,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                           value={reminderTime}
                           onChange={(e) => setReminderTime(e.target.value)}
                           className={cn(
-                            "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/[0.04] backdrop-blur-sm",
+                            "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
                             "focus-visible:ring-primary/30 focus-visible:border-primary/30",
                           )}
                         />
@@ -515,12 +513,12 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
             </div>
 
             {/* Footer */}
-            <DialogFooter className="px-7 py-4 border-t border-white/10 dark:border-white/5 bg-white/20 dark:bg-white/[0.02] backdrop-blur-sm gap-3">
+            <DialogFooter className="px-7 py-4 border-t border-white/10 dark:border-white/5 bg-white/60 dark:bg-white/[0.08] backdrop-blur-sm gap-3">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onOpenChange(false)}
-                className="rounded-xl text-foreground/60 hover:text-foreground hover:bg-white/40 dark:hover:bg-white/[0.06]"
+                className="rounded-xl text-foreground/60 hover:text-foreground hover:bg-white/70 dark:hover:bg-white/[0.12]"
               >
                 Отмена
               </Button>
