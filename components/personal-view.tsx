@@ -206,10 +206,10 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* Header: title + view toggle */}
-      <div className="mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-start justify-between sm:block">
           <div>
-            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
               {activeBoard?.name || "Расписание"}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
@@ -217,10 +217,34 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
             </p>
           </div>
           <div className="flex sm:hidden items-center gap-1.5 mt-1">
+            <div className="flex items-center gap-1 rounded-lg border p-0.5">
+              <button
+                onClick={() => setViewMode("table")}
+                className={cn(
+                  "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                  viewMode === "table"
+                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Table2 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={cn(
+                  "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                  viewMode === "list"
+                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <LayoutList className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <Button
               variant="default"
               size="sm"
-              className="h-9 w-9 p-0"
+              className="h-8 w-8 p-0"
               onClick={handleAddTask}
             >
               <Plus className="h-4 w-4" />
@@ -288,7 +312,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
       </div>
 
       {/* Day selector */}
-      <div className="mb-4 flex gap-1.5 overflow-x-auto lg:overflow-visible -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory scrollbar-none">
+      <div className="mb-4 flex gap-1 overflow-x-auto lg:overflow-visible -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory scrollbar-none">
         {weekDates.map((date, idx) => {
           const isToday = (() => {
             const now = new Date();
@@ -305,7 +329,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               key={idx}
               onClick={() => setSelectedDay(idx)}
               className={cn(
-                "flex flex-col items-center gap-0.5 rounded-lg px-4 py-2.5 text-xs transition-colors min-w-[68px] shrink-0 snap-start lg:flex-1 lg:shrink lg:min-w-0",
+                "flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-xs transition-colors min-w-[64px] shrink-0 snap-start lg:flex-1 lg:shrink lg:min-w-0",
                 isSelected
                   ? "bg-emerald-500/10 text-emerald-600 font-semibold"
                   : "text-muted-foreground hover:bg-accent",
@@ -315,8 +339,8 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               <span className="text-[11px] uppercase tracking-wider">
                 {DAY_NAMES[idx]}
               </span>
-              <span className="text-sm font-semibold">{date.getDate()}</span>
-              <span className="text-[10px] text-muted-foreground/60 hidden sm:inline">
+              <span className="text-sm font-medium">{date.getDate()}</span>
+              <span className="text-[10px] text-muted-foreground/60">
                 {formatDate(date)}
               </span>
             </button>
@@ -324,46 +348,30 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
         })}
       </div>
 
-      {/* Content: mobile всегда список, desktop — по выбору */}
-      <div className="sm:hidden">
-        <div className="flex flex-col gap-6">
-          <PersonalTaskList
-            tasks={tasks}
-            selectedDay={selectedDay}
-            onEdit={handleEditTask}
-            onToggleComplete={handleToggleComplete}
-            onDelete={handleDeleteTask}
-          />
-          <div className="w-full shrink-0">
+      {/* Content */}
+      {viewMode === "table" ? (
+        <WeeklyTable
+          tasks={tasks}
+          onSaved={handleTaskSaved}
+          onToggleComplete={handleToggleComplete}
+          onDelete={handleDeleteTask}
+        />
+      ) : (
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex-1 min-w-0">
+            <PersonalTaskList
+              tasks={tasks}
+              selectedDay={selectedDay}
+              onEdit={handleEditTask}
+              onToggleComplete={handleToggleComplete}
+              onDelete={handleDeleteTask}
+            />
+          </div>
+          <div className="w-full lg:w-72 shrink-0">
             <PersonalDashboard tasks={tasks} />
           </div>
         </div>
-      </div>
-      <div className="hidden sm:block">
-        {viewMode === "table" ? (
-          <WeeklyTable
-            tasks={tasks}
-            onSaved={handleTaskSaved}
-            onToggleComplete={handleToggleComplete}
-            onDelete={handleDeleteTask}
-          />
-        ) : (
-          <div className="flex flex-col lg:flex-row gap-6">
-            <div className="flex-1 min-w-0">
-              <PersonalTaskList
-                tasks={tasks}
-                selectedDay={selectedDay}
-                onEdit={handleEditTask}
-                onToggleComplete={handleToggleComplete}
-                onDelete={handleDeleteTask}
-              />
-            </div>
-            <div className="w-full lg:w-72 shrink-0">
-              <PersonalDashboard tasks={tasks} />
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       <PersonalTaskDialog
         open={dialogOpen}
