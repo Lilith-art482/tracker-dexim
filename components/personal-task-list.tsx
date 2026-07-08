@@ -58,14 +58,14 @@ export function PersonalTaskList({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 sm:gap-2">
       {dayTasks
         .sort((a, b) => a.startTime.localeCompare(b.startTime))
         .map((task) => (
           <div
             key={task.id}
             className={cn(
-              "flex items-start gap-3 rounded-lg border-l-4 p-3 transition-colors hover:bg-accent/50",
+              "flex items-start gap-2 sm:gap-3 rounded-lg border-l-4 p-3 sm:p-3 transition-colors hover:bg-accent/50",
               PRIORITY_STYLES[task.priority],
               task.completed && "opacity-60",
             )}
@@ -75,7 +75,7 @@ export function PersonalTaskList({
                 e.stopPropagation();
                 onToggleComplete(task);
               }}
-              className="mt-0.5 shrink-0 hover:scale-110 transition-transform"
+              className="mt-0.5 shrink-0 hover:scale-110 transition-transform p-1 -ml-1"
             >
               {task.completed ? (
                 <CheckCircle2 className="h-5 w-5 text-emerald-500" />

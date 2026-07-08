@@ -266,7 +266,9 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                         "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
                         "focus-visible:ring-primary/30 focus-visible:border-primary/30",
                       )}>
-                        <SelectValue />
+                        <SelectValue>
+                          {HABIT_CATEGORIES.find((c) => c.value === category)?.label}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-2xl">
                         {HABIT_CATEGORIES.map(({ value, label }) => (
@@ -513,7 +515,7 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
             </div>
 
             {/* Footer */}
-            <DialogFooter className="px-7 py-4 border-t border-white/10 dark:border-white/5 bg-white/60 dark:bg-white/[0.08] backdrop-blur-sm gap-3">
+            <DialogFooter className="m-0 px-7 py-4 border-t border-white/10 dark:border-white/5 bg-white/60 dark:bg-white/[0.08] backdrop-blur-sm gap-3">
               <Button
                 variant="ghost"
                 size="sm"

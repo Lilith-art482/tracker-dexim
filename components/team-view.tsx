@@ -165,10 +165,10 @@ export function TeamView({
 
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
         <div className="flex items-start justify-between sm:block">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">
               {activeBoard?.name}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
@@ -176,34 +176,10 @@ export function TeamView({
             </p>
           </div>
           <div className="flex sm:hidden items-center gap-1.5 mt-1">
-            <div className="flex items-center gap-1 rounded-lg border p-0.5">
-              <button
-                onClick={() => setViewMode("table")}
-                className={cn(
-                  "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
-                  viewMode === "table"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Table2 className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={cn(
-                  "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
-                  viewMode === "list"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <LayoutList className="h-3.5 w-3.5" />
-              </button>
-            </div>
             <Button
               variant="default"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-9 w-9 p-0"
               onClick={handleAddTask}
             >
               <Plus className="h-4 w-4" />
@@ -269,7 +245,7 @@ export function TeamView({
         </Button>
       </div>
 
-      <div className="mb-4 flex gap-1 overflow-x-auto lg:overflow-visible -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory scrollbar-none">
+      <div className="mb-4 flex gap-1.5 overflow-x-auto lg:overflow-visible -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory scrollbar-none">
         {weekDates.map((date, idx) => {
           const isToday = (() => {
             const now = new Date();
@@ -286,7 +262,7 @@ export function TeamView({
               key={idx}
               onClick={() => setSelectedDay(idx)}
               className={cn(
-                "flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-xs transition-colors min-w-[64px] shrink-0 snap-start lg:flex-1 lg:shrink lg:min-w-0",
+                "flex flex-col items-center gap-0.5 rounded-lg px-4 py-2.5 text-xs transition-colors min-w-[68px] shrink-0 snap-start lg:flex-1 lg:shrink lg:min-w-0",
                 isSelected
                   ? "bg-emerald-500/10 text-emerald-600 font-semibold"
                   : "text-muted-foreground hover:bg-accent",
@@ -296,8 +272,8 @@ export function TeamView({
               <span className="text-[11px] uppercase tracking-wider">
                 {DAY_NAMES[idx]}
               </span>
-              <span className="text-sm font-medium">{date.getDate()}</span>
-              <span className="text-[10px] text-muted-foreground/60">
+              <span className="text-sm font-semibold">{date.getDate()}</span>
+              <span className="text-[10px] text-muted-foreground/60 hidden sm:inline">
                 {formatDate(date)}
               </span>
             </button>
@@ -305,36 +281,8 @@ export function TeamView({
         })}
       </div>
 
-      {viewMode === "table" ? (
-        <TeamWeekTable
-          tasks={tasks}
-          columns={columns}
-          weekDates={weekDates}
-          onSaved={handleTaskSaved}
-          onEdit={handleEditTask}
-          onCellClick={(dayIdx, colId) => {
-            const dayStr = weekDates[dayIdx].toISOString().split("T")[0];
-            setEditingTask({
-              id: "",
-              boardId: activeBoard.id,
-              columnId: colId || columns[0]?.id || "",
-              title: "",
-              description: "",
-              startDate: dayStr,
-              endDate: null,
-              assignee: null,
-              assignees: [],
-              priority: "medium",
-              completed: false,
-              archived: false,
-              archivedAt: null,
-              createdAt: "",
-              updatedAt: "",
-            } as Task);
-            setDialogOpen(true);
-          }}
-        />
-      ) : (
+      {/* Content: mobile всегда список, desktop — по выбору */}
+      <div className="sm:hidden">
         <TeamListView
           tasks={tasks}
           selectedDay={selectedDay}
@@ -342,7 +290,47 @@ export function TeamView({
           columns={columns}
           onEdit={handleEditTask}
         />
-      )}
+      </div>
+      <div className="hidden sm:block">
+        {viewMode === "table" ? (
+          <TeamWeekTable
+            tasks={tasks}
+            columns={columns}
+            weekDates={weekDates}
+            onSaved={handleTaskSaved}
+            onEdit={handleEditTask}
+            onCellClick={(dayIdx, colId) => {
+              const dayStr = weekDates[dayIdx].toISOString().split("T")[0];
+              setEditingTask({
+                id: "",
+                boardId: activeBoard.id,
+                columnId: colId || columns[0]?.id || "",
+                title: "",
+                description: "",
+                startDate: dayStr,
+                endDate: null,
+                assignee: null,
+                assignees: [],
+                priority: "medium",
+                completed: false,
+                archived: false,
+                archivedAt: null,
+                createdAt: "",
+                updatedAt: "",
+              } as Task);
+              setDialogOpen(true);
+            }}
+          />
+        ) : (
+          <TeamListView
+            tasks={tasks}
+            selectedDay={selectedDay}
+            weekDates={weekDates}
+            columns={columns}
+            onEdit={handleEditTask}
+          />
+        )}
+      </div>
 
       <TaskFormDialog
         open={dialogOpen}

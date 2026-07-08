@@ -15,7 +15,6 @@ import {
   ListChecks,
   RotateCcw,
   Archive,
-  Sparkles,
 } from "lucide-react";
 import type { Habit, HabitCategory, HabitStatus } from "@/lib/habits-types";
 import {
@@ -134,25 +133,16 @@ export function HabitsList({ habits, onAdd, onUpdate, onDelete }: HabitsListProp
             );
           })}
         </div>
-        <Button
-          size="sm"
-          onClick={() => setDialogOpen(true)}
-          className="rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20 hover:from-primary/90 hover:to-primary/70 transition-all duration-200"
-        >
-          <Sparkles className="h-3.5 w-3.5" />
+        <Button size="sm" onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4" />
           Добавить
         </Button>
       </div>
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
-          <div className="relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/5 to-transparent">
-              <ListChecks className="h-8 w-8 text-muted-foreground/30" />
-            </div>
-            <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 animate-pulse" />
-          </div>
-          <p className="text-sm font-medium">
+        <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
+          <ListChecks className="h-10 w-10 text-muted-foreground/40" />
+          <p className="text-sm">
             {statusFilter === "active"
               ? "Нет активных привычек"
               : statusFilter === "completed"
@@ -164,7 +154,6 @@ export function HabitsList({ habits, onAdd, onUpdate, onDelete }: HabitsListProp
               variant="outline"
               size="sm"
               onClick={() => setDialogOpen(true)}
-              className="rounded-xl border-white/20 dark:border-white/10"
             >
               <Plus className="h-4 w-4" />
               Добавить привычку
@@ -176,32 +165,26 @@ export function HabitsList({ habits, onAdd, onUpdate, onDelete }: HabitsListProp
           {filtered.map((habit) => {
             const Icon = CATEGORY_ICONS[habit.category];
             return (
-              <Card
-                key={habit.id}
-                className="group relative overflow-hidden border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/70 to-white/20 dark:from-white/[0.10] dark:to-white/[0.04] backdrop-blur-sm hover:shadow-lg transition-all duration-300"
-              >
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <CardContent className="p-3 sm:p-4 relative">
+              <Card key={habit.id} className="card-hover">
+                <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-primary/10 text-primary shrink-0 ring-1 ring-primary/10">
-                      <Icon className="h-4 w-4" />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/5 shrink-0">
+                      <Icon className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate text-foreground/90">
-                        {habit.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground/70 mt-0.5">
+                      <p className="text-sm font-medium truncate">{habit.name}</p>
+                      <p className="text-xs text-muted-foreground">
                         {getCategoryLabel(habit)}
                         {` · ${COMPLEXITY_LABELS[habit.complexity]}`}
                         {` · ${frequencyLabel(habit)}`}
                         {habit.goal && ` · ${habit.goal}`}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="flex items-center gap-1 shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-lg hover:bg-white/40 dark:hover:bg-white/[0.06]"
+                        className="h-8 w-8"
                         onClick={() => handleEdit(habit)}
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -209,7 +192,7 @@ export function HabitsList({ habits, onAdd, onUpdate, onDelete }: HabitsListProp
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-lg text-destructive/50 hover:text-destructive hover:bg-destructive/5"
+                        className="h-8 w-8 text-destructive/70 hover:text-destructive"
                         onClick={() => handleDelete(habit)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />

@@ -15,7 +15,6 @@ import {
   Users,
   Briefcase,
   MoreHorizontal,
-  Sparkles,
 } from "lucide-react";
 import type {
   Habit,
@@ -93,21 +92,20 @@ function StatCard({
   subtitle?: string;
 }) {
   return (
-    <Card className="relative overflow-hidden border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/60 to-white/20 dark:from-white/[0.10] dark:to-white/[0.04] backdrop-blur-sm hover:shadow-lg transition-all duration-300">
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none" />
-      <CardContent className="p-4 sm:p-5 relative">
+    <Card className="card-hover">
+      <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-xs sm:text-sm text-foreground/50">{title}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">{title}</p>
             <p className="text-xl sm:text-2xl font-bold tracking-tight">
               {value}
             </p>
             {subtitle && (
-              <p className="text-xs text-foreground/40">{subtitle}</p>
+              <p className="text-xs text-muted-foreground">{subtitle}</p>
             )}
           </div>
-          <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-primary/10 text-primary shrink-0 ring-1 ring-primary/10">
-            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+          <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-primary/10 shrink-0">
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           </div>
         </div>
       </CardContent>
@@ -152,7 +150,7 @@ function TodayProgressCircle({ percentage }: { percentage: number }) {
         />
       </svg>
       <span className="text-xl sm:text-2xl font-bold">{percentage}%</span>
-      <span className="text-xs text-foreground/40">выполнено</span>
+      <span className="text-xs text-muted-foreground">выполнено</span>
     </div>
   );
 }
@@ -210,22 +208,21 @@ function HabitRow({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200",
-        "relative overflow-hidden",
+        "flex items-center gap-3 p-3 rounded-lg border transition-colors",
         currentStatus === "done"
-          ? "border-emerald-200/50 dark:border-emerald-800/30 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 dark:from-emerald-500/15 dark:to-emerald-500/5"
+          ? "bg-emerald-500/5 border-emerald-200 dark:border-emerald-800/50"
           : currentStatus === "skipped"
-            ? "border-amber-200/50 dark:border-amber-800/30 bg-gradient-to-br from-amber-500/10 to-amber-500/5 dark:from-amber-500/15 dark:to-amber-500/5"
-            : "border-white/10 dark:border-white/5 bg-gradient-to-br from-white/60 to-white/20 dark:from-white/[0.10] dark:to-white/[0.04] hover:border-white/20 dark:hover:border-white/10",
+            ? "bg-amber-500/5 border-amber-200 dark:border-amber-800/50"
+            : "bg-card border-border/50 hover:border-border",
       )}
     >
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-primary/10 text-primary shrink-0 ring-1 ring-primary/10">
-        <Icon className="h-4 w-4" />
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/5 shrink-0">
+        <Icon className="h-4 w-4 text-primary" />
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold truncate text-foreground/90">{habit.name}</p>
-        <p className="text-xs text-foreground/50">
+        <p className="text-sm font-medium truncate">{habit.name}</p>
+        <p className="text-xs text-muted-foreground">
           {getCategoryLabel(habit)}
           {habit.timeMinutes && ` · ${habit.timeMinutes} мин`}
         </p>
@@ -235,7 +232,7 @@ function HabitRow({
         {currentStatus === "done" ? (
           <button
             onClick={() => onToggle(habit.id, "missed")}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors"
             title="Отменить"
           >
             <CheckCircle2 className="h-5 w-5" />
@@ -245,10 +242,10 @@ function HabitRow({
             <button
               onClick={() => onToggle(habit.id, "done")}
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-xl transition-colors",
+                "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
                 currentStatus === "skipped"
                   ? "text-amber-500 hover:bg-emerald-500/10 hover:text-emerald-600"
-                  : "text-foreground/30 hover:text-emerald-600 hover:bg-emerald-500/10",
+                  : "text-muted-foreground/40 hover:text-emerald-600 hover:bg-emerald-500/10",
               )}
               title="Выполнить"
             >
@@ -257,10 +254,10 @@ function HabitRow({
             <button
               onClick={() => onToggle(habit.id, "skipped")}
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-xl transition-colors",
+                "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
                 currentStatus === "skipped"
-                  ? "bg-amber-500/15 text-amber-600"
-                  : "text-foreground/20 hover:text-amber-500 hover:bg-amber-500/10",
+                  ? "bg-amber-500/10 text-amber-600"
+                  : "text-muted-foreground/30 hover:text-amber-500 hover:bg-amber-500/10",
               )}
               title="Пропустить"
             >
@@ -371,40 +368,34 @@ export function HabitsDashboard({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="relative overflow-hidden border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/60 to-white/20 dark:from-white/[0.10] dark:to-white/[0.04] backdrop-blur-sm">
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none" />
-          <CardContent className="p-4 sm:p-5 flex items-center justify-center relative">
+        <Card>
+          <CardContent className="p-4 sm:p-5 flex items-center justify-center">
             <TodayProgressCircle percentage={percentage} />
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/60 to-white/20 dark:from-white/[0.10] dark:to-white/[0.04] backdrop-blur-sm sm:col-span-2">
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none" />
-          <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0 relative">
+        <Card className="sm:col-span-2">
+          <CardHeader className="p-4 pb-0 sm:p-5 sm:pb-0">
             <CardTitle className="text-sm font-medium">
               Прогресс за неделю
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 sm:p-5 relative">
+          <CardContent className="p-4 sm:p-5">
             <WeeklyChart data={weeklyData} />
           </CardContent>
         </Card>
       </div>
 
-      <Card className="relative overflow-hidden border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/60 to-white/20 dark:from-white/[0.10] dark:to-white/[0.04] backdrop-blur-sm">
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none" />
-        <CardHeader className="p-4 pb-2 sm:p-5 sm:pb-3 relative">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-amber-500" />
-            На сегодня
-          </CardTitle>
+      <Card>
+        <CardHeader className="p-4 pb-2 sm:p-5 sm:pb-3">
+          <CardTitle className="text-sm font-medium">На сегодня</CardTitle>
         </CardHeader>
-        <CardContent className="p-4 pt-0 sm:p-5 sm:pt-0 space-y-2 relative">
+        <CardContent className="p-4 pt-0 sm:p-5 sm:pt-0 space-y-2">
           {todayHabits.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-8 text-foreground/40">
-              <Target className="h-8 w-8 text-foreground/20" />
+            <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
+              <Target className="h-8 w-8 text-muted-foreground/40" />
               <p className="text-sm">На сегодня нет запланированных привычек</p>
-              <p className="text-xs text-foreground/30">
+              <p className="text-xs text-muted-foreground/60">
                 Добавьте привычки во вкладке «Мои привычки»
               </p>
             </div>

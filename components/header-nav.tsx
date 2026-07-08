@@ -5,8 +5,6 @@ import {
   Calendar,
   DollarSign,
   ListChecks,
-  Zap,
-  Award,
   Search,
   User,
   Sun,
@@ -25,8 +23,6 @@ const NAV_ITEMS = [
   { id: "planner", label: "Планнер", icon: Calendar },
   { id: "finance", label: "Финансы", icon: DollarSign },
   { id: "habits", label: "Привычки", icon: ListChecks },
-  { id: "sport", label: "Спорт", icon: Zap },
-  { id: "challenges", label: "Челленджи", icon: Award },
 ] as const;
 
 export function HeaderNav() {
@@ -47,6 +43,10 @@ export function HeaderNav() {
       router.push("/finance");
       return;
     }
+    if (id === "habits") {
+      router.push("/habits");
+      return;
+    }
     toast.info("Страница в разработке");
   };
 
@@ -59,7 +59,8 @@ export function HeaderNav() {
           className={cn(
             "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors shrink-0",
             (id === "planner" && pathname === "/") ||
-              (id === "finance" && pathname.startsWith("/finance"))
+              (id === "finance" && pathname.startsWith("/finance")) ||
+              (id === "habits" && pathname.startsWith("/habits"))
               ? "bg-primary/10 text-primary font-medium"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
           )}
