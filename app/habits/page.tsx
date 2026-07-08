@@ -8,6 +8,7 @@ import {
   BarChart3,
   Trophy,
   Bell,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Habit, HabitLog, HabitLogStatus } from "@/lib/habits-types";
@@ -155,35 +156,59 @@ export default function HabitsPage() {
   };
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-      <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-          Привычки
-        </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          Вырабатывайте полезные привычки каждый день
-        </p>
-      </div>
+    <div className="relative min-h-screen">
+      {/* Ambient blurs */}
+      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-primary/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="fixed bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-primary/5 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-      <div className="mb-6 flex gap-1 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-none">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors shrink-0",
-              activeTab === tab.id
-                ? "bg-primary/10 text-primary shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-            )}
-          >
-            <tab.icon className="h-4 w-4" />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <div className="container relative mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        {/* Header */}
+        <div className="relative mb-6 rounded-3xl border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/60 to-white/20 dark:from-white/[0.08] dark:to-white/[0.02] backdrop-blur-xl p-5 sm:p-6 shadow-lg">
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none" />
+          <div className="flex items-center gap-4 relative">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/30 via-primary/20 to-primary/5 text-primary shadow-lg shadow-primary/10 ring-1 ring-white/20 dark:ring-white/10">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                Привычки
+              </h1>
+              <p className="text-xs sm:text-sm text-foreground/50 mt-0.5">
+                Вырабатывайте полезные привычки каждый день
+              </p>
+            </div>
+          </div>
+        </div>
 
-      {renderTab()}
+        {/* Tabs */}
+        <div className="relative mb-6 rounded-2xl border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/50 to-white/10 dark:from-white/[0.06] dark:to-white/[0.02] backdrop-blur-xl p-1.5 shadow-lg">
+          <div className="flex gap-1 overflow-x-auto scrollbar-none">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap transition-all duration-200 shrink-0",
+                  activeTab === tab.id
+                    ? "bg-gradient-to-br from-primary/20 to-primary/10 text-primary shadow-lg shadow-primary/5"
+                    : "text-foreground/40 hover:text-foreground/70 hover:bg-white/50 dark:hover:bg-white/[0.06]",
+                )}
+              >
+                <tab.icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="relative rounded-3xl border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/60 to-white/20 dark:from-white/[0.10] dark:to-white/[0.04] backdrop-blur-xl p-4 sm:p-6 shadow-lg">
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none" />
+          <div className="relative">
+            {renderTab()}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
