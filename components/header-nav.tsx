@@ -5,8 +5,6 @@ import {
   Calendar,
   DollarSign,
   ListChecks,
-  Zap,
-  Award,
   Search,
   User,
   Sun,
@@ -25,8 +23,6 @@ const NAV_ITEMS = [
   { id: "planner", label: "Планнер", icon: Calendar },
   { id: "finance", label: "Финансы", icon: DollarSign },
   { id: "habits", label: "Привычки", icon: ListChecks },
-  { id: "sport", label: "Спорт", icon: Zap },
-  { id: "challenges", label: "Челленджи", icon: Award },
 ] as const;
 
 export function HeaderNav() {
