@@ -32,8 +32,6 @@ export default async function RootLayout({
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
   const isAuthPage = pathname.startsWith("/auth");
-  const isModulePage =
-    pathname.startsWith("/finance") || pathname.startsWith("/habits");
 
   return (
     <html
@@ -80,21 +78,19 @@ export default async function RootLayout({
                   </header>
 
                   <div className="flex flex-1">
-                    {!isModulePage && (
-                      <Suspense
-                        fallback={
-                          <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r bg-sidebar">
-                            <div className="border-b px-4 py-3">
-                              <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-                                Доски
-                              </span>
-                            </div>
-                          </aside>
-                        }
-                      >
-                        <BoardSidebar />
-                      </Suspense>
-                    )}
+                    <Suspense
+                      fallback={
+                        <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r bg-sidebar">
+                          <div className="border-b px-4 py-3">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
+                              Доски
+                            </span>
+                          </div>
+                        </aside>
+                      }
+                    >
+                      <BoardSidebar />
+                    </Suspense>
                     <main className="flex-1 min-w-0 pb-4 sm:pb-0">
                       {children}
                     </main>
