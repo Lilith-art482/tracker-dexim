@@ -2,9 +2,16 @@
 
 import { Menu, PanelLeftClose } from "lucide-react";
 import { useSidebar } from "@/lib/sidebar-context";
+import { usePathname } from "next/navigation";
 
 export function SidebarToggle() {
   const { collapsed, toggle } = useSidebar();
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/finance") || pathname.startsWith("/habits")) {
+    return null;
+  }
+
   return (
     <button
       onClick={toggle}
