@@ -187,6 +187,10 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
     }
   };
 
+  if (pathname.startsWith("/finance") || pathname.startsWith("/habits")) {
+    return null;
+  }
+
   return (
     <>
       {/* Backdrop for mobile overlay */}
