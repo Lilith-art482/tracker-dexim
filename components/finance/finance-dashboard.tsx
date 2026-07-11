@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Wallet,
   TrendingUp,
@@ -10,10 +10,6 @@ import {
   AlertTriangle,
   Loader2,
   CalendarArrowUp,
-  Plus,
-  ArrowRightLeft,
-  Landmark,
-  RefreshCw,
   Clock,
 } from "lucide-react";
 import type {
@@ -31,9 +27,7 @@ import {
   getBudgetPlansByUser,
   getEmergencyFund,
 } from "@/lib/finance-client";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const CATEGORY_COLORS_HEX: Record<string, string> = {
@@ -55,156 +49,6 @@ const CATEGORY_COLORS_HEX: Record<string, string> = {
   slate: "#6b7280",
 };
 
-type Period = "week" | "month" | "quarter" | "halfyear" | "year" | "custom";
-
-const PERIOD_LABELS: Record<Period, string> = {
-  week: "Неделя",
-  month: "Месяц",
-  quarter: "Квартал",
-  halfyear: "Полгода",
-  year: "Год",
-  custom: "Свой",
-};
-
-function getPeriodRange(period: Period): {
-  start: string;
-  end: string;
-  label: string;
-} {
-  const now = new Date();
-  const end = now.toISOString().split("T")[0];
-  let start: Date;
-
-  switch (period) {
-    case "week":
-      start = new Date(now);
-      start.setDate(now.getDate() - 7);
-      break;
-    case "month":
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-      break;
-    case "quarter":
-      start = new Date(
-        now.getFullYear(),
-        Math.floor(now.getMonth() / 3) * 3,
-        1,
-      );
-      break;
-    case "halfyear":
-      start = new Date(
-        now.getFullYear(),
-        Math.floor(now.getMonth() / 6) * 6,
-        1,
-      );
-      break;
-    case "year":
-      start = new Date(now.getFullYear(), 0, 1);
-      break;
-    default:
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-  }
-
-  return {
-    start: start.toISOString().split("T")[0],
-    end,
-    label: PERIOD_LABELS[period],
-  };
-}
-
-function getDaysInRange(start: string, end: string): string[] {
-  const days: string[] = [];
-  const current = new Date(start + "T00:00:00Z");
-  const last = new Date(end + "T00:00:00Z");
-  while (current <= last) {
-    days.push(current.toISOString().split("T")[0]);
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-  return days;
-}
-
-function LineChart({
-  data,
-  color = "#4E6E62",
-}: {
-  data: { date: string; value: number }[];
-  color?: string;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || data.length < 2) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-    const w = rect.width;
-    const h = rect.height;
-
-    const values = data.map((d) => d.value);
-    const min = Math.min(...values) * 0.95;
-    const max = Math.max(...values) * 1.05;
-    const range = max - min || 1;
-
-    const padding = { top: 16, right: 16, bottom: 24, left: 48 };
-    const plotW = w - padding.left - padding.right;
-    const plotH = h - padding.top - padding.bottom;
-
-    ctx.clearRect(0, 0, w, h);
-
-    const points = data.map((d, i) => ({
-      x: padding.left + (i / (data.length - 1)) * plotW,
-      y: padding.top + plotH - ((d.value - min) / range) * plotH,
-    }));
-
-    ctx.beginPath();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.lineJoin = "round";
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++)
-      ctx.lineTo(points[i].x, points[i].y);
-    ctx.stroke();
-
-    ctx.fillStyle = color + "15";
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, padding.top + plotH);
-    for (const p of points) ctx.lineTo(p.x, p.y);
-    ctx.lineTo(points[points.length - 1].x, padding.top + plotH);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = "#888";
-    ctx.font = "10px sans-serif";
-    ctx.textAlign = "right";
-    const yLabels = [min, (min + max) / 2, max];
-    for (const y of yLabels) {
-      const yPos = padding.top + plotH - ((y - min) / range) * plotH;
-      ctx.fillText(Math.round(y).toLocaleString(), padding.left - 6, yPos + 3);
-      ctx.strokeStyle = "#e5e7eb";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(padding.left, yPos);
-      ctx.lineTo(w - padding.right, yPos);
-      ctx.stroke();
-    }
-
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#999";
-    const step = Math.max(1, Math.floor(data.length / 5));
-    for (let i = 0; i < data.length; i += step) {
-      const d = new Date(data[i].date);
-      ctx.fillText(`${d.getDate()}.${d.getMonth() + 1}`, points[i].x, h - 4);
-    }
-  }, [data, color]);
-
-  return <canvas ref={canvasRef} className="w-full h-[200px]" />;
-}
-
 export function FinanceDashboard() {
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -214,21 +58,6 @@ export function FinanceDashboard() {
     null,
   );
   const [initialLoading, setInitialLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [period, setPeriod] = useState<Period>("month");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
-
-  const range = useMemo(() => {
-    if (period === "custom") {
-      return {
-        start: customStart || "2026-01-01",
-        end: customEnd || new Date().toISOString().split("T")[0],
-        label: "Свой",
-      };
-    }
-    return getPeriodRange(period);
-  }, [period, customStart, customEnd]);
 
   const categoryMap = useMemo(() => {
     const map = new Map<string, TransactionCategory>();
@@ -243,7 +72,6 @@ export function FinanceDashboard() {
   const fetchAll = useCallback(
     async (isInitial = false) => {
       if (isInitial) setInitialLoading(true);
-      else setRefreshing(true);
       try {
         const [accs, txs, cats, buds, em] = await Promise.all([
           getAccountsByUser(uid),
@@ -261,7 +89,6 @@ export function FinanceDashboard() {
         console.error("Failed to load finance data", e);
       } finally {
         setInitialLoading(false);
-        setRefreshing(false);
       }
     },
     [uid],
@@ -273,11 +100,12 @@ export function FinanceDashboard() {
 
   const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
 
-  const periodTxns = useMemo(
-    () =>
-      transactions.filter((t) => t.date >= range.start && t.date <= range.end),
-    [transactions, range],
-  );
+  const periodTxns = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+    const end = now.toISOString().split("T")[0];
+    return transactions.filter((t) => t.date >= start && t.date <= end);
+  }, [transactions]);
 
   const periodIncome = periodTxns
     .filter((t) => t.type === "income")
@@ -293,18 +121,6 @@ export function FinanceDashboard() {
     )
     .reduce((s, t) => s + t.amount, 0);
   const freeMoney = periodIncome - periodExpenses - periodObligations;
-
-  const days = getDaysInRange(range.start, range.end);
-
-  let runningBalance = totalBalance;
-  const balanceTrend = days.map((date) => {
-    const dayTxns = periodTxns.filter((t) => t.date === date);
-    for (const t of dayTxns) {
-      if (t.type === "income") runningBalance -= t.amount;
-      else if (t.type === "expense") runningBalance += t.amount;
-    }
-    return { date, value: runningBalance };
-  });
 
   const hasData = periodIncome > 0 || periodExpenses > 0;
   const healthRatio = hasData
@@ -360,40 +176,10 @@ export function FinanceDashboard() {
     .reduce((s, c) => s + c.amount, 0);
   const totalExpenses = periodExpenses;
 
-  const dailyAvgExpense = days.length > 0 ? periodExpenses / days.length : 0;
-  const dailyAvgIncome = days.length > 0 ? periodIncome / days.length : 0;
+  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+  const dailyAvgExpense = daysInMonth > 0 ? periodExpenses / daysInMonth : 0;
+  const dailyAvgIncome = daysInMonth > 0 ? periodIncome / daysInMonth : 0;
   const projectedRemaining = periodIncome - periodExpenses;
-
-  const prevRange = useMemo(() => {
-    const periodMs =
-      new Date(range.end).getTime() -
-      new Date(range.start).getTime() +
-      86400000;
-    const prevEnd = new Date(new Date(range.start).getTime() - 86400000);
-    const prevStart = new Date(prevEnd.getTime() - periodMs + 86400000);
-    return {
-      start: prevStart.toISOString().split("T")[0],
-      end: prevEnd.toISOString().split("T")[0],
-    };
-  }, [range]);
-
-  const prevPeriodExpenses = useMemo(
-    () =>
-      transactions
-        .filter(
-          (t) =>
-            t.type === "expense" &&
-            t.date >= prevRange.start &&
-            t.date <= prevRange.end,
-        )
-        .reduce((s, t) => s + t.amount, 0),
-    [transactions, prevRange],
-  );
-
-  const expenseChange =
-    prevPeriodExpenses > 0
-      ? ((periodExpenses - prevPeriodExpenses) / prevPeriodExpenses) * 100
-      : 0;
 
   const budgetLoad = useMemo(() => {
     if (!budget || !budget.categoryBudgets.length) return null;
@@ -436,49 +222,6 @@ export function FinanceDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => fetchAll(false)}
-          className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-          title="Обновить"
-        >
-          <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
-        </button>
-        {(Object.entries(PERIOD_LABELS) as [Period, string][]).map(
-          ([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setPeriod(key)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                period === key
-                  ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-              )}
-            >
-              {label}
-            </button>
-          ),
-        )}
-        {period === "custom" && (
-          <div className="flex items-center gap-2 ml-2">
-            <input
-              type="date"
-              value={customStart}
-              onChange={(e) => setCustomStart(e.target.value)}
-              className="rounded-md border border-input bg-background px-2 py-1 text-xs"
-            />
-            <span className="text-xs text-muted-foreground">—</span>
-            <input
-              type="date"
-              value={customEnd}
-              onChange={(e) => setCustomEnd(e.target.value)}
-              className="rounded-md border border-input bg-background px-2 py-1 text-xs"
-            />
-          </div>
-        )}
-      </div>
-
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -495,82 +238,44 @@ export function FinanceDashboard() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-emerald-600">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <TrendingUp className="h-4 w-4" />
               Доходы
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-emerald-600">
+            <p className="text-2xl font-bold">
               {periodIncome.toLocaleString()} ₽
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {range.label}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-rose-600">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <TrendingDown className="h-4 w-4" />
               Расходы
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-rose-600">
+            <p className="text-2xl font-bold">
               {periodExpenses.toLocaleString()} ₽
             </p>
-            <div className="flex items-center gap-1 mt-0.5">
-              {prevPeriodExpenses > 0 && (
-                <span
-                  className={cn(
-                    "text-xs",
-                    expenseChange > 0 ? "text-rose-500" : "text-emerald-500",
-                  )}
-                >
-                  {expenseChange > 0 ? "↑" : "↓"}{" "}
-                  {Math.abs(Math.round(expenseChange))}%
-                </span>
-              )}
-            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-sky-600">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <PiggyBank className="h-4 w-4" />
               Свободные деньги
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p
-              className={cn(
-                "text-2xl font-bold",
-                freeMoney >= 0 ? "text-sky-600" : "text-rose-600",
-              )}
-            >
+            <p className="text-2xl font-bold">
               {freeMoney.toLocaleString()} ₽
             </p>
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">
-            Динамика баланса
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {balanceTrend.length >= 2 ? (
-            <LineChart data={balanceTrend} />
-          ) : (
-            <div className="flex items-center justify-center h-[200px] text-sm text-muted-foreground">
-              Недостаточно данных для графика
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
@@ -783,19 +488,14 @@ export function FinanceDashboard() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span
-                              className={cn(
-                                "font-medium tabular-nums",
-                                tx.type === "income"
-                                  ? "text-emerald-600"
-                                  : "text-rose-600",
-                              )}
-                            >
+                            <span className="font-medium tabular-nums">
                               {tx.type === "income" ? "+" : "-"}
                               {tx.amount.toLocaleString()} ₽
                             </span>
                             <span className="text-[10px] text-muted-foreground">
-                              {tx.date.slice(5)}
+                              {tx.date.includes("T")
+                                ? tx.date.slice(5, 16).replace("T", " ")
+                                : tx.date.slice(5)}
                             </span>
                           </div>
                         </div>
