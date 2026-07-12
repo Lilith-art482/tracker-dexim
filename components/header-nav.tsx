@@ -21,7 +21,8 @@ import { cn } from "@/lib/utils";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
-import { useAudio, SOUND_TYPES } from "@/lib/audio-context";
+import { useAudio } from "@/lib/audio-context";
+import AudioModal from "@/components/audio-modal";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -86,12 +87,8 @@ export function HeaderNav() {
 
 export function HeaderActions() {
   const { theme, setTheme } = useTheme();
-  const {
-    isPlaying,
-    toggle: toggleAudio,
-    soundType,
-    setSoundType,
-  } = useAudio();
+  const { isPlaying } = useAudio();
+  const [audioModalOpen, setAudioModalOpen] = useState(false);
   const [onboardingShown, setOnboardingShown] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("inmotion_onboarding_hidden") !== "true";
@@ -213,67 +210,14 @@ export function HeaderActions() {
             <div className="mx-2.5 h-px bg-border/50" />
 
             <div className="px-2.5 py-2">
-              <div className="flex items-center gap-2 mb-2.5">
+              <div className="flex items-center gap-2 mb-2">
                 <Volume2 className="h-3.5 w-3.5 text-muted-foreground/60" />
                 <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
                   Музыка
                 </span>
-              </div>
-              <div className="grid grid-cols-2 gap-1 mb-2">
-                {SOUND_TYPES.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => {
-                      setSoundType(s.id);
-                      if (!isPlaying) toggleAudio();
-                    }}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-all",
-                      isPlaying && soundType === s.id
-                        ? "bg-primary/10 text-primary ring-1 ring-primary/20"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                    )}
-                  >
-                    <span className="text-[13px]">{s.icon}</span>
-                    <span>{s.label}</span>
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={toggleAudio}
-                className={cn(
-                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-all",
-                  isPlaying
-                    ? "bg-primary/5 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex h-5 w-5 items-center justify-center">
-                    {isPlaying ? (
-                      <span className="flex h-3 w-3 items-center justify-center gap-px">
-                        <span
-                          className="h-2 w-0.5 animate-pulse rounded-full bg-current"
-                          style={{ animationDelay: "0ms" }}
-                        />
-                        <span
-                          className="h-3 w-0.5 animate-pulse rounded-full bg-current"
-                          style={{ animationDelay: "150ms" }}
-                        />
-                        <span
-                          className="h-2 w-0.5 animate-pulse rounded-full bg-current"
-                          style={{ animationDelay: "300ms" }}
-                        />
-                      </span>
-                    ) : (
-                      <Volume2 className="h-3.5 w-3.5" />
-                    )}
-                  </div>
-                  <span>Воспроизведение</span>
-                </div>
                 <span
                   className={cn(
-                    "text-[10px] px-1.5 py-0.5 rounded",
+                    "ml-auto text-[10px] px-1.5 py-0.5 rounded",
                     isPlaying
                       ? "bg-primary/15 text-primary"
                       : "bg-muted-foreground/10",
@@ -281,6 +225,15 @@ export function HeaderActions() {
                 >
                   {isPlaying ? "Вкл" : "Выкл"}
                 </span>
+              </div>
+              <button
+                onClick={() => setAudioModalOpen(true)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all text-left"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/60">
+                  <Volume2 className="h-3.5 w-3.5" />
+                </div>
+                <span>Управление мелодией</span>
               </button>
             </div>
 
@@ -364,6 +317,10 @@ export function HeaderActions() {
       >
         <User className="h-4 w-4" />
       </Link>
+      <AudioModal
+        open={audioModalOpen}
+        onClose={() => setAudioModalOpen(false)}
+      />
     </>
   );
 }

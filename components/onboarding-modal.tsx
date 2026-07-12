@@ -315,14 +315,14 @@ export default function OnboardingModal() {
             )}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
+              <div className="flex items-center gap-1.5 text-[11px] text-foreground/50">
                 <MessageCircle className="h-3 w-3" />
                 <span>Вопросы и предложения:</span>
               </div>
               <div className="flex items-center gap-3">
                 <a
                   href="mailto:In-motion@info.io"
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground/70 hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 text-[11px] text-foreground/60 hover:text-foreground transition-colors"
                 >
                   <Mail className="h-3 w-3" />
                   <span className="hidden sm:inline">In-motion@info.io</span>
@@ -331,7 +331,7 @@ export default function OnboardingModal() {
                   href="tg://resolve?domain=artyom_medoed"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground/70 hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 text-[11px] text-foreground/60 hover:text-foreground transition-colors"
                 >
                   <Send className="h-3 w-3" />
                   <span className="hidden sm:inline">@artyom_medoed</span>
@@ -340,7 +340,7 @@ export default function OnboardingModal() {
                   href="tg://resolve?domain=inmotion_bot"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground/70 hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 text-[11px] text-foreground/60 hover:text-foreground transition-colors"
                 >
                   <Send className="h-3 w-3" />
                   <span className="hidden sm:inline">@inmotion_bot</span>
