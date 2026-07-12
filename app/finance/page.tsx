@@ -9,7 +9,6 @@ import {
   PiggyBank,
   Landmark,
   Briefcase,
-  BarChart3,
   Shield,
   Settings,
 } from "lucide-react";
@@ -20,7 +19,6 @@ import { FinancePlanning } from "@/components/finance/finance-planning";
 import { FinanceGoals } from "@/components/finance/finance-goals";
 import { FinanceLoans } from "@/components/finance/finance-loans";
 import { FinanceProjects } from "@/components/finance/finance-projects";
-import { FinanceStatistics } from "@/components/finance/finance-statistics";
 import { FinanceEmergencyFund } from "@/components/finance/finance-emergency-fund";
 import { FinanceSettings } from "@/components/finance/finance-settings";
 import { cn } from "@/lib/utils";
@@ -34,7 +32,6 @@ const ALL_MODULES = [
   { id: "goals", label: "Цели", icon: PiggyBank },
   { id: "loans", label: "Кредиты", icon: Landmark },
   { id: "projects", label: "Проекты", icon: Briefcase },
-  { id: "statistics", label: "Статистика", icon: BarChart3 },
   { id: "emergency", label: "Подушка", icon: Shield },
   { id: "settings", label: "Настройки", icon: Settings },
 ] as const;
@@ -82,8 +79,6 @@ export default function FinancePage() {
         return <FinanceLoans />;
       case "projects":
         return <FinanceProjects />;
-      case "statistics":
-        return <FinanceStatistics />;
       case "emergency":
         return <FinanceEmergencyFund />;
       case "settings":
