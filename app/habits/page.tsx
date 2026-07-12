@@ -1,7 +1,7 @@
 import { HabitsPageClient } from "@/components/habits/habits-page-client";
 
 export const metadata = {
-  title: "Привычки — On Track",
+  title: "Привычки — In Motion",
   description: "Трекер привычек",
 };
 

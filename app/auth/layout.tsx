@@ -3,8 +3,8 @@ import "../globals.css";
 import NoChromeClient from "./NoChromeClient";
 
 export const metadata: Metadata = {
-  title: "On Track — Вход",
-  description: "On Track — Вход",
+  title: "In Motion — Вход",
+  description: "In Motion — Вход",
 };
 
 export default function AuthLayout({

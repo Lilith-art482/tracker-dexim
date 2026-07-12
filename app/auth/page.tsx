@@ -195,14 +195,19 @@ export default function AuthPage() {
       <div className="relative z-20 flex w-full min-h-screen">
         <div className="hidden lg:flex w-1/2 flex-col justify-center px-12 xl:px-20 py-12">
           <div className="max-w-lg mx-auto w-full">
-            <Image
-              src="/logo.png"
-              alt="In Motion"
-              width={160}
-              height={48}
-              className="h-10 xl:h-12 w-auto mb-6"
-              priority
-            />
+            <div className="flex items-center gap-3 mb-6">
+              <Image
+                src="/logo.png"
+                alt="In Motion"
+                width={48}
+                height={48}
+                className="h-10 xl:h-12 w-auto"
+                priority
+              />
+              <span className="text-2xl xl:text-3xl font-bold text-[#e8eeeb]">
+                In Motion
+              </span>
+            </div>
             <p className="text-lg xl:text-xl text-[#c8d5ce] mb-10 leading-relaxed">
               Единое пространство для твоих задач, финансов и привычек — всё,
               чтобы оставаться на пути к целям.
