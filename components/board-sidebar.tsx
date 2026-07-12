@@ -221,7 +221,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
         >
           <button
             onClick={() => setBoardsOpen(!boardsOpen)}
-            className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60"
+            className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-sidebar-foreground/60"
           >
             {boardsOpen ? (
               <ChevronDown className="h-3 w-3" />
@@ -301,36 +301,54 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                 {mode === "team" ? "Нет командных досок" : "Нет личных досок"}
               </div>
             ) : (
-              filteredBoards.map((board) => (
-                <div key={board.id} className="flex items-center gap-2">
-                  <button
-                    onClick={() => switchBoard(board.id)}
+              filteredBoards.map((board) => {
+                const isActive =
+                  activeBoardId === board.id ||
+                  (!activeBoardId && boards[0]?.id === board.id);
+                return (
+                  <div
+                    key={board.id}
                     className={cn(
-                      "flex-1 text-left text-sm rounded-lg px-3 py-2 transition-colors",
-                      activeBoardId === board.id ||
-                        (!activeBoardId && boards[0]?.id === board.id)
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      "group relative flex items-center gap-1 rounded-lg transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                     )}
                   >
-                    <span className="truncate">{board.name}</span>
-                  </button>
-                  <button
-                    onClick={() => startEdit(board)}
-                    className="p-1 rounded hover:bg-muted/20 shrink-0"
-                    title="Редактировать"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(board.id)}
-                    className="p-1 rounded hover:bg-muted/20 shrink-0"
-                    title="Удалить"
-                  >
-                    <Trash className="h-4 w-4 text-destructive" />
-                  </button>
-                </div>
-              ))
+                    {isActive && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-primary" />
+                    )}
+                    <button
+                      onClick={() => switchBoard(board.id)}
+                      className="flex-1 text-left text-sm px-3 py-2 min-w-0"
+                    >
+                      <span className="truncate block">{board.name}</span>
+                    </button>
+                    <div className="flex items-center gap-0.5 pr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEdit(board);
+                        }}
+                        className="p-1 rounded hover:bg-sidebar-accent-foreground/10 shrink-0 text-sidebar-foreground/50 hover:text-sidebar-foreground"
+                        title="Редактировать"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(board.id);
+                        }}
+                        className="p-1 rounded hover:bg-destructive/10 shrink-0 text-sidebar-foreground/50 hover:text-destructive"
+                        title="Удалить"
+                      >
+                        <Trash className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </nav>
         )}
