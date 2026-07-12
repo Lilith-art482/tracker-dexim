@@ -28,7 +28,11 @@ import { useMode } from "@/lib/mode-context";
 
 const BOARD_COLORS = [
   { dot: "bg-blue-500", bg: "bg-blue-500/10", ring: "ring-blue-500/30" },
-  { dot: "bg-emerald-500", bg: "bg-emerald-500/10", ring: "ring-emerald-500/30" },
+  {
+    dot: "bg-emerald-500",
+    bg: "bg-emerald-500/10",
+    ring: "ring-emerald-500/30",
+  },
   { dot: "bg-violet-500", bg: "bg-violet-500/10", ring: "ring-violet-500/30" },
   { dot: "bg-amber-500", bg: "bg-amber-500/10", ring: "ring-amber-500/30" },
   { dot: "bg-rose-500", bg: "bg-rose-500/10", ring: "ring-rose-500/30" },
@@ -301,9 +305,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
               </div>
               <div className="text-center">
                 <p className="text-xs font-medium text-sidebar-foreground/60">
-                  {mode === "team"
-                    ? "Нет командных досок"
-                    : "Нет личных досок"}
+                  {mode === "team" ? "Нет командных досок" : "Нет личных досок"}
                 </p>
                 <p className="text-[11px] text-sidebar-foreground/40 mt-0.5">
                   Создайте новую доску

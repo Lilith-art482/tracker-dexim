@@ -22,8 +22,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTH_NAMES = [
-  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
 ];
 
 function getToday(): string {
@@ -180,7 +190,9 @@ function DayPopover({
                   <div className="flex items-center gap-0.5 shrink-0">
                     {log?.status === "done" ? (
                       <button
-                        onClick={() => onToggleLog(habit.id, "missed", day.dateStr)}
+                        onClick={() =>
+                          onToggleLog(habit.id, "missed", day.dateStr)
+                        }
                         className="flex h-6 w-6 items-center justify-center rounded text-emerald-600 hover:bg-emerald-500/10 transition-colors"
                         title="Отменить"
                       >
@@ -189,7 +201,9 @@ function DayPopover({
                     ) : (
                       <>
                         <button
-                          onClick={() => onToggleLog(habit.id, "done", day.dateStr)}
+                          onClick={() =>
+                            onToggleLog(habit.id, "done", day.dateStr)
+                          }
                           className={cn(
                             "flex h-6 w-6 items-center justify-center rounded transition-colors",
                             log?.status === "skipped"
@@ -201,7 +215,9 @@ function DayPopover({
                           <Circle className="h-3.5 w-3.5" />
                         </button>
                         <button
-                          onClick={() => onToggleLog(habit.id, "skipped", day.dateStr)}
+                          onClick={() =>
+                            onToggleLog(habit.id, "skipped", day.dateStr)
+                          }
                           className={cn(
                             "flex h-6 w-6 items-center justify-center rounded transition-colors",
                             log?.status === "skipped"
@@ -256,8 +272,14 @@ export function HabitsCalendar({
     setViewDate((prev) => {
       let m = prev.month + delta;
       let y = prev.year;
-      if (m < 0) { m += 12; y--; }
-      if (m > 11) { m -= 12; y++; }
+      if (m < 0) {
+        m += 12;
+        y--;
+      }
+      if (m > 11) {
+        m -= 12;
+        y++;
+      }
       return { year: y, month: m };
     });
     setSelectedDay(null);
@@ -293,7 +315,13 @@ export function HabitsCalendar({
         <div className="flex items-center gap-1.5">
           <Flame className="h-3.5 w-3.5 text-amber-500" />
           <span>
-            {monthTotal} {monthTotal === 1 ? "выполнение" : monthTotal < 5 ? "выполнения" : "выполнений"} за месяц
+            {monthTotal}{" "}
+            {monthTotal === 1
+              ? "выполнение"
+              : monthTotal < 5
+                ? "выполнения"
+                : "выполнений"}{" "}
+            за месяц
           </span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -389,10 +417,13 @@ export function HabitsCalendar({
                         }}
                         className={cn(
                           "relative flex flex-col w-full h-full rounded-lg p-1 transition-all text-left group",
-                          !day.isCurrentMonth && "opacity-25 pointer-events-none",
-                          day.isCurrentMonth && "hover:bg-muted/40 cursor-pointer",
+                          !day.isCurrentMonth &&
+                            "opacity-25 pointer-events-none",
+                          day.isCurrentMonth &&
+                            "hover:bg-muted/40 cursor-pointer",
                           day.isToday && "bg-primary/5 ring-1 ring-primary/20",
-                          selectedDay?.dateStr === day.dateStr && "ring-2 ring-primary",
+                          selectedDay?.dateStr === day.dateStr &&
+                            "ring-2 ring-primary",
                         )}
                       >
                         <span
@@ -419,18 +450,20 @@ export function HabitsCalendar({
                           </div>
                         )}
 
-                        {day.isCurrentMonth && day.done > 0 && day.total > 0 && (
-                          <span
-                            className={cn(
-                              "absolute top-1.5 right-1.5 text-[9px] font-medium leading-none",
-                              day.done === day.total
-                                ? "text-emerald-500"
-                                : "text-muted-foreground/40",
-                            )}
-                          >
-                            {day.done}/{day.total}
-                          </span>
-                        )}
+                        {day.isCurrentMonth &&
+                          day.done > 0 &&
+                          day.total > 0 && (
+                            <span
+                              className={cn(
+                                "absolute top-1.5 right-1.5 text-[9px] font-medium leading-none",
+                                day.done === day.total
+                                  ? "text-emerald-500"
+                                  : "text-muted-foreground/40",
+                              )}
+                            >
+                              {day.done}/{day.total}
+                            </span>
+                          )}
                       </button>
 
                       {selectedDay?.dateStr === day.dateStr && (

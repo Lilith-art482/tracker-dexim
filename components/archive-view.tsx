@@ -23,7 +23,6 @@ export function ArchiveView({ boardId }: ArchiveViewProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
-
   const fetchArchived = useCallback(async () => {
     setLoading(true);
     try {

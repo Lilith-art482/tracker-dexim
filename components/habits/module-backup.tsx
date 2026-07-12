@@ -255,10 +255,7 @@ export function ModuleBackup({
                     <DialogClose render={<Button variant="outline" />}>
                       Отмена
                     </DialogClose>
-                    <Button
-                      variant="destructive"
-                      onClick={handleReset}
-                    >
+                    <Button variant="destructive" onClick={handleReset}>
                       Подтвердить сброс
                     </Button>
                   </DialogFooter>

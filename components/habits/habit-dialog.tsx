@@ -38,7 +38,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-const FREQUENCY_OPTIONS: { value: HabitFrequencyType; label: string; desc: string }[] = [
+const FREQUENCY_OPTIONS: {
+  value: HabitFrequencyType;
+  label: string;
+  desc: string;
+}[] = [
   { value: "daily", label: "Ежедневно", desc: "Каждый день без пропусков" },
   { value: "weekly", label: "По дням недели", desc: "Выбранные дни" },
   { value: "scheduled", label: "Каждые N дней", desc: "С заданным интервалом" },
@@ -47,7 +51,11 @@ const FREQUENCY_OPTIONS: { value: HabitFrequencyType; label: string; desc: strin
 
 const DAY_LABELS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
-const COMPLEXITY_LIST: { value: HabitComplexity; label: string; color: string }[] = [
+const COMPLEXITY_LIST: {
+  value: HabitComplexity;
+  label: string;
+  color: string;
+}[] = [
   { value: "easy", label: "Лёгкая", color: "bg-emerald-500" },
   { value: "medium", label: "Средняя", color: "bg-amber-500" },
   { value: "hard", label: "Сложная", color: "bg-red-500" },
@@ -64,7 +72,13 @@ interface HabitDialogProps {
   onSave: (habit: Habit) => void;
 }
 
-function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+function FieldRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium text-foreground/60 tracking-wide uppercase">
@@ -75,7 +89,15 @@ function FieldRow({ label, children }: { label: string; children: React.ReactNod
   );
 }
 
-function GlassSection({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
+function GlassSection({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: React.ElementType;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="relative rounded-2xl border border-white/10 dark:border-white/5 bg-gradient-to-br from-white/70 to-white/20 dark:from-white/[0.12] dark:to-white/[0.06] backdrop-blur-xl p-4 space-y-3 shadow-lg">
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none" />
@@ -83,22 +105,28 @@ function GlassSection({ icon: Icon, title, children }: { icon: React.ElementType
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-primary/10 text-primary">
           <Icon className="h-3.5 w-3.5" />
         </div>
-        <span className="text-sm font-semibold text-foreground/80">{title}</span>
+        <span className="text-sm font-semibold text-foreground/80">
+          {title}
+        </span>
       </div>
-      <div className="relative space-y-2.5">
-        {children}
-      </div>
+      <div className="relative space-y-2.5">{children}</div>
     </div>
   );
 }
 
-export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogProps) {
+export function HabitDialog({
+  open,
+  onOpenChange,
+  habit,
+  onSave,
+}: HabitDialogProps) {
   const isEditing = !!habit;
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState<HabitCategory>("health");
   const [customCategory, setCustomCategory] = useState("");
-  const [frequencyType, setFrequencyType] = useState<HabitFrequencyType>("daily");
+  const [frequencyType, setFrequencyType] =
+    useState<HabitFrequencyType>("daily");
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([1, 3, 5]);
   const [intervalDays, setIntervalDays] = useState(2);
   const [scheduledTime, setScheduledTime] = useState("08:00");
@@ -170,7 +198,9 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
       id: habit?.id ?? genId(),
       name: name.trim(),
       category,
-      ...(category === "other" && customCategory.trim() ? { customCategory: customCategory.trim() } : {}),
+      ...(category === "other" && customCategory.trim()
+        ? { customCategory: customCategory.trim() }
+        : {}),
       frequency: {
         type: frequencyType,
         ...(frequencyType === "weekly" ? { daysOfWeek } : {}),
@@ -241,7 +271,8 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                         "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
                         "placeholder:text-foreground/30",
                         "focus-visible:ring-primary/30 focus-visible:border-primary/30",
-                        errors.name && "ring-2 ring-destructive/30 border-destructive/30",
+                        errors.name &&
+                          "ring-2 ring-destructive/30 border-destructive/30",
                       )}
                     />
                     {errors.name && (
@@ -262,17 +293,26 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                       value={category}
                       onValueChange={(v) => setCategory(v as HabitCategory)}
                     >
-                      <SelectTrigger className={cn(
-                        "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
-                        "focus-visible:ring-primary/30 focus-visible:border-primary/30",
-                      )}>
+                      <SelectTrigger
+                        className={cn(
+                          "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
+                          "focus-visible:ring-primary/30 focus-visible:border-primary/30",
+                        )}
+                      >
                         <SelectValue>
-                          {HABIT_CATEGORIES.find((c) => c.value === category)?.label}
+                          {
+                            HABIT_CATEGORIES.find((c) => c.value === category)
+                              ?.label
+                          }
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-white/10 bg-background/95 backdrop-blur-2xl">
                         {HABIT_CATEGORIES.map(({ value, label }) => (
-                          <SelectItem key={value} value={value} className="rounded-lg">
+                          <SelectItem
+                            key={value}
+                            value={value}
+                            className="rounded-lg"
+                          >
                             {label}
                           </SelectItem>
                         ))}
@@ -311,15 +351,22 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                               : "border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] hover:bg-white/90 dark:hover:bg-white/[0.14]",
                           )}
                         >
-                          <span className={cn(
-                            "h-2 w-2 rounded-full",
-                            color,
-                            complexity === value && "ring-2 ring-primary/20 ring-offset-2 ring-offset-background",
-                          )} />
-                          <span className={cn(
-                            "text-xs font-medium",
-                            complexity === value ? "text-primary" : "text-foreground/50",
-                          )}>
+                          <span
+                            className={cn(
+                              "h-2 w-2 rounded-full",
+                              color,
+                              complexity === value &&
+                                "ring-2 ring-primary/20 ring-offset-2 ring-offset-background",
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "text-xs font-medium",
+                              complexity === value
+                                ? "text-primary"
+                                : "text-foreground/50",
+                            )}
+                          >
                             {label}
                           </span>
                         </button>
@@ -345,8 +392,12 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                             : "border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] hover:bg-white/90 dark:hover:bg-white/[0.14]",
                         )}
                       >
-                        <div className="text-xs font-semibold mb-0.5">{label}</div>
-                        <div className="text-[10px] text-foreground/40 leading-tight">{desc}</div>
+                        <div className="text-xs font-semibold mb-0.5">
+                          {label}
+                        </div>
+                        <div className="text-[10px] text-foreground/40 leading-tight">
+                          {desc}
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -390,7 +441,9 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
                         type="number"
                         min={1}
                         value={intervalDays}
-                        onChange={(e) => setIntervalDays(Number(e.target.value))}
+                        onChange={(e) =>
+                          setIntervalDays(Number(e.target.value))
+                        }
                         aria-invalid={!!errors.intervalDays}
                         className={cn(
                           "h-10 rounded-xl border-white/20 dark:border-white/10 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
@@ -467,25 +520,31 @@ export function HabitDialog({ open, onOpenChange, habit, onSave }: HabitDialogPr
               </GlassSection>
 
               {/* Reminder */}
-              <div className={cn(
-                "rounded-2xl border p-4 transition-all duration-300",
-                reminder
-                  ? "border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5"
-                  : "border-white/10 dark:border-white/5 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
-              )}>
+              <div
+                className={cn(
+                  "rounded-2xl border p-4 transition-all duration-300",
+                  reminder
+                    ? "border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5"
+                    : "border-white/10 dark:border-white/5 bg-white/80 dark:bg-white/[0.12] backdrop-blur-sm",
+                )}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-300",
-                      reminder
-                        ? "bg-gradient-to-br from-primary/30 to-primary/10 text-primary"
-                        : "bg-white/60 dark:bg-white/[0.10] text-foreground/30",
-                    )}>
+                    <div
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-300",
+                        reminder
+                          ? "bg-gradient-to-br from-primary/30 to-primary/10 text-primary"
+                          : "bg-white/60 dark:bg-white/[0.10] text-foreground/30",
+                      )}
+                    >
                       <Bell className="h-4 w-4" />
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Напоминание</Label>
-                      <p className="text-xs text-foreground/40">Получать уведомление о привычке</p>
+                      <p className="text-xs text-foreground/40">
+                        Получать уведомление о привычке
+                      </p>
                     </div>
                   </div>
                   <Switch

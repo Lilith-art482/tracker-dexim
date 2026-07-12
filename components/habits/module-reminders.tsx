@@ -14,12 +14,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,8 +62,7 @@ function getHabitName(habits: Habit[], habitId: string): string {
 function formatDays(days?: number[]): string {
   if (!days || days.length === 0) return "Каждый день";
   if (days.length === 7) return "Каждый день";
-  if (days.length === 5 && days.every((d) => d >= 1 && d <= 5))
-    return "Будни";
+  if (days.length === 5 && days.every((d) => d >= 1 && d <= 5)) return "Будни";
   return days
     .slice()
     .sort((a, b) => a - b)
@@ -136,16 +130,13 @@ export function ModuleReminders({
     toast.success("Напоминание добавлено");
   }, [formHabitId, formTime, formDays, onAddReminder, resetForm]);
 
-  const openEdit = useCallback(
-    (r: Reminder) => {
-      setEditingId(r.id);
-      setFormHabitId(r.habitId);
-      setFormTime(r.time);
-      setFormDays(r.daysOfWeek ?? []);
-      setEditOpen(true);
-    },
-    [],
-  );
+  const openEdit = useCallback((r: Reminder) => {
+    setEditingId(r.id);
+    setFormHabitId(r.habitId);
+    setFormTime(r.time);
+    setFormDays(r.daysOfWeek ?? []);
+    setEditOpen(true);
+  }, []);
 
   const saveEdit = useCallback(() => {
     if (!editingId) return;
@@ -163,14 +154,11 @@ export function ModuleReminders({
     toast.success("Напоминание обновлено");
   }, [editingId, formHabitId, formTime, formDays, onUpdateReminder, resetForm]);
 
-  const toggleDay = useCallback(
-    (day: number) => {
-      setFormDays((prev) =>
-        prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
-      );
-    },
-    [],
-  );
+  const toggleDay = useCallback((day: number) => {
+    setFormDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
+    );
+  }, []);
 
   const confirmDelete = useCallback(() => {
     if (!deleteId) return;
@@ -179,7 +167,9 @@ export function ModuleReminders({
     toast.success("Напоминание удалено");
   }, [deleteId, onDeleteReminder]);
 
-  const unfinishedHabits = todayHabits.filter((th) => th.log?.status !== "done");
+  const unfinishedHabits = todayHabits.filter(
+    (th) => th.log?.status !== "done",
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -268,9 +258,7 @@ export function ModuleReminders({
           )}
 
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger
-              render={<Button variant="outline" size="sm" />}
-            >
+            <DialogTrigger render={<Button variant="outline" size="sm" />}>
               <Plus className="size-4" />
               Добавить напоминание
             </DialogTrigger>
@@ -314,9 +302,7 @@ export function ModuleReminders({
                     {ALL_DAYS.map((day) => (
                       <Button
                         key={day}
-                        variant={
-                          formDays.includes(day) ? "default" : "outline"
-                        }
+                        variant={formDays.includes(day) ? "default" : "outline"}
                         size="sm"
                         className="size-8 p-0 text-xs"
                         onClick={() => toggleDay(day)}
@@ -379,9 +365,7 @@ export function ModuleReminders({
                     {ALL_DAYS.map((day) => (
                       <Button
                         key={day}
-                        variant={
-                          formDays.includes(day) ? "default" : "outline"
-                        }
+                        variant={formDays.includes(day) ? "default" : "outline"}
                         size="sm"
                         className="size-8 p-0 text-xs"
                         onClick={() => toggleDay(day)}

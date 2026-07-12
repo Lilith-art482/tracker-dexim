@@ -17,10 +17,7 @@ import {
   Archive,
 } from "lucide-react";
 import type { Habit, HabitCategory, HabitStatus } from "@/lib/habits-types";
-import {
-  COMPLEXITY_LABELS,
-  getCategoryLabel,
-} from "@/lib/habits-types";
+import { COMPLEXITY_LABELS, getCategoryLabel } from "@/lib/habits-types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { HabitDialog } from "./habit-dialog";
@@ -37,7 +34,11 @@ const CATEGORY_ICONS: Record<HabitCategory, typeof Dumbbell> = {
   other: MoreHorizontal,
 };
 
-const STATUS_OPTIONS: { value: HabitStatus; label: string; icon: typeof ListChecks }[] = [
+const STATUS_OPTIONS: {
+  value: HabitStatus;
+  label: string;
+  icon: typeof ListChecks;
+}[] = [
   { value: "active", label: "Активные", icon: RotateCcw },
   { value: "completed", label: "Завершённые", icon: ListChecks },
   { value: "archived", label: "Архив", icon: Archive },
@@ -71,7 +72,12 @@ interface HabitsListProps {
   onDelete: (id: string) => void;
 }
 
-export function HabitsList({ habits, onAdd, onUpdate, onDelete }: HabitsListProps) {
+export function HabitsList({
+  habits,
+  onAdd,
+  onUpdate,
+  onDelete,
+}: HabitsListProps) {
   const [statusFilter, setStatusFilter] = useState<HabitStatus>("active");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
@@ -172,7 +178,9 @@ export function HabitsList({ habits, onAdd, onUpdate, onDelete }: HabitsListProp
                       <Icon className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{habit.name}</p>
+                      <p className="text-sm font-medium truncate">
+                        {habit.name}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {getCategoryLabel(habit)}
                         {` · ${COMPLEXITY_LABELS[habit.complexity]}`}

@@ -15,18 +15,33 @@ import {
   Loader2,
   ChevronDown,
 } from "lucide-react";
-import type { Habit, HabitCategory, HabitFrequencyType, HabitStatus } from "@/lib/habit-types";
+import type {
+  Habit,
+  HabitCategory,
+  HabitFrequencyType,
+  HabitStatus,
+} from "@/lib/habit-types";
 import {
   CATEGORY_LABELS,
   CATEGORY_COLORS,
   DIFFICULTY_LABELS,
   WEEKDAYS,
 } from "@/lib/habit-types";
-import { calculateStreak, calculateCompletionPercentage } from "@/lib/habit-utils";
+import {
+  calculateStreak,
+  calculateCompletionPercentage,
+} from "@/lib/habit-utils";
 import { useHabits } from "@/components/habits/habits-context";
 import { HabitDialog } from "@/components/habits/module-habit-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardAction,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -48,7 +63,10 @@ const STATUS_FILTERS: { value: HabitStatus | "all"; label: string }[] = [
   { value: "archived", label: "Архив" },
 ];
 
-const FREQUENCY_FILTERS: { value: HabitFrequencyType | "all"; label: string }[] = [
+const FREQUENCY_FILTERS: {
+  value: HabitFrequencyType | "all";
+  label: string;
+}[] = [
   { value: "all", label: "Все" },
   { value: "daily", label: "Ежедневно" },
   { value: "weekly", label: "По дням" },
@@ -74,21 +92,35 @@ function getFrequencyLabel(habit: Habit): string {
 }
 
 export function ModuleMyHabits() {
-  const { habits, logs, loading, updateHabit, deleteHabit, cloneHabit, refresh } = useHabits();
+  const {
+    habits,
+    logs,
+    loading,
+    updateHabit,
+    deleteHabit,
+    cloneHabit,
+    refresh,
+  } = useHabits();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<HabitCategory | "all">("all");
+  const [categoryFilter, setCategoryFilter] = useState<HabitCategory | "all">(
+    "all",
+  );
   const [statusFilter, setStatusFilter] = useState<HabitStatus | "all">("all");
-  const [frequencyFilter, setFrequencyFilter] = useState<HabitFrequencyType | "all">("all");
+  const [frequencyFilter, setFrequencyFilter] = useState<
+    HabitFrequencyType | "all"
+  >("all");
   const [showFilters, setShowFilters] = useState(false);
 
   const filteredHabits = useMemo(() => {
     return habits.filter((h) => {
-      if (categoryFilter !== "all" && h.category !== categoryFilter) return false;
+      if (categoryFilter !== "all" && h.category !== categoryFilter)
+        return false;
       if (statusFilter !== "all" && h.status !== statusFilter) return false;
-      if (frequencyFilter !== "all" && h.frequencyType !== frequencyFilter) return false;
+      if (frequencyFilter !== "all" && h.frequencyType !== frequencyFilter)
+        return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         if (!h.name.toLowerCase().includes(q)) return false;
@@ -170,7 +202,12 @@ export function ModuleMyHabits() {
         >
           <Filter className="h-3.5 w-3.5" />
           Фильтры
-          <ChevronDown className={cn("h-3 w-3 transition-transform", showFilters && "rotate-180")} />
+          <ChevronDown
+            className={cn(
+              "h-3 w-3 transition-transform",
+              showFilters && "rotate-180",
+            )}
+          />
         </button>
 
         {showFilters && (
@@ -240,7 +277,12 @@ export function ModuleMyHabits() {
               : "Нет привычек, соответствующих фильтрам"}
           </p>
           {habits.length === 0 && (
-            <Button size="sm" onClick={handleAdd} variant="outline" className="gap-1.5">
+            <Button
+              size="sm"
+              onClick={handleAdd}
+              variant="outline"
+              className="gap-1.5"
+            >
               <Plus className="h-4 w-4" />
               Создать первую привычку
             </Button>
@@ -250,7 +292,11 @@ export function ModuleMyHabits() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredHabits.map((habit) => {
             const streak = calculateStreak(habit.id, logs);
-            const completion = calculateCompletionPercentage(habit.id, logs, 30);
+            const completion = calculateCompletionPercentage(
+              habit.id,
+              logs,
+              30,
+            );
             return (
               <Card key={habit.id} size="sm">
                 <CardHeader>
@@ -259,7 +305,10 @@ export function ModuleMyHabits() {
                       <div
                         className={cn(
                           "h-2.5 w-2.5 rounded-full shrink-0",
-                          CATEGORY_COLORS[habit.category].replace("text-", "bg-"),
+                          CATEGORY_COLORS[habit.category].replace(
+                            "text-",
+                            "bg-",
+                          ),
                         )}
                       />
                       <CardTitle className="text-sm truncate">
@@ -302,8 +351,10 @@ export function ModuleMyHabits() {
                     </CardAction>
                   </div>
                   <CardDescription className="text-xs">
-                    {CATEGORY_LABELS[habit.category]} · {getFrequencyLabel(habit)}
-                    {habit.difficulty !== "medium" && ` · ${DIFFICULTY_LABELS[habit.difficulty]}`}
+                    {CATEGORY_LABELS[habit.category]} ·{" "}
+                    {getFrequencyLabel(habit)}
+                    {habit.difficulty !== "medium" &&
+                      ` · ${DIFFICULTY_LABELS[habit.difficulty]}`}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

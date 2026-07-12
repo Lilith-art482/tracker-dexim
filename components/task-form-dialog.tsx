@@ -97,7 +97,6 @@ export function TaskFormDialog({
   onSaved,
   onArchived,
 }: TaskFormDialogProps) {
-
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");

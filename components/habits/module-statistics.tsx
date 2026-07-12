@@ -36,12 +36,17 @@ function getMonthDays(year: number, month: number): string[] {
   const numDays = new Date(year, month + 1, 0).getDate();
   const days: string[] = [];
   for (let d = 1; d <= numDays; d++) {
-    days.push(`${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
+    days.push(
+      `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+    );
   }
   return days;
 }
 
-function previousMonth(year: number, month: number): { year: number; month: number } {
+function previousMonth(
+  year: number,
+  month: number,
+): { year: number; month: number } {
   if (month === 0) return { year: year - 1, month: 11 };
   return { year, month: month - 1 };
 }
@@ -58,7 +63,9 @@ const CATEGORY_BG_COLORS: Record<string, string> = {
 
 export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
   const today = todayUTC();
-  const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
+  const [currentYear, setCurrentYear] = useState(() =>
+    new Date().getFullYear(),
+  );
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
 
   const monthDays = useMemo(
@@ -67,13 +74,26 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
   );
 
   const monthLogs = useMemo(
-    () => logs.filter((l) => l.date.startsWith(`${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`)),
+    () =>
+      logs.filter((l) =>
+        l.date.startsWith(
+          `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`,
+        ),
+      ),
     [logs, currentYear, currentMonth],
   );
 
-  const prev = useMemo(() => previousMonth(currentYear, currentMonth), [currentYear, currentMonth]);
+  const prev = useMemo(
+    () => previousMonth(currentYear, currentMonth),
+    [currentYear, currentMonth],
+  );
   const prevMonthLogs = useMemo(
-    () => logs.filter((l) => l.date.startsWith(`${prev.year}-${String(prev.month + 1).padStart(2, "0")}`)),
+    () =>
+      logs.filter((l) =>
+        l.date.startsWith(
+          `${prev.year}-${String(prev.month + 1).padStart(2, "0")}`,
+        ),
+      ),
     [logs, prev],
   );
 
@@ -85,11 +105,23 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
     const percentage = total > 0 ? Math.round((done / total) * 100) : 0;
 
     const prevDone = prevMonthLogs.filter((l) => l.status === "done").length;
-    const prevMissed = prevMonthLogs.filter((l) => l.status === "missed").length;
+    const prevMissed = prevMonthLogs.filter(
+      (l) => l.status === "missed",
+    ).length;
     const prevTotal = prevMonthLogs.length;
 
-    const doneChange = prevDone > 0 ? Math.round(((done - prevDone) / prevDone) * 100) : done > 0 ? 100 : 0;
-    const missedChange = prevMissed > 0 ? Math.round(((missed - prevMissed) / prevMissed) * 100) : missed > 0 ? 100 : 0;
+    const doneChange =
+      prevDone > 0
+        ? Math.round(((done - prevDone) / prevDone) * 100)
+        : done > 0
+          ? 100
+          : 0;
+    const missedChange =
+      prevMissed > 0
+        ? Math.round(((missed - prevMissed) / prevMissed) * 100)
+        : missed > 0
+          ? 100
+          : 0;
     const missedReduction = missedChange < 0 ? Math.abs(missedChange) : 0;
 
     const bestDay = calculateBestDay(monthLogs);
@@ -104,18 +136,24 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
 
     const categoryCompletion = getCategoryCompletion(monthLogs, habits);
 
-    const totalCategory = Object.values(categoryCompletion).reduce((s, c) => s + c.total, 0);
-    const categoryDonut = Object.entries(categoryCompletion).map(([cat, data]) => ({
-      category: cat as Habit["category"],
-      value: totalCategory > 0 ? (data.done / totalCategory) * 100 : 0,
-      label: CATEGORY_LABELS[cat as Habit["category"]] || cat,
-      color: CATEGORY_BG_COLORS[cat] || "#6b7280",
-      done: data.done,
-      total: data.total,
-    }));
+    const totalCategory = Object.values(categoryCompletion).reduce(
+      (s, c) => s + c.total,
+      0,
+    );
+    const categoryDonut = Object.entries(categoryCompletion).map(
+      ([cat, data]) => ({
+        category: cat as Habit["category"],
+        value: totalCategory > 0 ? (data.done / totalCategory) * 100 : 0,
+        label: CATEGORY_LABELS[cat as Habit["category"]] || cat,
+        color: CATEGORY_BG_COLORS[cat] || "#6b7280",
+        done: data.done,
+        total: data.total,
+      }),
+    );
 
     const pacePerDay = total > 0 ? done / monthLogs.length : 0;
-    const forecastDays = pacePerDay > 0 ? Math.round(habits.length / pacePerDay) : 0;
+    const forecastDays =
+      pacePerDay > 0 ? Math.round(habits.length / pacePerDay) : 0;
 
     return {
       done,
@@ -137,16 +175,25 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
   const navigateMonth = (delta: number) => {
     let m = currentMonth + delta;
     let y = currentYear;
-    if (m < 0) { m = 11; y--; }
-    if (m > 11) { m = 0; y++; }
+    if (m < 0) {
+      m = 11;
+      y--;
+    }
+    if (m > 11) {
+      m = 0;
+      y++;
+    }
     setCurrentMonth(m);
     setCurrentYear(y);
   };
 
-  const monthLabel = new Date(currentYear, currentMonth, 1).toLocaleDateString("ru-RU", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthLabel = new Date(currentYear, currentMonth, 1).toLocaleDateString(
+    "ru-RU",
+    {
+      month: "long",
+      year: "numeric",
+    },
+  );
 
   const maxDailyDone = Math.max(...stats.dailyData.map((d) => d.done), 1);
 
@@ -187,7 +234,9 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
       period: `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`,
       stats,
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -204,7 +253,9 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
       return `${l.date};${habit?.name || "—"};${l.status};${l.durationMinutes || ""};${l.note || ""}`;
     });
     const csv = [header, ...rows].join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF" + csv], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -242,10 +293,21 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
         <Card size="sm">
           <CardContent className="text-center">
             <p className="text-xs text-muted-foreground">Выполнено</p>
-            <p className="mt-1 text-xl font-bold text-emerald-500">{stats.done}</p>
+            <p className="mt-1 text-xl font-bold text-emerald-500">
+              {stats.done}
+            </p>
             {stats.doneChange !== 0 && (
-              <p className={cn("mt-0.5 flex items-center justify-center gap-0.5 text-xs", stats.doneChange > 0 ? "text-emerald-500" : "text-red-500")}>
-                {stats.doneChange > 0 ? <TrendingUpIcon className="size-3" /> : <TrendingDownIcon className="size-3" />}
+              <p
+                className={cn(
+                  "mt-0.5 flex items-center justify-center gap-0.5 text-xs",
+                  stats.doneChange > 0 ? "text-emerald-500" : "text-red-500",
+                )}
+              >
+                {stats.doneChange > 0 ? (
+                  <TrendingUpIcon className="size-3" />
+                ) : (
+                  <TrendingDownIcon className="size-3" />
+                )}
                 {Math.abs(stats.doneChange)}%
               </p>
             )}
@@ -254,7 +316,9 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
         <Card size="sm">
           <CardContent className="text-center">
             <p className="text-xs text-muted-foreground">Пропущено</p>
-            <p className="mt-1 text-xl font-bold text-red-500">{stats.missed}</p>
+            <p className="mt-1 text-xl font-bold text-red-500">
+              {stats.missed}
+            </p>
             {stats.missedReduction > 0 && (
               <p className="mt-0.5 flex items-center justify-center gap-0.5 text-xs text-emerald-500">
                 <TrendingDownIcon className="size-3" />
@@ -282,9 +346,13 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
           <CardTitle>Выполнение по дням</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-end gap-[2px] sm:gap-[3px]" style={{ height: 80 }}>
+          <div
+            className="flex items-end gap-[2px] sm:gap-[3px]"
+            style={{ height: 80 }}
+          >
             {stats.dailyData.map((d) => {
-              const height = d.total > 0 ? Math.max((d.done / maxDailyDone) * 100, 4) : 4;
+              const height =
+                d.total > 0 ? Math.max((d.done / maxDailyDone) * 100, 4) : 4;
               const isToday = d.date === today;
               return (
                 <div
@@ -311,8 +379,18 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
             })}
           </div>
           <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-            <span>Лучший день: {stats.bestDay.date ? `${stats.bestDay.date} (${stats.bestDay.count})` : "—"}</span>
-            <span>Худший день: {stats.worstDay.date ? `${stats.worstDay.date} (${stats.worstDay.count})` : "—"}</span>
+            <span>
+              Лучший день:{" "}
+              {stats.bestDay.date
+                ? `${stats.bestDay.date} (${stats.bestDay.count})`
+                : "—"}
+            </span>
+            <span>
+              Худший день:{" "}
+              {stats.worstDay.date
+                ? `${stats.worstDay.date} (${stats.worstDay.count})`
+                : "—"}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -332,8 +410,14 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
               </svg>
               <div className="flex flex-wrap gap-2">
                 {stats.categoryDonut.map((d) => (
-                  <div key={d.category} className="flex items-center gap-1.5 text-xs">
-                    <span className="inline-block size-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                  <div
+                    key={d.category}
+                    className="flex items-center gap-1.5 text-xs"
+                  >
+                    <span
+                      className="inline-block size-2.5 rounded-full"
+                      style={{ backgroundColor: d.color }}
+                    />
                     <span>{d.label}</span>
                     <span className="text-muted-foreground">
                       ({d.done}/{d.total})
@@ -352,7 +436,8 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
           <CardContent>
             <div className="space-y-3">
               {stats.categoryDonut.map((d) => {
-                const pct = d.total > 0 ? Math.round((d.done / d.total) * 100) : 0;
+                const pct =
+                  d.total > 0 ? Math.round((d.done / d.total) * 100) : 0;
                 return (
                   <div key={d.category} className="space-y-1">
                     <div className="flex justify-between text-sm">
@@ -394,15 +479,21 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
               <div className="flex items-center gap-2">
                 <TrophyIcon className="size-5 text-amber-500" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Прогноз до цели</p>
-                  <p className="text-lg font-medium">~{stats.forecastDays} дней</p>
+                  <p className="text-sm text-muted-foreground">
+                    Прогноз до цели
+                  </p>
+                  <p className="text-lg font-medium">
+                    ~{stats.forecastDays} дней
+                  </p>
                 </div>
               </div>
             )}
             <div className="flex items-center gap-2">
               <CalendarIcon className="size-5 text-blue-500" />
               <div>
-                <p className="text-sm text-muted-foreground">По сравнению с прошлым месяцем</p>
+                <p className="text-sm text-muted-foreground">
+                  По сравнению с прошлым месяцем
+                </p>
                 <p className="text-lg font-medium">
                   {stats.doneChange > 0
                     ? `${stats.doneChange}% больше`

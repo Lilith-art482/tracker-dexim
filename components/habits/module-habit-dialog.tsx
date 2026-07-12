@@ -1,9 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Target, Clock, Tag, CheckSquare, Bell, FileText } from "lucide-react";
-import type { Habit, HabitCategory, HabitFrequencyType, HabitDifficulty } from "@/lib/habit-types";
-import { CATEGORY_LABELS, DIFFICULTY_LABELS, WEEKDAYS } from "@/lib/habit-types";
+import {
+  Loader2,
+  Target,
+  Clock,
+  Tag,
+  CheckSquare,
+  Bell,
+  FileText,
+} from "lucide-react";
+import type {
+  Habit,
+  HabitCategory,
+  HabitFrequencyType,
+  HabitDifficulty,
+} from "@/lib/habit-types";
+import {
+  CATEGORY_LABELS,
+  DIFFICULTY_LABELS,
+  WEEKDAYS,
+} from "@/lib/habit-types";
 import { createHabitSchema } from "@/lib/habit-schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,23 +112,48 @@ interface HabitDialogProps {
   onSaved: (habit: Habit) => void;
 }
 
-export function HabitDialog({ open, onOpenChange, habit, onSaved }: HabitDialogProps) {
+export function HabitDialog({
+  open,
+  onOpenChange,
+  habit,
+  onSaved,
+}: HabitDialogProps) {
   const isEditing = !!habit;
 
   const [name, setName] = useState(habit?.name ?? "");
-  const [category, setCategory] = useState<HabitCategory>(habit?.category ?? "health");
-  const [frequencyType, setFrequencyType] = useState<HabitFrequencyType>(habit?.frequencyType ?? "daily");
-  const [frequencyDays, setFrequencyDays] = useState<number[]>(habit?.frequencyDays ?? []);
-  const [frequencyInterval, setFrequencyInterval] = useState<number>(habit?.frequencyInterval ?? 1);
-  const [frequencyTime, setFrequencyTime] = useState(habit?.frequencyTime ?? "");
-  const [reminderEnabled, setReminderEnabled] = useState(habit?.reminderEnabled ?? false);
+  const [category, setCategory] = useState<HabitCategory>(
+    habit?.category ?? "health",
+  );
+  const [frequencyType, setFrequencyType] = useState<HabitFrequencyType>(
+    habit?.frequencyType ?? "daily",
+  );
+  const [frequencyDays, setFrequencyDays] = useState<number[]>(
+    habit?.frequencyDays ?? [],
+  );
+  const [frequencyInterval, setFrequencyInterval] = useState<number>(
+    habit?.frequencyInterval ?? 1,
+  );
+  const [frequencyTime, setFrequencyTime] = useState(
+    habit?.frequencyTime ?? "",
+  );
+  const [reminderEnabled, setReminderEnabled] = useState(
+    habit?.reminderEnabled ?? false,
+  );
   const [reminderTime, setReminderTime] = useState(habit?.reminderTime ?? "");
-  const [difficulty, setDifficulty] = useState<HabitDifficulty>(habit?.difficulty ?? "medium");
-  const [durationMinutes, setDurationMinutes] = useState<number>(habit?.durationMinutes ?? 0);
+  const [difficulty, setDifficulty] = useState<HabitDifficulty>(
+    habit?.difficulty ?? "medium",
+  );
+  const [durationMinutes, setDurationMinutes] = useState<number>(
+    habit?.durationMinutes ?? 0,
+  );
   const [goal, setGoal] = useState(habit?.goal ?? "");
-  const [goalType, setGoalType] = useState<"streak" | "count">(habit?.goalType ?? "streak");
+  const [goalType, setGoalType] = useState<"streak" | "count">(
+    habit?.goalType ?? "streak",
+  );
   const [goalValue, setGoalValue] = useState<number>(habit?.goalValue ?? 0);
-  const [goalPeriod, setGoalPeriod] = useState<"month" | "all">(habit?.goalPeriod ?? "all");
+  const [goalPeriod, setGoalPeriod] = useState<"month" | "all">(
+    habit?.goalPeriod ?? "all",
+  );
   const [note, setNote] = useState(habit?.note ?? "");
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -165,8 +207,10 @@ export function HabitDialog({ open, onOpenChange, habit, onSaved }: HabitDialogP
       category,
       frequencyType,
       frequencyDays: frequencyType === "weekly" ? frequencyDays : undefined,
-      frequencyInterval: frequencyType === "interval" ? frequencyInterval : undefined,
-      frequencyTime: frequencyType === "time" ? frequencyTime || undefined : undefined,
+      frequencyInterval:
+        frequencyType === "interval" ? frequencyInterval : undefined,
+      frequencyTime:
+        frequencyType === "time" ? frequencyTime || undefined : undefined,
       reminderEnabled,
       reminderTime: reminderEnabled ? reminderTime || undefined : undefined,
       difficulty,
@@ -181,7 +225,9 @@ export function HabitDialog({ open, onOpenChange, habit, onSaved }: HabitDialogP
     const parsed = createHabitSchema.safeParse(data);
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
-      for (const [key, messages] of Object.entries(parsed.error.flatten().fieldErrors)) {
+      for (const [key, messages] of Object.entries(
+        parsed.error.flatten().fieldErrors,
+      )) {
         fieldErrors[key] = Array.isArray(messages) ? messages[0] : messages;
       }
       setErrors(fieldErrors);

@@ -94,9 +94,8 @@ export function ModuleSchedule({
 
   const weekCount = useMemo(
     () =>
-      scheduled.filter((h) =>
-        weekDays.some((wd) => isDateScheduled(h, wd)),
-      ).length,
+      scheduled.filter((h) => weekDays.some((wd) => isDateScheduled(h, wd)))
+        .length,
     [scheduled, weekDays],
   );
 
@@ -104,9 +103,7 @@ export function ModuleSchedule({
     () =>
       scheduled.filter((h) => {
         if (!isDateScheduled(h, new Date())) return false;
-        const log = logs.find(
-          (l) => l.habitId === h.id && l.date === today,
-        );
+        const log = logs.find((l) => l.habitId === h.id && l.date === today);
         return log?.status !== "done";
       }),
     [scheduled, logs, today],
@@ -135,10 +132,8 @@ export function ModuleSchedule({
     [cursor],
   );
 
-  const prevMonth = () =>
-    setCursor(new Date(cy, cm - 1, 1));
-  const nextMonth = () =>
-    setCursor(new Date(cy, cm + 1, 1));
+  const prevMonth = () => setCursor(new Date(cy, cm - 1, 1));
+  const nextMonth = () => setCursor(new Date(cy, cm + 1, 1));
 
   return (
     <div className="flex flex-col gap-6">
@@ -195,8 +190,7 @@ export function ModuleSchedule({
                   key={day}
                   className={cn(
                     "flex flex-col items-center justify-center rounded-md p-1 text-xs",
-                    isToday &&
-                      "bg-primary/10 font-bold ring-1 ring-primary/30",
+                    isToday && "bg-primary/10 font-bold ring-1 ring-primary/30",
                   )}
                 >
                   <span>{day}</span>
@@ -207,8 +201,8 @@ export function ModuleSchedule({
                         done === dayHabits.length
                           ? "text-emerald-500"
                           : done > 0
-                          ? "text-amber-500"
-                          : "text-muted-foreground",
+                            ? "text-amber-500"
+                            : "text-muted-foreground",
                       )}
                     >
                       {done}/{dayHabits.length}
@@ -295,9 +289,7 @@ export function ModuleSchedule({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    onToggleHabit(h.id, today, "done")
-                  }
+                  onClick={() => onToggleHabit(h.id, today, "done")}
                 >
                   <CheckCircle2 className="size-3.5" />
                   Выполнить
@@ -345,9 +337,7 @@ export function ModuleSchedule({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() =>
-                        onToggleHabit(h.id, today, "done")
-                      }
+                      onClick={() => onToggleHabit(h.id, today, "done")}
                     >
                       <CheckCircle2 className="size-3.5" />
                     </Button>

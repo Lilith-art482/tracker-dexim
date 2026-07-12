@@ -170,7 +170,6 @@ export function WeeklyTable({
   onToggleComplete: (task: PersonalTask) => void;
   onDelete: (task: PersonalTask) => void;
 }) {
-
   const [activeTask, setActiveTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogDay, setDialogDay] = useState(0);

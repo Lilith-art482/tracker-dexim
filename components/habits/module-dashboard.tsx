@@ -1,9 +1,22 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { CheckCircle2, Circle, ListChecks, Trophy, Percent, CalendarDays, Sparkles, ChevronRight } from "lucide-react";
+import {
+  CheckCircle2,
+  Circle,
+  ListChecks,
+  Trophy,
+  Percent,
+  CalendarDays,
+  Sparkles,
+  ChevronRight,
+} from "lucide-react";
 import type { Habit, HabitLog } from "@/lib/habit-types";
-import { CATEGORY_COLORS, CATEGORY_LABELS, MOTIVATIONAL_QUOTES } from "@/lib/habit-types";
+import {
+  CATEGORY_COLORS,
+  CATEGORY_LABELS,
+  MOTIVATIONAL_QUOTES,
+} from "@/lib/habit-types";
 import { useHabits } from "@/components/habits/habits-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,7 +44,9 @@ function StatCard({ icon: Icon, label, value, subtext, color }: StatCardProps) {
       </CardHeader>
       <CardContent>
         <p className={cn("text-2xl font-bold", color)}>{value}</p>
-        {subtext && <p className="text-xs text-muted-foreground mt-0.5">{subtext}</p>}
+        {subtext && (
+          <p className="text-xs text-muted-foreground mt-0.5">{subtext}</p>
+        )}
       </CardContent>
     </Card>
   );
@@ -44,7 +59,12 @@ interface DonutChartProps {
   color?: string;
 }
 
-function DonutChart({ percentage, size = 64, strokeWidth = 6, color = "#4E6E62" }: DonutChartProps) {
+function DonutChart({
+  percentage,
+  size = 64,
+  strokeWidth = 6,
+  color = "#4E6E62",
+}: DonutChartProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
@@ -101,7 +121,10 @@ function BarChart({ data, height = 120 }: BarChartProps) {
         const donePct = d.total > 0 ? (d.done / d.total) * 100 : 0;
         return (
           <div key={i} className="flex flex-1 flex-col items-center gap-1">
-            <div className="relative w-full rounded-t-sm" style={{ height: `${Math.max(pct, 4)}%`, minHeight: 16 }}>
+            <div
+              className="relative w-full rounded-t-sm"
+              style={{ height: `${Math.max(pct, 4)}%`, minHeight: 16 }}
+            >
               <div
                 className="absolute bottom-0 left-0 right-0 rounded-t-sm bg-primary/20"
                 style={{ height: "100%" }}
@@ -125,7 +148,12 @@ interface ModuleDashboardProps {
 
 export function ModuleDashboard({ onNavigate }: ModuleDashboardProps) {
   const { todayHabits, stats, loading, toggleHabit } = useHabits();
-  const [quote] = useState(() => MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]);
+  const [quote] = useState(
+    () =>
+      MOTIVATIONAL_QUOTES[
+        Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)
+      ],
+  );
 
   if (loading) {
     return (
@@ -205,7 +233,12 @@ export function ModuleDashboard({ onNavigate }: ModuleDashboardProps) {
               На сегодня
             </CardTitle>
             {onNavigate && (
-              <Button variant="ghost" size="sm" onClick={onNavigate} className="gap-1 text-xs">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onNavigate}
+                className="gap-1 text-xs"
+              >
                 Все привычки
                 <ChevronRight className="h-3 w-3" />
               </Button>
@@ -221,21 +254,46 @@ export function ModuleDashboard({ onNavigate }: ModuleDashboardProps) {
             todayHabits.map(({ habit, log }) => {
               const isDone = log?.status === "done";
               const isSkipped = log?.status === "skipped";
-              const colorClass = isDone ? "text-emerald-500" : isSkipped ? "text-yellow-500" : "";
-              const bgClass = isDone ? "bg-emerald-500/5" : isSkipped ? "bg-yellow-500/5" : "";
+              const colorClass = isDone
+                ? "text-emerald-500"
+                : isSkipped
+                  ? "text-yellow-500"
+                  : "";
+              const bgClass = isDone
+                ? "bg-emerald-500/5"
+                : isSkipped
+                  ? "bg-yellow-500/5"
+                  : "";
               return (
                 <div
                   key={habit.id}
-                  className={cn("flex items-center gap-3 rounded-lg p-3 transition-colors", bgClass)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg p-3 transition-colors",
+                    bgClass,
+                  )}
                 >
                   <button
                     onClick={() => handleToggleStatus(habit.id, log)}
-                    className={cn("shrink-0 transition-colors", isDone ? "text-emerald-500" : "text-muted-foreground/50 hover:text-emerald-500")}
+                    className={cn(
+                      "shrink-0 transition-colors",
+                      isDone
+                        ? "text-emerald-500"
+                        : "text-muted-foreground/50 hover:text-emerald-500",
+                    )}
                   >
-                    {isDone ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
+                    {isDone ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : (
+                      <Circle className="h-5 w-5" />
+                    )}
                   </button>
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm font-medium truncate", isDone && "line-through text-muted-foreground")}>
+                    <p
+                      className={cn(
+                        "text-sm font-medium truncate",
+                        isDone && "line-through text-muted-foreground",
+                      )}
+                    >
                       {habit.name}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -243,7 +301,9 @@ export function ModuleDashboard({ onNavigate }: ModuleDashboardProps) {
                         {CATEGORY_LABELS[habit.category]}
                       </Badge>
                       {habit.durationMinutes && (
-                        <span className="text-xs text-muted-foreground">{habit.durationMinutes} мин</span>
+                        <span className="text-xs text-muted-foreground">
+                          {habit.durationMinutes} мин
+                        </span>
                       )}
                     </div>
                   </div>

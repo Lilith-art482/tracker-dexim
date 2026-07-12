@@ -44,7 +44,6 @@ import { TaskFormDialog } from "@/components/task-form-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-
 interface ColumnManagerProps {
   boardId: string;
   initialColumns: Column[];
@@ -237,7 +236,6 @@ function DroppableColumn({
 }
 
 export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
-
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [adding, setAdding] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");

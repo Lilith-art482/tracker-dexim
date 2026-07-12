@@ -74,7 +74,6 @@ export function TeamView({
   boardMembers,
   isArchiveView,
 }: TeamViewProps) {
-
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const today = new Date().getDay();

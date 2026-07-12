@@ -280,9 +280,27 @@ const CATEGORY_GROUPS: {
     accent: "#10b981",
     defaultColor: "emerald",
     categories: [
-      { id: "cat-food", name: "Продукты", icon: "ShoppingCart", color: "emerald", type: "expense" },
-      { id: "cat-delivery", name: "Доставка еды", icon: "Coffee", color: "emerald", type: "expense" },
-      { id: "cat-restaurants", name: "Рестораны / Кафе", icon: "Utensils", color: "green", type: "expense" },
+      {
+        id: "cat-food",
+        name: "Продукты",
+        icon: "ShoppingCart",
+        color: "emerald",
+        type: "expense",
+      },
+      {
+        id: "cat-delivery",
+        name: "Доставка еды",
+        icon: "Coffee",
+        color: "emerald",
+        type: "expense",
+      },
+      {
+        id: "cat-restaurants",
+        name: "Рестораны / Кафе",
+        icon: "Utensils",
+        color: "green",
+        type: "expense",
+      },
     ],
   },
   {
@@ -292,13 +310,55 @@ const CATEGORY_GROUPS: {
     accent: "#3b82f6",
     defaultColor: "blue",
     categories: [
-      { id: "cat-rent", name: "Аренда жилья", icon: "Home", color: "blue", type: "expense" },
-      { id: "cat-utilities", name: "Коммунальные платежи", icon: "ScrollText", color: "blue", type: "expense" },
-      { id: "cat-electricity", name: "Электричество", icon: "Zap", color: "amber", type: "expense" },
-      { id: "cat-water", name: "Вода / Отопление", icon: "Wifi", color: "cyan", type: "expense" },
-      { id: "cat-internet", name: "Интернет", icon: "Wifi", color: "blue", type: "expense" },
-      { id: "cat-tv", name: "ТВ / Кабельное", icon: "Tv", color: "blue", type: "expense" },
-      { id: "cat-repair", name: "Ремонт и быт", icon: "Wrench", color: "orange", type: "expense" },
+      {
+        id: "cat-rent",
+        name: "Аренда жилья",
+        icon: "Home",
+        color: "blue",
+        type: "expense",
+      },
+      {
+        id: "cat-utilities",
+        name: "Коммунальные платежи",
+        icon: "ScrollText",
+        color: "blue",
+        type: "expense",
+      },
+      {
+        id: "cat-electricity",
+        name: "Электричество",
+        icon: "Zap",
+        color: "amber",
+        type: "expense",
+      },
+      {
+        id: "cat-water",
+        name: "Вода / Отопление",
+        icon: "Wifi",
+        color: "cyan",
+        type: "expense",
+      },
+      {
+        id: "cat-internet",
+        name: "Интернет",
+        icon: "Wifi",
+        color: "blue",
+        type: "expense",
+      },
+      {
+        id: "cat-tv",
+        name: "ТВ / Кабельное",
+        icon: "Tv",
+        color: "blue",
+        type: "expense",
+      },
+      {
+        id: "cat-repair",
+        name: "Ремонт и быт",
+        icon: "Wrench",
+        color: "orange",
+        type: "expense",
+      },
     ],
   },
   {
@@ -308,14 +368,62 @@ const CATEGORY_GROUPS: {
     accent: "#f97316",
     defaultColor: "orange",
     categories: [
-      { id: "cat-car", name: "Автомобиль", icon: "Car", color: "orange", type: "expense" },
-      { id: "cat-fuel", name: "Топливо", icon: "Fuel", color: "orange", type: "expense" },
-      { id: "cat-car-parts", name: "Запчасти / Ремонт", icon: "Wrench", color: "orange", type: "expense" },
-      { id: "cat-taxi", name: "Такси", icon: "Car", color: "amber", type: "expense" },
-      { id: "cat-public-transport", name: "Общественный транспорт", icon: "Bus", color: "orange", type: "expense" },
-      { id: "cat-train", name: "Поезд (билеты)", icon: "Train", color: "orange", type: "expense" },
-      { id: "cat-plane", name: "Самолёт (билеты)", icon: "Plane", color: "orange", type: "expense" },
-      { id: "cat-ship", name: "Корабль / Паром", icon: "Ship", color: "orange", type: "expense" },
+      {
+        id: "cat-car",
+        name: "Автомобиль",
+        icon: "Car",
+        color: "orange",
+        type: "expense",
+      },
+      {
+        id: "cat-fuel",
+        name: "Топливо",
+        icon: "Fuel",
+        color: "orange",
+        type: "expense",
+      },
+      {
+        id: "cat-car-parts",
+        name: "Запчасти / Ремонт",
+        icon: "Wrench",
+        color: "orange",
+        type: "expense",
+      },
+      {
+        id: "cat-taxi",
+        name: "Такси",
+        icon: "Car",
+        color: "amber",
+        type: "expense",
+      },
+      {
+        id: "cat-public-transport",
+        name: "Общественный транспорт",
+        icon: "Bus",
+        color: "orange",
+        type: "expense",
+      },
+      {
+        id: "cat-train",
+        name: "Поезд (билеты)",
+        icon: "Train",
+        color: "orange",
+        type: "expense",
+      },
+      {
+        id: "cat-plane",
+        name: "Самолёт (билеты)",
+        icon: "Plane",
+        color: "orange",
+        type: "expense",
+      },
+      {
+        id: "cat-ship",
+        name: "Корабль / Паром",
+        icon: "Ship",
+        color: "orange",
+        type: "expense",
+      },
     ],
   },
   {
@@ -325,11 +433,41 @@ const CATEGORY_GROUPS: {
     accent: "#ec4899",
     defaultColor: "pink",
     categories: [
-      { id: "cat-doctor", name: "Врач / Клиника", icon: "Stethoscope", color: "pink", type: "expense" },
-      { id: "cat-pharmacy", name: "Аптека / Таблетки", icon: "Pill", color: "pink", type: "expense" },
-      { id: "cat-treatment", name: "Лечение", icon: "Heart", color: "rose", type: "expense" },
-      { id: "cat-gym", name: "Спортзал / Фитнес", icon: "Dumbbell", color: "pink", type: "expense" },
-      { id: "cat-vitamins", name: "Витамины", icon: "Pill", color: "green", type: "expense" },
+      {
+        id: "cat-doctor",
+        name: "Врач / Клиника",
+        icon: "Stethoscope",
+        color: "pink",
+        type: "expense",
+      },
+      {
+        id: "cat-pharmacy",
+        name: "Аптека / Таблетки",
+        icon: "Pill",
+        color: "pink",
+        type: "expense",
+      },
+      {
+        id: "cat-treatment",
+        name: "Лечение",
+        icon: "Heart",
+        color: "rose",
+        type: "expense",
+      },
+      {
+        id: "cat-gym",
+        name: "Спортзал / Фитнес",
+        icon: "Dumbbell",
+        color: "pink",
+        type: "expense",
+      },
+      {
+        id: "cat-vitamins",
+        name: "Витамины",
+        icon: "Pill",
+        color: "green",
+        type: "expense",
+      },
     ],
   },
   {
@@ -339,11 +477,41 @@ const CATEGORY_GROUPS: {
     accent: "#8b5cf6",
     defaultColor: "violet",
     categories: [
-      { id: "cat-clothes", name: "Одежда", icon: "Shirt", color: "violet", type: "expense" },
-      { id: "cat-shoes", name: "Обувь", icon: "Footprints", color: "violet", type: "expense" },
-      { id: "cat-beauty", name: "Салон красоты", icon: "Sparkles", color: "pink", type: "expense" },
-      { id: "cat-jewelry", name: "Украшения / Бижутерия", icon: "Gem", color: "purple", type: "expense" },
-      { id: "cat-cosmetics", name: "Косметика", icon: "Sparkles", color: "pink", type: "expense" },
+      {
+        id: "cat-clothes",
+        name: "Одежда",
+        icon: "Shirt",
+        color: "violet",
+        type: "expense",
+      },
+      {
+        id: "cat-shoes",
+        name: "Обувь",
+        icon: "Footprints",
+        color: "violet",
+        type: "expense",
+      },
+      {
+        id: "cat-beauty",
+        name: "Салон красоты",
+        icon: "Sparkles",
+        color: "pink",
+        type: "expense",
+      },
+      {
+        id: "cat-jewelry",
+        name: "Украшения / Бижутерия",
+        icon: "Gem",
+        color: "purple",
+        type: "expense",
+      },
+      {
+        id: "cat-cosmetics",
+        name: "Косметика",
+        icon: "Sparkles",
+        color: "pink",
+        type: "expense",
+      },
     ],
   },
   {
@@ -353,14 +521,62 @@ const CATEGORY_GROUPS: {
     accent: "#f59e0b",
     defaultColor: "amber",
     categories: [
-      { id: "cat-cinema", name: "Кино", icon: "Film", color: "amber", type: "expense" },
-      { id: "cat-video", name: "Видео / Подписки", icon: "Tv", color: "amber", type: "expense" },
-      { id: "cat-music", name: "Музыка / Подписки", icon: "Music", color: "amber", type: "expense" },
-      { id: "cat-theater", name: "Театр / Концерты", icon: "Drama", color: "amber", type: "expense" },
-      { id: "cat-games", name: "Игры / Софт", icon: "Gamepad2", color: "amber", type: "expense" },
-      { id: "cat-tickets", name: "Билеты (мероприятия)", icon: "Ticket", color: "amber", type: "expense" },
-      { id: "cat-books", name: "Книги", icon: "BookOpen", color: "indigo", type: "expense" },
-      { id: "cat-hobby", name: "Хобби", icon: "Heart", color: "rose", type: "expense" },
+      {
+        id: "cat-cinema",
+        name: "Кино",
+        icon: "Film",
+        color: "amber",
+        type: "expense",
+      },
+      {
+        id: "cat-video",
+        name: "Видео / Подписки",
+        icon: "Tv",
+        color: "amber",
+        type: "expense",
+      },
+      {
+        id: "cat-music",
+        name: "Музыка / Подписки",
+        icon: "Music",
+        color: "amber",
+        type: "expense",
+      },
+      {
+        id: "cat-theater",
+        name: "Театр / Концерты",
+        icon: "Drama",
+        color: "amber",
+        type: "expense",
+      },
+      {
+        id: "cat-games",
+        name: "Игры / Софт",
+        icon: "Gamepad2",
+        color: "amber",
+        type: "expense",
+      },
+      {
+        id: "cat-tickets",
+        name: "Билеты (мероприятия)",
+        icon: "Ticket",
+        color: "amber",
+        type: "expense",
+      },
+      {
+        id: "cat-books",
+        name: "Книги",
+        icon: "BookOpen",
+        color: "indigo",
+        type: "expense",
+      },
+      {
+        id: "cat-hobby",
+        name: "Хобби",
+        icon: "Heart",
+        color: "rose",
+        type: "expense",
+      },
     ],
   },
   {
@@ -370,8 +586,20 @@ const CATEGORY_GROUPS: {
     accent: "#6366f1",
     defaultColor: "indigo",
     categories: [
-      { id: "cat-courses", name: "Курсы / Обучение", icon: "GraduationCap", color: "indigo", type: "expense" },
-      { id: "cat-books-edu", name: "Книги (учебные)", icon: "BookOpen", color: "indigo", type: "expense" },
+      {
+        id: "cat-courses",
+        name: "Курсы / Обучение",
+        icon: "GraduationCap",
+        color: "indigo",
+        type: "expense",
+      },
+      {
+        id: "cat-books-edu",
+        name: "Книги (учебные)",
+        icon: "BookOpen",
+        color: "indigo",
+        type: "expense",
+      },
     ],
   },
   {
@@ -381,9 +609,27 @@ const CATEGORY_GROUPS: {
     accent: "#06b6d4",
     defaultColor: "cyan",
     categories: [
-      { id: "cat-mobile", name: "Мобильная связь", icon: "Smartphone", color: "cyan", type: "expense" },
-      { id: "cat-subscriptions", name: "Подписки (сервисы)", icon: "Radio", color: "cyan", type: "expense" },
-      { id: "cat-gadgets", name: "Техника / Гаджеты", icon: "ShoppingCart", color: "cyan", type: "expense" },
+      {
+        id: "cat-mobile",
+        name: "Мобильная связь",
+        icon: "Smartphone",
+        color: "cyan",
+        type: "expense",
+      },
+      {
+        id: "cat-subscriptions",
+        name: "Подписки (сервисы)",
+        icon: "Radio",
+        color: "cyan",
+        type: "expense",
+      },
+      {
+        id: "cat-gadgets",
+        name: "Техника / Гаджеты",
+        icon: "ShoppingCart",
+        color: "cyan",
+        type: "expense",
+      },
     ],
   },
   {
@@ -393,10 +639,34 @@ const CATEGORY_GROUPS: {
     accent: "#14b8a6",
     defaultColor: "teal",
     categories: [
-      { id: "cat-gifts", name: "Подарки", icon: "Gift", color: "teal", type: "expense" },
-      { id: "cat-toys", name: "Игрушки / Детям", icon: "ToyBrick", color: "teal", type: "expense" },
-      { id: "cat-children", name: "Дети (садик, школа, кружки)", icon: "Baby", color: "teal", type: "expense" },
-      { id: "cat-pets", name: "Животные", icon: "Cat", color: "teal", type: "expense" },
+      {
+        id: "cat-gifts",
+        name: "Подарки",
+        icon: "Gift",
+        color: "teal",
+        type: "expense",
+      },
+      {
+        id: "cat-toys",
+        name: "Игрушки / Детям",
+        icon: "ToyBrick",
+        color: "teal",
+        type: "expense",
+      },
+      {
+        id: "cat-children",
+        name: "Дети (садик, школа, кружки)",
+        icon: "Baby",
+        color: "teal",
+        type: "expense",
+      },
+      {
+        id: "cat-pets",
+        name: "Животные",
+        icon: "Cat",
+        color: "teal",
+        type: "expense",
+      },
     ],
   },
   {
@@ -406,10 +676,34 @@ const CATEGORY_GROUPS: {
     accent: "#ef4444",
     defaultColor: "red",
     categories: [
-      { id: "cat-taxes", name: "Налоги", icon: "Building2", color: "red", type: "expense" },
-      { id: "cat-fines", name: "Штрафы", icon: "AlertTriangle", color: "red", type: "expense" },
-      { id: "cat-fees", name: "Госпошлины", icon: "ScrollText", color: "red", type: "expense" },
-      { id: "cat-enforcement", name: "Исполнительное производство", icon: "ScrollText", color: "red", type: "expense" },
+      {
+        id: "cat-taxes",
+        name: "Налоги",
+        icon: "Building2",
+        color: "red",
+        type: "expense",
+      },
+      {
+        id: "cat-fines",
+        name: "Штрафы",
+        icon: "AlertTriangle",
+        color: "red",
+        type: "expense",
+      },
+      {
+        id: "cat-fees",
+        name: "Госпошлины",
+        icon: "ScrollText",
+        color: "red",
+        type: "expense",
+      },
+      {
+        id: "cat-enforcement",
+        name: "Исполнительное производство",
+        icon: "ScrollText",
+        color: "red",
+        type: "expense",
+      },
     ],
   },
   {
@@ -419,10 +713,34 @@ const CATEGORY_GROUPS: {
     accent: "#f43f5e",
     defaultColor: "rose",
     categories: [
-      { id: "cat-mortgage", name: "Ипотека", icon: "Home", color: "rose", type: "expense" },
-      { id: "cat-loan", name: "Потребительский кредит", icon: "Landmark", color: "rose", type: "expense" },
-      { id: "cat-car-loan", name: "Автокредит", icon: "Car", color: "rose", type: "expense" },
-      { id: "cat-microloan", name: "Займ", icon: "Banknote", color: "rose", type: "expense" },
+      {
+        id: "cat-mortgage",
+        name: "Ипотека",
+        icon: "Home",
+        color: "rose",
+        type: "expense",
+      },
+      {
+        id: "cat-loan",
+        name: "Потребительский кредит",
+        icon: "Landmark",
+        color: "rose",
+        type: "expense",
+      },
+      {
+        id: "cat-car-loan",
+        name: "Автокредит",
+        icon: "Car",
+        color: "rose",
+        type: "expense",
+      },
+      {
+        id: "cat-microloan",
+        name: "Займ",
+        icon: "Banknote",
+        color: "rose",
+        type: "expense",
+      },
     ],
   },
   {
@@ -432,9 +750,27 @@ const CATEGORY_GROUPS: {
     accent: "#6b7280",
     defaultColor: "slate",
     categories: [
-      { id: "cat-big-purchases", name: "Крупные покупки", icon: "Package", color: "slate", type: "expense" },
-      { id: "cat-services", name: "Услуги", icon: "Hand", color: "slate", type: "expense" },
-      { id: "cat-office", name: "Офис / Работа", icon: "Building2", color: "slate", type: "expense" },
+      {
+        id: "cat-big-purchases",
+        name: "Крупные покупки",
+        icon: "Package",
+        color: "slate",
+        type: "expense",
+      },
+      {
+        id: "cat-services",
+        name: "Услуги",
+        icon: "Hand",
+        color: "slate",
+        type: "expense",
+      },
+      {
+        id: "cat-office",
+        name: "Офис / Работа",
+        icon: "Building2",
+        color: "slate",
+        type: "expense",
+      },
     ],
   },
   {
@@ -444,7 +780,13 @@ const CATEGORY_GROUPS: {
     accent: "#84cc16",
     defaultColor: "lime",
     categories: [
-      { id: "cat-insurance", name: "Страхование", icon: "Shield", color: "lime", type: "expense" },
+      {
+        id: "cat-insurance",
+        name: "Страхование",
+        icon: "Shield",
+        color: "lime",
+        type: "expense",
+      },
     ],
   },
   {
@@ -454,7 +796,13 @@ const CATEGORY_GROUPS: {
     accent: "#9ca3af",
     defaultColor: "slate",
     categories: [
-      { id: "cat-other", name: "Прочие расходы", icon: "MoreHorizontal", color: "slate", type: "expense" },
+      {
+        id: "cat-other",
+        name: "Прочие расходы",
+        icon: "MoreHorizontal",
+        color: "slate",
+        type: "expense",
+      },
     ],
   },
   {
@@ -464,12 +812,48 @@ const CATEGORY_GROUPS: {
     accent: "#10b981",
     defaultColor: "emerald",
     categories: [
-      { id: "cat-salary", name: "Зарплата", icon: "DollarSign", color: "emerald", type: "income" },
-      { id: "cat-freelance", name: "Фриланс / Подработка", icon: "Wallet", color: "emerald", type: "income" },
-      { id: "cat-deposit-interest", name: "Проценты по вкладам", icon: "PiggyBank", color: "emerald", type: "income" },
-      { id: "cat-debt-return", name: "Возврат долгов", icon: "Banknote", color: "emerald", type: "income" },
-      { id: "cat-bonus", name: "Бонусы / Достижения", icon: "Award", color: "emerald", type: "income" },
-      { id: "cat-vip", name: "Премиум / VIP", icon: "Crown", color: "emerald", type: "income" },
+      {
+        id: "cat-salary",
+        name: "Зарплата",
+        icon: "DollarSign",
+        color: "emerald",
+        type: "income",
+      },
+      {
+        id: "cat-freelance",
+        name: "Фриланс / Подработка",
+        icon: "Wallet",
+        color: "emerald",
+        type: "income",
+      },
+      {
+        id: "cat-deposit-interest",
+        name: "Проценты по вкладам",
+        icon: "PiggyBank",
+        color: "emerald",
+        type: "income",
+      },
+      {
+        id: "cat-debt-return",
+        name: "Возврат долгов",
+        icon: "Banknote",
+        color: "emerald",
+        type: "income",
+      },
+      {
+        id: "cat-bonus",
+        name: "Бонусы / Достижения",
+        icon: "Award",
+        color: "emerald",
+        type: "income",
+      },
+      {
+        id: "cat-vip",
+        name: "Премиум / VIP",
+        icon: "Crown",
+        color: "emerald",
+        type: "income",
+      },
     ],
   },
   {
@@ -479,9 +863,27 @@ const CATEGORY_GROUPS: {
     accent: "#06b6d4",
     defaultColor: "cyan",
     categories: [
-      { id: "cat-savings", name: "Копилка / Накопления", icon: "PiggyBank", color: "cyan", type: "income" },
-      { id: "cat-cash", name: "Кошелёк / Наличные", icon: "Wallet", color: "cyan", type: "income" },
-      { id: "cat-bank-transfer", name: "Банк / Переводы между счетами", icon: "Landmark", color: "cyan", type: "income" },
+      {
+        id: "cat-savings",
+        name: "Копилка / Накопления",
+        icon: "PiggyBank",
+        color: "cyan",
+        type: "income",
+      },
+      {
+        id: "cat-cash",
+        name: "Кошелёк / Наличные",
+        icon: "Wallet",
+        color: "cyan",
+        type: "income",
+      },
+      {
+        id: "cat-bank-transfer",
+        name: "Банк / Переводы между счетами",
+        icon: "Landmark",
+        color: "cyan",
+        type: "income",
+      },
     ],
   },
 ];
@@ -765,7 +1167,9 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
                       >
                         {renderIcon(group.icon, "h-3.5 w-3.5")}
                       </div>
-                      <span className="text-sm font-semibold">{group.name}</span>
+                      <span className="text-sm font-semibold">
+                        {group.name}
+                      </span>
                       <span className="text-xs text-muted-foreground ml-auto tabular-nums">
                         {groupCats.length}
                       </span>
@@ -951,7 +1355,9 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
                 {ICON_GROUPS.map((grp) => (
                   <div key={grp.name}>
                     <div className="flex items-center gap-1.5 mb-1">
-                      <div className={cn("h-1.5 w-1.5 rounded-full", grp.color)} />
+                      <div
+                        className={cn("h-1.5 w-1.5 rounded-full", grp.color)}
+                      />
                       <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                         {grp.name}
                       </span>

@@ -290,12 +290,10 @@ export function HabitsDashboard({
 
   const todayHabits = useMemo(
     () =>
-      activeHabits
-        .filter(isPlannedToday)
-        .map((h) => ({
-          habit: h,
-          log: logs.find((l) => l.habitId === h.id && l.date === today),
-        })),
+      activeHabits.filter(isPlannedToday).map((h) => ({
+        habit: h,
+        log: logs.find((l) => l.habitId === h.id && l.date === today),
+      })),
     [activeHabits, logs, today],
   );
 

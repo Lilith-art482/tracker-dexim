@@ -19,7 +19,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectTrigger,
@@ -68,7 +74,11 @@ function formatMonthLabel(year: number, month: number): string {
 
 function formatDateLabel(date: string): string {
   const d = new Date(date + "T00:00:00Z");
-  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+  return d.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function getDateRange(range: DateRange): { start: string; end: string } {
@@ -108,9 +118,15 @@ function getNextStatus(current: HabitLogStatus): HabitLogStatus {
   return cycle[(idx + 1) % cycle.length];
 }
 
-export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProps) {
+export function ModuleCalendar({
+  habits,
+  logs,
+  onUpdateLog,
+}: ModuleCalendarProps) {
   const today = todayUTC();
-  const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
+  const [currentYear, setCurrentYear] = useState(() =>
+    new Date().getFullYear(),
+  );
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
   const [dateRange, setDateRange] = useState<DateRange>("month");
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
@@ -144,7 +160,8 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
   const filteredLogs = useMemo(() => {
     return logs.filter((l) => {
       if (l.date < range.start || l.date > range.end) return false;
-      if (selectedHabitFilter !== "all" && l.habitId !== selectedHabitFilter) return false;
+      if (selectedHabitFilter !== "all" && l.habitId !== selectedHabitFilter)
+        return false;
       return true;
     });
   }, [logs, range, selectedHabitFilter]);
@@ -155,7 +172,8 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
     const percentage = total > 0 ? Math.round((done / total) * 100) : 0;
 
     const daysWithLogs = new Set(filteredLogs.map((l) => l.date));
-    const avgFrequency = daysWithLogs.size > 0 ? Math.round(total / daysWithLogs.size) : 0;
+    const avgFrequency =
+      daysWithLogs.size > 0 ? Math.round(total / daysWithLogs.size) : 0;
 
     let bestStreak = 0;
     for (const habit of habits) {
@@ -173,7 +191,14 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
       }
     }
 
-    return { done, total, percentage, daysWithLogs: daysWithLogs.size, avgFrequency, bestStreak };
+    return {
+      done,
+      total,
+      percentage,
+      daysWithLogs: daysWithLogs.size,
+      avgFrequency,
+      bestStreak,
+    };
   }, [filteredLogs, habits]);
 
   const calendarDays = useMemo(() => {
@@ -197,33 +222,48 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
     return days;
   }, [currentYear, currentMonth, logsByDate]);
 
-  const navigateMonth = useCallback((delta: number) => {
-    let m = currentMonth + delta;
-    let y = currentYear;
-    if (m < 0) { m = 11; y--; }
-    if (m > 11) { m = 0; y++; }
-    setCurrentMonth(m);
-    setCurrentYear(y);
-  }, [currentMonth, currentYear]);
+  const navigateMonth = useCallback(
+    (delta: number) => {
+      let m = currentMonth + delta;
+      let y = currentYear;
+      if (m < 0) {
+        m = 11;
+        y--;
+      }
+      if (m > 11) {
+        m = 0;
+        y++;
+      }
+      setCurrentMonth(m);
+      setCurrentYear(y);
+    },
+    [currentMonth, currentYear],
+  );
 
-  const getDayStatus = useCallback((dayLogs: HabitLog[]): "done" | "missed" | "skipped" | "none" => {
-    if (dayLogs.length === 0) return "none";
-    const allDone = dayLogs.every((l) => l.status === "done");
-    if (allDone) return "done";
-    const anyMissed = dayLogs.some((l) => l.status === "missed");
-    if (anyMissed) return "missed";
-    return "skipped";
-  }, []);
+  const getDayStatus = useCallback(
+    (dayLogs: HabitLog[]): "done" | "missed" | "skipped" | "none" => {
+      if (dayLogs.length === 0) return "none";
+      const allDone = dayLogs.every((l) => l.status === "done");
+      if (allDone) return "done";
+      const anyMissed = dayLogs.some((l) => l.status === "missed");
+      if (anyMissed) return "missed";
+      return "skipped";
+    },
+    [],
+  );
 
   const handleDayClick = useCallback((date: string) => {
     setSelectedDay(date);
     setDialogOpen(true);
   }, []);
 
-  const handleStatusCycle = useCallback((logId: string, currentStatus: HabitLogStatus) => {
-    const next = getNextStatus(currentStatus);
-    onUpdateLog(logId, next);
-  }, [onUpdateLog]);
+  const handleStatusCycle = useCallback(
+    (logId: string, currentStatus: HabitLogStatus) => {
+      const next = getNextStatus(currentStatus);
+      onUpdateLog(logId, next);
+    },
+    [onUpdateLog],
+  );
 
   const rangeOptions: { value: DateRange; label: string }[] = [
     { value: "today", label: "Сегодня" },
@@ -268,7 +308,9 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
         <Card size="sm">
           <CardContent className="text-center">
             <p className="text-xs text-muted-foreground">Выполнено</p>
-            <p className="mt-1 text-xl font-bold text-emerald-500">{stats.done}</p>
+            <p className="mt-1 text-xl font-bold text-emerald-500">
+              {stats.done}
+            </p>
           </CardContent>
         </Card>
         <Card size="sm">
@@ -280,7 +322,9 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
         <Card size="sm">
           <CardContent className="text-center">
             <p className="text-xs text-muted-foreground">Лучший стрик</p>
-            <p className="mt-1 text-xl font-bold text-amber-500">{stats.bestStreak}</p>
+            <p className="mt-1 text-xl font-bold text-amber-500">
+              {stats.bestStreak}
+            </p>
           </CardContent>
         </Card>
         <Card size="sm">
@@ -296,13 +340,23 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>
-                <span className="capitalize">{formatMonthLabel(currentYear, currentMonth)}</span>
+                <span className="capitalize">
+                  {formatMonthLabel(currentYear, currentMonth)}
+                </span>
               </CardTitle>
               <div className="flex gap-1">
-                <Button variant="ghost" size="icon" onClick={() => navigateMonth(-1)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigateMonth(-1)}
+                >
                   <ChevronLeftIcon className="size-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => navigateMonth(1)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigateMonth(1)}
+                >
                   <ChevronRightIcon className="size-4" />
                 </Button>
               </div>
@@ -331,9 +385,12 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
                     className={cn(
                       "flex aspect-square items-center justify-center rounded-md text-sm transition-colors",
                       isToday && "ring-2 ring-[#4E6E62] ring-offset-1",
-                      status === "done" && "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
-                      status === "missed" && "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
-                      status === "skipped" && "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+                      status === "done" &&
+                        "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
+                      status === "missed" &&
+                        "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
+                      status === "skipped" &&
+                        "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
                       status === "none" && "hover:bg-muted",
                       "hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     )}
@@ -386,7 +443,10 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
                 <tbody>
                   {filteredLogs.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                      <td
+                        colSpan={5}
+                        className="py-8 text-center text-muted-foreground"
+                      >
                         Нет записей за выбранный период
                       </td>
                     </tr>
@@ -399,7 +459,9 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
                           <tr
                             key={log.id}
                             className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
-                            onClick={() => handleStatusCycle(log.id, log.status)}
+                            onClick={() =>
+                              handleStatusCycle(log.id, log.status)
+                            }
                           >
                             <td className="py-2 pr-4 whitespace-nowrap">
                               {formatDateLabel(log.date)}
@@ -457,13 +519,13 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
             <DialogTitle>
               {selectedDay ? formatDateLabel(selectedDay) : ""}
             </DialogTitle>
-            <DialogDescription>
-              Привычки на этот день
-            </DialogDescription>
+            <DialogDescription>Привычки на этот день</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             {dayLogs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Нет записей за этот день</p>
+              <p className="text-sm text-muted-foreground">
+                Нет записей за этот день
+              </p>
             ) : (
               dayLogs.map((log) => {
                 const habit = habitMap.get(log.habitId);
@@ -473,7 +535,9 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
                     className="flex items-center justify-between rounded-lg border p-3"
                   >
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-medium">{habit?.name || "—"}</span>
+                      <span className="text-sm font-medium">
+                        {habit?.name || "—"}
+                      </span>
                       {log.durationMinutes && (
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           <ClockIcon className="size-3" />
@@ -481,7 +545,9 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
                         </span>
                       )}
                       {log.note && (
-                        <span className="text-xs text-muted-foreground">{log.note}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {log.note}
+                        </span>
                       )}
                     </div>
                     <Button
@@ -490,7 +556,9 @@ export function ModuleCalendar({ habits, logs, onUpdateLog }: ModuleCalendarProp
                       onClick={() => handleStatusCycle(log.id, log.status)}
                     >
                       {STATUS_ICONS[log.status]}
-                      <span className="ml-1 text-xs">{STATUS_LABELS[log.status]}</span>
+                      <span className="ml-1 text-xs">
+                        {STATUS_LABELS[log.status]}
+                      </span>
                     </Button>
                   </div>
                 );

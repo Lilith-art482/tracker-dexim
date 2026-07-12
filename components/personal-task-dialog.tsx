@@ -34,7 +34,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
 
-
 interface PersonalTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -101,7 +100,6 @@ export function PersonalTaskDialog({
   onDelete,
   onToggleComplete,
 }: PersonalTaskDialogProps) {
-
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title ?? "");
   const [dayOfWeek, setDayOfWeek] = useState(

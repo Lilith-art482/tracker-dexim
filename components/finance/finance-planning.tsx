@@ -442,9 +442,7 @@ export function FinancePlanning() {
                 : "text-rose-600/70",
             )}
           >
-            {totalPlanned - totalSpent >= 0
-              ? "Можно потратить"
-              : "Перерасход"}
+            {totalPlanned - totalSpent >= 0 ? "Можно потратить" : "Перерасход"}
           </p>
         </div>
       </div>

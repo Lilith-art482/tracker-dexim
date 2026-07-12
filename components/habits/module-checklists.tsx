@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Plus, Trash2, GripVertical, CheckSquare, Square, ListTodo } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  GripVertical,
+  CheckSquare,
+  Square,
+  ListTodo,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,26 +38,25 @@ export function ModuleChecklists({
   onUpdateHabit,
 }: ModuleChecklistsProps) {
   const [newItemText, setNewItemText] = useState<Record<string, string>>({});
-  const [checkedItems, setCheckedItems] = useState<Record<string, string[]>>({});
+  const [checkedItems, setCheckedItems] = useState<Record<string, string[]>>(
+    {},
+  );
 
   const checklistHabits = habits.filter(
     (h) => h.status === "active" && h.checklistMode,
   );
 
-  const getItems = useCallback(
-    (habitId: string): HabitChecklistItem[] => {
-      const raw = localStorage.getItem(`checklist_${habitId}`);
-      if (raw) {
-        try {
-          return JSON.parse(raw);
-        } catch {
-          return [];
-        }
+  const getItems = useCallback((habitId: string): HabitChecklistItem[] => {
+    const raw = localStorage.getItem(`checklist_${habitId}`);
+    if (raw) {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return [];
       }
-      return [];
-    },
-    [],
-  );
+    }
+    return [];
+  }, []);
 
   const saveItems = useCallback(
     (habitId: string, items: HabitChecklistItem[]) => {
@@ -93,18 +99,15 @@ export function ModuleChecklists({
     [getItems, saveItems],
   );
 
-  const toggleStatus = useCallback(
-    (habitId: string, itemId: string) => {
-      setCheckedItems((prev) => {
-        const current = prev[habitId] ?? [];
-        const next = current.includes(itemId)
-          ? current.filter((id) => id !== itemId)
-          : [...current, itemId];
-        return { ...prev, [habitId]: next };
-      });
-    },
-    [],
-  );
+  const toggleStatus = useCallback((habitId: string, itemId: string) => {
+    setCheckedItems((prev) => {
+      const current = prev[habitId] ?? [];
+      const next = current.includes(itemId)
+        ? current.filter((id) => id !== itemId)
+        : [...current, itemId];
+      return { ...prev, [habitId]: next };
+    });
+  }, []);
 
   const toggleMode = useCallback(
     (habitId: string) => {
@@ -124,9 +127,7 @@ export function ModuleChecklists({
       <Card>
         <CardHeader>
           <CardTitle>Чеклисты</CardTitle>
-          <CardDescription>
-            Привычки с режимом чеклиста
-          </CardDescription>
+          <CardDescription>Привычки с режимом чеклиста</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
@@ -158,7 +159,9 @@ export function ModuleChecklists({
               <div className="flex items-center justify-between">
                 <CardTitle>{habit.name}</CardTitle>
                 <Badge
-                  variant={habit.checklistMode === "all" ? "default" : "secondary"}
+                  variant={
+                    habit.checklistMode === "all" ? "default" : "secondary"
+                  }
                   className="cursor-pointer text-[10px]"
                   onClick={() => toggleMode(habit.id)}
                 >
@@ -217,8 +220,7 @@ export function ModuleChecklists({
                         <span
                           className={cn(
                             "flex-1 text-sm",
-                            isChecked &&
-                              "text-muted-foreground line-through",
+                            isChecked && "text-muted-foreground line-through",
                           )}
                         >
                           {item.text}

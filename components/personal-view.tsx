@@ -62,7 +62,6 @@ function getWeekDates(weekOffset: number): Date[] {
 }
 
 export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
-
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const today = new Date().getDay();

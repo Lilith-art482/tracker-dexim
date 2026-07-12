@@ -64,9 +64,7 @@ function HabitsContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-pulse text-muted-foreground">
-          Загрузка...
-        </div>
+        <div className="animate-pulse text-muted-foreground">Загрузка...</div>
       </div>
     );
   }
@@ -74,15 +72,27 @@ function HabitsContent() {
   const handleCalendarUpdateLog = (logId: string, status: string) => {
     const log = logs.find((l) => l.id === logId);
     if (log) {
-      toggleHabitForDate(log.habitId, log.date, status as "done" | "missed" | "skipped");
+      toggleHabitForDate(
+        log.habitId,
+        log.date,
+        status as "done" | "missed" | "skipped",
+      );
     }
   };
 
-  const handleReminderToggle = (habitId: string, date: string, status: string) => {
+  const handleReminderToggle = (
+    habitId: string,
+    date: string,
+    status: string,
+  ) => {
     toggleHabitForDate(habitId, date, status as "done" | "missed" | "skipped");
   };
 
-  const handleScheduleToggle = (habitId: string, date: string, status: string) => {
+  const handleScheduleToggle = (
+    habitId: string,
+    date: string,
+    status: string,
+  ) => {
     toggleHabitForDate(habitId, date, status as "done" | "missed" | "skipped");
   };
 
@@ -147,10 +157,7 @@ function HabitsContent() {
           />
         )}
         {activeTab === "checklists" && (
-          <ModuleChecklists
-            habits={habits}
-            onUpdateHabit={updateHabit}
-          />
+          <ModuleChecklists habits={habits} onUpdateHabit={updateHabit} />
         )}
         {activeTab === "backup" && (
           <ModuleBackup

@@ -66,7 +66,9 @@ export function FinanceDashboard() {
     null,
   );
   const [initialLoading, setInitialLoading] = useState(true);
-  const [catPeriod, setCatPeriod] = useState<"week" | "month" | "quarter" | "half-year" | "year">("month");
+  const [catPeriod, setCatPeriod] = useState<
+    "week" | "month" | "quarter" | "half-year" | "year"
+  >("month");
   const [catType, setCatType] = useState<"expense" | "income">("expense");
 
   const categoryMap = useMemo(() => {
@@ -112,7 +114,9 @@ export function FinanceDashboard() {
 
   const periodTxns = useMemo(() => {
     const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .split("T")[0];
     const end = now.toISOString().split("T")[0];
     return transactions.filter((t) => t.date >= start && t.date <= end);
   }, [transactions]);
@@ -193,7 +197,10 @@ export function FinanceDashboard() {
   }, [catPeriod]);
 
   const catTxns = useMemo(
-    () => transactions.filter((t) => t.date >= catRange.start && t.date <= catRange.end),
+    () =>
+      transactions.filter(
+        (t) => t.date >= catRange.start && t.date <= catRange.end,
+      ),
     [transactions, catRange],
   );
 
@@ -222,12 +229,21 @@ export function FinanceDashboard() {
       .sort((a, b) => b.amount - a.amount);
   }, [catTxns, catType, categoryMap]);
 
-  const chartCategories = useMemo(() => sortedCategories.slice(0, 8), [sortedCategories]);
-  const chartOtherTotal = useMemo(() => sortedCategories.slice(8).reduce((s, c) => s + c.amount, 0), [sortedCategories]);
+  const chartCategories = useMemo(
+    () => sortedCategories.slice(0, 8),
+    [sortedCategories],
+  );
+  const chartOtherTotal = useMemo(
+    () => sortedCategories.slice(8).reduce((s, c) => s + c.amount, 0),
+    [sortedCategories],
+  );
   const chartOtherPct = useMemo(
-    () => (chartOtherTotal > 0 && sortedCategories.length > 0
-      ? (chartOtherTotal / sortedCategories.reduce((s, c) => s + c.amount, 0)) * 100
-      : 0),
+    () =>
+      chartOtherTotal > 0 && sortedCategories.length > 0
+        ? (chartOtherTotal /
+            sortedCategories.reduce((s, c) => s + c.amount, 0)) *
+          100
+        : 0,
     [chartOtherTotal, sortedCategories],
   );
 
@@ -239,7 +255,11 @@ export function FinanceDashboard() {
     year: "Год",
   };
 
-  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+  const daysInMonth = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth() + 1,
+    0,
+  ).getDate();
   const dailyAvgExpense = daysInMonth > 0 ? periodExpenses / daysInMonth : 0;
   const dailyAvgIncome = daysInMonth > 0 ? periodIncome / daysInMonth : 0;
   const projectedRemaining = periodIncome - periodExpenses;
@@ -333,9 +353,7 @@ export function FinanceDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
-              {freeMoney.toLocaleString()} ₽
-            </p>
+            <p className="text-2xl font-bold">{freeMoney.toLocaleString()} ₽</p>
           </CardContent>
         </Card>
       </div>
@@ -480,9 +498,7 @@ export function FinanceDashboard() {
                               style={{ backgroundColor: cat.color }}
                             />
                           </td>
-                          <td className="px-3 py-2 font-medium">
-                            {cat.name}
-                          </td>
+                          <td className="px-3 py-2 font-medium">{cat.name}</td>
                           <td className="px-3 py-2 text-right tabular-nums font-medium">
                             {cat.amount.toLocaleString()} ₽
                           </td>

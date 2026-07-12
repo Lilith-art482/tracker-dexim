@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Habit, HabitLog, Achievement, AchievementType } from "@/lib/habit-types";
+import type {
+  Habit,
+  HabitLog,
+  Achievement,
+  AchievementType,
+} from "@/lib/habit-types";
 import {
   ACHIEVEMENT_LABELS,
   ACHIEVEMENT_DESCRIPTIONS,
@@ -21,7 +26,13 @@ import {
   CheckCircle2Icon,
   MedalIcon,
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface ModuleAchievementsProps {
@@ -45,10 +56,18 @@ function todayUTC(): string {
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00Z");
-  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+  return d.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
-export function ModuleAchievements({ habits, logs, achievements }: ModuleAchievementsProps) {
+export function ModuleAchievements({
+  habits,
+  logs,
+  achievements,
+}: ModuleAchievementsProps) {
   const unlockedTypes = useMemo(() => {
     return new Set(achievements.map((a) => a.type));
   }, [achievements]);
@@ -67,12 +86,24 @@ export function ModuleAchievements({ habits, logs, achievements }: ModuleAchieve
     let total = 0;
     for (const achievement of achievements) {
       switch (achievement.type) {
-        case "first_habit": total += 10; break;
-        case "streak_7": total += 20; break;
-        case "streak_30": total += 50; break;
-        case "streak_90": total += 100; break;
-        case "total_100": total += 30; break;
-        case "perfect_month": total += 40; break;
+        case "first_habit":
+          total += 10;
+          break;
+        case "streak_7":
+          total += 20;
+          break;
+        case "streak_30":
+          total += 50;
+          break;
+        case "streak_90":
+          total += 100;
+          break;
+        case "total_100":
+          total += 30;
+          break;
+        case "perfect_month":
+          total += 40;
+          break;
       }
     }
 
@@ -98,7 +129,9 @@ export function ModuleAchievements({ habits, logs, achievements }: ModuleAchieve
   }, [points]);
 
   const nextLevel = useMemo(() => {
-    const idx = LEVEL_THRESHOLDS.findIndex((l) => l.level === currentLevel.level);
+    const idx = LEVEL_THRESHOLDS.findIndex(
+      (l) => l.level === currentLevel.level,
+    );
     if (idx < LEVEL_THRESHOLDS.length - 1) return LEVEL_THRESHOLDS[idx + 1];
     return null;
   }, [currentLevel]);
@@ -148,9 +181,15 @@ export function ModuleAchievements({ habits, logs, achievements }: ModuleAchieve
             break;
           }
         }
-        progress = Math.min(100, Math.round((streak / (habit.goalValue || 1)) * 100));
+        progress = Math.min(
+          100,
+          Math.round((streak / (habit.goalValue || 1)) * 100),
+        );
       } else {
-        progress = Math.min(100, Math.round((doneCount / (habit.goalValue || 1)) * 100));
+        progress = Math.min(
+          100,
+          Math.round((doneCount / (habit.goalValue || 1)) * 100),
+        );
       }
 
       return { habit, doneCount, progress };
@@ -218,9 +257,7 @@ export function ModuleAchievements({ habits, logs, achievements }: ModuleAchieve
         <Card>
           <CardHeader>
             <CardTitle>Прогресс по целям</CardTitle>
-            <CardDescription>
-              Текущие цели привычек
-            </CardDescription>
+            <CardDescription>Текущие цели привычек</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {goalProgress.map(({ habit, doneCount, progress }) => (
@@ -231,7 +268,10 @@ export function ModuleAchievements({ habits, logs, achievements }: ModuleAchieve
                     <div>
                       <span className="text-sm font-medium">{habit.name}</span>
                       <p className="text-xs text-muted-foreground">
-                        {habit.goal} · {habit.goalType === "streak" ? `${doneCount}/${habit.goalValue} дней` : `${doneCount}/${habit.goalValue} раз`}
+                        {habit.goal} ·{" "}
+                        {habit.goalType === "streak"
+                          ? `${doneCount}/${habit.goalValue} дней`
+                          : `${doneCount}/${habit.goalValue} раз`}
                       </p>
                     </div>
                   </div>
@@ -269,7 +309,10 @@ export function ModuleAchievements({ habits, logs, achievements }: ModuleAchieve
             {allAchievementTypes.map((type) => {
               const unlocked = unlockedTypes.has(type);
               const date = achievementDates.get(type);
-              const isNew = date && new Date(date + "T00:00:00Z") > new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
+              const isNew =
+                date &&
+                new Date(date + "T00:00:00Z") >
+                  new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
 
               return (
                 <div
@@ -284,23 +327,34 @@ export function ModuleAchievements({ habits, logs, achievements }: ModuleAchieve
                   <div
                     className={cn(
                       "flex size-10 shrink-0 items-center justify-center rounded-full",
-                      unlocked ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400" : "bg-muted text-muted-foreground",
+                      unlocked
+                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400"
+                        : "bg-muted text-muted-foreground",
                     )}
                   >
-                    {unlocked ? ACHIEVEMENT_ICONS[type] : <LockIcon className="size-5" />}
+                    {unlocked ? (
+                      ACHIEVEMENT_ICONS[type]
+                    ) : (
+                      <LockIcon className="size-5" />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span
                         className={cn(
                           "text-sm font-medium",
-                          unlocked ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground",
+                          unlocked
+                            ? "text-emerald-700 dark:text-emerald-300"
+                            : "text-muted-foreground",
                         )}
                       >
                         {ACHIEVEMENT_LABELS[type]}
                       </span>
                       {isNew && (
-                        <Badge variant="default" className="h-5 px-1.5 text-[10px]">
+                        <Badge
+                          variant="default"
+                          className="h-5 px-1.5 text-[10px]"
+                        >
                           NEW
                         </Badge>
                       )}
