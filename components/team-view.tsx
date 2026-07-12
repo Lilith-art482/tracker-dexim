@@ -15,7 +15,7 @@ import type { Task, Column, BoardMember, Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useNotifications } from "@/lib/notification-context";
+import { toast } from "sonner";
 import { TeamWeekTable } from "@/components/team-week-table";
 import { TeamListView } from "@/components/team-list-view";
 import { TaskFormDialog } from "@/components/task-form-dialog";
@@ -74,7 +74,7 @@ export function TeamView({
   boardMembers,
   isArchiveView,
 }: TeamViewProps) {
-  const { addNotification } = useNotifications();
+
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const today = new Date().getDay();
@@ -135,13 +135,13 @@ export function TeamView({
   const handleAddTask = useCallback(() => {
     const firstCol = columns[0];
     if (!firstCol) {
-      addNotification("Создайте хотя бы одну колонку", "info");
+      toast.info("Создайте хотя бы одну колонку");
       return;
     }
     setDialogColumnId(firstCol.id);
     setEditingTask(null);
     setDialogOpen(true);
-  }, [columns, addNotification]);
+  }, [columns]);
 
   const handleEditTask = useCallback((task: Task) => {
     setEditingTask(task);

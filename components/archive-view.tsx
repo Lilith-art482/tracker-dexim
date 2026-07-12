@@ -13,7 +13,7 @@ import type { Task } from "@/lib/models";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useNotifications } from "@/lib/notification-context";
+import { toast } from "sonner";
 
 interface ArchiveViewProps {
   boardId: string;
@@ -22,10 +22,7 @@ interface ArchiveViewProps {
 export function ArchiveView({ boardId }: ArchiveViewProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const { addNotification } = useNotifications();
 
-  const notify = (type: "success" | "error" | "info", message: string) =>
-    addNotification(message, type);
 
   const fetchArchived = useCallback(async () => {
     setLoading(true);
@@ -64,14 +61,14 @@ export function ArchiveView({ boardId }: ArchiveViewProps) {
 
       if (!res.ok) {
         const err = await res.json();
-        addNotification(err.error || "Ошибка восстановления задачи", "error");
+        toast.error(err.error || "Ошибка восстановления задачи");
         return;
       }
 
       setTasks((prev) => prev.filter((t) => t.id !== task.id));
-      addNotification("Задача восстановлена на доску", "success");
+      toast.success("Задача восстановлена на доску");
     } catch {
-      addNotification("Ошибка восстановления задачи", "error");
+      toast.error("Ошибка восстановления задачи");
     }
   };
 

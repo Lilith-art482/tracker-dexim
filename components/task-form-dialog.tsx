@@ -39,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useNotifications } from "@/lib/notification-context";
+import { toast } from "sonner";
 
 interface TaskFormDialogProps {
   open: boolean;
@@ -97,7 +97,7 @@ export function TaskFormDialog({
   onSaved,
   onArchived,
 }: TaskFormDialogProps) {
-  const { addNotification } = useNotifications();
+
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
@@ -239,14 +239,14 @@ export function TaskFormDialog({
       });
       if (!res.ok) {
         const err = await res.json();
-        addNotification(err.error || "Ошибка архивирования", "error");
+        toast.error(err.error || "Ошибка архивирования");
         return;
       }
       onArchived?.(task.id);
       onOpenChange(false);
-      addNotification("Задача отправлена в архив", "success");
+      toast.success("Задача отправлена в архив");
     } catch {
-      addNotification("Ошибка архивирования", "error");
+      toast.error("Ошибка архивирования");
     } finally {
       setArchiving(false);
     }
@@ -301,13 +301,13 @@ export function TaskFormDialog({
 
         if (!res.ok) {
           const err = await res.json();
-          addNotification(err.error || "Ошибка сохранения задачи", "error");
+          toast.error(err.error || "Ошибка сохранения задачи");
           return;
         }
 
         const updated: Task = await res.json();
         onSaved(updated);
-        addNotification("Задача обновлена", "success");
+        toast.success("Задача обновлена");
       } else {
         const res = await fetch("/api/tasks", {
           method: "POST",
@@ -327,18 +327,18 @@ export function TaskFormDialog({
 
         if (!res.ok) {
           const err = await res.json();
-          addNotification(err.error || "Ошибка создания задачи", "error");
+          toast.error(err.error || "Ошибка создания задачи");
           return;
         }
 
         const created: Task = await res.json();
         onSaved(created);
-        addNotification("Задача создана", "success");
+        toast.success("Задача создана");
       }
 
       onOpenChange(false);
     } catch {
-      addNotification("Ошибка сохранения задачи", "error");
+      toast.error("Ошибка сохранения задачи");
     } finally {
       setSaving(false);
     }
@@ -361,16 +361,16 @@ export function TaskFormDialog({
 
       if (!res.ok) {
         const err = await res.json();
-        addNotification(err.error || "Ошибка отправки комментария", "error");
+        toast.error(err.error || "Ошибка отправки комментария");
         return;
       }
 
       const created: Comment = await res.json();
       setComments((prev) => [...prev, created]);
       setNewCommentText("");
-      addNotification("Комментарий добавлен", "success");
+      toast.success("Комментарий добавлен");
     } catch {
-      addNotification("Ошибка отправки комментария", "error");
+      toast.error("Ошибка отправки комментария");
     } finally {
       setSendingComment(false);
     }

@@ -33,7 +33,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
-import { useNotifications } from "@/lib/notification-context";
+
 
 interface PersonalTaskDialogProps {
   open: boolean;
@@ -101,7 +101,7 @@ export function PersonalTaskDialog({
   onDelete,
   onToggleComplete,
 }: PersonalTaskDialogProps) {
-  const { addNotification } = useNotifications();
+
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title ?? "");
   const [dayOfWeek, setDayOfWeek] = useState(
@@ -175,13 +175,13 @@ export function PersonalTaskDialog({
 
         if (!res.ok) {
           const err = await res.json();
-          addNotification(err.error || "Ошибка сохранения задачи", "error");
+          toast.error(err.error || "Ошибка сохранения задачи");
           return;
         }
 
         const updated: PersonalTask = await res.json();
         onSaved(updated);
-        addNotification("Задача обновлена", "success");
+        toast.success("Задача обновлена");
       } else {
         const ownerId = auth?.currentUser?.uid || null;
         const res = await fetch("/api/personal-tasks", {
@@ -199,24 +199,24 @@ export function PersonalTaskDialog({
         });
 
         if (res.status === 503) {
-          addNotification("База данных недоступна", "error");
+          toast.error("База данных недоступна");
           return;
         }
 
         if (!res.ok) {
           const err = await res.json();
-          addNotification(err.error || "Ошибка создания задачи", "error");
+          toast.error(err.error || "Ошибка создания задачи");
           return;
         }
 
         const created: PersonalTask = await res.json();
         onSaved(created);
-        addNotification("Задача создана", "success");
+        toast.success("Задача создана");
       }
 
       onOpenChange(false);
     } catch {
-      addNotification("Ошибка сохранения задачи", "error");
+      toast.error("Ошибка сохранения задачи");
     } finally {
       setSaving(false);
     }
@@ -365,7 +365,7 @@ export function PersonalTaskDialog({
                       onClick: () => {
                         onDelete(task);
                         onOpenChange(false);
-                        addNotification("Задача удалена", "success");
+                        toast.success("Задача удалена");
                       },
                     },
                     cancel: {

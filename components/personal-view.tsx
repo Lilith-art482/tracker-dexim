@@ -19,7 +19,7 @@ import { CompactModeToggle } from "@/components/compact-mode-toggle";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useNotifications } from "@/lib/notification-context";
+import { toast } from "sonner";
 
 const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -62,7 +62,7 @@ function getWeekDates(weekOffset: number): Date[] {
 }
 
 export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
-  const { addNotification } = useNotifications();
+
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const today = new Date().getDay();
@@ -139,23 +139,22 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
 
         if (!res.ok) {
           const err = await res.json();
-          addNotification(err.error || "Ошибка обновления задачи", "error");
+          toast.error(err.error || "Ошибка обновления задачи");
           setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
           return;
         }
 
         const updated: PersonalTask = await res.json();
         setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
-        addNotification(
+        toast.success(
           updated.completed ? "Задача выполнена" : "Задача возобновлена",
-          "success",
         );
       } catch {
-        addNotification("Ошибка обновления задачи", "error");
+        toast.error("Ошибка обновления задачи");
         setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
       }
     },
-    [addNotification],
+    [toast],
   );
 
   const handleDeleteTask = useCallback(
@@ -171,16 +170,16 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
 
         if (!res.ok) {
           const err = await res.json();
-          addNotification(err.error || "Ошибка удаления задачи", "error");
+          toast.error(err.error || "Ошибка удаления задачи");
           return;
         }
 
-        addNotification("Задача удалена", "success");
+        toast.success("Задача удалена");
       } catch {
-        addNotification("Ошибка удаления задачи", "error");
+        toast.error("Ошибка удаления задачи");
       }
     },
-    [addNotification],
+    [toast],
   );
 
   const handleEditTask = useCallback((task: PersonalTask) => {

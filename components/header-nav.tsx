@@ -7,8 +7,12 @@ import {
   ListChecks,
   Search,
   User,
+  Settings,
   Sun,
   Moon,
+  Palette,
+  Globe,
+  Monitor,
 } from "lucide-react";
 import { useMode } from "@/lib/mode-context";
 import { cn } from "@/lib/utils";
@@ -16,8 +20,13 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useState } from "react";
-import { NotificationBell } from "@/components/notification-bell";
+
 
 const NAV_ITEMS = [
   { id: "planner", label: "Планнер", icon: Calendar },
@@ -76,6 +85,13 @@ export function HeaderNav() {
 export function HeaderActions() {
   const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
+  const [language, setLanguage] = useState("ru");
+
+  const languages = [
+    { value: "ru", label: "Русский" },
+    { value: "en", label: "English" },
+    { value: "zh", label: "中文" },
+  ];
 
   return (
     <>
@@ -92,16 +108,94 @@ export function HeaderActions() {
         </div>
       </div>
 
-      <NotificationBell />
+      <Popover>
+        <PopoverTrigger>
+          <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+            <Settings className="h-4 w-4" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="end" sideOffset={8} className="w-56 p-3">
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2 text-xs font-medium text-muted-foreground/70">
+                <Globe className="h-3.5 w-3.5" />
+                Язык
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {languages.map((lang) => (
+                  <button
+                    key={lang.value}
+                    onClick={() => setLanguage(lang.value)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors text-left",
+                      language === lang.value
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    )}
+                  >
+                    <span className="text-xs">{lang.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-      <button
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-        title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
-      >
-        <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-        <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-      </button>
+            <div className="h-px bg-border" />
+
+            <div>
+              <div className="flex items-center gap-2 mb-2 text-xs font-medium text-muted-foreground/70">
+                <Monitor className="h-3.5 w-3.5" />
+                Тема
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  onClick={() => setTheme("light")}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                    theme === "light"
+                      ? "bg-primary/10 text-primary font-medium ring-1 ring-primary/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                  )}
+                >
+                  <Sun className="h-3.5 w-3.5" />
+                  Светлая
+                </button>
+                <button
+                  onClick={() => setTheme("dark")}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                    theme === "dark"
+                      ? "bg-primary/10 text-primary font-medium ring-1 ring-primary/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                  )}
+                >
+                  <Moon className="h-3.5 w-3.5" />
+                  Тёмная
+                </button>
+              </div>
+            </div>
+
+            <div className="h-px bg-border" />
+
+            <div>
+              <div className="flex items-center gap-2 mb-2 text-xs font-medium text-muted-foreground/70">
+                <Palette className="h-3.5 w-3.5" />
+                Цветовая гамма
+              </div>
+              <button
+                disabled
+                className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground/50 cursor-not-allowed"
+              >
+                <div className="flex -space-x-1">
+                  <div className="h-3 w-3 rounded-full border border-border bg-blue-500" />
+                  <div className="h-3 w-3 rounded-full border border-border bg-purple-500" />
+                  <div className="h-3 w-3 rounded-full border border-border bg-emerald-500" />
+                </div>
+                В разработке
+              </button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
 
       <Link
         href="/profile"
