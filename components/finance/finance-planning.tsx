@@ -9,6 +9,8 @@ import {
   TrendingDown,
   AlertTriangle,
   Loader2,
+  ListChecks,
+  Wallet,
   Plus,
   Trash2,
   Pencil,
@@ -331,14 +333,14 @@ export function FinancePlanning() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b">
         <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-muted-foreground" />
+          <Calendar className="h-4 w-4 text-muted-foreground" />
           <Select
             value={period}
             onValueChange={(v) => v && setPeriod(v as BudgetPlan["period"])}
           >
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[140px] h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -350,79 +352,101 @@ export function FinancePlanning() {
             </SelectContent>
           </Select>
         </div>
-        <p className="text-sm text-muted-foreground tabular-nums">
+        <p className="text-xs text-muted-foreground tabular-nums">
           {periodStart} — {periodEnd}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="rounded-xl border bg-gradient-to-br from-sky-50/60 to-transparent p-4 dark:from-sky-950/20">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400">
               Ожидаемый доход
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-2xl font-bold tabular-nums">
-              {(expectedIncome.trim()
-                ? parseFloat(expectedIncome)
-                : totalBalance
-              ).toLocaleString()}{" "}
-              ₽
-            </p>
+            </span>
+            <TrendingUp className="h-4 w-4 text-sky-500" />
+          </div>
+          <div className="text-2xl font-bold tabular-nums mb-2">
+            {(expectedIncome.trim()
+              ? parseFloat(expectedIncome)
+              : totalBalance
+            ).toLocaleString()}{" "}
+            ₽
+          </div>
+          <div className="flex items-center gap-2">
             <Input
               type="number"
               value={expectedIncome}
               onChange={(e) => setExpectedIncome(e.target.value)}
               placeholder={totalBalance > 0 ? String(totalBalance) : "0"}
-              className="h-8 text-xs"
+              className="h-7 text-xs flex-1"
             />
             {!expectedIncome.trim() && totalBalance > 0 && (
-              <p className="text-[10px] text-muted-foreground">
-                Баланс счетов: {totalBalance.toLocaleString()} ₽
-              </p>
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                Баланс: {totalBalance.toLocaleString()} ₽
+              </span>
             )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">
+          </div>
+        </div>
+
+        <div className="rounded-xl border bg-gradient-to-br from-amber-50/60 to-transparent p-4 dark:from-amber-950/20">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
               Запланировано
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold tabular-nums">
-              {totalPlanned.toLocaleString()} ₽
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Сумма лимитов по категориям
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">
-              Остаток бюджета
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p
+            </span>
+            <ListChecks className="h-4 w-4 text-amber-500" />
+          </div>
+          <div className="text-2xl font-bold tabular-nums mb-1">
+            {totalPlanned.toLocaleString()} ₽
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Сумма лимитов по категориям
+          </p>
+        </div>
+
+        <div
+          className={cn(
+            "rounded-xl border p-4",
+            totalPlanned - totalSpent >= 0
+              ? "bg-gradient-to-br from-emerald-50/60 to-transparent dark:from-emerald-950/20"
+              : "bg-gradient-to-br from-rose-50/60 to-transparent dark:from-rose-950/20",
+          )}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span
               className={cn(
-                "text-2xl font-bold tabular-nums",
+                "text-[11px] font-semibold uppercase tracking-wider",
                 totalPlanned - totalSpent >= 0
-                  ? "text-emerald-600"
-                  : "text-rose-600",
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-rose-600 dark:text-rose-400",
               )}
             >
-              {(totalPlanned - totalSpent).toLocaleString()} ₽
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {totalPlanned - totalSpent >= 0
-                ? "Можно потратить"
-                : "Перерасход"}
-            </p>
-          </CardContent>
-        </Card>
+              Остаток бюджета
+            </span>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div
+            className={cn(
+              "text-2xl font-bold tabular-nums mb-1",
+              totalPlanned - totalSpent >= 0
+                ? "text-emerald-600"
+                : "text-rose-600",
+            )}
+          >
+            {(totalPlanned - totalSpent).toLocaleString()} ₽
+          </div>
+          <p
+            className={cn(
+              "text-xs",
+              totalPlanned - totalSpent >= 0
+                ? "text-emerald-600/70"
+                : "text-rose-600/70",
+            )}
+          >
+            {totalPlanned - totalSpent >= 0
+              ? "Можно потратить"
+              : "Перерасход"}
+          </p>
+        </div>
       </div>
 
       <Card>

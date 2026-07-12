@@ -11,6 +11,7 @@ import {
   Loader2,
   CalendarArrowUp,
   Clock,
+  BarChart3,
 } from "lucide-react";
 import type {
   FinanceAccount,
@@ -28,6 +29,13 @@ import {
   getEmergencyFund,
 } from "@/lib/finance-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 const CATEGORY_COLORS_HEX: Record<string, string> = {
@@ -58,6 +66,8 @@ export function FinanceDashboard() {
     null,
   );
   const [initialLoading, setInitialLoading] = useState(true);
+  const [catPeriod, setCatPeriod] = useState<"week" | "month" | "quarter" | "half-year" | "year">("month");
+  const [catType, setCatType] = useState<"expense" | "income">("expense");
 
   const categoryMap = useMemo(() => {
     const map = new Map<string, TransactionCategory>();
@@ -150,31 +160,84 @@ export function FinanceDashboard() {
         ? "Нормально"
         : "Тревожно";
 
-  const expenseCategories = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const tx of periodTxns) {
-      if (tx.type !== "expense") continue;
-      map[tx.categoryId] = (map[tx.categoryId] || 0) + tx.amount;
+  const catRange = useMemo(() => {
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    let start: Date;
+    switch (catPeriod) {
+      case "week": {
+        const day = now.getDay();
+        const d = new Date(now);
+        d.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+        start = d;
+        break;
+      }
+      case "month":
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case "quarter": {
+        const q = Math.floor(now.getMonth() / 3) * 3;
+        start = new Date(now.getFullYear(), q, 1);
+        break;
+      }
+      case "half-year": {
+        const h = Math.floor(now.getMonth() / 6) * 6;
+        start = new Date(now.getFullYear(), h, 1);
+        break;
+      }
+      case "year":
+        start = new Date(now.getFullYear(), 0, 1);
+        break;
     }
-    const sorted = Object.entries(map)
-      .map(([id, amount]) => {
+    return { start: start!.toISOString().split("T")[0], end: today };
+  }, [catPeriod]);
+
+  const catTxns = useMemo(
+    () => transactions.filter((t) => t.date >= catRange.start && t.date <= catRange.end),
+    [transactions, catRange],
+  );
+
+  const sortedCategories = useMemo(() => {
+    const typeTxns = catTxns.filter((t) => t.type === catType);
+    const byCategory = new Map<string, { amount: number; count: number }>();
+    for (const tx of typeTxns) {
+      const e = byCategory.get(tx.categoryId) || { amount: 0, count: 0 };
+      e.amount += tx.amount;
+      e.count += 1;
+      byCategory.set(tx.categoryId, e);
+    }
+    const total = typeTxns.reduce((s, t) => s + t.amount, 0);
+    return Array.from(byCategory.entries())
+      .map(([id, { amount, count }]) => {
         const cat = categoryMap.get(id);
         return {
           id,
           name: cat?.name || "Без категории",
-          amount,
           color: CATEGORY_COLORS_HEX[cat?.color || ""] || "#6b7280",
+          amount,
+          percentage: total > 0 ? (amount / total) * 100 : 0,
+          count,
         };
       })
       .sort((a, b) => b.amount - a.amount);
-    return sorted;
-  }, [periodTxns, categoryMap]);
+  }, [catTxns, catType, categoryMap]);
 
-  const topCategories = expenseCategories.slice(0, 6);
-  const otherAmount = expenseCategories
-    .slice(6)
-    .reduce((s, c) => s + c.amount, 0);
-  const totalExpenses = periodExpenses;
+  const chartCategories = useMemo(() => sortedCategories.slice(0, 8), [sortedCategories]);
+  const chartOtherTotal = useMemo(() => sortedCategories.slice(8).reduce((s, c) => s + c.amount, 0), [sortedCategories]);
+  const chartOtherPct = useMemo(
+    () => (chartOtherTotal > 0 && sortedCategories.length > 0
+      ? (chartOtherTotal / sortedCategories.reduce((s, c) => s + c.amount, 0)) * 100
+      : 0),
+    [chartOtherTotal, sortedCategories],
+  );
+
+  const CAT_PERIOD_LABELS: Record<string, string> = {
+    week: "Неделя",
+    month: "Месяц",
+    quarter: "Квартал",
+    "half-year": "Полгода",
+    year: "Год",
+  };
 
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
   const dailyAvgExpense = daysInMonth > 0 ? periodExpenses / daysInMonth : 0;
@@ -279,21 +342,62 @@ export function FinanceDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">
-              Расходы по категориям
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <BarChart3 className="h-4 w-4" />
+              Категории
             </CardTitle>
+            <div className="flex items-center gap-2">
+              <Select
+                value={catPeriod}
+                onValueChange={(v) => setCatPeriod(v as typeof catPeriod)}
+              >
+                <SelectTrigger className="w-[130px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="week">Неделя</SelectItem>
+                  <SelectItem value="month">Месяц</SelectItem>
+                  <SelectItem value="quarter">Квартал</SelectItem>
+                  <SelectItem value="half-year">Полгода</SelectItem>
+                  <SelectItem value="year">Год</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex rounded-lg border p-0.5">
+                <button
+                  onClick={() => setCatType("expense")}
+                  className={cn(
+                    "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                    catType === "expense"
+                      ? "bg-rose-500 text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Расходы
+                </button>
+                <button
+                  onClick={() => setCatType("income")}
+                  className={cn(
+                    "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                    catType === "income"
+                      ? "bg-emerald-500 text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Доходы
+                </button>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {totalExpenses === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                Нет расходов за период
+          <CardContent>
+            {sortedCategories.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                Нет {catType === "expense" ? "расходов" : "доходов"} за период
               </p>
             ) : (
-              <>
-                {topCategories.map((cat) => {
-                  const pct = (cat.amount / totalExpenses) * 100;
-                  return (
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  {chartCategories.map((cat) => (
                     <div key={cat.id} className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -301,56 +405,99 @@ export function FinanceDashboard() {
                             className="h-3 w-3 rounded-full shrink-0"
                             style={{ backgroundColor: cat.color }}
                           />
-                          <span className="truncate">{cat.name}</span>
+                          <span className="truncate font-medium">
+                            {cat.name}
+                          </span>
                         </div>
-                        <span className="font-medium tabular-nums ml-2">
+                        <span className="tabular-nums font-medium ml-2">
                           {cat.amount.toLocaleString()} ₽
                         </span>
-                        <span className="text-xs text-muted-foreground w-10 text-right">
-                          {Math.round(pct)}%
+                        <span className="text-xs text-muted-foreground w-12 text-right tabular-nums">
+                          {cat.percentage.toFixed(1)}%
                         </span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
                         <div
-                          className="h-full rounded-full transition-all"
+                          className="h-full rounded-full transition-all duration-500"
                           style={{
-                            width: `${pct}%`,
+                            width: `${cat.percentage}%`,
                             backgroundColor: cat.color,
                           }}
                         />
                       </div>
                     </div>
-                  );
-                })}
-                {otherAmount > 0 && (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div className="h-3 w-3 rounded-full shrink-0 bg-muted-foreground/40" />
-                        <span>Прочее</span>
+                  ))}
+                  {chartOtherTotal > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div className="h-3 w-3 rounded-full shrink-0 bg-muted-foreground/40" />
+                          <span>Прочее</span>
+                        </div>
+                        <span className="tabular-nums ml-2">
+                          {chartOtherTotal.toLocaleString()} ₽
+                        </span>
+                        <span className="text-xs w-12 text-right tabular-nums">
+                          {chartOtherPct.toFixed(1)}%
+                        </span>
                       </div>
-                      <span className="tabular-nums ml-2">
-                        {otherAmount.toLocaleString()} ₽
-                      </span>
-                      <span className="text-xs w-10 text-right">
-                        {Math.round((otherAmount / totalExpenses) * 100)}%
-                      </span>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-muted-foreground/40 transition-all duration-500"
+                          style={{ width: `${chartOtherPct}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-muted-foreground/40"
-                        style={{
-                          width: `${(otherAmount / totalExpenses) * 100}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm font-medium pt-2 border-t">
-                  <span>Всего расходов</span>
-                  <span>{totalExpenses.toLocaleString()} ₽</span>
+                  )}
                 </div>
-              </>
+
+                <div className="overflow-x-auto rounded-lg border">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/30">
+                        <th className="text-left px-3 py-2 font-medium w-8" />
+                        <th className="text-left px-3 py-2 font-medium">
+                          Категория
+                        </th>
+                        <th className="text-right px-3 py-2 font-medium">
+                          Сумма
+                        </th>
+                        <th className="text-right px-3 py-2 font-medium">%</th>
+                        <th className="text-right px-3 py-2 font-medium">
+                          Операций
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedCategories.map((cat) => (
+                        <tr
+                          key={cat.id}
+                          className="border-b last:border-0 hover:bg-muted/20 transition-colors"
+                        >
+                          <td className="px-3 py-2">
+                            <div
+                              className="h-3 w-3 rounded-full"
+                              style={{ backgroundColor: cat.color }}
+                            />
+                          </td>
+                          <td className="px-3 py-2 font-medium">
+                            {cat.name}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums font-medium">
+                            {cat.amount.toLocaleString()} ₽
+                          </td>
+                          <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">
+                            {cat.percentage.toFixed(1)}%
+                          </td>
+                          <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">
+                            {cat.count}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>

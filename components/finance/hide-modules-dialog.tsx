@@ -9,7 +9,6 @@ import {
   PiggyBank,
   Landmark,
   Briefcase,
-  BarChart3,
   Shield,
   Settings,
 } from "lucide-react";
@@ -32,7 +31,6 @@ const MODULES = [
   { id: "goals", label: "Цели", icon: PiggyBank },
   { id: "loans", label: "Кредиты", icon: Landmark },
   { id: "projects", label: "Проекты", icon: Briefcase },
-  { id: "statistics", label: "Статистика", icon: BarChart3 },
   { id: "emergency", label: "Подушка", icon: Shield },
 ] as const;
 
