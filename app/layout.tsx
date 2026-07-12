@@ -82,7 +82,7 @@ export default async function RootLayout({
                       fallback={
                         <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r bg-sidebar">
                           <div className="border-b px-4 py-3">
-                            <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
+                            <span className="text-xs font-semibold tracking-wider text-sidebar-foreground/60">
                               Доски
                             </span>
                           </div>
