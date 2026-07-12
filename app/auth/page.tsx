@@ -18,7 +18,6 @@ import {
   Calendar,
   DollarSign,
   ListChecks,
-  ArrowRight,
 } from "lucide-react";
 
 const STRONG_NOISE = `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.5' numOctaves='6' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
@@ -196,12 +195,11 @@ export default function AuthPage() {
         <div className="hidden lg:flex w-1/2 flex-col justify-center px-12 xl:px-20 py-12">
           <div className="max-w-lg mx-auto w-full">
             <h1 className="text-4xl xl:text-5xl font-bold text-[#e8eeeb] mb-6 tracking-tight">
-              On Track
+              In Motion
             </h1>
             <p className="text-lg xl:text-xl text-[#c8d5ce] mb-10 leading-relaxed">
-              Единое пространство для твоих задач, финансов и привычек.
-              <br />
-              Всё, чтобы оставаться на пути к целям.
+              Единое пространство для твоих задач, финансов и привычек — всё,
+              чтобы оставаться на пути к целям.
             </p>
 
             <div className="space-y-7">
@@ -246,12 +244,6 @@ export default function AuthPage() {
                   </p>
                 </div>
               </div>
-            </div>
-
-            <div className="mt-12 pt-6 border-t border-[#4E6E62]/20">
-              <p className="text-[#4E6E62]/50 text-xs">
-                Версия 1.0 • Закрытый доступ
-              </p>
             </div>
           </div>
         </div>

@@ -50,7 +50,10 @@ export const COMPLEXITY_LABELS: Record<HabitComplexity, string> = {
   hard: "Сложная",
 };
 
-export function getCategoryLabel(habit: { category: HabitCategory; customCategory?: string }): string {
+export function getCategoryLabel(habit: {
+  category: HabitCategory;
+  customCategory?: string;
+}): string {
   if (habit.category === "other" && habit.customCategory) {
     return habit.customCategory;
   }

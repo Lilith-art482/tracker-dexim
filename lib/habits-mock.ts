@@ -1,4 +1,9 @@
-import type { Habit, HabitLog, Achievement, WeeklyChartData } from "./habits-types";
+import type {
+  Habit,
+  HabitLog,
+  Achievement,
+  WeeklyChartData,
+} from "./habits-types";
 
 const today = new Date().toISOString().split("T")[0];
 

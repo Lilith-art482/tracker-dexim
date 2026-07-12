@@ -17,9 +17,7 @@ export function TaskProvider({
   children: ReactNode;
 }) {
   return (
-    <TaskContext.Provider value={{ tasks }}>
-      {children}
-    </TaskContext.Provider>
+    <TaskContext.Provider value={{ tasks }}>{children}</TaskContext.Provider>
   );
 }
 
