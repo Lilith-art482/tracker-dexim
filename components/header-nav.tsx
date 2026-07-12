@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
+import { useAudio } from "@/lib/audio-context";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -83,6 +84,7 @@ export function HeaderNav() {
 
 export function HeaderActions() {
   const { theme, setTheme } = useTheme();
+  const { isPlaying, toggle: toggleAudio } = useAudio();
   const [searchQuery, setSearchQuery] = useState("");
   const [language, setLanguage] = useState("ru");
 
@@ -193,6 +195,60 @@ export function HeaderActions() {
                   Тёмная
                 </button>
               </div>
+            </div>
+
+            <div className="mx-2.5 h-px bg-border/50" />
+
+            <div className="px-2.5 py-2">
+              <div className="flex items-center gap-2 mb-2.5">
+                <Monitor className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
+                  Музыка
+                </span>
+              </div>
+              <button
+                onClick={toggleAudio}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-all",
+                  isPlaying
+                    ? "bg-primary/10 text-primary ring-1 ring-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex h-5 w-5 items-center justify-center">
+                    {isPlaying ? (
+                      <span className="flex h-3 w-3 items-center justify-center gap-px">
+                        <span
+                          className="h-2 w-0.5 animate-pulse rounded-full bg-current"
+                          style={{ animationDelay: "0ms" }}
+                        />
+                        <span
+                          className="h-3 w-0.5 animate-pulse rounded-full bg-current"
+                          style={{ animationDelay: "150ms" }}
+                        />
+                        <span
+                          className="h-2 w-0.5 animate-pulse rounded-full bg-current"
+                          style={{ animationDelay: "300ms" }}
+                        />
+                      </span>
+                    ) : (
+                      <Monitor className="h-3.5 w-3.5" />
+                    )}
+                  </div>
+                  <span>Фоновая музыка</span>
+                </div>
+                <span
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded",
+                    isPlaying
+                      ? "bg-primary/15 text-primary"
+                      : "bg-muted-foreground/10",
+                  )}
+                >
+                  {isPlaying ? "Вкл" : "Выкл"}
+                </span>
+              </button>
             </div>
 
             <div className="mx-2.5 h-px bg-border/50" />
