@@ -22,8 +22,7 @@ import {
   Mail,
   Send,
 } from "lucide-react";
-
-const STORAGE_KEY = "inmotion_onboarding_seen";
+import { cn } from "@/lib/utils";
 
 const STEPS = [
   {
@@ -31,7 +30,7 @@ const STEPS = [
     title: "Добро пожаловать в In Motion",
     content: (
       <>
-        <p className="text-[#c8d5ce] leading-relaxed">
+        <p className="text-muted-foreground leading-relaxed">
           In Motion — это единое пространство, где встречаются планировщик
           задач, управление финансами и трекинг привычек. Всё в одном месте,
           чтобы ты мог сосредоточиться на главном.
@@ -53,16 +52,16 @@ const STEPS = [
           ].map((item) => (
             <div
               key={item.label}
-              className="flex items-center gap-3 rounded-xl border border-[#4E6E62]/20 bg-[#1a2320]/60 p-3"
+              className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 p-3"
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#4E6E62]/20">
-                <item.icon className="h-4 w-4 text-[#4E6E62]" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <item.icon className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-[#e8eeeb]">
+                <p className="text-sm font-medium text-foreground">
                   {item.label}
                 </p>
-                <p className="text-xs text-[#8fa89b]">{item.desc}</p>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
               </div>
             </div>
           ))}
@@ -75,7 +74,7 @@ const STEPS = [
     title: "Планнер",
     content: (
       <>
-        <p className="text-[#c8d5ce] leading-relaxed">
+        <p className="text-muted-foreground leading-relaxed">
           Управляй задачами в удобном формате — один ты или с командой.
         </p>
 
@@ -109,7 +108,7 @@ const STEPS = [
     title: "Финансы",
     content: (
       <>
-        <p className="text-[#c8d5ce] leading-relaxed">
+        <p className="text-muted-foreground leading-relaxed">
           Держи финансы под контролем: от ежедневных трат до крупных целей.
         </p>
 
@@ -143,7 +142,7 @@ const STEPS = [
     title: "Привычки",
     content: (
       <>
-        <p className="text-[#c8d5ce] leading-relaxed">
+        <p className="text-muted-foreground leading-relaxed">
           Маленькие шаги каждый день — большие изменения в будущем.
         </p>
 
@@ -185,28 +184,27 @@ function FeatureRow({
 }) {
   return (
     <div className="flex items-start gap-2.5">
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#4E6E62]/15">
-        <Icon className="h-4 w-4 text-[#4E6E62]" />
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+        <Icon className="h-4 w-4 text-primary" />
       </div>
       <div>
-        <p className="text-sm font-medium text-[#e8eeeb]">{title}</p>
-        <p className="text-xs text-[#8fa89b]">{desc}</p>
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{desc}</p>
       </div>
     </div>
   );
 }
 
 export default function OnboardingModal() {
+  const [step, setStep] = useState(0);
   const [open, setOpen] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem(STORAGE_KEY) === null;
+      return localStorage.getItem("inmotion_onboarding_hidden") !== "true";
     }
-    return false;
+    return true;
   });
-  const [step, setStep] = useState(0);
 
   function handleClose() {
-    localStorage.setItem(STORAGE_KEY, "1");
     setOpen(false);
   }
 
@@ -224,25 +222,31 @@ export default function OnboardingModal() {
   return (
     <div className="fixed inset-0 isolate z-[100] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={handleClose}
       />
 
       <div className="relative w-full max-w-lg animate-in fade-in zoom-in-95 duration-300">
-        <div className="backdrop-blur-2xl bg-[#121814]/85 border border-[#4E6E62]/30 rounded-3xl shadow-2xl overflow-hidden">
+        <div
+          className={cn(
+            "backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden",
+            "dark:bg-[#121814]/90 dark:border dark:border-[#4E6E62]/30",
+            "bg-white/95 border border-border/60",
+          )}
+        >
           <div className="p-6 pb-4">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4E6E62]/20">
-                  <Icon className="h-5 w-5 text-[#4E6E62]" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                  <Icon className="h-5 w-5 text-primary" />
                 </div>
-                <h2 className="text-lg font-bold text-[#e8eeeb]">
+                <h2 className="text-lg font-bold text-foreground">
                   {current.title}
                 </h2>
               </div>
               <button
                 onClick={handleClose}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#8fa89b] hover:text-[#e8eeeb] hover:bg-[#1a2320]/60 transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -251,7 +255,13 @@ export default function OnboardingModal() {
             <div className="space-y-5">{current.content}</div>
           </div>
 
-          <div className="border-t border-[#4E6E62]/20 px-6 py-4 bg-[#0f1411]/40">
+          <div
+            className={cn(
+              "border-t px-6 py-4",
+              "dark:border-[#4E6E62]/20 dark:bg-[#0f1411]/40",
+              "border-border/60 bg-muted/20",
+            )}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 {STEPS.map((_, i) => (
@@ -259,10 +269,10 @@ export default function OnboardingModal() {
                     key={i}
                     className={`h-1.5 rounded-full transition-all duration-300 ${
                       i === step
-                        ? "w-6 bg-[#4E6E62]"
+                        ? "w-6 bg-primary"
                         : i < step
-                          ? "w-1.5 bg-[#4E6E62]/40"
-                          : "w-1.5 bg-[#4E6E62]/15"
+                          ? "w-1.5 bg-primary/40"
+                          : "w-1.5 bg-primary/15"
                     }`}
                   />
                 ))}
@@ -272,7 +282,7 @@ export default function OnboardingModal() {
                 {!isFirst && (
                   <button
                     onClick={() => setStep((s) => s - 1)}
-                    className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-medium text-[#c8d5ce] hover:text-[#e8eeeb] hover:bg-[#1a2320]/60 transition-colors"
+                    className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                   >
                     <ArrowLeft className="h-3.5 w-3.5" />
                     Назад
@@ -281,14 +291,14 @@ export default function OnboardingModal() {
                 {isLast ? (
                   <button
                     onClick={handleDone}
-                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4E6E62] to-[#3D554A] px-5 py-2 text-xs font-semibold text-white hover:from-[#5A7A6D] hover:to-[#4E6E62] transition-all shadow-lg shadow-[#4E6E62]/25"
+                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4E6E62] to-[#3D554A] px-5 py-2 text-xs font-semibold text-white hover:from-[#5A7A6D] hover:to-[#4E6E62] transition-all shadow-lg shadow-primary/25"
                   >
                     Готово
                   </button>
                 ) : (
                   <button
                     onClick={() => setStep((s) => s + 1)}
-                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4E6E62] to-[#3D554A] px-5 py-2 text-xs font-semibold text-white hover:from-[#5A7A6D] hover:to-[#4E6E62] transition-all shadow-lg shadow-[#4E6E62]/25"
+                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4E6E62] to-[#3D554A] px-5 py-2 text-xs font-semibold text-white hover:from-[#5A7A6D] hover:to-[#4E6E62] transition-all shadow-lg shadow-primary/25"
                   >
                     Далее
                   </button>
@@ -297,16 +307,22 @@ export default function OnboardingModal() {
             </div>
           </div>
 
-          <div className="border-t border-[#4E6E62]/15 px-6 py-3.5 bg-[#0a0f0d]/50">
+          <div
+            className={cn(
+              "border-t px-6 py-3.5",
+              "dark:border-[#4E6E62]/15 dark:bg-[#0a0f0d]/50",
+              "border-border/60 bg-muted/30",
+            )}
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-[11px] text-[#4E6E62]/50">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
                 <MessageCircle className="h-3 w-3" />
                 <span>Вопросы и предложения:</span>
               </div>
               <div className="flex items-center gap-3">
                 <a
                   href="mailto:In-motion@info.io"
-                  className="flex items-center gap-1 text-[11px] text-[#4E6E62]/70 hover:text-[#4E6E62] transition-colors"
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground/70 hover:text-foreground transition-colors"
                 >
                   <Mail className="h-3 w-3" />
                   <span className="hidden sm:inline">In-motion@info.io</span>
@@ -315,7 +331,7 @@ export default function OnboardingModal() {
                   href="tg://resolve?domain=artyom_medoed"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[11px] text-[#4E6E62]/70 hover:text-[#4E6E62] transition-colors"
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground/70 hover:text-foreground transition-colors"
                 >
                   <Send className="h-3 w-3" />
                   <span className="hidden sm:inline">@artyom_medoed</span>
@@ -324,7 +340,7 @@ export default function OnboardingModal() {
                   href="tg://resolve?domain=inmotion_bot"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[11px] text-[#4E6E62]/70 hover:text-[#4E6E62] transition-colors"
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground/70 hover:text-foreground transition-colors"
                 >
                   <Send className="h-3 w-3" />
                   <span className="hidden sm:inline">@inmotion_bot</span>

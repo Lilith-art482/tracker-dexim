@@ -13,13 +13,15 @@ import {
   Palette,
   Globe,
   Monitor,
+  Volume2,
+  Sparkles,
 } from "lucide-react";
 import { useMode } from "@/lib/mode-context";
 import { cn } from "@/lib/utils";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
-import { useAudio } from "@/lib/audio-context";
+import { useAudio, SOUND_TYPES } from "@/lib/audio-context";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -84,7 +86,18 @@ export function HeaderNav() {
 
 export function HeaderActions() {
   const { theme, setTheme } = useTheme();
-  const { isPlaying, toggle: toggleAudio } = useAudio();
+  const {
+    isPlaying,
+    toggle: toggleAudio,
+    soundType,
+    setSoundType,
+  } = useAudio();
+  const [onboardingShown, setOnboardingShown] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("inmotion_onboarding_hidden") !== "true";
+    }
+    return true;
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [language, setLanguage] = useState("ru");
 
@@ -201,17 +214,37 @@ export function HeaderActions() {
 
             <div className="px-2.5 py-2">
               <div className="flex items-center gap-2 mb-2.5">
-                <Monitor className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <Volume2 className="h-3.5 w-3.5 text-muted-foreground/60" />
                 <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
                   Музыка
                 </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1 mb-2">
+                {SOUND_TYPES.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      setSoundType(s.id);
+                      if (!isPlaying) toggleAudio();
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-all",
+                      isPlaying && soundType === s.id
+                        ? "bg-primary/10 text-primary ring-1 ring-primary/20"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    )}
+                  >
+                    <span className="text-[13px]">{s.icon}</span>
+                    <span>{s.label}</span>
+                  </button>
+                ))}
               </div>
               <button
                 onClick={toggleAudio}
                 className={cn(
                   "flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-all",
                   isPlaying
-                    ? "bg-primary/10 text-primary ring-1 ring-primary/20"
+                    ? "bg-primary/5 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
                 )}
               >
@@ -233,10 +266,10 @@ export function HeaderActions() {
                         />
                       </span>
                     ) : (
-                      <Monitor className="h-3.5 w-3.5" />
+                      <Volume2 className="h-3.5 w-3.5" />
                     )}
                   </div>
-                  <span>Фоновая музыка</span>
+                  <span>Воспроизведение</span>
                 </div>
                 <span
                   className={cn(
@@ -247,6 +280,50 @@ export function HeaderActions() {
                   )}
                 >
                   {isPlaying ? "Вкл" : "Выкл"}
+                </span>
+              </button>
+            </div>
+
+            <div className="mx-2.5 h-px bg-border/50" />
+
+            <div className="px-2.5 py-2">
+              <div className="flex items-center gap-2 mb-2.5">
+                <Sparkles className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
+                  Обучение
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  const hidden =
+                    localStorage.getItem("inmotion_onboarding_hidden") ===
+                    "true";
+                  localStorage.setItem(
+                    "inmotion_onboarding_hidden",
+                    hidden ? "false" : "true",
+                  );
+                  setOnboardingShown(hidden);
+                }}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-all",
+                  onboardingShown
+                    ? "bg-primary/10 text-primary ring-1 ring-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>Онбординг</span>
+                </div>
+                <span
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded",
+                    onboardingShown
+                      ? "bg-primary/15 text-primary"
+                      : "bg-muted-foreground/10",
+                  )}
+                >
+                  {onboardingShown ? "Показывать" : "Скрыт"}
                 </span>
               </button>
             </div>
