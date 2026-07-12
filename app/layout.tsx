@@ -14,7 +14,6 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { ModeProvider } from "@/lib/mode-context";
 import { SidebarProvider } from "@/lib/sidebar-context";
 
-
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const appName = "On Track";

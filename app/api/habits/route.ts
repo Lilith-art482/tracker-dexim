@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
   const id = searchParams.get("id");
   if (id) {
     const habit = await getHabitById(id);
-    if (!habit) return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+    if (!habit)
+      return NextResponse.json({ error: "Не найдено" }, { status: 404 });
     return NextResponse.json(habit);
   }
   const habits = await getAllHabits();
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Некорректные данные", details: parsed.error.flatten() },
-      { status: 400 }
+      { status: 400 },
     );
   }
   const habit = await createHabit({ ...parsed.data, status: "active" });
@@ -35,23 +36,26 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
-  if (!id) return NextResponse.json({ error: "id обязателен" }, { status: 400 });
+  if (!id)
+    return NextResponse.json({ error: "id обязателен" }, { status: 400 });
   const parsed = updateHabitSchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Некорректные данные", details: parsed.error.flatten() },
-      { status: 400 }
+      { status: 400 },
     );
   }
   const updated = await updateHabit(id, parsed.data);
-  if (!updated) return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+  if (!updated)
+    return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   return NextResponse.json(updated);
 }
 
 export async function DELETE(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
-  if (!id) return NextResponse.json({ error: "id обязателен" }, { status: 400 });
+  if (!id)
+    return NextResponse.json({ error: "id обязателен" }, { status: 400 });
   await deleteHabit(id);
   return NextResponse.json({ success: true });
 }

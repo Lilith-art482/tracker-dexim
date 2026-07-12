@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Некорректные данные", details: parsed.error.flatten() },
-      { status: 400 }
+      { status: 400 },
     );
   }
   const reminder = await createReminder(parsed.data);
@@ -27,17 +27,20 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
-  if (!id) return NextResponse.json({ error: "id обязателен" }, { status: 400 });
+  if (!id)
+    return NextResponse.json({ error: "id обязателен" }, { status: 400 });
   const body = await request.json();
   const updated = await updateReminder(id, body);
-  if (!updated) return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+  if (!updated)
+    return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   return NextResponse.json(updated);
 }
 
 export async function DELETE(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
-  if (!id) return NextResponse.json({ error: "id обязателен" }, { status: 400 });
+  if (!id)
+    return NextResponse.json({ error: "id обязателен" }, { status: 400 });
   await deleteReminder(id);
   return NextResponse.json({ success: true });
 }

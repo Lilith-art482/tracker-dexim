@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Некорректные данные", details: parsed.error.flatten() },
-      { status: 400 }
+      { status: 400 },
     );
   }
   const log = await createLog(parsed.data);
@@ -44,9 +44,11 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
-  if (!id) return NextResponse.json({ error: "id обязателен" }, { status: 400 });
+  if (!id)
+    return NextResponse.json({ error: "id обязателен" }, { status: 400 });
   const { status, durationMinutes, note } = await request.json();
   const updated = await updateLog(id, { status, durationMinutes, note });
-  if (!updated) return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+  if (!updated)
+    return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   return NextResponse.json(updated);
 }
