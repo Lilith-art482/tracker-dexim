@@ -9,13 +9,15 @@ import {
   useCallback,
 } from "react";
 
+import { Music, CloudRain, Flame, Wind, Target, Heart } from "lucide-react";
+
 export const SOUND_TYPES = [
-  { id: "ambient", label: "Мелодия", icon: "🎵" },
-  { id: "rain", label: "Дождь", icon: "🌧" },
-  { id: "fire", label: "Огонь", icon: "🔥" },
-  { id: "wind", label: "Ветер", icon: "🌬" },
-  { id: "focus", label: "Для работы", icon: "🎯" },
-  { id: "relax", label: "Для отдыха", icon: "🧘" },
+  { id: "ambient", label: "Мелодия", icon: Music },
+  { id: "rain", label: "Дождь", icon: CloudRain },
+  { id: "fire", label: "Огонь", icon: Flame },
+  { id: "wind", label: "Ветер", icon: Wind },
+  { id: "focus", label: "Для работы", icon: Target },
+  { id: "relax", label: "Для отдыха", icon: Heart },
 ] as const;
 
 export type SoundType = (typeof SOUND_TYPES)[number]["id"];

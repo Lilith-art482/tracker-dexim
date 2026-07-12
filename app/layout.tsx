@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { headers } from "next/headers";
 import "./globals.css";
+import Image from "next/image";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "next-themes";
@@ -18,7 +19,7 @@ import { AudioProvider } from "@/lib/audio-context";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
-const appName = "On Track";
+const appName = "In Motion";
 
 export const metadata: Metadata = {
   title: appName,
@@ -58,9 +59,14 @@ export default async function RootLayout({
                     <div className="flex h-14 items-center px-2 sm:px-4 gap-1 sm:gap-3">
                       <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                         <SidebarToggle />
-                        <span className="text-sm sm:text-base font-semibold tracking-tight">
-                          {appName}
-                        </span>
+                        <Image
+                          src="/logo.png"
+                          alt={appName}
+                          width={96}
+                          height={28}
+                          className="h-6 w-auto object-contain"
+                          priority
+                        />
                         <div className="hidden sm:block h-5 w-px bg-border/50" />
                       </div>
 

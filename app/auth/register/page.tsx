@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -139,9 +140,14 @@ export default function RegisterPage() {
       <div className="relative z-20 flex w-full min-h-screen">
         <div className="hidden lg:flex w-1/2 flex-col justify-center px-12 xl:px-20 py-12">
           <div className="max-w-lg mx-auto w-full">
-            <h1 className="text-4xl xl:text-5xl font-bold text-[#e8eeeb] mb-6 tracking-tight">
-              In Motion
-            </h1>
+            <Image
+              src="/logo.png"
+              alt="In Motion"
+              width={160}
+              height={48}
+              className="h-10 xl:h-12 w-auto mb-6"
+              priority
+            />
             <p className="text-lg xl:text-xl text-[#c8d5ce] mb-10 leading-relaxed">
               Единое пространство для твоих задач, финансов и привычек — всё,
               чтобы оставаться на пути к целям.
