@@ -155,7 +155,20 @@ export function FinancePlanning() {
       }
       setCategories(cats);
       setTransactions(txs);
-    } catch {
+      console.log("[Planning] fetchData complete", {
+        uid,
+        period,
+        periodStart,
+        budgetsCount: budgets.length,
+        currentBudget: current
+          ? { id: current.id, categoryBudgets: current.categoryBudgets }
+          : null,
+        categoryLimitsLoaded: current
+          ? current.categoryBudgets.map((cb) => cb.categoryId)
+          : [],
+      });
+    } catch (e) {
+      console.error("[Planning] fetchData error", e);
       setCategories([]);
       setTransactions([]);
     } finally {
@@ -235,12 +248,20 @@ export function FinancePlanning() {
       expectedIncome: parseFloat(expectedIncome) || 0,
       categoryBudgets,
     };
+    console.log("[Planning] handleSave", {
+      uid,
+      budgetPlanId: budgetPlan?.id,
+      categoryBudgets,
+      expenseCategories: expenseCategories.map((c) => c.id),
+      categoryLimits,
+    });
     try {
       if (budgetPlan) {
         const saved = await updateBudgetPlan(budgetPlan.id, {
           expectedIncome: parseFloat(expectedIncome) || 0,
           categoryBudgets,
         });
+        console.log("[Planning] update result", saved);
         setBudgetPlan(saved);
         setAllBudgets((prev) =>
           prev.map((b) => (b.id === saved.id ? saved : b)),
@@ -256,11 +277,13 @@ export function FinancePlanning() {
           expectedIncome: parseFloat(expectedIncome) || 0,
           categoryBudgets,
         });
+        console.log("[Planning] create result", saved);
         setBudgetPlan(saved);
         setAllBudgets((prev) => [...prev, saved]);
       }
       toast.success("Бюджет сохранён");
-    } catch {
+    } catch (e) {
+      console.error("[Planning] Save error", e);
       toast.error("Ошибка при сохранении");
     } finally {
       setSaving(false);
@@ -308,7 +331,7 @@ export function FinancePlanning() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-muted-foreground" />
           <Select
@@ -327,80 +350,90 @@ export function FinancePlanning() {
             </SelectContent>
           </Select>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground tabular-nums">
           {periodStart} — {periodEnd}
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Бюджет</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">
-                Ожидаемый доход
-              </label>
-              <Input
-                type="number"
-                value={expectedIncome}
-                onChange={(e) => setExpectedIncome(e.target.value)}
-                placeholder={totalBalance > 0 ? String(totalBalance) : "0"}
-              />
-              {!expectedIncome.trim() && totalBalance > 0 && (
-                <p className="text-[10px] text-muted-foreground">
-                  Используется баланс счетов: {totalBalance.toLocaleString()} ₽
-                </p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">
+              Ожидаемый доход
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-2xl font-bold tabular-nums">
+              {(expectedIncome.trim()
+                ? parseFloat(expectedIncome)
+                : totalBalance
+              ).toLocaleString()}{" "}
+              ₽
+            </p>
+            <Input
+              type="number"
+              value={expectedIncome}
+              onChange={(e) => setExpectedIncome(e.target.value)}
+              placeholder={totalBalance > 0 ? String(totalBalance) : "0"}
+              className="h-8 text-xs"
+            />
+            {!expectedIncome.trim() && totalBalance > 0 && (
+              <p className="text-[10px] text-muted-foreground">
+                Баланс счетов: {totalBalance.toLocaleString()} ₽
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">
+              Запланировано
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold tabular-nums">
+              {totalPlanned.toLocaleString()} ₽
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Сумма лимитов по категориям
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">
+              Остаток бюджета
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p
+              className={cn(
+                "text-2xl font-bold tabular-nums",
+                totalPlanned - totalSpent >= 0
+                  ? "text-emerald-600"
+                  : "text-rose-600",
               )}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">
-                Запланировано
-              </label>
-              <p className="text-2xl font-bold">
-                {totalPlanned.toLocaleString()} ₽
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">
-                Остаток бюджета
-              </label>
-              <p
-                className={cn(
-                  "text-2xl font-bold",
-                  totalPlanned - totalSpent >= 0
-                    ? "text-emerald-600"
-                    : "text-rose-600",
-                )}
-              >
-                {(totalPlanned - totalSpent).toLocaleString()} ₽
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              <Save className="h-4 w-4 mr-1" />
-              Сохранить план
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleCopyFromLastMonth}
-              disabled={period !== "month"}
             >
-              <Copy className="h-4 w-4 mr-1" />
-              Из прошлого месяца
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              {(totalPlanned - totalSpent).toLocaleString()} ₽
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {totalPlanned - totalSpent >= 0
+                ? "Можно потратить"
+                : "Перерасход"}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium">
             Бюджет по категориям
           </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Укажите лимит для каждой категории расходов — он пойдёт в сумму
+            «Запланировано»
+          </p>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -486,6 +519,22 @@ export function FinancePlanning() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="flex gap-2">
+        <Button onClick={handleSave} disabled={saving}>
+          {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+          <Save className="h-4 w-4 mr-1" />
+          Сохранить план
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleCopyFromLastMonth}
+          disabled={period !== "month"}
+        >
+          <Copy className="h-4 w-4 mr-1" />
+          Из прошлого месяца
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>

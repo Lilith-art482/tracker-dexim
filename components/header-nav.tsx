@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/popover";
 import { useState } from "react";
 
-
 const NAV_ITEMS = [
   { id: "planner", label: "Планнер", icon: Calendar },
   { id: "finance", label: "Финансы", icon: DollarSign },
@@ -35,7 +34,7 @@ const NAV_ITEMS = [
 ] as const;
 
 export function HeaderNav() {
-  const { mode, setMode } = useMode();
+  const { setMode } = useMode();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -110,49 +109,61 @@ export function HeaderActions() {
 
       <Popover>
         <PopoverTrigger>
-          <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+          <button className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
             <Settings className="h-4 w-4" />
           </button>
         </PopoverTrigger>
-        <PopoverContent align="end" sideOffset={8} className="w-56 p-3">
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-xs font-medium text-muted-foreground/70">
-                <Globe className="h-3.5 w-3.5" />
-                Язык
+        <PopoverContent align="end" sideOffset={8} className="w-60 overflow-hidden rounded-2xl border-border/60 p-0 shadow-lg">
+          <div className="px-4 pt-3.5 pb-2 border-b border-border/40 bg-muted/20">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                <Settings className="h-3.5 w-3.5 text-primary" />
               </div>
-              <div className="flex flex-col gap-0.5">
+              <div>
+                <p className="text-sm font-semibold">Настройки</p>
+                <p className="text-[11px] text-muted-foreground/60">Интерфейс и язык</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-2 space-y-1">
+            <div className="px-2.5 py-2">
+              <div className="flex items-center gap-2 mb-2.5">
+                <Globe className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">Язык</span>
+              </div>
+              <div className="flex gap-1">
                 {languages.map((lang) => (
                   <button
                     key={lang.value}
                     onClick={() => setLanguage(lang.value)}
                     className={cn(
-                      "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors text-left",
+                      "flex-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all",
                       language === lang.value
-                        ? "bg-primary/10 text-primary font-medium"
+                        ? "bg-primary text-primary-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
                     )}
                   >
-                    <span className="text-xs">{lang.label}</span>
+                    {lang.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="h-px bg-border" />
+            <div className="mx-2.5 h-px bg-border/50" />
 
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-xs font-medium text-muted-foreground/70">
-                <Monitor className="h-3.5 w-3.5" />
-                Тема
+            <div className="px-2.5 py-2">
+              <div className="flex items-center gap-2 mb-2.5">
+                <Monitor className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">Тема</span>
               </div>
-              <div className="grid grid-cols-2 gap-1">
+              <div className="flex gap-1">
                 <button
                   onClick={() => setTheme("light")}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                    "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all",
                     theme === "light"
-                      ? "bg-primary/10 text-primary font-medium ring-1 ring-primary/20"
+                      ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:text-amber-600 dark:bg-amber-500/10 dark:ring-amber-500/20"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
                   )}
                 >
@@ -162,9 +173,9 @@ export function HeaderActions() {
                 <button
                   onClick={() => setTheme("dark")}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                    "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all",
                     theme === "dark"
-                      ? "bg-primary/10 text-primary font-medium ring-1 ring-primary/20"
+                      ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 dark:text-indigo-400 dark:bg-indigo-500/10 dark:ring-indigo-500/20"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
                   )}
                 >
@@ -174,23 +185,26 @@ export function HeaderActions() {
               </div>
             </div>
 
-            <div className="h-px bg-border" />
+            <div className="mx-2.5 h-px bg-border/50" />
 
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-xs font-medium text-muted-foreground/70">
-                <Palette className="h-3.5 w-3.5" />
-                Цветовая гамма
+            <div className="px-2.5 py-2">
+              <div className="flex items-center gap-2 mb-2.5">
+                <Palette className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">Акцент</span>
               </div>
               <button
                 disabled
-                className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground/50 cursor-not-allowed"
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs text-muted-foreground/50 bg-muted/30 cursor-not-allowed"
               >
-                <div className="flex -space-x-1">
-                  <div className="h-3 w-3 rounded-full border border-border bg-blue-500" />
-                  <div className="h-3 w-3 rounded-full border border-border bg-purple-500" />
-                  <div className="h-3 w-3 rounded-full border border-border bg-emerald-500" />
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-1">
+                    <div className="h-3 w-3 rounded-full border-2 border-background bg-blue-500" />
+                    <div className="h-3 w-3 rounded-full border-2 border-background bg-violet-500" />
+                    <div className="h-3 w-3 rounded-full border-2 border-background bg-emerald-500" />
+                  </div>
+                  <span>Своя цветовая схема</span>
                 </div>
-                В разработке
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted-foreground/10">Soon</span>
               </button>
             </div>
           </div>

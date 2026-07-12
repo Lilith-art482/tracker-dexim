@@ -6,9 +6,9 @@ import {
   Plus,
   Loader2,
   Pencil,
-  Trash,
-  ChevronDown,
+  Trash2,
   ChevronLeft,
+  LayoutGrid,
 } from "lucide-react";
 import { Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
@@ -25,6 +25,27 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useMode } from "@/lib/mode-context";
+
+const BOARD_COLORS = [
+  { dot: "bg-blue-500", bg: "bg-blue-500/10", ring: "ring-blue-500/30" },
+  { dot: "bg-emerald-500", bg: "bg-emerald-500/10", ring: "ring-emerald-500/30" },
+  { dot: "bg-violet-500", bg: "bg-violet-500/10", ring: "ring-violet-500/30" },
+  { dot: "bg-amber-500", bg: "bg-amber-500/10", ring: "ring-amber-500/30" },
+  { dot: "bg-rose-500", bg: "bg-rose-500/10", ring: "ring-rose-500/30" },
+  { dot: "bg-cyan-500", bg: "bg-cyan-500/10", ring: "ring-cyan-500/30" },
+  { dot: "bg-pink-500", bg: "bg-pink-500/10", ring: "ring-pink-500/30" },
+  { dot: "bg-indigo-500", bg: "bg-indigo-500/10", ring: "ring-indigo-500/30" },
+  { dot: "bg-teal-500", bg: "bg-teal-500/10", ring: "ring-teal-500/30" },
+  { dot: "bg-orange-500", bg: "bg-orange-500/10", ring: "ring-orange-500/30" },
+];
+
+function getBoardColor(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return BOARD_COLORS[Math.abs(hash) % BOARD_COLORS.length];
+}
 
 interface BoardSidebarProps {
   initialBoards?: Board[];
@@ -44,7 +65,6 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
   const [editingBoardName, setEditingBoardName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [boardsOpen, setBoardsOpen] = useState(true);
 
   const activeBoardId = searchParams.get("boardId");
 
@@ -61,7 +81,6 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
         setBoards(data);
       }
     } catch {
-      // keep current state
     } finally {
       setLoading(false);
     }
@@ -93,7 +112,6 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
     const uid = auth.currentUser?.uid;
     if (uid) params.set("uid", uid);
     router.push(`${pathname}?${params.toString()}`);
-    // Close sidebar on mobile after selecting a board
     if (window.innerWidth < 1024) toggle();
   };
 
@@ -208,162 +226,153 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
             : "lg:w-60 lg:-translate-x-0",
         )}
       >
-        <div className="flex items-center justify-between px-4 h-11 border-b border-border/40">
-          <button
-            onClick={() => setBoardsOpen(!boardsOpen)}
-            className="flex items-center gap-1.5 text-[11px] font-semibold tracking-widest text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors"
-          >
-            <ChevronDown
-              className={cn(
-                "h-3 w-3 transition-transform",
-                !boardsOpen && "-rotate-90",
-              )}
-            />
-            Доски
-          </button>
-
-          <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-3 px-4 h-14 border-b border-border/30">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <LayoutGrid className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight">Проекты</span>
+          <div className="ml-auto flex items-center gap-1">
             {loading && (
-              <Loader2 className="h-3 w-3 animate-spin text-sidebar-foreground/30 mr-0.5" />
+              <Loader2 className="h-3 w-3 animate-spin text-sidebar-foreground/30" />
             )}
             <button
               onClick={toggle}
-              className="flex lg:hidden h-6 w-6 items-center justify-center rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+              className="flex lg:hidden h-7 w-7 items-center justify-center rounded-lg text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger>
-                <button className="flex h-6 w-6 items-center justify-center rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingBoardId ? "Редактировать доску" : "Новая доска"}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col gap-4">
-                  <Input
-                    placeholder="Название доски"
-                    value={editingBoardId ? editingBoardName : newBoardName}
-                    onChange={(e) => {
-                      if (editingBoardId) setEditingBoardName(e.target.value);
-                      else setNewBoardName(e.target.value);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter")
-                        editingBoardId ? handleUpdate() : handleCreate();
-                    }}
-                    autoFocus
-                  />
-                  <Button
-                    onClick={() =>
-                      editingBoardId ? handleUpdate() : handleCreate()
-                    }
-                    disabled={
-                      creating ||
-                      (!newBoardName.trim() && !editingBoardName.trim())
-                    }
-                  >
-                    {(creating || false) && (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    )}
-                    {editingBoardId ? "Сохранить" : "Создать"}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
           </div>
         </div>
 
-        {boardsOpen && (
-          <nav
-            className={cn(
-              "flex-1 space-y-0.5 overflow-y-auto px-2 pt-2 transition-opacity duration-300",
-              collapsed ? "opacity-0 pointer-events-none" : "opacity-100",
-            )}
-          >
-            {filteredBoards.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 px-4 py-8">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-accent/50">
-                  <Plus className="h-3.5 w-3.5 text-sidebar-foreground/40" />
-                </div>
-                <p className="text-xs text-sidebar-foreground/50 text-center leading-relaxed">
+        <div className="flex items-center justify-between px-4 py-2.5">
+          <span className="text-[11px] font-medium tracking-wider text-sidebar-foreground/40 uppercase">
+            {mode === "team" ? "Командные" : "Личные"}
+          </span>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger>
+              <button className="flex h-5 w-5 items-center justify-center rounded-md text-sidebar-foreground/30 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
+                <Plus className="h-3 w-3" />
+              </button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingBoardId ? "Редактировать доску" : "Новая доска"}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-4">
+                <Input
+                  placeholder="Название доски"
+                  value={editingBoardId ? editingBoardName : newBoardName}
+                  onChange={(e) => {
+                    if (editingBoardId) setEditingBoardName(e.target.value);
+                    else setNewBoardName(e.target.value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter")
+                      editingBoardId ? handleUpdate() : handleCreate();
+                  }}
+                  autoFocus
+                />
+                <Button
+                  onClick={() =>
+                    editingBoardId ? handleUpdate() : handleCreate()
+                  }
+                  disabled={
+                    creating ||
+                    (!newBoardName.trim() && !editingBoardName.trim())
+                  }
+                >
+                  {(creating || false) && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  {editingBoardId ? "Сохранить" : "Создать"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
+          {filteredBoards.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 px-4 py-10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sidebar-accent/50">
+                <LayoutGrid className="h-4 w-4 text-sidebar-foreground/30" />
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-medium text-sidebar-foreground/60">
                   {mode === "team"
                     ? "Нет командных досок"
                     : "Нет личных досок"}
                 </p>
+                <p className="text-[11px] text-sidebar-foreground/40 mt-0.5">
+                  Создайте новую доску
+                </p>
               </div>
-            ) : (
-              filteredBoards.map((board) => {
-                const isActive =
-                  activeBoardId === board.id ||
-                  (!activeBoardId && boards[0]?.id === board.id);
-                return (
+            </div>
+          ) : (
+            filteredBoards.map((board) => {
+              const isActive =
+                activeBoardId === board.id ||
+                (!activeBoardId && boards[0]?.id === board.id);
+              const color = getBoardColor(board.id);
+              return (
+                <div
+                  key={board.id}
+                  className={cn(
+                    "group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-all duration-150 cursor-pointer",
+                    isActive
+                      ? `${color.bg} ${color.ring} ring-1`
+                      : "hover:bg-sidebar-accent/40",
+                  )}
+                  onClick={() => switchBoard(board.id)}
+                >
                   <div
-                    key={board.id}
                     className={cn(
-                      "group relative flex items-center rounded-lg transition-all duration-150",
-                      isActive
-                        ? "bg-sidebar-accent/80 text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground/65 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white transition-all duration-150",
+                      color.dot,
+                      isActive && "scale-105",
                     )}
                   >
-                    {isActive && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-full bg-primary" />
-                    )}
-                    <button
-                      onClick={() => switchBoard(board.id)}
-                      className="flex-1 text-left text-sm px-3 py-2 min-w-0"
-                    >
-                      <span
-                        className={cn(
-                          "truncate block",
-                          isActive && "font-medium",
-                        )}
-                      >
-                        {board.name}
-                      </span>
-                    </button>
-                    <div className="flex items-center gap-0.5 pr-1.5 opacity-0 group-hover:opacity-100 transition-all duration-150 translate-x-1 group-hover:translate-x-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startEdit(board);
-                        }}
-                        className="p-1 rounded-md hover:bg-sidebar-accent-foreground/10 shrink-0 text-sidebar-foreground/40 hover:text-sidebar-foreground transition-colors"
-                        title="Редактировать"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(board.id);
-                        }}
-                        className="p-1 rounded-md hover:bg-destructive/10 shrink-0 text-sidebar-foreground/40 hover:text-destructive transition-colors"
-                        title="Удалить"
-                      >
-                        <Trash className="h-3 w-3" />
-                      </button>
-                    </div>
+                    {board.name.charAt(0).toUpperCase()}
                   </div>
-                );
-              })
-            )}
-          </nav>
-        )}
-
-        {!boardsOpen && (
-          <div
-            className={cn(
-              "flex-1 transition-opacity duration-300",
-              collapsed ? "opacity-0 pointer-events-none" : "opacity-100",
-            )}
-          />
-        )}
+                  <span
+                    className={cn(
+                      "flex-1 truncate text-sm transition-all duration-150",
+                      isActive
+                        ? "font-medium text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground/65 group-hover:text-sidebar-foreground/90",
+                    )}
+                  >
+                    {board.name}
+                  </span>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-150">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEdit(board);
+                      }}
+                      className="flex h-6 w-6 items-center justify-center rounded-lg text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                      title="Редактировать"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(board.id);
+                      }}
+                      className="flex h-6 w-6 items-center justify-center rounded-lg text-sidebar-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                      title="Удалить"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </nav>
       </aside>
     </>
   );

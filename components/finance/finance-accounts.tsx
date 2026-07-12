@@ -851,13 +851,12 @@ export function FinanceAccounts() {
                       <ChartLine className="h-3 w-3 ml-0.5" />
                     </button>
                   )}
-                  {isDepositOrSavings && account.interestRate == null && (
-                    <span className="text-xs text-muted-foreground">
-                      {account.type === "deposit"
-                        ? "Вклад"
-                        : "Сберегательный счёт"}
-                    </span>
-                  )}
+                  {account.type === "deposit" &&
+                    account.interestRate == null && (
+                      <span className="text-xs text-muted-foreground">
+                        Вклад
+                      </span>
+                    )}
                   {account.type === "card" &&
                     account.cardType === "credit" &&
                     account.gracePeriodDays && (
