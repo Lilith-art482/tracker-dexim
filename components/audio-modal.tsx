@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useAudio, SOUND_TYPES } from "@/lib/audio-context";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,7 @@ export default function AudioModal({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 isolate z-[100] flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -120,7 +121,8 @@ export default function AudioModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
