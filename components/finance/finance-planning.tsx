@@ -232,10 +232,6 @@ export function FinancePlanning() {
   };
 
   const handleSave = async () => {
-    if (!expectedIncome.trim()) {
-      toast.error("Укажите ожидаемый доход");
-      return;
-    }
     setSaving(true);
     const categoryBudgets = expenseCategories.map((cat) => ({
       categoryId: cat.id,
@@ -247,7 +243,7 @@ export function FinancePlanning() {
       period,
       periodStart,
       periodEnd,
-      expectedIncome: parseFloat(expectedIncome) || 0,
+      expectedIncome: parseFloat(expectedIncome) || totalBalance,
       categoryBudgets,
     };
     console.log("[Planning] handleSave", {
@@ -260,7 +256,7 @@ export function FinancePlanning() {
     try {
       if (budgetPlan) {
         const saved = await updateBudgetPlan(budgetPlan.id, {
-          expectedIncome: parseFloat(expectedIncome) || 0,
+          expectedIncome: parseFloat(expectedIncome) || totalBalance,
           categoryBudgets,
         });
         console.log("[Planning] update result", saved);
@@ -276,7 +272,7 @@ export function FinancePlanning() {
           period,
           periodStart,
           periodEnd,
-          expectedIncome: parseFloat(expectedIncome) || 0,
+          expectedIncome: parseFloat(expectedIncome) || totalBalance,
           categoryBudgets,
         });
         console.log("[Planning] create result", saved);

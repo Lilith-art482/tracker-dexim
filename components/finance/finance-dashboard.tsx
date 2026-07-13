@@ -304,8 +304,8 @@ export function FinanceDashboard() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
-      <div className="space-y-6 min-w-0">
+    <div className="lg:flex lg:gap-6">
+      <div className="flex-1 min-w-0 space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardHeader className="pb-2">
@@ -738,7 +738,7 @@ export function FinanceDashboard() {
         </div>
       </div>
 
-      <div className="w-full">
+      <div className="lg:w-[340px] shrink-0">
         {budgetLoad && (
           <Card className="h-full">
             <CardHeader className="pb-3">
