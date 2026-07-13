@@ -8,6 +8,10 @@ export interface Board {
   updatedAt: string;
   ownerId?: string;
   members?: string[];
+  color?: string;
+  icon?: string;
+  pinned?: boolean;
+  order?: number;
 }
 
 export interface Column {
@@ -173,7 +177,7 @@ export async function createBoard(
 
 export async function updateBoard(
   id: string,
-  data: Partial<Pick<Board, "name" | "members">>,
+  data: Partial<Pick<Board, "name" | "members" | "color" | "icon" | "pinned" | "order">>,
 ): Promise<Board> {
   await getAdminDb()
     .collection(COL("BOARDS"))

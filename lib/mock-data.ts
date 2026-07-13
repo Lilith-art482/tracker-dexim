@@ -20,6 +20,10 @@ export const mockBoards: Board[] = [
     updatedAt: new Date("2024-01-01").toISOString(),
     ownerId: "user-1",
     members: ["user-1", "user-2"],
+    color: "blue",
+    icon: "Rocket",
+    pinned: true,
+    order: 0,
   },
   {
     id: "board-2",
@@ -29,6 +33,9 @@ export const mockBoards: Board[] = [
     updatedAt: new Date("2024-01-01").toISOString(),
     ownerId: "user-2",
     members: ["user-2", "user-3"],
+    color: "amber",
+    icon: "Megaphone",
+    order: 1,
   },
 ];
 

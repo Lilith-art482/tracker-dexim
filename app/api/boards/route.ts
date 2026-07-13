@@ -115,6 +115,15 @@ export async function POST(request: NextRequest) {
   }
 }
 
+const updateBoardSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(200).optional(),
+  color: z.string().optional().nullable(),
+  icon: z.string().optional().nullable(),
+  pinned: z.boolean().optional(),
+  order: z.number().optional(),
+});
+
 export async function PATCH(request: NextRequest) {
   const dbAvailable = await isDatabaseAvailable();
   if (!dbAvailable) {
@@ -126,11 +135,21 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, name } = body;
-    if (!id || typeof id !== "string") {
-      return NextResponse.json({ error: "id обязателен" }, { status: 400 });
+    const parsed = updateBoardSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Некорректные данные", details: parsed.error.flatten() },
+        { status: 400 },
+      );
     }
-    const updated = await updateBoard(id, { name });
+
+    const { id, ...data } = parsed.data;
+    const clean: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(data)) {
+      if (v !== undefined) clean[k] = v ?? undefined;
+    }
+    const updated = await updateBoard(id, clean as Parameters<typeof updateBoard>[1]);
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Ошибка обновления доски:", error);
