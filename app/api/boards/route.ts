@@ -149,7 +149,10 @@ export async function PATCH(request: NextRequest) {
     for (const [k, v] of Object.entries(data)) {
       if (v !== undefined) clean[k] = v ?? undefined;
     }
-    const updated = await updateBoard(id, clean as Parameters<typeof updateBoard>[1]);
+    const updated = await updateBoard(
+      id,
+      clean as Parameters<typeof updateBoard>[1],
+    );
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Ошибка обновления доски:", error);

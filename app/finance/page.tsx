@@ -110,9 +110,7 @@ export default function FinancePage() {
         </div>
       </div>
 
-      <div className="p-2 sm:p-4 max-w-6xl mx-auto">
-        {renderModule()}
-      </div>
+      <div className="p-2 sm:p-4 max-w-[1800px] mx-auto">{renderModule()}</div>
     </div>
   );
 }
