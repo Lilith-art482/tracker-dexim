@@ -13,6 +13,14 @@ import {
   AlertTriangle,
   CheckCircle2,
   CreditCard,
+  Percent,
+  Ban,
+  Search,
+  Filter,
+  ArrowUpDown,
+  Gauge,
+  Wallet,
+  Clock,
 } from "lucide-react";
 import type { Loan } from "@/lib/finance-types";
 import {
@@ -32,12 +40,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 function calcMonthlyPayment(P: number, annualRate: number, n: number) {
-  if (annualRate === 0) return P / n;
+  if (annualRate === 0) return n > 0 ? P / n : 0;
   const r = annualRate / 100 / 12;
   return (P * (r * Math.pow(1 + r, n))) / (Math.pow(1 + r, n) - 1);
 }
@@ -59,6 +75,15 @@ function getPayoffDate(months: number) {
   });
 }
 
+function calcOverdueDays(nextPaymentDate: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const next = new Date(nextPaymentDate + "T00:00:00Z");
+  next.setHours(0, 0, 0, 0);
+  const diff = Math.floor((today.getTime() - next.getTime()) / 86400000);
+  return Math.max(0, diff);
+}
+
 interface CalcSuccess {
   monthlyPayment: number;
   totalInterest: number;
@@ -68,6 +93,13 @@ interface CalcSuccess {
 }
 
 type CalcResult = CalcSuccess | { error: string };
+
+const STATUS_FILTERS = [
+  { value: "all", label: "Все" },
+  { value: "overdue", label: "Просроченные" },
+  { value: "ontime", label: "Вовремя" },
+  { value: "paid", label: "Погашенные" },
+] as const;
 
 export function FinanceLoans() {
   const uid = auth.currentUser?.uid || "user-1";
@@ -84,12 +116,17 @@ export function FinanceLoans() {
   const [formRate, setFormRate] = useState("");
   const [formPayment, setFormPayment] = useState("");
   const [formStartDate, setFormStartDate] = useState("");
+  const [formHasInterest, setFormHasInterest] = useState(true);
 
   const [calcAmount, setCalcAmount] = useState("");
   const [calcRate, setCalcRate] = useState("");
   const [calcTerm, setCalcTerm] = useState("");
   const [calcMonthly, setCalcMonthly] = useState("");
   const [calcMode, setCalcMode] = useState<"payment" | "term">("payment");
+  const [calcHasInterest, setCalcHasInterest] = useState(true);
+
+  const [filterPaymentMax, setFilterPaymentMax] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const fetchLoans = useCallback(async () => {
     setLoading(true);
@@ -114,6 +151,7 @@ export function FinanceLoans() {
     setFormRate("");
     setFormPayment("");
     setFormStartDate(new Date().toISOString().split("T")[0]);
+    setFormHasInterest(true);
   }, []);
 
   const openAddDialog = useCallback(() => {
@@ -130,6 +168,7 @@ export function FinanceLoans() {
     setFormRate(String(loan.interestRate));
     setFormPayment(String(loan.monthlyPayment));
     setFormStartDate(loan.createdAt.split("T")[0]);
+    setFormHasInterest(loan.interestRate > 0);
     setDialogOpen(true);
   }, []);
 
@@ -139,22 +178,22 @@ export function FinanceLoans() {
   }, []);
 
   const handleSave = async () => {
-    if (!formName || !formTotal || !formRate || !formPayment) {
+    if (!formName || !formTotal || !formPayment) {
       toast.error("Заполните обязательные поля");
       return;
     }
 
     const totalAmount = parseFloat(formTotal);
     const remainingAmount = parseFloat(formRemaining) || totalAmount;
-    const interestRate = parseFloat(formRate);
+    const interestRate = formHasInterest ? parseFloat(formRate) : 0;
     const monthlyPayment = parseFloat(formPayment);
 
     if (
       isNaN(totalAmount) ||
-      isNaN(interestRate) ||
+      (formHasInterest && isNaN(interestRate)) ||
       isNaN(monthlyPayment) ||
       totalAmount <= 0 ||
-      interestRate < 0 ||
+      (formHasInterest && interestRate < 0) ||
       monthlyPayment <= 0
     ) {
       toast.error("Проверьте правильность введённых данных");
@@ -236,9 +275,14 @@ export function FinanceLoans() {
 
   const calcResults = useMemo((): CalcResult | null => {
     const P = parseFloat(calcAmount);
-    const annualRate = parseFloat(calcRate);
+    const annualRate = calcHasInterest ? parseFloat(calcRate) : 0;
 
-    if (!P || P <= 0 || isNaN(annualRate) || annualRate < 0) return null;
+    if (
+      !P ||
+      P <= 0 ||
+      (calcHasInterest && (isNaN(annualRate) || annualRate < 0))
+    )
+      return null;
 
     if (calcMode === "payment") {
       const n = parseInt(calcTerm);
@@ -259,7 +303,7 @@ export function FinanceLoans() {
       if (!M || M <= 0) return null;
       const n = calcMonths(P, annualRate, M);
       if (n === Infinity) {
-        return { error: "Платёж слишком мал — он не покрывает проценты" };
+        return { error: "Платёж слишком мал" };
       }
       const totalCost = M * n;
       return {
@@ -272,9 +316,9 @@ export function FinanceLoans() {
     }
 
     return null;
-  }, [calcAmount, calcRate, calcTerm, calcMonthly, calcMode]);
+  }, [calcAmount, calcRate, calcTerm, calcMonthly, calcMode, calcHasInterest]);
 
-  const loanStats = useMemo(
+  const enrichedLoans = useMemo(
     () =>
       loans.map((loan) => {
         const totalMonths = calcMonths(
@@ -310,6 +354,9 @@ export function FinanceLoans() {
           totalMonths === Infinity
             ? Infinity
             : loan.monthlyPayment * totalMonths;
+        const isPaid = loan.remainingAmount <= 0;
+        const overdueDays = isPaid ? 0 : calcOverdueDays(loan.nextPaymentDate);
+        const isOverdue = overdueDays > 0;
 
         return {
           ...loan,
@@ -320,9 +367,37 @@ export function FinanceLoans() {
           totalInterest,
           interestPaid,
           totalCost,
+          isPaid,
+          overdueDays,
+          isOverdue,
         };
       }),
     [loans],
+  );
+
+  const filteredLoans = useMemo(() => {
+    return enrichedLoans.filter((loan) => {
+      if (
+        filterPaymentMax &&
+        loan.monthlyPayment > parseFloat(filterPaymentMax)
+      )
+        return false;
+      if (filterStatus === "overdue" && !loan.isOverdue) return false;
+      if (filterStatus === "ontime" && (loan.isOverdue || loan.isPaid))
+        return false;
+      if (filterStatus === "paid" && !loan.isPaid) return false;
+      return true;
+    });
+  }, [enrichedLoans, filterPaymentMax, filterStatus]);
+
+  const totalOwed = useMemo(
+    () => enrichedLoans.reduce((s, l) => s + l.remainingAmount, 0),
+    [enrichedLoans],
+  );
+
+  const totalMonthly = useMemo(
+    () => enrichedLoans.reduce((s, l) => s + l.monthlyPayment, 0),
+    [enrichedLoans],
   );
 
   if (loading) {
@@ -335,12 +410,20 @@ export function FinanceLoans() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Landmark className="h-5 w-5" />
-          Кредиты
-        </h2>
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Landmark className="h-5 w-5" />
+            Обязательства
+          </h2>
+          {loans.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Остаток: {totalOwed.toLocaleString()} ₽ · Ежемесячно:{" "}
+              {totalMonthly.toLocaleString()} ₽
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setCalcOpen(true)}>
             <Calculator className="h-4 w-4 mr-1" />
             Калькулятор
@@ -352,37 +435,132 @@ export function FinanceLoans() {
         </div>
       </div>
 
+      {loans.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              type="number"
+              value={filterPaymentMax}
+              onChange={(e) => setFilterPaymentMax(e.target.value)}
+              placeholder="Макс. платёж"
+              className="h-8 pl-8 text-xs"
+            />
+          </div>
+          <Select
+            value={filterStatus}
+            onValueChange={(v) => v && setFilterStatus(v)}
+          >
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_FILTERS.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {loans.length === 0 ? (
         <Card>
-          <CardContent className="py-12">
-            <div className="flex flex-col items-center gap-3 text-muted-foreground">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                <Landmark className="h-6 w-6" />
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center gap-4 text-muted-foreground">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                <Landmark className="h-7 w-7" />
               </div>
-              <p className="text-sm">Нет кредитов</p>
+              <div className="text-center">
+                <p className="text-sm font-medium">Нет обязательств</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">
+                  Добавьте кредит, рассрочку или долг
+                </p>
+              </div>
               <Button variant="outline" size="sm" onClick={openAddDialog}>
                 <Plus className="h-4 w-4 mr-1" />
-                Добавить кредит
+                Добавить обязательство
               </Button>
             </div>
           </CardContent>
         </Card>
+      ) : filteredLoans.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            Нет обязательств по выбранным фильтрам
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {loanStats.map((loan) => (
-            <Card key={loan.id}>
+          {filteredLoans.map((loan) => (
+            <Card
+              key={loan.id}
+              className={cn(
+                "overflow-hidden transition-all hover:shadow-sm",
+                loan.isPaid && "opacity-60",
+              )}
+            >
+              <div
+                className={cn(
+                  "h-1 w-full",
+                  loan.isPaid
+                    ? "bg-emerald-500"
+                    : loan.isOverdue
+                      ? "bg-rose-500"
+                      : "bg-emerald-400",
+                )}
+              />
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-base font-semibold">
-                      {loan.name}
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {loan.interestRate}% ·{" "}
-                      {loan.monthlyPayment.toLocaleString()} ₽/мес
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CardTitle className="text-base font-semibold truncate">
+                        {loan.name}
+                      </CardTitle>
+                      {loan.isPaid && (
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] px-1.5 py-0 h-5 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shrink-0"
+                        >
+                          <CheckCircle2 className="h-3 w-3 mr-0.5" />
+                          Погашен
+                        </Badge>
+                      )}
+                      {loan.isOverdue && (
+                        <Badge
+                          variant="destructive"
+                          className="text-[10px] px-1.5 py-0 h-5 shrink-0"
+                        >
+                          <Clock className="h-3 w-3 mr-0.5" />
+                          {loan.overdueDays} дн.
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      {loan.interestRate > 0 ? (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0 h-5 font-normal"
+                        >
+                          <Percent className="h-2.5 w-2.5 mr-0.5" />
+                          {loan.interestRate}%
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0 h-5 font-normal text-muted-foreground"
+                        >
+                          <Ban className="h-2.5 w-2.5 mr-0.5" />
+                          Без %
+                        </Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {loan.monthlyPayment.toLocaleString()} ₽/мес
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-0.5 shrink-0 ml-2">
                     <Button
                       variant="ghost"
                       size="icon-sm"
@@ -401,67 +579,90 @@ export function FinanceLoans() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Всего</p>
-                    <p className="text-sm font-semibold">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg bg-muted/40 p-2">
+                    <p className="text-[10px] text-muted-foreground">Всего</p>
+                    <p className="text-sm font-semibold tabular-nums">
                       {loan.totalAmount.toLocaleString()} ₽
                     </p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Остаток</p>
-                    <p className="text-sm font-semibold">
+                  <div className="rounded-lg bg-muted/40 p-2">
+                    <p className="text-[10px] text-muted-foreground">Остаток</p>
+                    <p className="text-sm font-semibold tabular-nums">
                       {loan.remainingAmount.toLocaleString()} ₽
                     </p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      Проценты выплачено
+                  <div className="rounded-lg bg-muted/40 p-2">
+                    <p className="text-[10px] text-muted-foreground">
+                      Выплачено
                     </p>
-                    <p className="text-sm font-semibold text-amber-600">
-                      {Math.round(loan.interestPaid).toLocaleString()} ₽
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Осталось</p>
-                    <p className="text-sm font-semibold">
-                      {loan.monthsRemaining === Infinity
-                        ? "—"
-                        : `${loan.monthsRemaining} мес.`}
+                    <p className="text-sm font-semibold tabular-nums">
+                      {loan.paidAmount.toLocaleString()} ₽
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Выплачено</span>
+                    <span>Прогресс</span>
                     <span>{Math.round(loan.progressPct)}%</span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-primary transition-all"
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        loan.isPaid
+                          ? "bg-emerald-500"
+                          : loan.isOverdue
+                            ? "bg-rose-500"
+                            : "bg-primary",
+                      )}
                       style={{ width: `${loan.progressPct}%` }}
                     />
                   </div>
                 </div>
 
-                {loan.totalCost !== Infinity &&
-                  loan.totalCost > loan.totalAmount * 1.3 && (
-                    <div className="flex items-start gap-2 rounded-lg bg-rose-500/10 p-2.5">
-                      <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
-                      <p className="text-xs text-rose-600">
-                        Переплата &gt;30% — всего{" "}
-                        {Math.round(
-                          (loan.totalCost / loan.totalAmount - 1) * 100,
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {loan.monthsRemaining === Infinity
+                      ? "Бессрочно"
+                      : `Осталось ${loan.monthsRemaining} мес.`}
+                  </span>
+                  {loan.interestRate > 0 && loan.totalInterest !== Infinity && (
+                    <span
+                      className={
+                        loan.totalInterest > loan.totalAmount * 0.3
+                          ? "text-rose-600"
+                          : "text-amber-600"
+                      }
+                    >
+                      Переплата:{" "}
+                      {Math.round(loan.totalInterest).toLocaleString()} ₽
+                    </span>
+                  )}
+                </div>
+
+                {loan.isOverdue && (
+                  <div className="flex items-start gap-2 rounded-lg bg-rose-500/10 p-2.5">
+                    <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-medium text-rose-600">
+                        Просрочка {loan.overdueDays} дн.
+                      </p>
+                      <p className="text-[11px] text-rose-600/70 mt-0.5">
+                        Следующий платёж был{" "}
+                        {new Date(loan.nextPaymentDate).toLocaleDateString(
+                          "ru-RU",
                         )}
-                        % от суммы кредита
                       </p>
                     </div>
-                  )}
+                  </div>
+                )}
 
                 <Button
                   className="w-full"
                   size="sm"
+                  variant={loan.isOverdue ? "destructive" : "default"}
                   disabled={loan.remainingAmount <= 0}
                   onClick={() => handleMakePayment(loan)}
                 >
@@ -486,64 +687,119 @@ export function FinanceLoans() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingLoan ? "Редактировать кредит" : "Добавить кредит"}
+              {editingLoan
+                ? "Редактировать обязательство"
+                : "Добавить обязательство"}
             </DialogTitle>
+            <DialogDescription>
+              {editingLoan
+                ? "Измените данные обязательства"
+                : "Укажите параметры кредита, рассрочки или долга"}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium">Название</label>
-              <Input
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="Например, Ипотека"
-              />
+          <div className="space-y-4">
+            <div className="flex rounded-lg border p-0.5 bg-muted/30">
+              <button
+                type="button"
+                onClick={() => setFormHasInterest(true)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  formHasInterest
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Percent className="h-3.5 w-3.5" />С процентами
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormHasInterest(false)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  !formHasInterest
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Ban className="h-3.5 w-3.5" />
+                Без процентов
+              </button>
             </div>
-            <div>
-              <label className="text-sm font-medium">Общая сумма</label>
-              <Input
-                type="number"
-                value={formTotal}
-                onChange={(e) => setFormTotal(e.target.value)}
-                placeholder="5 000 000"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Остаток</label>
-              <Input
-                type="number"
-                value={formRemaining}
-                onChange={(e) => setFormRemaining(e.target.value)}
-                placeholder={formTotal || "4 200 000"}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">
-                Процентная ставка (%)
-              </label>
-              <Input
-                type="number"
-                step="0.1"
-                value={formRate}
-                onChange={(e) => setFormRate(e.target.value)}
-                placeholder="8"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Ежемесячный платёж</label>
-              <Input
-                type="number"
-                value={formPayment}
-                onChange={(e) => setFormPayment(e.target.value)}
-                placeholder="45 000"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Дата начала</label>
-              <Input
-                type="date"
-                value={formStartDate}
-                onChange={(e) => setFormStartDate(e.target.value)}
-              />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5 col-span-2">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Название
+                </label>
+                <Input
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="Например, Ипотека"
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Сумма
+                </label>
+                <Input
+                  type="number"
+                  value={formTotal}
+                  onChange={(e) => setFormTotal(e.target.value)}
+                  placeholder="5 000 000"
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Остаток
+                </label>
+                <Input
+                  type="number"
+                  value={formRemaining}
+                  onChange={(e) => setFormRemaining(e.target.value)}
+                  placeholder={formTotal || "4 200 000"}
+                  className="h-9"
+                />
+              </div>
+              {formHasInterest && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Ставка %
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={formRate}
+                    onChange={(e) => setFormRate(e.target.value)}
+                    placeholder="8"
+                    className="h-9"
+                  />
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Платёж/мес
+                </label>
+                <Input
+                  type="number"
+                  value={formPayment}
+                  onChange={(e) => setFormPayment(e.target.value)}
+                  placeholder="45 000"
+                  className="h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Дата начала
+                </label>
+                <Input
+                  type="date"
+                  value={formStartDate}
+                  onChange={(e) => setFormStartDate(e.target.value)}
+                  className="h-9"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -557,93 +813,174 @@ export function FinanceLoans() {
         </DialogContent>
       </Dialog>
 
-      {/* Amortization Calculator Dialog */}
+      {/* Calculator Dialog */}
       <Dialog open={calcOpen} onOpenChange={setCalcOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calculator className="h-4 w-4" />
-              Кредитный калькулятор
+              Калькулятор обязательств
             </DialogTitle>
+            <DialogDescription>
+              Рассчитайте ежемесячный платёж или срок погашения
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium">Сумма кредита</label>
-              <Input
-                type="number"
-                value={calcAmount}
-                onChange={(e) => setCalcAmount(e.target.value)}
-                placeholder="5 000 000"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Годовая ставка (%)</label>
-              <Input
-                type="number"
-                step="0.1"
-                value={calcRate}
-                onChange={(e) => setCalcRate(e.target.value)}
-                placeholder="8"
-              />
+          <div className="space-y-4">
+            <div className="flex rounded-lg border p-0.5 bg-muted/30">
+              <button
+                type="button"
+                onClick={() => setCalcHasInterest(true)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  calcHasInterest
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Percent className="h-3.5 w-3.5" />С процентами
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalcHasInterest(false)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  !calcHasInterest
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Ban className="h-3.5 w-3.5" />
+                Без процентов
+              </button>
             </div>
 
-            {calcMode === "payment" ? (
-              <div>
-                <label className="text-sm font-medium">Срок (месяцев)</label>
-                <Input
-                  type="number"
-                  value={calcTerm}
-                  onChange={(e) => setCalcTerm(e.target.value)}
-                  placeholder="120"
-                />
-              </div>
-            ) : (
-              <div>
-                <label className="text-sm font-medium">
-                  Ежемесячный платёж
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Сумма
                 </label>
                 <Input
                   type="number"
-                  value={calcMonthly}
-                  onChange={(e) => setCalcMonthly(e.target.value)}
-                  placeholder="45 000"
+                  value={calcAmount}
+                  onChange={(e) => setCalcAmount(e.target.value)}
+                  placeholder="5 000 000"
+                  className="h-9"
                 />
               </div>
-            )}
+              {calcHasInterest && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Ставка %
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={calcRate}
+                    onChange={(e) => setCalcRate(e.target.value)}
+                    placeholder="8"
+                    className="h-9"
+                  />
+                </div>
+              )}
+              {calcMode === "payment" ? (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Срок (мес.)
+                  </label>
+                  <Input
+                    type="number"
+                    value={calcTerm}
+                    onChange={(e) => setCalcTerm(e.target.value)}
+                    placeholder="120"
+                    className="h-9"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Платёж/мес
+                  </label>
+                  <Input
+                    type="number"
+                    value={calcMonthly}
+                    onChange={(e) => setCalcMonthly(e.target.value)}
+                    placeholder="45 000"
+                    className="h-9"
+                  />
+                </div>
+              )}
+            </div>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-xs"
-              onClick={() =>
-                setCalcMode(calcMode === "payment" ? "term" : "payment")
-              }
-            >
-              {calcMode === "payment"
-                ? "Рассчитать срок по платежу"
-                : "Рассчитать платёж по сроку"}
-            </Button>
+            <div className="flex rounded-lg border p-0.5 bg-muted/30">
+              <button
+                type="button"
+                onClick={() => setCalcMode("payment")}
+                className={cn(
+                  "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  calcMode === "payment"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                По сроку → платёж
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalcMode("term")}
+                className={cn(
+                  "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  calcMode === "term"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                По платежу → срок
+              </button>
+            </div>
 
             {calcResults && !("error" in calcResults) && (
-              <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
-                <h4 className="text-sm font-medium">Результат</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">
+              <div className="rounded-xl border bg-gradient-to-br from-muted/50 to-transparent p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Gauge className="h-4 w-4 text-primary" />
+                  <h4 className="text-sm font-semibold">Результат</h4>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-background/80 p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
                       Ежемесячный платёж
                     </p>
-                    <p className="font-semibold">
+                    <p className="text-lg font-bold tabular-nums text-primary">
                       {Math.round(calcResults.monthlyPayment).toLocaleString()}{" "}
                       ₽
                     </p>
                   </div>
+                  <div className="rounded-lg bg-background/80 p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
+                      Срок погашения
+                    </p>
+                    <p className="text-lg font-bold tabular-nums">
+                      {calcResults.payoffMonths} мес.
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {calcResults.payoffDate}
+                    </p>
+                  </div>
+                </div>
+                <div className="h-px bg-border" />
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-xs text-muted-foreground">
-                      Всего процентов
+                      Общая стоимость
                     </p>
+                    <p className="font-semibold tabular-nums">
+                      {Math.round(calcResults.totalCost).toLocaleString()} ₽
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Переплата</p>
                     <p
                       className={cn(
-                        "font-semibold",
+                        "font-semibold tabular-nums",
                         calcResults.totalInterest > 0
                           ? "text-amber-600"
                           : "text-emerald-600",
@@ -652,28 +989,13 @@ export function FinanceLoans() {
                       {Math.round(calcResults.totalInterest).toLocaleString()} ₽
                     </p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      Общая стоимость
-                    </p>
-                    <p className="font-semibold">
-                      {Math.round(calcResults.totalCost).toLocaleString()} ₽
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      Дата погашения
-                    </p>
-                    <p className="font-semibold">{calcResults.payoffDate}</p>
-                  </div>
                 </div>
 
-                {calcResults.totalCost >
-                  parseFloat(calcAmount || "0") * 1.3 && (
+                {calcResults.totalInterest > calcResults.totalCost * 0.3 && (
                   <div className="flex items-start gap-2 rounded-lg bg-rose-500/10 p-2.5">
                     <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
                     <p className="text-xs text-rose-600">
-                      Переплата превышает 30% от суммы кредита
+                      Переплата &gt;30% от суммы
                     </p>
                   </div>
                 )}
@@ -688,7 +1010,9 @@ export function FinanceLoans() {
             )}
           </div>
           <DialogFooter>
-            <Button onClick={() => setCalcOpen(false)}>Закрыть</Button>
+            <Button onClick={() => setCalcOpen(false)} variant="outline">
+              Закрыть
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
