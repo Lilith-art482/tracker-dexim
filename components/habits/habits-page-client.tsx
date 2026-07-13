@@ -75,7 +75,7 @@ function HabitsContent() {
         </div>
       </div>
 
-      <div className="p-2 sm:p-4 max-w-6xl mx-auto">
+      <div className="p-2 sm:p-4 max-w-[2000px] mx-auto">
         {activeTab === "dashboard" && <ModuleDashboard />}
         {activeTab === "my-habits" && <ModuleMyHabits />}
         {activeTab === "statistics" && (
