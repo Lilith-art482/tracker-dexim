@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Sparkles,
   Send,
@@ -15,7 +15,11 @@ import {
   Calendar,
   DollarSign,
   ListChecks,
-  MessageSquare,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  Award,
+  BarChart3,
   Trash2,
 } from "lucide-react";
 import { auth } from "@/lib/firebase";
@@ -30,7 +34,14 @@ import {
   getGoalsByUser,
   getCategoriesByUser,
 } from "@/lib/finance-client";
-import type { FinanceAccount, Transaction, Loan, BudgetPlan, FinanceGoal, TransactionCategory } from "@/lib/finance-types";
+import type {
+  FinanceAccount,
+  Transaction,
+  Loan,
+  BudgetPlan,
+  FinanceGoal,
+  TransactionCategory,
+} from "@/lib/finance-types";
 
 interface Message {
   id: string;
@@ -38,11 +49,33 @@ interface Message {
   content: string;
 }
 
-const SUGGESTED_PROMPTS = [
-  { icon: Calendar, label: "Задачи на сегодня", text: "Что у меня по задачам на сегодня?" },
-  { icon: DollarSign, label: "Финансы", text: "Расскажи о моих финансах" },
-  { icon: ListChecks, label: "Привычки", text: "Как у меня с привычками?" },
-  { icon: Lightbulb, label: "Совет дня", text: "Дай совет по планированию дня" },
+interface SuggestedPrompt {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  text: string;
+}
+
+const DEFAULT_PROMPTS: SuggestedPrompt[] = [
+  {
+    icon: Calendar,
+    label: "Задачи на сегодня",
+    text: "Что у меня по задачам на сегодня?",
+  },
+  {
+    icon: DollarSign,
+    label: "Финансы",
+    text: "Расскажи о моих финансах",
+  },
+  {
+    icon: ListChecks,
+    label: "Привычки",
+    text: "Как у меня с привычками?",
+  },
+  {
+    icon: Lightbulb,
+    label: "Совет дня",
+    text: "Дай совет по планированию дня",
+  },
 ];
 
 const CHAT_STORAGE_KEY = "inmotion_ai_chat_messages";
@@ -102,7 +135,9 @@ async function buildUserContext(): Promise<string> {
 
     const today = new Date().toISOString().split("T")[0];
     const thisMonth = today.slice(0, 7);
-    const monthTxns = transactions.filter((t) => t.date.startsWith(thisMonth));
+    const monthTxns = transactions.filter((t) =>
+      t.date.startsWith(thisMonth),
+    );
     const income = monthTxns
       .filter((t) => t.type === "income")
       .reduce((s, t) => s + t.amount, 0);
@@ -131,9 +166,7 @@ async function buildUserContext(): Promise<string> {
 
     if (budgets.length > 0) {
       const current = budgets.find(
-        (b) =>
-          b.period === "month" &&
-          b.periodStart.startsWith(thisMonth),
+        (b) => b.period === "month" && b.periodStart.startsWith(thisMonth),
       );
       if (current) {
         parts.push(
@@ -168,6 +201,122 @@ async function buildUserContext(): Promise<string> {
   return parts.join("\n");
 }
 
+/** Analyse the last message(s) to suggest contextual follow-up prompts */
+function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
+  const last = messages[messages.length - 1];
+  const secondLast = messages[messages.length - 2];
+  if (!last) return DEFAULT_PROMPTS;
+
+  const allContent =
+    last.content.toLowerCase() +
+    (secondLast?.content.toLowerCase() || "");
+
+  const sets: { keywords: string[]; prompts: SuggestedPrompt[] }[] = [
+    {
+      keywords: [
+        "задач",
+        "план",
+        "сегодня",
+        "дедлайн",
+        "сделать",
+        "список",
+      ],
+      prompts: [
+        { icon: Calendar, label: "Что важно сегодня?", text: "Какие задачи самые важные на сегодня?" },
+        { icon: ListChecks, label: "Просроченное", text: "Есть ли у меня просроченные задачи?" },
+        { icon: Lightbulb, label: "Расписание", text: "Помоги составить расписание на день" },
+      ],
+    },
+    {
+      keywords: [
+        "финанс",
+        "баланс",
+        "бюджет",
+        "доход",
+        "расход",
+        "деньг",
+        "счёт",
+        "копить",
+        "долг",
+        "кредит",
+      ],
+      prompts: [
+        { icon: TrendingUp, label: "Доходы", text: "Сколько я заработал в этом месяце?" },
+        { icon: TrendingDown, label: "Расходы", text: "На что я трачу больше всего?" },
+        { icon: Target, label: "Бюджет", text: "Как мне улучшить бюджет?" },
+      ],
+    },
+    {
+      keywords: [
+        "привычк",
+        "трек",
+        "streak",
+        "прогресс",
+        "статистик",
+        "достижен",
+      ],
+      prompts: [
+        { icon: Award, label: "Лучшие серии", text: "Какие у меня самые длинные серии?" },
+        { icon: BarChart3, label: "Прогресс", text: "Покажи прогресс по привычкам" },
+        { icon: ListChecks, label: "Что добавить", text: "Какие привычки стоит добавить?" },
+      ],
+    },
+    {
+      keywords: [
+        "цел",
+        "goal",
+        "накоп",
+        "отлож",
+        "копилк",
+        "мечта",
+      ],
+      prompts: [
+        { icon: Target, label: "Достижение целей", text: "Как у меня идёт прогресс по целям?" },
+        { icon: DollarSign, label: "Накопления", text: "Сколько нужно откладывать, чтобы достичь целей?" },
+      ],
+    },
+    {
+      keywords: [
+        "обязательств",
+        "кредит",
+        "ипотек",
+        "долг",
+        "платёж",
+        "просрочк",
+        "fssp",
+        "исполнительн",
+      ],
+      prompts: [
+        { icon: DollarSign, label: "Долги", text: "Какой у меня общий долг по обязательствам?" },
+        { icon: Calendar, label: "Платежи", text: "Какие платежи скоро?" },
+        { icon: Lightbulb, label: "Снизить долги", text: "Как быстрее погасить долги?" },
+      ],
+    },
+    {
+      keywords: [
+        "совет",
+        "рекомендац",
+        "помоги",
+        "подскаж",
+        "планирован",
+      ],
+      prompts: [
+        { icon: Calendar, label: "План дня", text: "Помоги спланировать день" },
+        { icon: DollarSign, label: "Финансовый план", text: "Как оптимизировать бюджет?" },
+        { icon: ListChecks, label: "Приоритеты", text: "На что мне стоит обратить внимание?" },
+      ],
+    },
+  ];
+
+  for (const set of sets) {
+    if (set.keywords.some((kw) => allContent.includes(kw))) {
+      return set.prompts;
+    }
+  }
+
+  return DEFAULT_PROMPTS;
+}
+
 interface AiChatProps {
   open: boolean;
   onClose: () => void;
@@ -181,11 +330,17 @@ export default function AiChat({ open, onClose }: AiChatProps) {
   const [userContext, setUserContext] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const contextualPrompts = useMemo(
+    () => suggestPrompts(messages),
+    [messages],
+  );
 
   useEffect(() => {
     if (open) {
       setMessages(loadMessages());
-      setTimeout(() => inputRef.current?.focus(), 100);
+      setTimeout(() => inputRef.current?.focus(), 300);
       if (!contextBuilt) {
         buildUserContext().then((ctx) => {
           setUserContext(ctx);
@@ -204,6 +359,16 @@ export default function AiChat({ open, onClose }: AiChatProps) {
       saveMessages(messages);
     }
   }, [messages]);
+
+  /** Close on Escape */
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -264,12 +429,31 @@ export default function AiChat({ open, onClose }: AiChatProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 isolate z-[100] flex items-center justify-center p-4">
+    <>
+      {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="fixed inset-0 isolate z-[100] bg-black/20 backdrop-blur-[2px]"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl border bg-background shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+
+      {/* Panel */}
+      <div
+        ref={panelRef}
+        className={cn(
+          "fixed right-0 top-0 h-full w-full sm:w-[420px] z-[101]",
+          "flex flex-col bg-background border-l shadow-2xl",
+          "translate-x-0 transition-transform duration-300",
+        )}
+        style={{
+          animation: "slideInFromRight 0.3s ease-out",
+        }}
+      >
+      <style>{`
+        @keyframes slideInFromRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+      `}</style>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
           <div className="flex items-center gap-2.5">
@@ -345,7 +529,7 @@ export default function AiChat({ open, onClose }: AiChatProps) {
               )}
 
               <div className="grid grid-cols-2 gap-2">
-                {SUGGESTED_PROMPTS.map((prompt) => (
+                {DEFAULT_PROMPTS.map((prompt) => (
                   <button
                     key={prompt.label}
                     onClick={() => sendMessage(prompt.text)}
@@ -361,42 +545,68 @@ export default function AiChat({ open, onClose }: AiChatProps) {
               </div>
             </div>
           ) : (
-            messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={cn(
-                  "flex items-start gap-3",
-                  msg.role === "user" && "flex-row-reverse",
-                )}
-              >
-                <div
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
-                    msg.role === "assistant"
-                      ? "bg-gradient-to-br from-violet-500 to-purple-600"
-                      : "bg-primary/10",
-                  )}
-                >
-                  {msg.role === "assistant" ? (
-                    <Bot className="h-3.5 w-3.5 text-white" />
-                  ) : (
-                    <User className="h-3.5 w-3.5 text-primary" />
-                  )}
+            <>
+              {messages.map((msg, i) => (
+                <div key={msg.id}>
+                  <div
+                    className={cn(
+                      "flex items-start gap-3",
+                      msg.role === "user" && "flex-row-reverse",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+                        msg.role === "assistant"
+                          ? "bg-gradient-to-br from-violet-500 to-purple-600"
+                          : "bg-primary/10",
+                      )}
+                    >
+                      {msg.role === "assistant" ? (
+                        <Bot className="h-3.5 w-3.5 text-white" />
+                      ) : (
+                        <User className="h-3.5 w-3.5 text-primary" />
+                      )}
+                    </div>
+                    <div
+                      className={cn(
+                        "rounded-xl px-3.5 py-2.5 text-sm max-w-[85%]",
+                        msg.role === "assistant"
+                          ? "bg-muted/50"
+                          : "bg-primary/10",
+                      )}
+                    >
+                      <p className="whitespace-pre-wrap leading-relaxed">
+                        {msg.content}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Contextual follow-up prompts after the last assistant message */}
+                  {msg.role === "assistant" &&
+                    i === messages.length - 1 && (
+                      <div className="mt-3 ml-10 space-y-2">
+                        <p className="text-[10px] text-muted-foreground/40 uppercase tracking-wider font-medium">
+                          Продолжить:
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {contextualPrompts.map((prompt) => (
+                            <button
+                              key={prompt.label}
+                              onClick={() => sendMessage(prompt.text)}
+                              disabled={loading}
+                              className="flex items-center gap-1.5 rounded-lg border bg-background/80 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:border-primary/30 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                            >
+                              <prompt.icon className="h-3 w-3 text-violet-500 shrink-0" />
+                              {prompt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                 </div>
-                <div
-                  className={cn(
-                    "rounded-xl px-3.5 py-2.5 text-sm max-w-[85%]",
-                    msg.role === "assistant"
-                      ? "bg-muted/50"
-                      : "bg-primary/10 text-primary-foreground",
-                  )}
-                >
-                  <p className="whitespace-pre-wrap leading-relaxed">
-                    {msg.content}
-                  </p>
-                </div>
-              </div>
-            ))
+              ))}
+            </>
           )}
           {loading && (
             <div className="flex items-start gap-3">
@@ -445,7 +655,7 @@ export default function AiChat({ open, onClose }: AiChatProps) {
           <div className="flex items-center gap-3 text-[10px] text-muted-foreground/40">
             <span className="flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" />
-              AI может ошибаться — проверяйте информацию
+              AI может ошибаться
             </span>
             <span className="w-px h-3 bg-border/50" />
             <span className="flex items-center gap-1">
@@ -455,6 +665,6 @@ export default function AiChat({ open, onClose }: AiChatProps) {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
