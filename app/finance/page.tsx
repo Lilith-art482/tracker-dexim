@@ -30,7 +30,7 @@ const ALL_MODULES = [
   { id: "transactions", label: "Транзакции", icon: Receipt },
   { id: "planning", label: "Планирование", icon: Target },
   { id: "goals", label: "Цели", icon: PiggyBank },
-  { id: "loans", label: "Кредиты", icon: Landmark },
+  { id: "loans", label: "Обязательства", icon: Landmark },
   { id: "projects", label: "Проекты", icon: Briefcase },
   { id: "emergency", label: "Подушка", icon: Shield },
   { id: "settings", label: "Настройки", icon: Settings },
