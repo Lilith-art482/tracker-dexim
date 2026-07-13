@@ -23,11 +23,20 @@ export async function getUSDTtoRUB(): Promise<number> {
   return cachedRate ?? 90;
 }
 
+const STABLECOINS = new Set(["USDT", "USDC", "USD"]);
+
 export function convertToRUB(
   amount: number,
   currency: string,
   usdtRate: number,
 ): number {
   if (currency === "RUB") return amount;
-  return amount * usdtRate;
+  if (STABLECOINS.has(currency)) return amount * usdtRate;
+  return amount;
+}
+
+export function getConversionNote(currency: string): string | null {
+  if (currency === "RUB") return null;
+  if (STABLECOINS.has(currency)) return null;
+  return ` (${currency}, не конвертирован)`;
 }
