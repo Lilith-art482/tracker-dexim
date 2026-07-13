@@ -39,18 +39,19 @@ export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 export type CreateCommentInput = z.infer<typeof createCommentSchema>;
 
 export const createPersonalTaskSchema = z.object({
-  dayOfWeek: z.number().int().min(0).max(6),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Формат ГГГГ-ММ-ДД"),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ"),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ"),
   title: z.string().min(1).max(200),
   priority: z.enum(["low", "medium", "high"]).default("medium"),
   comment: z.string().max(2000).optional(),
   ownerId: z.string().min(1).optional(),
+  boardId: z.string().min(1).optional(),
 });
 
 export const updatePersonalTaskSchema = z.object({
   id: z.string().min(1),
-  dayOfWeek: z.number().int().min(0).max(6).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Формат ГГГГ-ММ-ДД").optional(),
   startTime: z
     .string()
     .regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ")
@@ -63,6 +64,7 @@ export const updatePersonalTaskSchema = z.object({
   priority: z.enum(["low", "medium", "high"]).optional(),
   completed: z.boolean().optional(),
   comment: z.string().max(2000).optional(),
+  boardId: z.string().min(1).optional(),
 });
 
 export type CreatePersonalTaskInput = z.infer<typeof createPersonalTaskSchema>;

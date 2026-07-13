@@ -21,11 +21,15 @@ export async function GET(request: NextRequest) {
   const dbAvailable = await isDatabaseAvailable();
   const url = new URL(request.url);
   const uid = url.searchParams.get("uid");
+  const boardId = url.searchParams.get("boardId");
   if (dbAvailable) {
     try {
       if (!uid) return NextResponse.json([]);
       await cleanupExpiredPersonalTasks();
-      const tasks = await getPersonalTasksByOwner(uid);
+      let tasks = await getPersonalTasksByOwner(uid);
+      if (boardId) {
+        tasks = tasks.filter((t) => t.boardId === boardId);
+      }
       return NextResponse.json(tasks);
     } catch {
       return NextResponse.json([]);
@@ -34,9 +38,12 @@ export async function GET(request: NextRequest) {
 
   // in static/mock mode, require uid to avoid exposing all personal tasks
   if (!uid) return NextResponse.json([]);
-  const filtered = mockPersonalTasks.filter(
+  let filtered = mockPersonalTasks.filter(
     (t) => t.ownerId === uid || !t.ownerId,
   );
+  if (boardId) {
+    filtered = filtered.filter((t) => t.boardId === boardId);
+  }
   return NextResponse.json(filtered);
 }
 

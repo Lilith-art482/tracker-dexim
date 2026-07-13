@@ -61,7 +61,7 @@ export interface BoardMember {
 
 export interface PersonalTask {
   id: string;
-  dayOfWeek: number;
+  date: string;
   startTime: string;
   endTime: string;
   title: string;
@@ -71,6 +71,7 @@ export interface PersonalTask {
   createdAt: string;
   updatedAt: string;
   ownerId?: string;
+  boardId?: string;
 }
 
 export interface Service {
@@ -521,12 +522,13 @@ export async function updatePersonalTask(
     Pick<
       PersonalTask,
       | "title"
-      | "dayOfWeek"
+      | "date"
       | "startTime"
       | "endTime"
       | "priority"
       | "completed"
       | "comment"
+      | "boardId"
     >
   >,
 ): Promise<PersonalTask> {
