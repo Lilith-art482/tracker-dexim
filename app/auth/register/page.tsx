@@ -144,12 +144,12 @@ export default function RegisterPage() {
               <Image
                 src="/logo.png"
                 alt="In Motion"
-                width={48}
-                height={48}
-                className="h-10 xl:h-12 w-auto"
+                width={40}
+                height={40}
+                className="h-9 w-auto"
                 priority
               />
-              <span className="text-2xl xl:text-3xl font-bold text-[#e8eeeb]">
+              <span className="text-2xl xl:text-3xl font-bold text-[#e8eeeb] leading-none">
                 In Motion
               </span>
             </div>
