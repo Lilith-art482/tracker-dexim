@@ -34,6 +34,7 @@ import {
   getGoalsByUser,
   getCategoriesByUser,
 } from "@/lib/finance-client";
+import { getUSDTtoRUB, convertToRUB, getConversionNote } from "@/lib/exchange-rates";
 import type {
   FinanceAccount,
   Transaction,
@@ -109,11 +110,25 @@ function clearMessages() {
   localStorage.removeItem(CHAT_STORAGE_KEY);
 }
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/`(.+?)`/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/_(.+?)_/g, "$1");
+}
+
 async function buildUserContext(): Promise<string> {
   const uid = auth.currentUser?.uid;
   if (!uid) return "Пользователь не авторизован.";
 
   const parts: string[] = [];
+  let usdtRate = 90;
+
+  try {
+    usdtRate = await getUSDTtoRUB();
+  } catch {}
 
   try {
     const [accounts, transactions, loans, budgets, goals, categories] =
@@ -127,10 +142,20 @@ async function buildUserContext(): Promise<string> {
       ]);
 
     if (accounts.length > 0) {
-      const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
-      parts.push(
-        `Счета (${accounts.length}): общий баланс ${totalBalance.toLocaleString()} ₽. ${accounts.map((a) => `${a.name}: ${a.balance.toLocaleString()} ${a.currency}`).join(", ")}`,
+      const totalBalance = accounts.reduce(
+        (s, a) => s + convertToRUB(a.balance, a.currency, usdtRate),
+        0,
       );
+      parts.push(
+        `Счета (${accounts.length}): общий баланс ${Math.round(totalBalance).toLocaleString()} ₽ (все счета в рублёвом эквиваленте, кроме неподдерживаемых валют).`,
+      );
+      accounts.forEach((a) => {
+        const rub = convertToRUB(a.balance, a.currency, usdtRate);
+        const note = getConversionNote(a.currency);
+        parts.push(
+          `  - ${a.name}: ${rub.toLocaleString()} ₽${note ? note : ""} (тип: ${a.type})`,
+        );
+      });
     }
 
     const today = new Date().toISOString().split("T")[0];
@@ -574,7 +599,7 @@ export default function AiChat({ open, onClose }: AiChatProps) {
                       )}
                     >
                       <p className="whitespace-pre-wrap leading-relaxed">
-                        {msg.content}
+                        {stripMarkdown(msg.content)}
                       </p>
                     </div>
                   </div>
@@ -658,12 +683,16 @@ export default function AiChat({ open, onClose }: AiChatProps) {
             </Button>
           </form>
 
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground/40">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground/40">
             <span className="flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" />
               AI может ошибаться
             </span>
-            <span className="w-px h-3 bg-border/50" />
+            <span className="flex items-center gap-1">
+              <Info className="h-3 w-3" />
+              Не выполняет действия
+            </span>
+            <span className="w-px h-3 bg-border/50 hidden sm:block" />
             <span className="flex items-center gap-1">
               <Info className="h-3 w-3" />
               История хранится 3 дня

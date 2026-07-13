@@ -16,10 +16,14 @@ import {
   Volume2,
   Sparkles,
   Bot,
+  LogOut,
+  MessageCircle,
 } from "lucide-react";
 import { useMode } from "@/lib/mode-context";
 import { cn } from "@/lib/utils";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import { useAudio } from "@/lib/audio-context";
@@ -100,6 +104,18 @@ export function HeaderActions() {
   const [chatOpen, setChatOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [language, setLanguage] = useState("ru");
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await signOut(auth);
+    } catch {
+      toast.error("Ошибка при выходе");
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   const languages = [
     { value: "ru", label: "Русский" },
@@ -320,6 +336,35 @@ export function HeaderActions() {
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted-foreground/10">
                   Soon
                 </span>
+              </button>
+            </div>
+
+            <div className="mx-2.5 h-px bg-border/50" />
+
+            <div className="px-2.5 py-2">
+              <Link
+                href="/contact"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/60">
+                  <MessageCircle className="h-3.5 w-3.5" />
+                </div>
+                <span>Связь с разработчиками</span>
+              </Link>
+            </div>
+
+            <div className="mx-2.5 h-px bg-border/50" />
+
+            <div className="px-2.5 py-2">
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="flex w-full items-center gap-2 rounded-lg border border-rose-200 dark:border-rose-900/40 px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-100 dark:bg-rose-900/30">
+                  <LogOut className="h-3.5 w-3.5" />
+                </div>
+                <span>{loggingOut ? "Выход..." : "Выйти"}</span>
               </button>
             </div>
           </div>
