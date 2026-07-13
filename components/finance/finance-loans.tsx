@@ -21,6 +21,9 @@ import {
   Gauge,
   Wallet,
   Clock,
+  ArrowRight,
+  Coins,
+  CircleOff,
 } from "lucide-react";
 import type { Loan } from "@/lib/finance-types";
 import {
@@ -127,6 +130,9 @@ export function FinanceLoans() {
 
   const [filterPaymentMax, setFilterPaymentMax] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [extraPayments, setExtraPayments] = useState<Record<string, string>>(
+    {},
+  );
 
   const fetchLoans = useCallback(async () => {
     setLoading(true);
@@ -273,6 +279,26 @@ export function FinanceLoans() {
     });
   };
 
+  const handleEarlyRepayment = async (loan: Loan) => {
+    const extra = parseFloat(extraPayments[loan.id] || "0");
+    if (!extra || extra <= 0) {
+      toast.error("Укажите сумму досрочного погашения");
+      return;
+    }
+    const toastId = toast.loading("Погашаем досрочно...");
+    try {
+      const newRemaining = Math.max(0, loan.remainingAmount - extra);
+      const updated = await updateLoan(loan.id, {
+        remainingAmount: newRemaining,
+      });
+      setLoans((prev) => prev.map((l) => (l.id === loan.id ? updated : l)));
+      setExtraPayments((prev) => ({ ...prev, [loan.id]: "" }));
+      toast.success("Досрочное погашение проведено", { id: toastId });
+    } catch {
+      toast.error("Ошибка сети", { id: toastId });
+    }
+  };
+
   const calcResults = useMemo((): CalcResult | null => {
     const P = parseFloat(calcAmount);
     const annualRate = calcHasInterest ? parseFloat(calcRate) : 0;
@@ -358,18 +384,55 @@ export function FinanceLoans() {
         const overdueDays = isPaid ? 0 : calcOverdueDays(loan.nextPaymentDate);
         const isOverdue = overdueDays > 0;
 
+        const monthsElapsed =
+          totalMonths === Infinity ? 0 : totalMonths - monthsRemaining;
+        const monthProgressPct =
+          totalMonths > 0 && totalMonths !== Infinity
+            ? Math.min((monthsElapsed / totalMonths) * 100, 100)
+            : 0;
+
+        const monthlyInterestPortion =
+          loan.interestRate > 0 && loan.remainingAmount > 0
+            ? (loan.remainingAmount * (loan.interestRate / 100)) / 12
+            : 0;
+        const monthlyPrincipalPortion = isPaid
+          ? 0
+          : Math.max(0, loan.monthlyPayment - monthlyInterestPortion);
+
+        const nextPayDate = new Date(loan.nextPaymentDate + "T00:00:00Z");
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diffMs = nextPayDate.getTime() - today.getTime();
+        const daysUntilNextPayment = Math.ceil(diffMs / 86400000);
+
+        const healthStatus = isPaid
+          ? "paid"
+          : isOverdue
+            ? "critical"
+            : progressPct < 25
+              ? "early"
+              : progressPct > 75
+                ? "almost-there"
+                : "on-track";
+
         return {
           ...loan,
           totalMonths,
           monthsRemaining,
+          monthsElapsed,
+          monthProgressPct,
           paidAmount,
           progressPct,
+          monthlyInterestPortion,
+          monthlyPrincipalPortion,
+          daysUntilNextPayment,
           totalInterest,
           interestPaid,
           totalCost,
           isPaid,
           overdueDays,
           isOverdue,
+          healthStatus,
         };
       }),
     [loans],
@@ -418,8 +481,13 @@ export function FinanceLoans() {
           </h2>
           {loans.length > 0 && (
             <p className="text-xs text-muted-foreground mt-0.5">
-              Остаток: {totalOwed.toLocaleString()} ₽ · Ежемесячно:{" "}
-              {totalMonthly.toLocaleString()} ₽
+              {enrichedLoans.filter((l) => l.isOverdue).length > 0 && (
+                <span className="text-rose-600 font-medium">
+                  {enrichedLoans.filter((l) => l.isOverdue).length} просрочено
+                  ·{" "}
+                </span>
+              )}
+              {enrichedLoans.filter((l) => l.isPaid).length} погашено
             </p>
           )}
         </div>
@@ -436,33 +504,74 @@ export function FinanceLoans() {
       </div>
 
       {loans.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-            <Input
-              type="number"
-              value={filterPaymentMax}
-              onChange={(e) => setFilterPaymentMax(e.target.value)}
-              placeholder="Макс. платёж"
-              className="h-8 pl-8 text-xs"
-            />
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Card>
+              <CardContent className="py-3">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                  Общая задолженность
+                </p>
+                <p className="text-xl font-bold tabular-nums mt-0.5">
+                  {totalOwed.toLocaleString()} ₽
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="py-3">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                  Ежемесячный платёж
+                </p>
+                <p className="text-xl font-bold tabular-nums mt-0.5">
+                  {totalMonthly.toLocaleString()} ₽
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="py-3">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                  Кол-во обязательств
+                </p>
+                <p className="text-xl font-bold tabular-nums mt-0.5">
+                  {enrichedLoans.length}
+                  {enrichedLoans.some((l) => l.isOverdue) && (
+                    <span className="text-sm font-normal text-rose-600 ml-2">
+                      · {enrichedLoans.filter((l) => l.isOverdue).length}{" "}
+                      просрочено
+                    </span>
+                  )}
+                </p>
+              </CardContent>
+            </Card>
           </div>
-          <Select
-            value={filterStatus}
-            onValueChange={(v) => v && setFilterStatus(v)}
-          >
-            <SelectTrigger className="w-[160px] h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_FILTERS.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                type="number"
+                value={filterPaymentMax}
+                onChange={(e) => setFilterPaymentMax(e.target.value)}
+                placeholder="Макс. платёж"
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
+            <Select
+              value={filterStatus}
+              onValueChange={(v) => v && setFilterStatus(v)}
+            >
+              <SelectTrigger className="w-[160px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTERS.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </>
       )}
 
       {loans.length === 0 ? (
@@ -602,9 +711,41 @@ export function FinanceLoans() {
                   </div>
                 </div>
 
+                {/* Health indicator */}
+                {!loan.isPaid && (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-medium",
+                        loan.healthStatus === "critical" &&
+                          "bg-rose-500/10 text-rose-600",
+                        loan.healthStatus === "early" &&
+                          "bg-amber-500/10 text-amber-600",
+                        loan.healthStatus === "on-track" &&
+                          "bg-sky-500/10 text-sky-600",
+                        loan.healthStatus === "almost-there" &&
+                          "bg-emerald-500/10 text-emerald-600",
+                      )}
+                    >
+                      <CircleOff className="h-3 w-3" />
+                      {loan.healthStatus === "critical" && "Критично"}
+                      {loan.healthStatus === "early" && "В начале пути"}
+                      {loan.healthStatus === "on-track" && "В процессе"}
+                      {loan.healthStatus === "almost-there" && "Почти погашен"}
+                    </div>
+                    {loan.daysUntilNextPayment > 0 &&
+                      loan.daysUntilNextPayment <= 7 && (
+                        <span className="text-[10px] text-amber-600 font-medium">
+                          Платёж через {loan.daysUntilNextPayment} дн.
+                        </span>
+                      )}
+                  </div>
+                )}
+
+                {/* Progress bars */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Прогресс</span>
+                    <span>Прогресс выплаты</span>
                     <span>{Math.round(loan.progressPct)}%</span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
@@ -622,26 +763,103 @@ export function FinanceLoans() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">
-                    {loan.monthsRemaining === Infinity
-                      ? "Бессрочно"
-                      : `Осталось ${loan.monthsRemaining} мес.`}
-                  </span>
-                  {loan.interestRate > 0 && loan.totalInterest !== Infinity && (
-                    <span
-                      className={
-                        loan.totalInterest > loan.totalAmount * 0.3
-                          ? "text-rose-600"
-                          : "text-amber-600"
-                      }
-                    >
-                      Переплата:{" "}
-                      {Math.round(loan.totalInterest).toLocaleString()} ₽
-                    </span>
-                  )}
-                </div>
+                {loan.totalMonths > 0 && loan.totalMonths !== Infinity && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Месяцы</span>
+                      <span>
+                        {loan.monthsElapsed} / {loan.totalMonths}
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-sky-400 transition-all duration-500"
+                        style={{ width: `${loan.monthProgressPct}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
 
+                {/* Payment breakdown */}
+                {loan.interestRate > 0 && !loan.isPaid && (
+                  <div className="rounded-lg bg-muted/30 p-2.5 space-y-1.5">
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                      Разбивка платежа
+                    </p>
+                    <div className="flex items-center gap-2 text-xs">
+                      <div className="flex-1">
+                        <div className="flex justify-between text-muted-foreground mb-0.5">
+                          <span>Проценты</span>
+                          <span className="text-amber-600 font-medium tabular-nums">
+                            {Math.round(
+                              loan.monthlyInterestPortion,
+                            ).toLocaleString()}{" "}
+                            ₽
+                          </span>
+                        </div>
+                        <div className="h-1 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-amber-400"
+                            style={{
+                              width: `${loan.monthlyPayment > 0 ? (loan.monthlyInterestPortion / loan.monthlyPayment) * 100 : 0}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <div className="flex-1">
+                        <div className="flex justify-between text-muted-foreground mb-0.5">
+                          <span>Тело долга</span>
+                          <span className="text-emerald-600 font-medium tabular-nums">
+                            {Math.round(
+                              loan.monthlyPrincipalPortion,
+                            ).toLocaleString()}{" "}
+                            ₽
+                          </span>
+                        </div>
+                        <div className="h-1 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-400"
+                            style={{
+                              width: `${loan.monthlyPayment > 0 ? (loan.monthlyPrincipalPortion / loan.monthlyPayment) * 100 : 0}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Next payment countdown */}
+                {!loan.isPaid && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {loan.daysUntilNextPayment > 0
+                        ? `Следующий платёж через ${loan.daysUntilNextPayment} дн.`
+                        : loan.daysUntilNextPayment === 0
+                          ? "Платёж сегодня"
+                          : `Платёж просрочен на ${Math.abs(loan.daysUntilNextPayment)} дн.`}
+                    </span>
+                    <span
+                      className={cn(
+                        "font-medium tabular-nums",
+                        loan.daysUntilNextPayment <= 0 && "text-rose-600",
+                        loan.daysUntilNextPayment > 0 &&
+                          loan.daysUntilNextPayment <= 7 &&
+                          "text-amber-600",
+                        loan.daysUntilNextPayment > 7 &&
+                          "text-muted-foreground",
+                      )}
+                    >
+                      {new Date(loan.nextPaymentDate).toLocaleDateString(
+                        "ru-RU",
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {/* Overdue warning */}
                 {loan.isOverdue && (
                   <div className="flex items-start gap-2 rounded-lg bg-rose-500/10 p-2.5">
                     <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
@@ -659,6 +877,40 @@ export function FinanceLoans() {
                   </div>
                 )}
 
+                {/* Early repayment */}
+                {!loan.isPaid && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <Input
+                        type="number"
+                        value={extraPayments[loan.id] || ""}
+                        onChange={(e) =>
+                          setExtraPayments((prev) => ({
+                            ...prev,
+                            [loan.id]: e.target.value,
+                          }))
+                        }
+                        placeholder="Сумма досрочно"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 shrink-0"
+                      disabled={
+                        !extraPayments[loan.id] ||
+                        parseFloat(extraPayments[loan.id] || "0") <= 0
+                      }
+                      onClick={() => handleEarlyRepayment(loan)}
+                    >
+                      <Coins className="h-3.5 w-3.5 mr-1" />
+                      Досрочно
+                    </Button>
+                  </div>
+                )}
+
+                {/* Regular payment */}
                 <Button
                   className="w-full"
                   size="sm"

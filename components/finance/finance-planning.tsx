@@ -11,6 +11,7 @@ import {
   Loader2,
   ListChecks,
   Wallet,
+  Landmark,
   Plus,
   Trash2,
   Pencil,
@@ -20,6 +21,7 @@ import type {
   TransactionCategory,
   Transaction,
   FinanceAccount,
+  Loan,
 } from "@/lib/finance-types";
 
 import {
@@ -30,6 +32,7 @@ import {
   deleteBudgetPlan,
   getTransactionsByUser,
   getCategoriesByUser,
+  getLoansByUser,
 } from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -117,6 +120,7 @@ export function FinancePlanning() {
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expectedIncome, setExpectedIncome] = useState("");
@@ -132,13 +136,15 @@ export function FinancePlanning() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [budgets, cats, txs, accs] = await Promise.all([
+      const [budgets, cats, txs, accs, loansData] = await Promise.all([
         getBudgetPlansByUser(uid),
         getCategoriesByUser(uid),
         getTransactionsByUser(uid),
         getAccountsByUser(uid),
+        getLoansByUser(uid),
       ]);
       setAccounts(accs);
+      setLoans(loansData);
       setAllBudgets(budgets);
       const current = budgets.find(
         (b) => b.period === period && b.periodStart === periodStart,
@@ -225,6 +231,9 @@ export function FinancePlanning() {
   const projectedTotal = dailyAvg * periodDays;
   const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
   const income = parseFloat(expectedIncome) || totalBalance;
+  const totalLoanDebt = loans.reduce((s, l) => s + l.remainingAmount, 0);
+  const totalLoanMonthly = loans.reduce((s, l) => s + l.monthlyPayment, 0);
+  const freeAfterObligations = income - totalLoanMonthly;
   const projectedRemaining = income - projectedTotal;
 
   const handleLimitChange = (categoryId: string, value: string) => {
@@ -369,7 +378,7 @@ export function FinancePlanning() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-xl border bg-gradient-to-br from-sky-50/60 to-transparent p-4 dark:from-sky-950/20">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400">
@@ -414,6 +423,23 @@ export function FinancePlanning() {
             Сумма лимитов по категориям
           </p>
         </div>
+
+        {loans.length > 0 && (
+          <div className="rounded-xl border bg-gradient-to-br from-rose-50/60 to-transparent p-4 dark:from-rose-950/20">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                Обязательства
+              </span>
+              <Landmark className="h-4 w-4 text-rose-500" />
+            </div>
+            <div className="text-2xl font-bold tabular-nums mb-1">
+              {totalLoanMonthly.toLocaleString()} ₽
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {totalLoanDebt.toLocaleString()} ₽ долга · {loans.length} шт.
+            </p>
+          </div>
+        )}
 
         <div
           className={cn(

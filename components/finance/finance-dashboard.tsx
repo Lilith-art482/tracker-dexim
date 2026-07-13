@@ -12,6 +12,7 @@ import {
   CalendarArrowUp,
   Clock,
   BarChart3,
+  Landmark,
 } from "lucide-react";
 import type {
   FinanceAccount,
@@ -19,6 +20,7 @@ import type {
   TransactionCategory,
   EmergencyFund,
   BudgetPlan,
+  Loan,
 } from "@/lib/finance-types";
 import { auth } from "@/lib/firebase";
 import {
@@ -27,6 +29,7 @@ import {
   getCategoriesByUser,
   getBudgetPlansByUser,
   getEmergencyFund,
+  getLoansByUser,
 } from "@/lib/finance-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -61,6 +64,7 @@ export function FinanceDashboard() {
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [budget, setBudget] = useState<BudgetPlan | null>(null);
   const [emergencyFund, setEmergencyFund] = useState<EmergencyFund | null>(
     null,
@@ -85,18 +89,20 @@ export function FinanceDashboard() {
     async (isInitial = false) => {
       if (isInitial) setInitialLoading(true);
       try {
-        const [accs, txs, cats, buds, em] = await Promise.all([
+        const [accs, txs, cats, buds, em, loansData] = await Promise.all([
           getAccountsByUser(uid),
           getTransactionsByUser(uid),
           getCategoriesByUser(uid),
           getBudgetPlansByUser(uid),
           getEmergencyFund(uid),
+          getLoansByUser(uid),
         ]);
         setAccounts(accs);
         setTransactions(txs);
         setCategories(cats);
         setBudget(buds.length > 0 ? buds[0] : null);
         setEmergencyFund(em);
+        setLoans(loansData);
       } catch (e) {
         console.error("Failed to load finance data", e);
       } finally {
@@ -135,6 +141,13 @@ export function FinanceDashboard() {
     )
     .reduce((s, t) => s + t.amount, 0);
   const freeMoney = periodIncome - periodExpenses - periodObligations;
+
+  const totalLoanDebt = loans.reduce((s, l) => s + l.remainingAmount, 0);
+  const totalLoanMonthly = loans.reduce((s, l) => s + l.monthlyPayment, 0);
+  const overdueLoans = loans.filter((l) => {
+    const next = new Date(l.nextPaymentDate + "T00:00:00Z");
+    return next < new Date() && l.remainingAmount > 0;
+  }).length;
 
   const hasData = periodIncome > 0 || periodExpenses > 0;
   const healthRatio = hasData
@@ -580,7 +593,7 @@ export function FinanceDashboard() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -732,6 +745,42 @@ export function FinanceDashboard() {
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {loans.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Landmark className="h-4 w-4" />
+                  Обязательства
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Долг</span>
+                  <span className="font-semibold tabular-nums">
+                    {totalLoanDebt.toLocaleString()} ₽
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Платёж/мес</span>
+                  <span className="font-semibold tabular-nums">
+                    {totalLoanMonthly.toLocaleString()} ₽
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Кол-во</span>
+                  <span className="tabular-nums">
+                    {loans.length}
+                    {overdueLoans > 0 && (
+                      <span className="text-rose-600 ml-1 text-xs font-medium">
+                        · {overdueLoans} просрочено
+                      </span>
+                    )}
+                  </span>
+                </div>
               </CardContent>
             </Card>
           )}
