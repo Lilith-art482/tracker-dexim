@@ -42,7 +42,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </div>
 
               <div className="hidden sm:block flex-1">
-                <HeaderNav />
+                <Suspense fallback={null}>
+                  <HeaderNav />
+                </Suspense>
               </div>
 
               <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
