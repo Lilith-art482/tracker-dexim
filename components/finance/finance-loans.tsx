@@ -24,13 +24,16 @@ import {
   ArrowRight,
   Coins,
   CircleOff,
+  Gavel,
+  Home,
 } from "lucide-react";
-import type { Loan } from "@/lib/finance-types";
+import type { Loan, ObligationType } from "@/lib/finance-types";
 import {
   getLoansByUser,
   createLoan,
   updateLoan,
   deleteLoan,
+  createCategory,
 } from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -55,6 +58,34 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+const OBLIGATION_LABELS: Record<ObligationType, string> = {
+  credit: "Кредит",
+  enforcement: "Исп.производство",
+  fine: "Штраф",
+  utilities: "ЖКУ",
+};
+
+const OBLIGATION_ICONS: Record<ObligationType, typeof Landmark> = {
+  credit: Landmark,
+  enforcement: Gavel,
+  fine: Ban,
+  utilities: Home,
+};
+
+const CATEGORY_ICONS: Record<ObligationType, string> = {
+  credit: "Landmark",
+  enforcement: "Gavel",
+  fine: "Ban",
+  utilities: "Home",
+};
+
+const CATEGORY_COLORS: Record<ObligationType, string> = {
+  credit: "#3b82f6",
+  enforcement: "#f59e0b",
+  fine: "#ef4444",
+  utilities: "#10b981",
+};
+
 function calcMonthlyPayment(P: number, annualRate: number, n: number) {
   if (annualRate === 0) return n > 0 ? P / n : 0;
   const r = annualRate / 100 / 12;
@@ -76,15 +107,6 @@ function getPayoffDate(months: number) {
     month: "long",
     year: "numeric",
   });
-}
-
-function calcOverdueDays(nextPaymentDate: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const next = new Date(nextPaymentDate + "T00:00:00Z");
-  next.setHours(0, 0, 0, 0);
-  const diff = Math.floor((today.getTime() - next.getTime()) / 86400000);
-  return Math.max(0, diff);
 }
 
 interface CalcSuccess {
@@ -113,6 +135,8 @@ export function FinanceLoans() {
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [calcOpen, setCalcOpen] = useState(false);
 
+  const [formObligationType, setFormObligationType] =
+    useState<ObligationType>("credit");
   const [formName, setFormName] = useState("");
   const [formTotal, setFormTotal] = useState("");
   const [formRemaining, setFormRemaining] = useState("");
@@ -120,6 +144,15 @@ export function FinanceLoans() {
   const [formPayment, setFormPayment] = useState("");
   const [formStartDate, setFormStartDate] = useState("");
   const [formHasInterest, setFormHasInterest] = useState(true);
+  const [formRepaymentType, setFormRepaymentType] = useState<
+    "monthly" | "lumpSum"
+  >("monthly");
+  const [formDueDate, setFormDueDate] = useState("");
+
+  const [formEnforcementFee, setFormEnforcementFee] = useState("");
+  const [formOfficialIncome, setFormOfficialIncome] = useState("");
+  const [formFsspPercent, setFormFsspPercent] = useState("");
+  const [formOverdueMonths, setFormOverdueMonths] = useState("0");
 
   const [calcAmount, setCalcAmount] = useState("");
   const [calcRate, setCalcRate] = useState("");
@@ -133,6 +166,24 @@ export function FinanceLoans() {
   const [extraPayments, setExtraPayments] = useState<Record<string, string>>(
     {},
   );
+
+  useEffect(() => {
+    if (
+      formObligationType !== "enforcement" ||
+      formRepaymentType !== "monthly"
+    )
+      return;
+    const income = parseFloat(formOfficialIncome);
+    const pct = parseFloat(formFsspPercent);
+    if (!isNaN(income) && !isNaN(pct) && income > 0 && pct > 0) {
+      setFormPayment(String(Math.round((income * pct) / 100)));
+    }
+  }, [
+    formOfficialIncome,
+    formFsspPercent,
+    formObligationType,
+    formRepaymentType,
+  ]);
 
   const fetchLoans = useCallback(async () => {
     setLoading(true);
@@ -151,13 +202,20 @@ export function FinanceLoans() {
   }, [fetchLoans]);
 
   const resetForm = useCallback(() => {
+    setFormObligationType("credit");
     setFormName("");
     setFormTotal("");
     setFormRemaining("");
     setFormRate("");
     setFormPayment("");
     setFormStartDate(new Date().toISOString().split("T")[0]);
+    setFormDueDate("");
     setFormHasInterest(true);
+    setFormRepaymentType("monthly");
+    setFormEnforcementFee("");
+    setFormOfficialIncome("");
+    setFormFsspPercent("");
+    setFormOverdueMonths("0");
   }, []);
 
   const openAddDialog = useCallback(() => {
@@ -168,6 +226,7 @@ export function FinanceLoans() {
 
   const openEditDialog = useCallback((loan: Loan) => {
     setEditingLoan(loan);
+    setFormObligationType(loan.obligationType || "credit");
     setFormName(loan.name);
     setFormTotal(String(loan.totalAmount));
     setFormRemaining(String(loan.remainingAmount));
@@ -175,6 +234,12 @@ export function FinanceLoans() {
     setFormPayment(String(loan.monthlyPayment));
     setFormStartDate(loan.createdAt.split("T")[0]);
     setFormHasInterest(loan.interestRate > 0);
+    setFormRepaymentType(loan.repaymentType);
+    setFormDueDate(loan.dueDate || "");
+    setFormEnforcementFee(loan.enforcementFee ? String(loan.enforcementFee) : "");
+    setFormOfficialIncome(loan.officialIncome ? String(loan.officialIncome) : "");
+    setFormFsspPercent(loan.fsspPercent ? String(loan.fsspPercent) : "");
+    setFormOverdueMonths(String(loan.overdueMonths || 0));
     setDialogOpen(true);
   }, []);
 
@@ -184,68 +249,141 @@ export function FinanceLoans() {
   }, []);
 
   const handleSave = async () => {
-    if (!formName || !formTotal || !formPayment) {
+    if (!formName || !formTotal) {
       toast.error("Заполните обязательные поля");
       return;
     }
 
     const totalAmount = parseFloat(formTotal);
     const remainingAmount = parseFloat(formRemaining) || totalAmount;
-    const interestRate = formHasInterest ? parseFloat(formRate) : 0;
-    const monthlyPayment = parseFloat(formPayment);
+    const overdueMonths = parseInt(formOverdueMonths) || 0;
 
-    if (
-      isNaN(totalAmount) ||
-      (formHasInterest && isNaN(interestRate)) ||
-      isNaN(monthlyPayment) ||
-      totalAmount <= 0 ||
-      (formHasInterest && interestRate < 0) ||
-      monthlyPayment <= 0
-    ) {
-      toast.error("Проверьте правильность введённых данных");
-      return;
+    const showRateFields =
+      (formObligationType === "credit" ||
+        formObligationType === "enforcement") &&
+      formRepaymentType === "monthly";
+    const interestRate = showRateFields
+      ? formHasInterest
+        ? parseFloat(formRate)
+        : 0
+      : 0;
+
+    let monthlyPayment = 0;
+    if (formRepaymentType === "monthly") {
+      monthlyPayment = parseFloat(formPayment);
+      if (
+        formObligationType === "enforcement" &&
+        (isNaN(monthlyPayment) || monthlyPayment <= 0)
+      ) {
+        const income = parseFloat(formOfficialIncome);
+        const pct = parseFloat(formFsspPercent);
+        if (!isNaN(income) && !isNaN(pct) && income > 0 && pct > 0) {
+          monthlyPayment = Math.round((income * pct) / 100);
+        }
+      }
+    }
+
+    if (formRepaymentType === "monthly") {
+      if (
+        isNaN(totalAmount) ||
+        (showRateFields && formHasInterest && (isNaN(interestRate) || interestRate < 0)) ||
+        isNaN(monthlyPayment) ||
+        totalAmount <= 0 ||
+        monthlyPayment <= 0
+      ) {
+        toast.error("Проверьте правильность введённых данных");
+        return;
+      }
+    } else {
+      if (
+        isNaN(totalAmount) ||
+        totalAmount <= 0 ||
+        !formDueDate
+      ) {
+        toast.error("Проверьте правильность введённых данных");
+        return;
+      }
+      if (showRateFields && formHasInterest && (isNaN(interestRate) || interestRate < 0)) {
+        toast.error("Проверьте правильность введённых данных");
+        return;
+      }
     }
 
     const toastId = toast.loading("Сохраняем...");
 
+    const loanData: Partial<Omit<Loan, "id" | "userId" | "createdAt" | "updatedAt">> = {
+      name: formName,
+      totalAmount,
+      remainingAmount,
+      interestRate,
+      monthlyPayment,
+      repaymentType: formRepaymentType as "monthly" | "lumpSum",
+      dueDate: formRepaymentType === "lumpSum" ? formDueDate : undefined,
+      nextPaymentDate:
+        formRepaymentType === "lumpSum"
+          ? formDueDate
+          : formStartDate || new Date().toISOString().split("T")[0],
+      obligationType: formObligationType,
+      overdueMonths,
+    };
+
+    if (formObligationType === "enforcement") {
+      loanData.enforcementFee = formEnforcementFee
+        ? parseFloat(formEnforcementFee)
+        : undefined;
+      loanData.officialIncome = formOfficialIncome
+        ? parseFloat(formOfficialIncome)
+        : undefined;
+      loanData.fsspPercent = formFsspPercent
+        ? parseFloat(formFsspPercent)
+        : undefined;
+    }
+
     try {
+      const isNew = !editingLoan;
+      const loanId = editingLoan ? editingLoan.id : crypto.randomUUID();
+
+      let savedLoan: Loan;
       if (editingLoan) {
-        const updated = await updateLoan(editingLoan.id, {
-          name: formName,
-          totalAmount,
-          remainingAmount,
-          interestRate,
-          monthlyPayment,
-        });
-        setLoans((prev) =>
-          prev.map((l) => (l.id === editingLoan.id ? updated : l)),
-        );
-        toast.success("Готово", { id: toastId });
-        closeDialog();
+        savedLoan = await updateLoan(loanId, loanData);
       } else {
-        const id = crypto.randomUUID();
-        const created = await createLoan({
-          id,
+        savedLoan = await createLoan({
+          id: loanId,
+          userId: uid,
+          ...loanData,
+        } as Loan);
+      }
+
+      try {
+        const category = await createCategory({
           userId: uid,
           name: formName,
-          totalAmount,
-          remainingAmount,
-          interestRate,
-          monthlyPayment,
-          nextPaymentDate:
-            formStartDate || new Date().toISOString().split("T")[0],
+          icon: CATEGORY_ICONS[formObligationType],
+          type: "expense",
+          color: CATEGORY_COLORS[formObligationType],
         });
-        setLoans((prev) => [...prev, created]);
-        toast.success("Готово", { id: toastId });
-        closeDialog();
+        savedLoan = await updateLoan(loanId, { categoryId: category.id });
+      } catch {
+        console.error("Failed to create category");
       }
+
+      setLoans((prev) =>
+        isNew
+          ? [...prev, savedLoan]
+          : prev.map((l) => (l.id === loanId ? savedLoan : l)),
+      );
+      toast.success("Готово", { id: toastId });
+      closeDialog();
     } catch {
       toast.error("Ошибка сети", { id: toastId });
     }
   };
 
   const handleMakePayment = async (loan: Loan) => {
-    const paymentAmount = loan.monthlyPayment;
+    const paymentAmount =
+      loan.repaymentType === "lumpSum"
+        ? loan.remainingAmount
+        : loan.monthlyPayment;
     const toastId = toast.loading("Проводим платёж...");
 
     try {
@@ -347,73 +485,137 @@ export function FinanceLoans() {
   const enrichedLoans = useMemo(
     () =>
       loans.map((loan) => {
-        const totalMonths = calcMonths(
-          loan.totalAmount,
-          loan.interestRate,
-          loan.monthlyPayment,
-        );
-        const monthsRemaining = calcMonths(
-          loan.remainingAmount,
-          loan.interestRate,
-          loan.monthlyPayment,
-        );
+        const isLumpSum = loan.repaymentType === "lumpSum";
         const paidAmount = loan.totalAmount - loan.remainingAmount;
         const progressPct =
           loan.totalAmount > 0
             ? Math.min((paidAmount / loan.totalAmount) * 100, 100)
             : 0;
-        const totalInterest =
-          totalMonths === Infinity
-            ? Infinity
-            : loan.monthlyPayment * totalMonths - loan.totalAmount;
-        const interestPaidRatio =
-          totalMonths > 0 && totalMonths !== Infinity
-            ? 1 - monthsRemaining / totalMonths
-            : loan.totalAmount > 0
-              ? paidAmount / loan.totalAmount
-              : 0;
-        const interestPaid =
-          totalInterest === Infinity
-            ? 0
-            : Math.max(0, totalInterest * interestPaidRatio);
-        const totalCost =
-          totalMonths === Infinity
-            ? Infinity
-            : loan.monthlyPayment * totalMonths;
         const isPaid = loan.remainingAmount <= 0;
-        const overdueDays = isPaid ? 0 : calcOverdueDays(loan.nextPaymentDate);
-        const isOverdue = overdueDays > 0;
 
-        const monthsElapsed =
-          totalMonths === Infinity ? 0 : totalMonths - monthsRemaining;
-        const monthProgressPct =
-          totalMonths > 0 && totalMonths !== Infinity
-            ? Math.min((monthsElapsed / totalMonths) * 100, 100)
-            : 0;
+        const overdueDays = isPaid ? 0 : loan.overdueMonths * 30;
+        const isOverdue = !isPaid && loan.overdueMonths > 0;
 
-        const monthlyInterestPortion =
-          loan.interestRate > 0 && loan.remainingAmount > 0
-            ? (loan.remainingAmount * (loan.interestRate / 100)) / 12
-            : 0;
-        const monthlyPrincipalPortion = isPaid
-          ? 0
-          : Math.max(0, loan.monthlyPayment - monthlyInterestPortion);
+        let totalMonths: number;
+        let monthsRemaining: number;
+        let monthsElapsed: number;
+        let monthProgressPct: number;
+        let totalInterest: number;
+        let interestPaid: number;
+        let totalCost: number;
+        let monthlyInterestPortion: number;
+        let monthlyPrincipalPortion: number;
+        let daysUntilNextPayment: number;
+        let healthStatus: string;
+        let daysRemaining: number | null;
+        let daysElapsed: number | null;
+        let totalDays: number | null;
+        let dayProgressPct: number | null;
 
-        const nextPayDate = new Date(loan.nextPaymentDate + "T00:00:00Z");
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const diffMs = nextPayDate.getTime() - today.getTime();
-        const daysUntilNextPayment = Math.ceil(diffMs / 86400000);
+        if (isLumpSum) {
+          totalMonths = 0;
+          monthsRemaining = 0;
+          monthsElapsed = 0;
+          monthProgressPct = 0;
+          totalInterest = isPaid ? 0 : 0;
+          interestPaid = 0;
+          totalCost = loan.totalAmount;
+          monthlyInterestPortion = 0;
+          monthlyPrincipalPortion = 0;
 
-        const healthStatus = isPaid
-          ? "paid"
-          : isOverdue
-            ? "critical"
-            : progressPct < 25
-              ? "early"
-              : progressPct > 75
-                ? "almost-there"
-                : "on-track";
+          const dueDate = new Date(
+            loan.dueDate || loan.nextPaymentDate + "T00:00:00Z",
+          );
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const diffMs = dueDate.getTime() - today.getTime();
+          daysUntilNextPayment = Math.ceil(diffMs / 86400000);
+
+          const created = new Date(loan.createdAt + "T00:00:00Z");
+          created.setHours(0, 0, 0, 0);
+          const totalDiffMs = dueDate.getTime() - created.getTime();
+          totalDays = Math.ceil(totalDiffMs / 86400000);
+          const elapsedMs = today.getTime() - created.getTime();
+          daysElapsed = Math.ceil(elapsedMs / 86400000);
+          daysRemaining = daysUntilNextPayment;
+          dayProgressPct =
+            totalDays && totalDays > 0
+              ? Math.min(Math.max((daysElapsed / totalDays) * 100, 0), 100)
+              : 0;
+
+          healthStatus = isPaid
+            ? "paid"
+            : isOverdue
+              ? "critical"
+              : daysRemaining <= 7
+                ? "early"
+                : dayProgressPct > 75
+                  ? "almost-there"
+                  : "on-track";
+        } else {
+          totalMonths = calcMonths(
+            loan.totalAmount,
+            loan.interestRate,
+            loan.monthlyPayment,
+          );
+          monthsRemaining = calcMonths(
+            loan.remainingAmount,
+            loan.interestRate,
+            loan.monthlyPayment,
+          );
+          monthsElapsed =
+            totalMonths === Infinity ? 0 : totalMonths - monthsRemaining;
+          monthProgressPct =
+            totalMonths > 0 && totalMonths !== Infinity
+              ? Math.min((monthsElapsed / totalMonths) * 100, 100)
+              : 0;
+          totalInterest =
+            totalMonths === Infinity
+              ? Infinity
+              : loan.monthlyPayment * totalMonths - loan.totalAmount;
+          const interestPaidRatio =
+            totalMonths > 0 && totalMonths !== Infinity
+              ? 1 - monthsRemaining / totalMonths
+              : loan.totalAmount > 0
+                ? paidAmount / loan.totalAmount
+                : 0;
+          interestPaid =
+            totalInterest === Infinity
+              ? 0
+              : Math.max(0, totalInterest * interestPaidRatio);
+          totalCost =
+            totalMonths === Infinity
+              ? Infinity
+              : loan.monthlyPayment * totalMonths;
+
+          monthlyInterestPortion =
+            loan.interestRate > 0 && loan.remainingAmount > 0
+              ? (loan.remainingAmount * (loan.interestRate / 100)) / 12
+              : 0;
+          monthlyPrincipalPortion = isPaid
+            ? 0
+            : Math.max(0, loan.monthlyPayment - monthlyInterestPortion);
+
+          const nextPayDate = new Date(loan.nextPaymentDate + "T00:00:00Z");
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const diffMs = nextPayDate.getTime() - today.getTime();
+          daysUntilNextPayment = Math.ceil(diffMs / 86400000);
+          daysRemaining = null;
+          daysElapsed = null;
+          totalDays = null;
+          dayProgressPct = null;
+
+          healthStatus = isPaid
+            ? "paid"
+            : isOverdue
+              ? "critical"
+              : progressPct < 25
+                ? "early"
+                : progressPct > 75
+                  ? "almost-there"
+                  : "on-track";
+        }
 
         return {
           ...loan,
@@ -433,6 +635,11 @@ export function FinanceLoans() {
           overdueDays,
           isOverdue,
           healthStatus,
+          isLumpSum,
+          daysRemaining,
+          daysElapsed,
+          totalDays,
+          dayProgressPct,
         };
       }),
     [loans],
@@ -459,7 +666,11 @@ export function FinanceLoans() {
   );
 
   const totalMonthly = useMemo(
-    () => enrichedLoans.reduce((s, l) => s + l.monthlyPayment, 0),
+    () =>
+      enrichedLoans.reduce(
+        (s, l) => (l.repaymentType === "monthly" ? s + l.monthlyPayment : s),
+        0,
+      ),
     [enrichedLoans],
   );
 
@@ -584,7 +795,7 @@ export function FinanceLoans() {
               <div className="text-center">
                 <p className="text-sm font-medium">Нет обязательств</p>
                 <p className="text-xs text-muted-foreground/60 mt-0.5">
-                  Добавьте кредит, рассрочку или долг
+                  Добавьте кредит, рассрочку, долг или другое обязательство
                 </p>
               </div>
               <Button variant="outline" size="sm" onClick={openAddDialog}>
@@ -642,7 +853,7 @@ export function FinanceLoans() {
                           className="text-[10px] px-1.5 py-0 h-5 shrink-0"
                         >
                           <Clock className="h-3 w-3 mr-0.5" />
-                          {loan.overdueDays} дн.
+                          {loan.overdueMonths} мес.
                         </Badge>
                       )}
                     </div>
@@ -664,9 +875,15 @@ export function FinanceLoans() {
                           Без %
                         </Badge>
                       )}
-                      <span className="text-xs text-muted-foreground">
-                        {loan.monthlyPayment.toLocaleString()} ₽/мес
-                      </span>
+                      {loan.isLumpSum ? (
+                        <span className="text-xs text-muted-foreground">
+                          Единовременно
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          {loan.monthlyPayment.toLocaleString()} ₽/мес
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-0.5 shrink-0 ml-2">
@@ -763,7 +980,29 @@ export function FinanceLoans() {
                   </div>
                 </div>
 
-                {loan.totalMonths > 0 && loan.totalMonths !== Infinity && (
+                {loan.isLumpSum && loan.totalDays && loan.totalDays > 0 ? (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>До даты погашения</span>
+                      <span>
+                        {loan.daysRemaining != null
+                          ? `осталось ${loan.daysRemaining} дн.`
+                          : ""}
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-500",
+                          loan.daysRemaining != null && loan.daysRemaining <= 7
+                            ? "bg-rose-400"
+                            : "bg-sky-400",
+                        )}
+                        style={{ width: `${loan.dayProgressPct}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : loan.totalMonths > 0 && loan.totalMonths !== Infinity ? (
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>Месяцы</span>
@@ -778,10 +1017,10 @@ export function FinanceLoans() {
                       />
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {/* Payment breakdown */}
-                {loan.interestRate > 0 && !loan.isPaid && (
+                {loan.interestRate > 0 && !loan.isPaid && !loan.isLumpSum && (
                   <div className="rounded-lg bg-muted/30 p-2.5 space-y-1.5">
                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
                       Разбивка платежа
@@ -835,11 +1074,17 @@ export function FinanceLoans() {
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {loan.daysUntilNextPayment > 0
-                        ? `Следующий платёж через ${loan.daysUntilNextPayment} дн.`
-                        : loan.daysUntilNextPayment === 0
-                          ? "Платёж сегодня"
-                          : `Платёж просрочен на ${Math.abs(loan.daysUntilNextPayment)} дн.`}
+                      {loan.isLumpSum
+                        ? loan.daysUntilNextPayment > 0
+                          ? `До погашения ${loan.daysUntilNextPayment} дн.`
+                          : loan.daysUntilNextPayment === 0
+                            ? "Дата погашения сегодня"
+                            : `Просрочено на ${Math.abs(loan.daysUntilNextPayment)} дн.`
+                        : loan.daysUntilNextPayment > 0
+                          ? `Следующий платёж через ${loan.daysUntilNextPayment} дн.`
+                          : loan.daysUntilNextPayment === 0
+                            ? "Платёж сегодня"
+                            : `Платёж просрочен на ${Math.abs(loan.daysUntilNextPayment)} дн.`}
                     </span>
                     <span
                       className={cn(
@@ -852,9 +1097,11 @@ export function FinanceLoans() {
                           "text-muted-foreground",
                       )}
                     >
-                      {new Date(loan.nextPaymentDate).toLocaleDateString(
-                        "ru-RU",
-                      )}
+                      {new Date(
+                        loan.isLumpSum
+                          ? loan.dueDate || loan.nextPaymentDate
+                          : loan.nextPaymentDate,
+                      ).toLocaleDateString("ru-RU")}
                     </span>
                   </div>
                 )}
@@ -865,7 +1112,7 @@ export function FinanceLoans() {
                     <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-medium text-rose-600">
-                        Просрочка {loan.overdueDays} дн.
+                        Просрочка {loan.overdueMonths} мес.
                       </p>
                       <p className="text-[11px] text-rose-600/70 mt-0.5">
                         Следующий платёж был{" "}
@@ -911,18 +1158,33 @@ export function FinanceLoans() {
                 )}
 
                 {/* Regular payment */}
-                <Button
-                  className="w-full"
-                  size="sm"
-                  variant={loan.isOverdue ? "destructive" : "default"}
-                  disabled={loan.remainingAmount <= 0}
-                  onClick={() => handleMakePayment(loan)}
-                >
-                  <CreditCard className="h-4 w-4 mr-1" />
-                  {loan.remainingAmount <= 0
-                    ? "Погашен"
-                    : `Внести ${loan.monthlyPayment.toLocaleString()} ₽`}
-                </Button>
+                {loan.isLumpSum ? (
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    variant={loan.isOverdue ? "destructive" : "default"}
+                    disabled={loan.remainingAmount <= 0}
+                    onClick={() => handleMakePayment(loan)}
+                  >
+                    <CreditCard className="h-4 w-4 mr-1" />
+                    {loan.remainingAmount <= 0
+                      ? "Погашен"
+                      : `Погасить ${Math.round(loan.remainingAmount).toLocaleString()} ₽`}
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    variant={loan.isOverdue ? "destructive" : "default"}
+                    disabled={loan.remainingAmount <= 0}
+                    onClick={() => handleMakePayment(loan)}
+                  >
+                    <CreditCard className="h-4 w-4 mr-1" />
+                    {loan.remainingAmount <= 0
+                      ? "Погашен"
+                      : `Внести ${loan.monthlyPayment.toLocaleString()} ₽`}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -936,7 +1198,7 @@ export function FinanceLoans() {
           if (!open) closeDialog();
         }}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editingLoan
@@ -950,46 +1212,46 @@ export function FinanceLoans() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Obligation type toggle */}
             <div className="flex rounded-lg border p-0.5 bg-muted/30">
-              <button
-                type="button"
-                onClick={() => setFormHasInterest(true)}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                  formHasInterest
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Percent className="h-3.5 w-3.5" />С процентами
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormHasInterest(false)}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                  !formHasInterest
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Ban className="h-3.5 w-3.5" />
-                Без процентов
-              </button>
+              {(Object.keys(OBLIGATION_LABELS) as ObligationType[]).map(
+                (type) => {
+                  const Icon = OBLIGATION_ICONS[type];
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setFormObligationType(type)}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                        formObligationType === type
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {OBLIGATION_LABELS[type]}
+                    </button>
+                  );
+                },
+              )}
             </div>
 
+            {/* Name */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Название
+              </label>
+              <Input
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="Например, Ипотека"
+                className="h-9"
+              />
+            </div>
+
+            {/* Amount / Remaining */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5 col-span-2">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Название
-                </label>
-                <Input
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Например, Ипотека"
-                  className="h-9"
-                />
-              </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
                   Сумма
@@ -1014,7 +1276,46 @@ export function FinanceLoans() {
                   className="h-9"
                 />
               </div>
-              {formHasInterest && (
+            </div>
+
+            {/* Rate toggle for credit/enforcement (monthly only) */}
+            {(formObligationType === "credit" ||
+              formObligationType === "enforcement") &&
+              formRepaymentType === "monthly" && (
+                <div className="flex rounded-lg border p-0.5 bg-muted/30">
+                  <button
+                    type="button"
+                    onClick={() => setFormHasInterest(true)}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                      formHasInterest
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Percent className="h-3.5 w-3.5" />С процентами
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormHasInterest(false)}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                      !formHasInterest
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Ban className="h-3.5 w-3.5" />
+                    Без процентов
+                  </button>
+                </div>
+              )}
+
+            {/* Interest rate input */}
+            {formHasInterest &&
+              (formObligationType === "credit" ||
+                formObligationType === "enforcement") &&
+              formRepaymentType === "monthly" && (
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">
                     Ставка %
@@ -1029,9 +1330,87 @@ export function FinanceLoans() {
                   />
                 </div>
               )}
+
+            {/* Enforcement-specific fields */}
+            {formObligationType === "enforcement" && (
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Сбор ИП
+                  </label>
+                  <Input
+                    type="number"
+                    value={formEnforcementFee}
+                    onChange={(e) => setFormEnforcementFee(e.target.value)}
+                    placeholder="0"
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Офиц. доход
+                  </label>
+                  <Input
+                    type="number"
+                    value={formOfficialIncome}
+                    onChange={(e) => setFormOfficialIncome(e.target.value)}
+                    placeholder="0"
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    % ФССП
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={formFsspPercent}
+                    onChange={(e) => setFormFsspPercent(e.target.value)}
+                    placeholder="50"
+                    className="h-9"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Repayment type toggle */}
+            <div className="flex rounded-lg border p-0.5 bg-muted/30">
+              <button
+                type="button"
+                onClick={() => setFormRepaymentType("monthly")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  formRepaymentType === "monthly"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <CreditCard className="h-3.5 w-3.5" />
+                Ежемесячно
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormRepaymentType("lumpSum")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  formRepaymentType === "lumpSum"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                Единовременно
+              </button>
+            </div>
+
+            {/* Monthly payment / Due date */}
+            {formRepaymentType === "monthly" ? (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
-                  Платёж/мес
+                  {formObligationType === "enforcement"
+                    ? "Платёж/мес (рассчитано)"
+                    : "Платёж/мес"}
                 </label>
                 <Input
                   type="number"
@@ -1041,17 +1420,49 @@ export function FinanceLoans() {
                   className="h-9"
                 />
               </div>
+            ) : (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
-                  Дата начала
+                  Дата погашения
                 </label>
                 <Input
                   type="date"
-                  value={formStartDate}
-                  onChange={(e) => setFormStartDate(e.target.value)}
+                  value={formDueDate}
+                  onChange={(e) => setFormDueDate(e.target.value)}
                   className="h-9"
                 />
               </div>
+            )}
+
+            {/* Start date for credit monthly */}
+            {formRepaymentType === "monthly" &&
+              formObligationType === "credit" && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Дата начала
+                  </label>
+                  <Input
+                    type="date"
+                    value={formStartDate}
+                    onChange={(e) => setFormStartDate(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+              )}
+
+            {/* Overdue months */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Кол-во просроченных платежей
+              </label>
+              <Input
+                type="number"
+                min="0"
+                value={formOverdueMonths}
+                onChange={(e) => setFormOverdueMonths(e.target.value)}
+                placeholder="0"
+                className="h-9"
+              />
             </div>
           </div>
           <DialogFooter>

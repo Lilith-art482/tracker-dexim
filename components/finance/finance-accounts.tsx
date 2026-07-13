@@ -68,6 +68,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { getUSDTtoRUB, convertToRUB } from "@/lib/exchange-rates";
 import {
   getAccountsByUser,
   createAccount,
@@ -266,6 +267,7 @@ export function FinanceAccounts() {
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [usdtRate, setUsdtRate] = useState<number>(90);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -330,6 +332,9 @@ export function FinanceAccounts() {
       setAccounts(data);
       setCategories(cats);
       setLoans(ln);
+
+      const rate = await getUSDTtoRUB();
+      setUsdtRate(rate);
     } catch (e) {
       console.error("Failed to load accounts:", e);
     } finally {
@@ -350,7 +355,10 @@ export function FinanceAccounts() {
     if (lastCurrency) setFormCurrency(lastCurrency);
   }, []);
 
-  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+  const totalBalance = accounts.reduce(
+    (sum, a) => sum + convertToRUB(a.balance, a.currency, usdtRate),
+    0,
+  );
 
   const resetForm = useCallback(() => {
     setFormName("");
@@ -592,6 +600,9 @@ export function FinanceAccounts() {
               remainingAmount: parseFloat(newLoanTotal),
               nextPaymentDate:
                 newLoanNextPayment || new Date().toISOString().split("T")[0],
+              repaymentType: "monthly",
+              obligationType: "credit",
+              overdueMonths: 0,
             });
           }
         } else {
@@ -742,10 +753,12 @@ export function FinanceAccounts() {
           <p className="text-sm text-muted-foreground">
             Общий баланс:{" "}
             <span className="font-semibold text-foreground">
-              {totalBalance.toLocaleString()} ₽
+              {Math.round(totalBalance).toLocaleString()} ₽
             </span>
             {" · "}
             <span className="text-xs">{accounts.length} счетов</span>
+            {" · "}
+            <span className="text-[10px]">USDT/RUB: {usdtRate.toFixed(2)}</span>
           </p>
         </div>
         <div className="flex gap-2">

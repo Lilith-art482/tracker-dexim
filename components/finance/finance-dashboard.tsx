@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getUSDTtoRUB, convertToRUB } from "@/lib/exchange-rates";
 
 const CATEGORY_COLORS_HEX: Record<string, string> = {
   red: "#ef4444",
@@ -65,6 +66,7 @@ export function FinanceDashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [usdtRate, setUsdtRate] = useState<number>(90);
   const [budget, setBudget] = useState<BudgetPlan | null>(null);
   const [emergencyFund, setEmergencyFund] = useState<EmergencyFund | null>(
     null,
@@ -103,6 +105,9 @@ export function FinanceDashboard() {
         setBudget(buds.length > 0 ? buds[0] : null);
         setEmergencyFund(em);
         setLoans(loansData);
+
+        const rate = await getUSDTtoRUB();
+        setUsdtRate(rate);
       } catch (e) {
         console.error("Failed to load finance data", e);
       } finally {
@@ -116,7 +121,10 @@ export function FinanceDashboard() {
     fetchAll(true);
   }, [fetchAll]);
 
-  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+  const totalBalance = accounts.reduce(
+    (sum, a) => sum + convertToRUB(a.balance, a.currency, usdtRate),
+    0,
+  );
 
   const periodTxns = useMemo(() => {
     const now = new Date();
@@ -143,11 +151,11 @@ export function FinanceDashboard() {
   const freeMoney = periodIncome - periodExpenses - periodObligations;
 
   const totalLoanDebt = loans.reduce((s, l) => s + l.remainingAmount, 0);
-  const totalLoanMonthly = loans.reduce((s, l) => s + l.monthlyPayment, 0);
-  const overdueLoans = loans.filter((l) => {
-    const next = new Date(l.nextPaymentDate + "T00:00:00Z");
-    return next < new Date() && l.remainingAmount > 0;
-  }).length;
+  const totalLoanMonthly = loans.reduce(
+    (s, l) => (l.repaymentType === "monthly" ? s + l.monthlyPayment : s),
+    0,
+  );
+  const overdueLoans = loans.filter((l) => l.overdueMonths > 0 && l.remainingAmount > 0).length;
 
   const hasData = periodIncome > 0 || periodExpenses > 0;
   const healthRatio = hasData
@@ -322,16 +330,19 @@ export function FinanceDashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Wallet className="h-4 w-4" />
-                Общий баланс
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">
-                {totalBalance.toLocaleString()} ₽
-              </p>
-            </CardContent>
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Wallet className="h-4 w-4" />
+              Общий баланс
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">
+              {Math.round(totalBalance).toLocaleString()} ₽
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              USDT/RUB: {usdtRate.toFixed(2)} ₽
+            </p>
+          </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">

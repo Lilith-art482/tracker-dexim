@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getUSDTtoRUB, convertToRUB } from "@/lib/exchange-rates";
 
 function getPeriodRange(period: BudgetPlan["period"]): {
   periodStart: string;
@@ -122,6 +123,7 @@ export function FinancePlanning() {
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [usdtRate, setUsdtRate] = useState<number>(90);
   const [saving, setSaving] = useState(false);
   const [expectedIncome, setExpectedIncome] = useState("");
   const [categoryLimits, setCategoryLimits] = useState<Record<string, string>>(
@@ -145,6 +147,10 @@ export function FinancePlanning() {
       ]);
       setAccounts(accs);
       setLoans(loansData);
+
+      const rate = await getUSDTtoRUB();
+      setUsdtRate(rate);
+
       setAllBudgets(budgets);
       const current = budgets.find(
         (b) => b.period === period && b.periodStart === periodStart,
@@ -229,11 +235,26 @@ export function FinancePlanning() {
   const elapsedDays = getDaysElapsed(periodStart);
   const dailyAvg = elapsedDays > 0 ? totalSpent / elapsedDays : 0;
   const projectedTotal = dailyAvg * periodDays;
-  const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
+  const totalBalance = accounts.reduce(
+    (s, a) => s + convertToRUB(a.balance, a.currency, usdtRate),
+    0,
+  );
   const income = parseFloat(expectedIncome) || totalBalance;
   const totalLoanDebt = loans.reduce((s, l) => s + l.remainingAmount, 0);
-  const totalLoanMonthly = loans.reduce((s, l) => s + l.monthlyPayment, 0);
-  const freeAfterObligations = income - totalLoanMonthly;
+  const totalLoanMonthly = loans.reduce(
+    (s, l) => (l.repaymentType === "monthly" ? s + l.monthlyPayment : s),
+    0,
+  );
+  const lumpSumThisPeriod = loans
+    .filter(
+      (l) =>
+        l.repaymentType === "lumpSum" &&
+        l.dueDate &&
+        l.dueDate >= periodStart &&
+        l.dueDate <= periodEnd,
+    )
+    .reduce((s, l) => s + l.remainingAmount, 0);
+  const freeAfterObligations = income - totalLoanMonthly - lumpSumThisPeriod;
   const projectedRemaining = income - projectedTotal;
 
   const handleLimitChange = (categoryId: string, value: string) => {
@@ -435,6 +456,12 @@ export function FinancePlanning() {
             <div className="text-2xl font-bold tabular-nums mb-1">
               {totalLoanMonthly.toLocaleString()} ₽
             </div>
+            {lumpSumThisPeriod > 0 && (
+              <p className="text-xs font-semibold text-amber-600">
+                + {Math.round(lumpSumThisPeriod).toLocaleString()} ₽
+                единовременно в этом периоде
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               {totalLoanDebt.toLocaleString()} ₽ долга · {loans.length} шт.
             </p>

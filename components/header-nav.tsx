@@ -15,6 +15,7 @@ import {
   Monitor,
   Volume2,
   Sparkles,
+  Bot,
 } from "lucide-react";
 import { useMode } from "@/lib/mode-context";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import { useAudio } from "@/lib/audio-context";
 import AudioModal from "@/components/audio-modal";
+import AiChat from "@/components/ai-chat";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -95,6 +97,7 @@ export function HeaderActions() {
     }
     return true;
   });
+  const [chatOpen, setChatOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [language, setLanguage] = useState("ru");
 
@@ -106,6 +109,18 @@ export function HeaderActions() {
 
   return (
     <>
+      <button
+        onClick={() => setChatOpen(true)}
+        className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors relative"
+        title="AI-помощник"
+      >
+        <Bot className="h-4 w-4" />
+        <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-violet-500" />
+        </span>
+      </button>
+
       <div className="hidden md:block">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
@@ -317,6 +332,10 @@ export function HeaderActions() {
       >
         <User className="h-4 w-4" />
       </Link>
+      <AiChat
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
       <AudioModal
         open={audioModalOpen}
         onClose={() => setAudioModalOpen(false)}
