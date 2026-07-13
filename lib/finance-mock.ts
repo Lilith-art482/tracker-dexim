@@ -886,6 +886,9 @@ export const mockFinanceLoans: Loan[] = [
     nextPaymentDate: new Date(now.getFullYear(), now.getMonth() + 1, 10)
       .toISOString()
       .split("T")[0],
+    repaymentType: "monthly",
+    obligationType: "credit",
+    overdueMonths: 0,
     createdAt: iso(new Date("2023-06-01")),
     updatedAt: iso(now),
   },

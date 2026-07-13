@@ -50,6 +50,13 @@ export async function POST(request: NextRequest) {
       monthlyPayment: body.monthlyPayment,
       remainingAmount: body.remainingAmount,
       nextPaymentDate: body.nextPaymentDate,
+      repaymentType: body.repaymentType || "monthly",
+      dueDate: body.dueDate,
+      obligationType: body.obligationType || "credit",
+      overdueMonths: body.overdueMonths ?? 0,
+      enforcementFee: body.enforcementFee,
+      officialIncome: body.officialIncome,
+      fsspPercent: body.fsspPercent,
     });
     return NextResponse.json(loan, { status: 201 });
   } catch (error) {

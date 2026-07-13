@@ -327,15 +327,7 @@ export async function createLoan(
 export async function updateLoan(
   id: string,
   data: Partial<
-    Pick<
-      Loan,
-      | "name"
-      | "totalAmount"
-      | "interestRate"
-      | "monthlyPayment"
-      | "remainingAmount"
-      | "nextPaymentDate"
-    >
+    Omit<Loan, "id" | "userId" | "createdAt" | "updatedAt">
   >,
 ): Promise<Loan> {
   const ref = doc(loansCol(), id);

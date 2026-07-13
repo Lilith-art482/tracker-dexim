@@ -178,7 +178,9 @@ export async function createBoard(
 
 export async function updateBoard(
   id: string,
-  data: Partial<Pick<Board, "name" | "members" | "color" | "icon" | "pinned" | "order">>,
+  data: Partial<
+    Pick<Board, "name" | "members" | "color" | "icon" | "pinned" | "order">
+  >,
 ): Promise<Board> {
   await getAdminDb()
     .collection(COL("BOARDS"))

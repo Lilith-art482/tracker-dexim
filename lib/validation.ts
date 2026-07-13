@@ -51,7 +51,10 @@ export const createPersonalTaskSchema = z.object({
 
 export const updatePersonalTaskSchema = z.object({
   id: z.string().min(1),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Формат ГГГГ-ММ-ДД").optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Формат ГГГГ-ММ-ДД")
+    .optional(),
   startTime: z
     .string()
     .regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ")
