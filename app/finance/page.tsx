@@ -89,35 +89,30 @@ export default function FinancePage() {
   };
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-      <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-          Финансы
-        </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          Управляйте своими финансами
-        </p>
+    <div className="min-h-screen">
+      <div className="sticky top-14 z-40 bg-background border-b border-border/40">
+        <div className="flex overflow-x-auto scrollbar-none gap-0 px-2 sm:px-4">
+          {visibleModules.map((mod) => (
+            <button
+              key={mod.id}
+              onClick={() => setActiveModule(mod.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors shrink-0 whitespace-nowrap",
+                activeModule === mod.id
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <mod.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">{mod.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="mb-6 flex gap-1 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-none">
-        {visibleModules.map((mod) => (
-          <button
-            key={mod.id}
-            onClick={() => setActiveModule(mod.id)}
-            className={cn(
-              "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors shrink-0",
-              activeModule === mod.id
-                ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-            )}
-          >
-            <mod.icon className="h-4 w-4" />
-            {mod.label}
-          </button>
-        ))}
+      <div className="p-2 sm:p-4 max-w-6xl mx-auto">
+        {renderModule()}
       </div>
-
-      {renderModule()}
     </div>
   );
 }
