@@ -14,7 +14,7 @@ import {
   useSensors,
   closestCorners,
 } from "@dnd-kit/core";
-import type { PersonalTask, Priority } from "@/lib/models";
+import type { PersonalTask, Priority, Board } from "@/lib/models";
 import { Badge } from "@/components/ui/badge";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
 import { cn } from "@/lib/utils";
@@ -172,12 +172,14 @@ export function WeeklyTable({
   onSaved,
   onToggleComplete,
   onDelete,
+  activeBoard,
 }: {
   tasks: PersonalTask[];
   weekDates: Date[];
   onSaved: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
   onDelete: (task: PersonalTask) => void;
+  activeBoard?: Board;
 }) {
   const [activeTask, setActiveTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -338,7 +340,7 @@ export function WeeklyTable({
         onSaved={handleSaved}
         onDelete={onDelete}
         onToggleComplete={onToggleComplete}
-        activeBoard={undefined}
+        activeBoard={activeBoard}
       />
 
       <DragOverlay dropAnimation={null}>

@@ -121,7 +121,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activeBoard?.id]);
 
   const handleTaskSaved = useCallback((task: PersonalTask) => {
     setTasks((prev) => {
@@ -365,6 +365,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
           onSaved={handleTaskSaved}
           onToggleComplete={handleToggleComplete}
           onDelete={handleDeleteTask}
+          activeBoard={activeBoard}
         />
       ) : (
         <div className="flex flex-col lg:flex-row gap-6">
