@@ -20,7 +20,7 @@ export default async function DemoPage() {
   const { services, dbAvailable } = await getServices();
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-5xl">
+    <div className="container mx-auto px-4 py-12 max-w-[2000px]">
       <div className="mb-10 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <h1 className="text-3xl font-bold tracking-tight">Каталог сервисов</h1>
         <p className="text-muted-foreground">

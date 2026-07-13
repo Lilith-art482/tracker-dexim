@@ -69,7 +69,7 @@ export default async function HomePage({
   if (!activeBoard) {
     return (
       <HomeContent>
-        <div className="container mx-auto flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16">
+        <div className="max-w-[2000px] mx-auto w-full flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
             <ClipboardList className="h-8 w-8 text-muted-foreground" />
           </div>

@@ -120,7 +120,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Профиль карточка */}
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-[2000px] mx-auto">
           <div className="backdrop-blur-xl bg-card/60 border border-border/60 rounded-3xl p-8 animate-in fade-in slide-in-from-bottom-8 duration-500 shadow-xl">
             <div className="text-center mb-8">
               <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/60 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
