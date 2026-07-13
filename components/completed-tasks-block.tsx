@@ -4,7 +4,11 @@ import { CheckCircle2 } from "lucide-react";
 import type { PersonalTask } from "@/lib/models";
 import { cn } from "@/lib/utils";
 
-const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+function formatDayFromDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+  return days[d.getUTCDay()];
+}
 
 interface CompletedTasksBlockProps {
   tasks: PersonalTask[];
@@ -48,7 +52,7 @@ export function CompletedTasksBlock({
                   {task.title}
                 </span>
                 <span className="text-muted-foreground/60 text-[10px]">
-                  {DAY_NAMES[task.dayOfWeek]} {task.startTime.slice(0, 5)}–
+                  {formatDayFromDate(task.date)} {task.startTime.slice(0, 5)}–
                   {task.endTime.slice(0, 5)}
                 </span>
               </div>

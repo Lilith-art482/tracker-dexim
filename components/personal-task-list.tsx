@@ -33,7 +33,7 @@ const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 interface PersonalTaskListProps {
   tasks: PersonalTask[];
-  selectedDay: number;
+  selectedDate: string;
   onEdit: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
   onDelete: (task: PersonalTask) => void;
@@ -41,12 +41,12 @@ interface PersonalTaskListProps {
 
 export function PersonalTaskList({
   tasks,
-  selectedDay,
+  selectedDate,
   onEdit,
   onToggleComplete,
   onDelete,
 }: PersonalTaskListProps) {
-  const dayTasks = tasks.filter((t) => t.dayOfWeek === selectedDay);
+  const dayTasks = tasks.filter((t) => t.date === selectedDate);
 
   if (dayTasks.length === 0) {
     return (
@@ -105,9 +105,6 @@ export function PersonalTaskList({
               <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
                 <span>
                   {task.startTime.slice(0, 5)}–{task.endTime.slice(0, 5)}
-                </span>
-                <span className="text-muted-foreground/50">
-                  {DAY_NAMES[task.dayOfWeek]}
                 </span>
               </div>
 

@@ -74,6 +74,16 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const weekDates = getWeekDates(weekOffset);
+  const weekDateStrings = weekDates.map((d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  });
+
+  const selectedDate = weekDateStrings[selectedDay] ?? weekDateStrings[0];
+
+  const tasksForWeek = tasks.filter((t) => weekDateStrings.includes(t.date));
 
   const currentMonthLabel = (() => {
     const months = new Set(weekDates.map((d) => d.getMonth()));
@@ -90,9 +100,10 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
       setLoading(true);
       try {
         const uid = auth.currentUser?.uid;
-        const url = uid
-          ? `/api/personal-tasks?uid=${uid}`
-          : "/api/personal-tasks";
+        const params = new URLSearchParams();
+        if (uid) params.set("uid", uid);
+        if (activeBoard?.id) params.set("boardId", activeBoard.id);
+        const url = `/api/personal-tasks?${params.toString()}`;
         const res = await fetch(url);
         if (res.ok) {
           const data: PersonalTask[] = await res.json();
@@ -349,7 +360,8 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
       {/* Content */}
       {viewMode === "table" ? (
         <WeeklyTable
-          tasks={tasks}
+          tasks={tasksForWeek}
+          weekDates={weekDates}
           onSaved={handleTaskSaved}
           onToggleComplete={handleToggleComplete}
           onDelete={handleDeleteTask}
@@ -358,15 +370,15 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1 min-w-0">
             <PersonalTaskList
-              tasks={tasks}
-              selectedDay={selectedDay}
+              tasks={tasksForWeek}
+              selectedDate={selectedDate}
               onEdit={handleEditTask}
               onToggleComplete={handleToggleComplete}
               onDelete={handleDeleteTask}
             />
           </div>
           <div className="w-full lg:w-72 shrink-0">
-            <PersonalDashboard tasks={tasks} />
+            <PersonalDashboard tasks={tasksForWeek} />
           </div>
         </div>
       )}
@@ -381,6 +393,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
         onSaved={handleTaskSaved}
         onDelete={handleDeleteTask}
         onToggleComplete={handleToggleComplete}
+        activeBoard={activeBoard}
       />
     </div>
   );

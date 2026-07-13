@@ -11,7 +11,7 @@ import {
   GripHorizontal,
   ArrowUpDown,
 } from "lucide-react";
-import type { PersonalTask, Priority } from "@/lib/models";
+import type { PersonalTask, Priority, Board } from "@/lib/models";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,12 +37,22 @@ import { auth } from "@/lib/firebase";
 interface PersonalTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultDayOfWeek?: number;
+  defaultDate?: string;
   defaultStartTime?: string;
   task?: PersonalTask | null;
   onSaved: (task: PersonalTask) => void;
   onDelete?: (task: PersonalTask) => void;
   onToggleComplete?: (task: PersonalTask) => void;
+  activeBoard?: Board;
+}
+
+function toDateInputValue(dateStr?: string): string {
+  if (dateStr) return dateStr;
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 const DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -93,17 +103,18 @@ function FieldRow({
 export function PersonalTaskDialog({
   open,
   onOpenChange,
-  defaultDayOfWeek = 0,
+  defaultDate,
   defaultStartTime = "09:00",
   task,
   onSaved,
   onDelete,
   onToggleComplete,
+  activeBoard,
 }: PersonalTaskDialogProps) {
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title ?? "");
-  const [dayOfWeek, setDayOfWeek] = useState(
-    task?.dayOfWeek ?? defaultDayOfWeek,
+  const [date, setDate] = useState(
+    task?.date ?? toDateInputValue(defaultDate),
   );
   const [startTime, setStartTime] = useState(
     task?.startTime ?? defaultStartTime,
@@ -120,7 +131,7 @@ export function PersonalTaskDialog({
   useEffect(() => {
     if (task) {
       setTitle(task.title);
-      setDayOfWeek(task.dayOfWeek);
+      setDate(task.date);
       setStartTime(task.startTime);
       setEndTime(task.endTime);
       setPriority(task.priority);
@@ -128,7 +139,7 @@ export function PersonalTaskDialog({
       setComment(task.comment ?? "");
     } else {
       setTitle("");
-      setDayOfWeek(defaultDayOfWeek);
+      setDate(toDateInputValue(defaultDate));
       setStartTime(defaultStartTime);
       setEndTime("10:00");
       setPriority("medium");
@@ -136,7 +147,7 @@ export function PersonalTaskDialog({
       setComment("");
     }
     setErrors({});
-  }, [task, open, defaultDayOfWeek, defaultStartTime]);
+  }, [task, open, defaultDate, defaultStartTime]);
 
   const handleSubmit = async () => {
     const newErrors: Record<string, string> = {};
@@ -162,7 +173,7 @@ export function PersonalTaskDialog({
           body: JSON.stringify({
             id: task.id,
             title: title.trim(),
-            dayOfWeek,
+            date,
             startTime,
             endTime,
             priority,
@@ -187,12 +198,13 @@ export function PersonalTaskDialog({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             title: title.trim(),
-            dayOfWeek,
+            date,
             startTime,
             endTime,
             priority,
             comment: comment.trim() || undefined,
             ownerId: ownerId || undefined,
+            boardId: activeBoard?.id || undefined,
           }),
         });
 
@@ -260,20 +272,12 @@ export function PersonalTaskDialog({
 
           <SectionBlock icon={Clock} title="Время">
             <div className="grid grid-cols-3 gap-3">
-              <FieldRow label="День недели">
-                <Select
-                  value={String(dayOfWeek)}
-                  onValueChange={(v) => setDayOfWeek(Number(v))}
-                >
-                  <SelectTrigger>{DAY_NAMES[dayOfWeek]}</SelectTrigger>
-                  <SelectContent>
-                    {DAY_NAMES.map((name, i) => (
-                      <SelectItem key={i} value={String(i)}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <FieldRow label="Дата">
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
               </FieldRow>
               <FieldRow label="Начало">
                 <Input

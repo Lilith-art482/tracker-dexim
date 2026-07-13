@@ -22,6 +22,13 @@ import { toast } from "sonner";
 
 const DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
+function getDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 const ROWS = 24;
 
 const PRIORITY_COLORS: Record<Priority, string> = {
@@ -161,18 +168,20 @@ function buildDaySlots(
 
 export function WeeklyTable({
   tasks,
+  weekDates,
   onSaved,
   onToggleComplete,
   onDelete,
 }: {
   tasks: PersonalTask[];
+  weekDates: Date[];
   onSaved: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
   onDelete: (task: PersonalTask) => void;
 }) {
   const [activeTask, setActiveTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogDay, setDialogDay] = useState(0);
+  const [dialogDate, setDialogDate] = useState("");
   const dialogRowRef = useRef(0);
   const [editingTask, setEditingTask] = useState<PersonalTask | null>(null);
   const [positionMap, setPositionMap] = useState<Record<string, number>>({});
@@ -181,25 +190,28 @@ export function WeeklyTable({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  const tasksByDay = useMemo(() => {
-    const map: Record<number, PersonalTask[]> = {};
+  const weekDateKeys = weekDates.map(getDateKey);
+
+  const tasksByDate = useMemo(() => {
+    const map: Record<string, PersonalTask[]> = {};
     for (const t of tasks) {
-      if (!map[t.dayOfWeek]) map[t.dayOfWeek] = [];
-      map[t.dayOfWeek].push(t);
+      const key = t.date;
+      if (!map[key]) map[key] = [];
+      map[key].push(t);
     }
     return map;
   }, [tasks]);
 
   const daySlots = useMemo(() => {
-    const result: Record<number, (PersonalTask | null)[]> = {};
-    for (let d = 0; d < 7; d++) {
-      result[d] = buildDaySlots(tasksByDay[d] || [], positionMap);
+    const result: Record<string, (PersonalTask | null)[]> = {};
+    for (const dk of weekDateKeys) {
+      result[dk] = buildDaySlots(tasksByDate[dk] || [], positionMap);
     }
     return result;
-  }, [tasksByDay, positionMap]);
+  }, [tasksByDate, positionMap, weekDateKeys]);
 
-  const handleCellClick = (dayOfWeek: number, rowIndex: number) => {
-    setDialogDay(dayOfWeek);
+  const handleCellClick = (date: string, rowIndex: number) => {
+    setDialogDate(date);
     dialogRowRef.current = rowIndex;
     setEditingTask(null);
     setDialogOpen(true);
@@ -236,15 +248,15 @@ export function WeeklyTable({
     if (!overId.startsWith("slot-")) return;
 
     const parts = overId.split("-");
-    const newDay = parseInt(parts[1], 10);
+    const newDate = parts[1];
     const newRow = parseInt(parts[2], 10);
-    if (isNaN(newDay) || isNaN(newRow)) return;
+    if (!newDate || isNaN(newRow)) return;
 
-    const targetSlots = daySlots[newDay];
-    if (targetSlots[newRow]) return;
+    const targetSlots = daySlots[newDate];
+    if (!targetSlots || targetSlots[newRow]) return;
 
-    if (newDay === task.dayOfWeek) {
-      const slots = daySlots[newDay];
+    if (newDate === task.date) {
+      const slots = daySlots[newDate];
       let oldRow = -1;
       for (let i = 0; i < slots.length; i++) {
         if (slots[i]?.id === task.id) {
@@ -257,14 +269,14 @@ export function WeeklyTable({
     } else {
       setPositionMap((prev) => ({ ...prev, [task.id]: newRow }));
 
-      const updated = { ...task, dayOfWeek: newDay };
+      const updated = { ...task, date: newDate };
       onSaved(updated);
 
       try {
         const res = await fetch("/api/personal-tasks", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: task.id, dayOfWeek: newDay }),
+          body: JSON.stringify({ id: task.id, date: newDate }),
         });
 
         if (!res.ok) {
@@ -291,18 +303,19 @@ export function WeeklyTable({
           style={{ gridTemplateColumns: `repeat(7, minmax(80px, 1fr))` }}
         >
           {DAYS.map((_day, dayIdx) => {
-            const slots = daySlots[dayIdx];
+            const dateKey = weekDateKeys[dayIdx];
+            const slots = daySlots[dateKey];
             return (
-              <div key={dayIdx} className="flex flex-col">
+              <div key={dateKey} className="flex flex-col">
                 {Array.from({ length: ROWS }, (_, rowIdx) => {
                   const task = slots?.[rowIdx] ?? null;
                   return (
                     <CellRow
-                      key={`slot-${dayIdx}-${rowIdx}`}
-                      dayOfWeek={dayIdx}
+                      key={`slot-${dateKey}-${rowIdx}`}
+                      date={dateKey}
                       rowIndex={rowIdx}
                       task={task}
-                      onCellClick={() => handleCellClick(dayIdx, rowIdx)}
+                      onCellClick={() => handleCellClick(dateKey, rowIdx)}
                       onEdit={handleEditTask}
                       onToggleComplete={onToggleComplete}
                     />
@@ -320,11 +333,12 @@ export function WeeklyTable({
           setDialogOpen(open);
           if (!open) setEditingTask(null);
         }}
-        defaultDayOfWeek={dialogDay}
+        defaultDate={dialogDate}
         task={editingTask}
         onSaved={handleSaved}
         onDelete={onDelete}
         onToggleComplete={onToggleComplete}
+        activeBoard={undefined}
       />
 
       <DragOverlay dropAnimation={null}>
@@ -335,14 +349,14 @@ export function WeeklyTable({
 }
 
 function CellRow({
-  dayOfWeek,
+  date,
   rowIndex,
   task,
   onCellClick,
   onEdit,
   onToggleComplete,
 }: {
-  dayOfWeek: number;
+  date: string;
   rowIndex: number;
   task: PersonalTask | null;
   onCellClick: () => void;
@@ -350,8 +364,8 @@ function CellRow({
   onToggleComplete: (task: PersonalTask) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
-    id: `slot-${dayOfWeek}-${rowIndex}`,
-    data: { type: "slot", dayOfWeek, rowIndex },
+    id: `slot-${date}-${rowIndex}`,
+    data: { type: "slot", date, rowIndex },
   });
 
   return (
