@@ -113,9 +113,7 @@ export function PersonalTaskDialog({
 }: PersonalTaskDialogProps) {
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title ?? "");
-  const [date, setDate] = useState(
-    task?.date ?? toDateInputValue(defaultDate),
-  );
+  const [date, setDate] = useState(task?.date ?? toDateInputValue(defaultDate));
   const [startTime, setStartTime] = useState(
     task?.startTime ?? defaultStartTime,
   );

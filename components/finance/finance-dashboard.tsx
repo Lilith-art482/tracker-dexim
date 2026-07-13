@@ -304,374 +304,443 @@ export function FinanceDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Wallet className="h-4 w-4" />
-              Общий баланс
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {totalBalance.toLocaleString()} ₽
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <TrendingUp className="h-4 w-4" />
-              Доходы
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {periodIncome.toLocaleString()} ₽
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <TrendingDown className="h-4 w-4" />
-              Расходы
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {periodExpenses.toLocaleString()} ₽
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <PiggyBank className="h-4 w-4" />
-              Свободные деньги
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{freeMoney.toLocaleString()} ₽</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <BarChart3 className="h-4 w-4" />
-              Категории
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Select
-                value={catPeriod}
-                onValueChange={(v) => setCatPeriod(v as typeof catPeriod)}
-              >
-                <SelectTrigger className="w-[130px] h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="week">Неделя</SelectItem>
-                  <SelectItem value="month">Месяц</SelectItem>
-                  <SelectItem value="quarter">Квартал</SelectItem>
-                  <SelectItem value="half-year">Полгода</SelectItem>
-                  <SelectItem value="year">Год</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex rounded-lg border p-0.5">
-                <button
-                  onClick={() => setCatType("expense")}
-                  className={cn(
-                    "px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                    catType === "expense"
-                      ? "bg-rose-500 text-white shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  Расходы
-                </button>
-                <button
-                  onClick={() => setCatType("income")}
-                  className={cn(
-                    "px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                    catType === "income"
-                      ? "bg-emerald-500 text-white shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  Доходы
-                </button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {sortedCategories.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
-                Нет {catType === "expense" ? "расходов" : "доходов"} за период
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
+      <div className="space-y-6 min-w-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Wallet className="h-4 w-4" />
+                Общий баланс
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">
+                {totalBalance.toLocaleString()} ₽
               </p>
-            ) : (
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  {chartCategories.map((cat) => (
-                    <div key={cat.id} className="space-y-1">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <div
-                            className="h-3 w-3 rounded-full shrink-0"
-                            style={{ backgroundColor: cat.color }}
-                          />
-                          <span className="truncate font-medium">
-                            {cat.name}
-                          </span>
-                        </div>
-                        <span className="tabular-nums font-medium ml-2">
-                          {cat.amount.toLocaleString()} ₽
-                        </span>
-                        <span className="text-xs text-muted-foreground w-12 text-right tabular-nums">
-                          {cat.percentage.toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${cat.percentage}%`,
-                            backgroundColor: cat.color,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  {chartOtherTotal > 0 && (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <div className="h-3 w-3 rounded-full shrink-0 bg-muted-foreground/40" />
-                          <span>Прочее</span>
-                        </div>
-                        <span className="tabular-nums ml-2">
-                          {chartOtherTotal.toLocaleString()} ₽
-                        </span>
-                        <span className="text-xs w-12 text-right tabular-nums">
-                          {chartOtherPct.toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-muted-foreground/40 transition-all duration-500"
-                          style={{ width: `${chartOtherPct}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <TrendingUp className="h-4 w-4" />
+                Доходы
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">
+                {periodIncome.toLocaleString()} ₽
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <TrendingDown className="h-4 w-4" />
+                Расходы
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">
+                {periodExpenses.toLocaleString()} ₽
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <PiggyBank className="h-4 w-4" />
+                Свободные деньги
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">
+                {freeMoney.toLocaleString()} ₽
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-                <div className="overflow-x-auto rounded-lg border">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/30">
-                        <th className="text-left px-3 py-2 font-medium w-8" />
-                        <th className="text-left px-3 py-2 font-medium">
-                          Категория
-                        </th>
-                        <th className="text-right px-3 py-2 font-medium">
-                          Сумма
-                        </th>
-                        <th className="text-right px-3 py-2 font-medium">%</th>
-                        <th className="text-right px-3 py-2 font-medium">
-                          Операций
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedCategories.map((cat) => (
-                        <tr
-                          key={cat.id}
-                          className="border-b last:border-0 hover:bg-muted/20 transition-colors"
-                        >
-                          <td className="px-3 py-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <BarChart3 className="h-4 w-4" />
+                Категории
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={catPeriod}
+                  onValueChange={(v) => setCatPeriod(v as typeof catPeriod)}
+                >
+                  <SelectTrigger className="w-[130px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">Неделя</SelectItem>
+                    <SelectItem value="month">Месяц</SelectItem>
+                    <SelectItem value="quarter">Квартал</SelectItem>
+                    <SelectItem value="half-year">Полгода</SelectItem>
+                    <SelectItem value="year">Год</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex rounded-lg border p-0.5">
+                  <button
+                    onClick={() => setCatType("expense")}
+                    className={cn(
+                      "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                      catType === "expense"
+                        ? "bg-rose-500 text-white shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    Расходы
+                  </button>
+                  <button
+                    onClick={() => setCatType("income")}
+                    className={cn(
+                      "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                      catType === "income"
+                        ? "bg-emerald-500 text-white shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    Доходы
+                  </button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {sortedCategories.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">
+                  Нет {catType === "expense" ? "расходов" : "доходов"} за период
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    {chartCategories.map((cat) => (
+                      <div key={cat.id} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
                             <div
-                              className="h-3 w-3 rounded-full"
+                              className="h-3 w-3 rounded-full shrink-0"
                               style={{ backgroundColor: cat.color }}
                             />
-                          </td>
-                          <td className="px-3 py-2 font-medium">{cat.name}</td>
-                          <td className="px-3 py-2 text-right tabular-nums font-medium">
+                            <span className="truncate font-medium">
+                              {cat.name}
+                            </span>
+                          </div>
+                          <span className="tabular-nums font-medium ml-2">
                             {cat.amount.toLocaleString()} ₽
-                          </td>
-                          <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">
+                          </span>
+                          <span className="text-xs text-muted-foreground w-12 text-right tabular-nums">
                             {cat.percentage.toFixed(1)}%
-                          </td>
-                          <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">
-                            {cat.count}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Clock className="h-4 w-4" />
-              Последние операции
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {transactions.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                Нет операций
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {transactions
-                  .sort((a, b) => (a.date < b.date ? 1 : -1))
-                  .slice(0, 10)
-                  .map((tx) => {
-                    const cat = categoryMap.get(tx.categoryId);
-                    const color =
-                      CATEGORY_COLORS_HEX[cat?.color || ""] || "#6b7280";
-                    return (
-                      <div
-                        key={tx.id}
-                        className="flex items-center justify-between text-sm"
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <div
-                            className="h-2 w-2 rounded-full shrink-0"
-                            style={{ backgroundColor: color }}
-                          />
-                          <span className="truncate">
-                            {cat?.name || "Без категории"}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="font-medium tabular-nums">
-                            {tx.type === "income" ? "+" : "-"}
-                            {tx.amount.toLocaleString()} ₽
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {tx.date.includes("T")
-                              ? tx.date.slice(5, 16).replace("T", " ")
-                              : tx.date.slice(5)}
-                          </span>
+                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${cat.percentage}%`,
+                              backgroundColor: cat.color,
+                            }}
+                          />
                         </div>
                       </div>
-                    );
-                  })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                    ))}
+                    {chartOtherTotal > 0 && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className="h-3 w-3 rounded-full shrink-0 bg-muted-foreground/40" />
+                            <span>Прочее</span>
+                          </div>
+                          <span className="tabular-nums ml-2">
+                            {chartOtherTotal.toLocaleString()} ₽
+                          </span>
+                          <span className="text-xs w-12 text-right tabular-nums">
+                            {chartOtherPct.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-muted-foreground/40 transition-all duration-500"
+                            style={{ width: `${chartOtherPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Target className="h-4 w-4" />
-              Здоровье бюджета
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div
-              className={cn(
-                "flex items-center gap-3 rounded-lg p-3",
-                healthBg,
+                  <div className="overflow-x-auto rounded-lg border">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/30">
+                          <th className="text-left px-3 py-2 font-medium w-8" />
+                          <th className="text-left px-3 py-2 font-medium">
+                            Категория
+                          </th>
+                          <th className="text-right px-3 py-2 font-medium">
+                            Сумма
+                          </th>
+                          <th className="text-right px-3 py-2 font-medium">
+                            %
+                          </th>
+                          <th className="text-right px-3 py-2 font-medium">
+                            Операций
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedCategories.map((cat) => (
+                          <tr
+                            key={cat.id}
+                            className="border-b last:border-0 hover:bg-muted/20 transition-colors"
+                          >
+                            <td className="px-3 py-2">
+                              <div
+                                className="h-3 w-3 rounded-full"
+                                style={{ backgroundColor: cat.color }}
+                              />
+                            </td>
+                            <td className="px-3 py-2 font-medium">
+                              {cat.name}
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums font-medium">
+                              {cat.amount.toLocaleString()} ₽
+                            </td>
+                            <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">
+                              {cat.percentage.toFixed(1)}%
+                            </td>
+                            <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">
+                              {cat.count}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
-            >
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Clock className="h-4 w-4" />
+                Последние операции
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {transactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  Нет операций
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {transactions
+                    .sort((a, b) => (a.date < b.date ? 1 : -1))
+                    .slice(0, 10)
+                    .map((tx) => {
+                      const cat = categoryMap.get(tx.categoryId);
+                      const color =
+                        CATEGORY_COLORS_HEX[cat?.color || ""] || "#6b7280";
+                      return (
+                        <div
+                          key={tx.id}
+                          className="flex items-center justify-between text-sm"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div
+                              className="h-2 w-2 rounded-full shrink-0"
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className="truncate">
+                              {cat?.name || "Без категории"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-medium tabular-nums">
+                              {tx.type === "income" ? "+" : "-"}
+                              {tx.amount.toLocaleString()} ₽
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {tx.date.includes("T")
+                                ? tx.date.slice(5, 16).replace("T", " ")
+                                : tx.date.slice(5)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Target className="h-4 w-4" />
+                Здоровье бюджета
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <div
                 className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-full",
+                  "flex items-center gap-3 rounded-lg p-3",
                   healthBg,
                 )}
               >
-                <AlertTriangle className={cn("h-5 w-5", healthColor)} />
-              </div>
-              <div>
-                <p className={cn("text-sm font-semibold", healthColor)}>
-                  {healthLabel}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {hasData
-                    ? `${Math.round(healthRatio * 100)}% расходов от доходов`
-                    : "Нет операций за период"}
-                </p>
-              </div>
-            </div>
-            {hasData && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Расходы / Доходы</span>
-                  <span>{Math.round(healthRatio * 100)}%</span>
+                <div
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-full",
+                    healthBg,
+                  )}
+                >
+                  <AlertTriangle className={cn("h-5 w-5", healthColor)} />
                 </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all",
-                      healthRatio <= 0.5
-                        ? "bg-emerald-500"
-                        : healthRatio <= 0.8
-                          ? "bg-amber-500"
-                          : "bg-rose-500",
-                    )}
-                    style={{ width: `${Math.min(healthRatio * 100, 100)}%` }}
-                  />
+                <div>
+                  <p className={cn("text-sm font-semibold", healthColor)}>
+                    {healthLabel}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {hasData
+                      ? `${Math.round(healthRatio * 100)}% расходов от доходов`
+                      : "Нет операций за период"}
+                  </p>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <CalendarArrowUp className="h-4 w-4" />
-              Прогноз
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                Средний расход в день
-              </span>
-              <span className="font-medium">
-                {Math.round(dailyAvgExpense).toLocaleString()} ₽
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                Средний доход в день
-              </span>
-              <span className="font-medium">
-                {Math.round(dailyAvgIncome).toLocaleString()} ₽
-              </span>
-            </div>
-            <div
-              className={cn(
-                "flex justify-between text-sm font-medium pt-2 border-t",
-                projectedRemaining >= 0 ? "text-sky-600" : "text-rose-600",
+              {hasData && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Расходы / Доходы</span>
+                    <span>{Math.round(healthRatio * 100)}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        healthRatio <= 0.5
+                          ? "bg-emerald-500"
+                          : healthRatio <= 0.8
+                            ? "bg-amber-500"
+                            : "bg-rose-500",
+                      )}
+                      style={{ width: `${Math.min(healthRatio * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
               )}
-            >
-              <span>Прогноз остатка</span>
-              <span>{projectedRemaining.toLocaleString()} ₽</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Если траты сохранятся на текущем уровне
-            </p>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {budgetLoad && (
           <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <CalendarArrowUp className="h-4 w-4" />
+                Прогноз
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">
+                  Средний расход в день
+                </span>
+                <span className="font-medium">
+                  {Math.round(dailyAvgExpense).toLocaleString()} ₽
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">
+                  Средний доход в день
+                </span>
+                <span className="font-medium">
+                  {Math.round(dailyAvgIncome).toLocaleString()} ₽
+                </span>
+              </div>
+              <div
+                className={cn(
+                  "flex justify-between text-sm font-medium pt-2 border-t",
+                  projectedRemaining >= 0 ? "text-sky-600" : "text-rose-600",
+                )}
+              >
+                <span>Прогноз остатка</span>
+                <span>{projectedRemaining.toLocaleString()} ₽</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Если траты сохранятся на текущем уровне
+              </p>
+            </CardContent>
+          </Card>
+
+          {emergencyFund && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <PiggyBank className="h-4 w-4" />
+                  Подушка безопасности
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {emergencyFund.targetAmount > 0 ? (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Накоплено</span>
+                      <span className="font-semibold">
+                        {emergencyFund.currentAmount.toLocaleString()} ₽
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Цель</span>
+                      <span>
+                        {emergencyFund.targetAmount.toLocaleString()} ₽
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all"
+                        style={{
+                          width: `${Math.min((emergencyFund.currentAmount / emergencyFund.targetAmount) * 100, 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      {Math.round(
+                        (emergencyFund.currentAmount /
+                          emergencyFund.targetAmount) *
+                          100,
+                      )}
+                      % от цели
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                      <PiggyBank className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Не настроено
+                      </p>
+                      <p className="text-xs text-muted-foreground/60">
+                        Установите цель в разделе Подушка
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      <div className="w-full">
+        {budgetLoad && (
+          <Card className="h-full">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Target className="h-4 w-4" />
@@ -746,65 +815,6 @@ export function FinanceDashboard() {
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {emergencyFund && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <PiggyBank className="h-4 w-4" />
-                Подушка безопасности
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {emergencyFund.targetAmount > 0 ? (
-                <>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Накоплено</span>
-                    <span className="font-semibold">
-                      {emergencyFund.currentAmount.toLocaleString()} ₽
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Цель</span>
-                    <span>
-                      {emergencyFund.targetAmount.toLocaleString()} ₽
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-emerald-500 transition-all"
-                      style={{
-                        width: `${Math.min((emergencyFund.currentAmount / emergencyFund.targetAmount) * 100, 100)}%`,
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground text-center">
-                    {Math.round(
-                      (emergencyFund.currentAmount /
-                        emergencyFund.targetAmount) *
-                        100,
-                    )}
-                    % от цели
-                  </p>
-                </>
-              ) : (
-                <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                    <PiggyBank className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Не настроено
-                    </p>
-                    <p className="text-xs text-muted-foreground/60">
-                      Установите цель в разделе Подушка
-                    </p>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         )}

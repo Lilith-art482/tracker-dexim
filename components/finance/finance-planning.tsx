@@ -333,7 +333,7 @@ export function FinancePlanning() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <Select
@@ -352,9 +352,25 @@ export function FinancePlanning() {
             </SelectContent>
           </Select>
         </div>
-        <p className="text-xs text-muted-foreground tabular-nums">
-          {periodStart} — {periodEnd}
-        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-xs text-muted-foreground tabular-nums">
+            {periodStart} — {periodEnd}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopyFromLastMonth}
+            disabled={period !== "month"}
+          >
+            <Copy className="h-3.5 w-3.5 mr-1" />
+            Из прошлого
+          </Button>
+          <Button onClick={handleSave} disabled={saving} size="sm">
+            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+            <Save className="h-3.5 w-3.5 mr-1" />
+            Сохранить
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -448,163 +464,243 @@ export function FinancePlanning() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">
             Бюджет по категориям
           </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Укажите лимит для каждой категории расходов — он пойдёт в сумму
-            «Запланировано»
-          </p>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {expenseCategories.map((cat) => {
-              const limit = parseFloat(categoryLimits[cat.id] || "0") || 0;
-              const spent = spentByCategory[cat.id] || 0;
-              const remaining = limit - spent;
-              const pct = limit > 0 ? (spent / limit) * 100 : 0;
-              const isWarning = pct > 80 && pct <= 100;
-              const isDanger = pct > 100;
-              return (
-                <div key={cat.id} className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <div
-                        className="h-3 w-3 rounded-full shrink-0"
-                        style={{ backgroundColor: cat.color }}
-                      />
-                      <span className="text-sm font-medium truncate">
-                        {cat.name}
-                      </span>
+          {expenseCategories.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              Нет категорий расходов
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {expenseCategories.map((cat) => {
+                const limit = parseFloat(categoryLimits[cat.id] || "0") || 0;
+                const spent = spentByCategory[cat.id] || 0;
+                const remaining = limit - spent;
+                const pct = limit > 0 ? (spent / limit) * 100 : 0;
+                const isWarning = pct > 80 && pct <= 100;
+                const isDanger = pct > 100;
+                return (
+                  <div
+                    key={cat.id}
+                    className={cn(
+                      "rounded-xl border p-3 space-y-2 transition-all hover:shadow-sm",
+                      isDanger && "border-rose-300 dark:border-rose-800",
+                    )}
+                    style={
+                      !isDanger
+                        ? { borderLeftColor: cat.color, borderLeftWidth: 3 }
+                        : {}
+                    }
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <div
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        <span className="text-sm font-medium truncate">
+                          {cat.name}
+                        </span>
+                      </div>
                       {isDanger && (
                         <Badge
                           variant="destructive"
-                          className="text-[10px] px-1 py-0 h-5"
-                        >
-                          <AlertTriangle className="h-3 w-3 mr-0.5" />
-                          Перерасход
-                        </Badge>
-                      )}
-                      {isWarning && !isDanger && (
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px] px-1 py-0 h-5 bg-amber-500/10 text-amber-600 border-amber-500/20"
+                          className="text-[10px] px-1 py-0 h-5 shrink-0"
                         >
                           <AlertTriangle className="h-3 w-3 mr-0.5" />
                           {Math.round(pct)}%
                         </Badge>
                       )}
+                      {isWarning && !isDanger && (
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] px-1.5 py-0 h-5 shrink-0 bg-amber-500/10 text-amber-600 border-amber-500/20"
+                        >
+                          {Math.round(pct)}%
+                        </Badge>
+                      )}
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="w-[120px]">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
                         <Input
                           type="number"
                           value={categoryLimits[cat.id] || ""}
                           onChange={(e) =>
                             handleLimitChange(cat.id, e.target.value)
                           }
-                          placeholder="0"
+                          placeholder="Лимит"
                           className="h-8 text-xs"
                         />
                       </div>
-                      <span className="text-sm font-medium w-[100px] text-right tabular-nums text-muted-foreground">
+                      <span className="text-xs tabular-nums text-muted-foreground whitespace-nowrap">
                         {spent.toLocaleString()} ₽
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-500",
+                          isDanger
+                            ? "bg-rose-500"
+                            : isWarning
+                              ? "bg-amber-500"
+                              : limit > 0
+                                ? "bg-emerald-500"
+                                : "bg-muted-foreground/20",
+                        )}
+                        style={{
+                          width: `${limit > 0 ? Math.min(pct, 100) : 0}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        {limit > 0
+                          ? `лимит ${limit.toLocaleString()} ₽`
+                          : "лимит не задан"}
                       </span>
                       <span
                         className={cn(
-                          "text-sm font-semibold w-[100px] text-right tabular-nums",
+                          "font-medium",
                           remaining >= 0 ? "text-emerald-600" : "text-rose-600",
                         )}
                       >
-                        {remaining >= 0 ? "+" : ""}
-                        {remaining.toLocaleString()} ₽
+                        {remaining >= 0
+                          ? `+${remaining.toLocaleString()} ₽`
+                          : `${remaining.toLocaleString()} ₽`}
                       </span>
                     </div>
                   </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all",
-                        isDanger
-                          ? "bg-rose-500"
-                          : isWarning
-                            ? "bg-amber-500"
-                            : "bg-emerald-500",
-                      )}
-                      style={{ width: `${Math.min(pct, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <div className="flex gap-2">
-        <Button onClick={handleSave} disabled={saving}>
-          {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-          <Save className="h-4 w-4 mr-1" />
-          Сохранить план
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleCopyFromLastMonth}
-          disabled={period !== "month"}
-        >
-          <Copy className="h-4 w-4 mr-1" />
-          Из прошлого месяца
-        </Button>
-      </div>
-
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Прогноз</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              Средний расход в день:{" "}
-              <strong>
-                {dailyAvg.toLocaleString("ru-RU", { maximumFractionDigits: 0 })}{" "}
-                ₽
-              </strong>
-            </span>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+              <span>
+                Дней прошло: {elapsedDays} из {periodDays}
+              </span>
+              <span>
+                {Math.min(Math.round((elapsedDays / periodDays) * 100), 100)}%
+              </span>
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-sky-500 transition-all duration-500"
+                style={{
+                  width: `${Math.min((elapsedDays / periodDays) * 100, 100)}%`,
+                }}
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              Прогнозируемый расход за период:{" "}
-              <strong>
-                {projectedTotal.toLocaleString("ru-RU", {
-                  maximumFractionDigits: 0,
-                })}{" "}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-gradient-to-br from-rose-50/60 to-transparent dark:from-rose-950/20 p-3">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+                <TrendingDown className="h-3 w-3" />
+                Расход/день
+              </div>
+              <p className="text-lg font-bold tabular-nums">
+                {Math.round(dailyAvg).toLocaleString()} ₽
+              </p>
+            </div>
+            <div className="rounded-lg bg-gradient-to-br from-emerald-50/60 to-transparent dark:from-emerald-950/20 p-3">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+                <TrendingUp className="h-3 w-3" />
+                Доход/день
+              </div>
+              <p className="text-lg font-bold tabular-nums">
+                {Math.round(
+                  periodDays > 0 ? income / periodDays : 0,
+                ).toLocaleString()}{" "}
                 ₽
-              </strong>
-            </span>
+              </p>
+            </div>
           </div>
+
+          <div className="space-y-1.5 rounded-lg bg-muted/30 p-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Ожидаемый доход</span>
+              <span className="font-medium tabular-nums">
+                {Math.round(income).toLocaleString()} ₽
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Прогноз расходов</span>
+              <span className="font-medium tabular-nums">
+                {Math.round(projectedTotal).toLocaleString()} ₽
+              </span>
+            </div>
+            {totalPlanned > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">
+                  Запланировано (лимиты)
+                </span>
+                <span className="font-medium tabular-nums">
+                  {Math.round(totalPlanned).toLocaleString()} ₽
+                </span>
+              </div>
+            )}
+            <div className="h-px bg-border my-1" />
+            <div className="flex justify-between text-sm font-semibold">
+              <span>Прогноз остатка</span>
+              <span
+                className={cn(
+                  "tabular-nums",
+                  projectedRemaining >= 0
+                    ? "text-emerald-600"
+                    : "text-rose-600",
+                )}
+              >
+                {projectedRemaining >= 0 ? "+" : ""}
+                {Math.round(projectedRemaining).toLocaleString()} ₽
+              </span>
+            </div>
+          </div>
+
           <div
             className={cn(
-              "rounded-lg p-4",
+              "rounded-lg p-3 flex items-start gap-3",
               projectedRemaining >= 0 ? "bg-emerald-500/10" : "bg-rose-500/10",
             )}
           >
-            <p
+            <AlertTriangle
               className={cn(
-                "text-sm font-semibold",
+                "h-5 w-5 shrink-0 mt-0.5",
                 projectedRemaining >= 0 ? "text-emerald-600" : "text-rose-600",
               )}
-            >
-              {projectedRemaining >= 0
-                ? `Если ничего не изменится, у вас останется ${projectedRemaining.toLocaleString("ru-RU", { maximumFractionDigits: 0 })} ₽`
-                : `Если ничего не изменится, у вас будет перерасход ${Math.abs(projectedRemaining).toLocaleString("ru-RU", { maximumFractionDigits: 0 })} ₽`}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Дней прошло: {elapsedDays} из {periodDays} · Дневной средний:{" "}
-              {dailyAvg.toLocaleString("ru-RU", { maximumFractionDigits: 0 })} ₽
-            </p>
+            />
+            <div>
+              <p
+                className={cn(
+                  "text-xs font-semibold",
+                  projectedRemaining >= 0
+                    ? "text-emerald-600"
+                    : "text-rose-600",
+                )}
+              >
+                {projectedRemaining >= 0
+                  ? "Всё в порядке"
+                  : "Ожидается перерасход"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {projectedRemaining >= 0
+                  ? `При сохранении текущего уровня трат останется ${Math.round(projectedRemaining).toLocaleString()} ₽`
+                  : `Превышение бюджета на ${Math.abs(Math.round(projectedRemaining)).toLocaleString()} ₽ — ${Math.abs(Math.round((projectedTotal / income - (income > 0 ? 0 : 1)) * 100))}%`}
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

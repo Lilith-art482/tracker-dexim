@@ -28,22 +28,69 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useMode } from "@/lib/mode-context";
-import {
-  BOARD_ICONS,
-  getBoardIcon,
-} from "@/lib/board-icons";
+import { BOARD_ICONS, getBoardIcon } from "@/lib/board-icons";
 
 const BOARD_COLORS = [
-  { name: "blue", dot: "bg-blue-500", bg: "bg-blue-500/10", ring: "ring-blue-500/30" },
-  { name: "emerald", dot: "bg-emerald-500", bg: "bg-emerald-500/10", ring: "ring-emerald-500/30" },
-  { name: "violet", dot: "bg-violet-500", bg: "bg-violet-500/10", ring: "ring-violet-500/30" },
-  { name: "amber", dot: "bg-amber-500", bg: "bg-amber-500/10", ring: "ring-amber-500/30" },
-  { name: "rose", dot: "bg-rose-500", bg: "bg-rose-500/10", ring: "ring-rose-500/30" },
-  { name: "cyan", dot: "bg-cyan-500", bg: "bg-cyan-500/10", ring: "ring-cyan-500/30" },
-  { name: "pink", dot: "bg-pink-500", bg: "bg-pink-500/10", ring: "ring-pink-500/30" },
-  { name: "indigo", dot: "bg-indigo-500", bg: "bg-indigo-500/10", ring: "ring-indigo-500/30" },
-  { name: "teal", dot: "bg-teal-500", bg: "bg-teal-500/10", ring: "ring-teal-500/30" },
-  { name: "orange", dot: "bg-orange-500", bg: "bg-orange-500/10", ring: "ring-orange-500/30" },
+  {
+    name: "blue",
+    dot: "bg-blue-500",
+    bg: "bg-blue-500/10",
+    ring: "ring-blue-500/30",
+  },
+  {
+    name: "emerald",
+    dot: "bg-emerald-500",
+    bg: "bg-emerald-500/10",
+    ring: "ring-emerald-500/30",
+  },
+  {
+    name: "violet",
+    dot: "bg-violet-500",
+    bg: "bg-violet-500/10",
+    ring: "ring-violet-500/30",
+  },
+  {
+    name: "amber",
+    dot: "bg-amber-500",
+    bg: "bg-amber-500/10",
+    ring: "ring-amber-500/30",
+  },
+  {
+    name: "rose",
+    dot: "bg-rose-500",
+    bg: "bg-rose-500/10",
+    ring: "ring-rose-500/30",
+  },
+  {
+    name: "cyan",
+    dot: "bg-cyan-500",
+    bg: "bg-cyan-500/10",
+    ring: "ring-cyan-500/30",
+  },
+  {
+    name: "pink",
+    dot: "bg-pink-500",
+    bg: "bg-pink-500/10",
+    ring: "ring-pink-500/30",
+  },
+  {
+    name: "indigo",
+    dot: "bg-indigo-500",
+    bg: "bg-indigo-500/10",
+    ring: "ring-indigo-500/30",
+  },
+  {
+    name: "teal",
+    dot: "bg-teal-500",
+    bg: "bg-teal-500/10",
+    ring: "ring-teal-500/30",
+  },
+  {
+    name: "orange",
+    dot: "bg-orange-500",
+    bg: "bg-orange-500/10",
+    ring: "ring-orange-500/30",
+  },
 ];
 
 const COLOR_MAP = new Map(BOARD_COLORS.map((c) => [c.name, c]));
@@ -75,7 +122,9 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   const [createName, setCreateName] = useState("");
   const [creating, setCreating] = useState(false);
   const [settingsBoard, setSettingsBoard] = useState<Board | null>(null);
-  const [settingsTab, setSettingsTab] = useState<"general" | "color" | "icon">("general");
+  const [settingsTab, setSettingsTab] = useState<"general" | "color" | "icon">(
+    "general",
+  );
   const [loading, setLoading] = useState(false);
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -288,7 +337,13 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
           <span className="text-[11px] font-medium tracking-wider text-sidebar-foreground/40 uppercase">
             {mode === "team" ? "Командные" : "Личные"}
           </span>
-          <Dialog open={dialogOpen && !settingsBoard} onOpenChange={(o) => { setDialogOpen(o); if (!o) setCreateName(""); }}>
+          <Dialog
+            open={dialogOpen && !settingsBoard}
+            onOpenChange={(o) => {
+              setDialogOpen(o);
+              if (!o) setCreateName("");
+            }}
+          >
             <DialogTrigger>
               <button className="flex h-5 w-5 items-center justify-center rounded-md text-sidebar-foreground/30 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
                 <Plus className="h-3 w-3" />
@@ -341,15 +396,23 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                 activeBoardId === board.id ||
                 (!activeBoardId && filteredBoards[0]?.id === board.id);
               const color = getBoardColor(board);
-              const IconComponent = board.icon ? getBoardIcon(board.icon) : null;
+              const IconComponent = board.icon
+                ? getBoardIcon(board.icon)
+                : null;
               return (
                 <div
                   key={board.id}
                   draggable
                   onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => { e.preventDefault(); handleDragOver(index); }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    handleDragOver(index);
+                  }}
                   onDrop={handleDrop}
-                  onDragEnd={() => { dragItem.current = null; dragOverItem.current = null; }}
+                  onDragEnd={() => {
+                    dragItem.current = null;
+                    dragOverItem.current = null;
+                  }}
                   className={cn(
                     "group relative flex items-center gap-1.5 rounded-xl px-1.5 py-2 transition-all duration-150 cursor-pointer",
                     isActive
@@ -420,7 +483,12 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
       </aside>
 
       {/* Board settings dialog */}
-      <Dialog open={!!settingsBoard} onOpenChange={(o) => { if (!o) setSettingsBoard(null); }}>
+      <Dialog
+        open={!!settingsBoard}
+        onOpenChange={(o) => {
+          if (!o) setSettingsBoard(null);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Настройки доски</DialogTitle>
@@ -433,7 +501,9 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                   onClick={() => setSettingsTab("general")}
                   className={cn(
                     "flex-1 py-1.5 text-xs font-medium rounded-md transition-colors",
-                    settingsTab === "general" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                    settingsTab === "general"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   Основное
@@ -442,7 +512,9 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                   onClick={() => setSettingsTab("color")}
                   className={cn(
                     "flex-1 py-1.5 text-xs font-medium rounded-md transition-colors",
-                    settingsTab === "color" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                    settingsTab === "color"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   Цвет
@@ -451,7 +523,9 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                   onClick={() => setSettingsTab("icon")}
                   className={cn(
                     "flex-1 py-1.5 text-xs font-medium rounded-md transition-colors",
-                    settingsTab === "icon" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                    settingsTab === "icon"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   Иконка
@@ -464,11 +538,16 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                     placeholder="Название доски"
                     value={settingsBoard.name}
                     onChange={(e) => {
-                      setSettingsBoard({ ...settingsBoard, name: e.target.value });
+                      setSettingsBoard({
+                        ...settingsBoard,
+                        name: e.target.value,
+                      });
                     }}
                   />
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Закрепить</span>
+                    <span className="text-sm text-muted-foreground">
+                      Закрепить
+                    </span>
                     <button
                       onClick={() => {
                         const next = !settingsBoard.pinned;
@@ -481,7 +560,11 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                           : "bg-muted/60 text-muted-foreground",
                       )}
                     >
-                      {settingsBoard.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                      {settingsBoard.pinned ? (
+                        <PinOff className="h-3 w-3" />
+                      ) : (
+                        <Pin className="h-3 w-3" />
+                      )}
                       {settingsBoard.pinned ? "Открепить" : "Закрепить"}
                     </button>
                   </div>
@@ -511,15 +594,21 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
 
               {settingsTab === "color" && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-3">Выберите цвет доски</p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Выберите цвет доски
+                  </p>
                   <div className="grid grid-cols-5 gap-2">
                     {BOARD_COLORS.map((c) => (
                       <button
                         key={c.name}
-                        onClick={() => updateBoardField(settingsBoard.id, { color: c.name })}
+                        onClick={() =>
+                          updateBoardField(settingsBoard.id, { color: c.name })
+                        }
                         className={cn(
                           "flex items-center justify-center h-10 rounded-xl transition-all",
-                          c.dot.replace("bg-", "bg-").replace("-500", "-500/20"),
+                          c.dot
+                            .replace("bg-", "bg-")
+                            .replace("-500", "-500/20"),
                           settingsBoard.color === c.name
                             ? `ring-2 ring-offset-2 ring-offset-background ${c.ring}`
                             : "hover:scale-105",
@@ -534,14 +623,20 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
 
               {settingsTab === "icon" && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-3">Выберите иконку</p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Выберите иконку
+                  </p>
                   <div className="grid grid-cols-7 gap-1.5 max-h-48 overflow-y-auto">
                     {BOARD_ICONS.map((ic) => {
                       const Icon = ic.icon;
                       return (
                         <button
                           key={ic.name}
-                          onClick={() => updateBoardField(settingsBoard.id, { icon: ic.name })}
+                          onClick={() =>
+                            updateBoardField(settingsBoard.id, {
+                              icon: ic.name,
+                            })
+                          }
                           className={cn(
                             "flex items-center justify-center h-8 w-8 rounded-lg transition-all",
                             settingsBoard.icon === ic.name
@@ -557,7 +652,9 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                   </div>
                   {settingsBoard.icon && (
                     <button
-                      onClick={() => updateBoardField(settingsBoard.id, { icon: "" })}
+                      onClick={() =>
+                        updateBoardField(settingsBoard.id, { icon: "" })
+                      }
                       className="mt-2 text-xs text-muted-foreground hover:text-foreground"
                     >
                       Сбросить иконку
