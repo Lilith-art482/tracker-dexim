@@ -358,8 +358,8 @@ export function FinanceDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
           <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <BarChart3 className="h-4 w-4" />
@@ -518,296 +518,296 @@ export function FinanceDashboard() {
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Target className="h-4 w-4" />
-                Здоровье бюджета
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Clock className="h-4 w-4" />
+              Последние операции
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {transactions.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                Нет операций
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {transactions
+                  .sort((a, b) => (a.date < b.date ? 1 : -1))
+                  .slice(0, 10)
+                  .map((tx) => {
+                    const cat = categoryMap.get(tx.categoryId);
+                    const color =
+                      CATEGORY_COLORS_HEX[cat?.color || ""] || "#6b7280";
+                    return (
+                      <div
+                        key={tx.id}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div
+                            className="h-2 w-2 rounded-full shrink-0"
+                            style={{ backgroundColor: color }}
+                          />
+                          <span className="truncate">
+                            {cat?.name || "Без категории"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="font-medium tabular-nums">
+                            {tx.type === "income" ? "+" : "-"}
+                            {tx.amount.toLocaleString()} ₽
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {tx.date.includes("T")
+                              ? tx.date.slice(5, 16).replace("T", " ")
+                              : tx.date.slice(5)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Target className="h-4 w-4" />
+              Здоровье бюджета
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div
+              className={cn(
+                "flex items-center gap-3 rounded-lg p-3",
+                healthBg,
+              )}
+            >
               <div
                 className={cn(
-                  "flex items-center gap-3 rounded-lg p-3",
+                  "flex h-10 w-10 items-center justify-center rounded-full",
                   healthBg,
                 )}
               >
-                <div
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full",
-                    healthBg,
-                  )}
-                >
-                  <AlertTriangle className={cn("h-5 w-5", healthColor)} />
-                </div>
-                <div>
-                  <p className={cn("text-sm font-semibold", healthColor)}>
-                    {healthLabel}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {hasData
-                      ? `${Math.round(healthRatio * 100)}% расходов от доходов`
-                      : "Нет операций за период"}
-                  </p>
-                </div>
+                <AlertTriangle className={cn("h-5 w-5", healthColor)} />
               </div>
-              {hasData && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Расходы / Доходы</span>
-                    <span>{Math.round(healthRatio * 100)}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all",
-                        healthRatio <= 0.5
-                          ? "bg-emerald-500"
-                          : healthRatio <= 0.8
-                            ? "bg-amber-500"
-                            : "bg-rose-500",
-                      )}
-                      style={{ width: `${Math.min(healthRatio * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <CalendarArrowUp className="h-4 w-4" />
-                Прогноз
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
-                  Средний расход в день
-                </span>
-                <span className="font-medium">
-                  {Math.round(dailyAvgExpense).toLocaleString()} ₽
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
-                  Средний доход в день
-                </span>
-                <span className="font-medium">
-                  {Math.round(dailyAvgIncome).toLocaleString()} ₽
-                </span>
-              </div>
-              <div
-                className={cn(
-                  "flex justify-between text-sm font-medium pt-2 border-t",
-                  projectedRemaining >= 0 ? "text-sky-600" : "text-rose-600",
-                )}
-              >
-                <span>Прогноз остатка</span>
-                <span>{projectedRemaining.toLocaleString()} ₽</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Если траты сохранятся на текущем уровне
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Clock className="h-4 w-4" />
-                Последние операции
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {transactions.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  Нет операций
+              <div>
+                <p className={cn("text-sm font-semibold", healthColor)}>
+                  {healthLabel}
                 </p>
-              ) : (
-                <div className="space-y-2">
-                  {transactions
-                    .sort((a, b) => (a.date < b.date ? 1 : -1))
-                    .slice(0, 5)
-                    .map((tx) => {
-                      const cat = categoryMap.get(tx.categoryId);
-                      const color =
-                        CATEGORY_COLORS_HEX[cat?.color || ""] || "#6b7280";
-                      return (
-                        <div
-                          key={tx.id}
-                          className="flex items-center justify-between text-sm"
-                        >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <div
-                              className="h-2 w-2 rounded-full shrink-0"
-                              style={{ backgroundColor: color }}
-                            />
-                            <span className="truncate">
-                              {cat?.name || "Без категории"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="font-medium tabular-nums">
-                              {tx.type === "income" ? "+" : "-"}
-                              {tx.amount.toLocaleString()} ₽
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {tx.date.includes("T")
-                                ? tx.date.slice(5, 16).replace("T", " ")
-                                : tx.date.slice(5)}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {budgetLoad && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <Target className="h-4 w-4" />
-                  Нагрузка на бюджет
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Всего расходов</span>
-                  <span className="font-semibold">
-                    {budgetLoad.totalSpent.toLocaleString()} ₽
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Лимит бюджета</span>
-                  <span>{budgetLoad.totalLimit.toLocaleString()} ₽</span>
+                <p className="text-xs text-muted-foreground">
+                  {hasData
+                    ? `${Math.round(healthRatio * 100)}% расходов от доходов`
+                    : "Нет операций за период"}
+                </p>
+              </div>
+            </div>
+            {hasData && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Расходы / Доходы</span>
+                  <span>{Math.round(healthRatio * 100)}%</span>
                 </div>
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
                   <div
                     className={cn(
                       "h-full rounded-full transition-all",
-                      budgetLoad.totalPct <= 50
+                      healthRatio <= 0.5
                         ? "bg-emerald-500"
-                        : budgetLoad.totalPct <= 80
+                        : healthRatio <= 0.8
                           ? "bg-amber-500"
                           : "bg-rose-500",
                     )}
-                    style={{ width: `${budgetLoad.totalPct}%` }}
+                    style={{ width: `${Math.min(healthRatio * 100, 100)}%` }}
                   />
                 </div>
-                <p
-                  className={cn(
-                    "text-xs text-center font-medium",
-                    budgetLoad.totalPct <= 50
-                      ? "text-emerald-600"
-                      : budgetLoad.totalPct <= 80
-                        ? "text-amber-600"
-                        : "text-rose-600",
-                  )}
-                >
-                  Использовано {budgetLoad.totalPct}% бюджета
-                </p>
-                <div className="space-y-2 pt-1">
-                  {budgetLoad.categories.slice(0, 5).map((cat) => (
-                    <div key={cat.id} className="space-y-0.5">
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                          <div
-                            className="h-2 w-2 rounded-full shrink-0"
-                            style={{ backgroundColor: cat.color }}
-                          />
-                          <span className="truncate">{cat.name}</span>
-                        </div>
-                        <span className="tabular-nums ml-1">
-                          {cat.spent.toLocaleString()} /{" "}
-                          {cat.limit.toLocaleString()} ₽
-                        </span>
-                      </div>
-                      <div className="h-1 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className={cn(
-                            "h-full rounded-full transition-all",
-                            cat.pct > 100
-                              ? "bg-rose-500"
-                              : cat.pct > 80
-                                ? "bg-amber-500"
-                                : "bg-emerald-500",
-                          )}
-                          style={{ width: `${Math.min(cat.pct, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {emergencyFund && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <PiggyBank className="h-4 w-4" />
-                  Подушка безопасности
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {emergencyFund.targetAmount > 0 ? (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Накоплено</span>
-                      <span className="font-semibold">
-                        {emergencyFund.currentAmount.toLocaleString()} ₽
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <CalendarArrowUp className="h-4 w-4" />
+              Прогноз
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">
+                Средний расход в день
+              </span>
+              <span className="font-medium">
+                {Math.round(dailyAvgExpense).toLocaleString()} ₽
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">
+                Средний доход в день
+              </span>
+              <span className="font-medium">
+                {Math.round(dailyAvgIncome).toLocaleString()} ₽
+              </span>
+            </div>
+            <div
+              className={cn(
+                "flex justify-between text-sm font-medium pt-2 border-t",
+                projectedRemaining >= 0 ? "text-sky-600" : "text-rose-600",
+              )}
+            >
+              <span>Прогноз остатка</span>
+              <span>{projectedRemaining.toLocaleString()} ₽</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Если траты сохранятся на текущем уровне
+            </p>
+          </CardContent>
+        </Card>
+
+        {budgetLoad && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Target className="h-4 w-4" />
+                Нагрузка на бюджет
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Всего расходов</span>
+                <span className="font-semibold">
+                  {budgetLoad.totalSpent.toLocaleString()} ₽
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Лимит бюджета</span>
+                <span>{budgetLoad.totalLimit.toLocaleString()} ₽</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    budgetLoad.totalPct <= 50
+                      ? "bg-emerald-500"
+                      : budgetLoad.totalPct <= 80
+                        ? "bg-amber-500"
+                        : "bg-rose-500",
+                  )}
+                  style={{ width: `${budgetLoad.totalPct}%` }}
+                />
+              </div>
+              <p
+                className={cn(
+                  "text-xs text-center font-medium",
+                  budgetLoad.totalPct <= 50
+                    ? "text-emerald-600"
+                    : budgetLoad.totalPct <= 80
+                      ? "text-amber-600"
+                      : "text-rose-600",
+                )}
+              >
+                Использовано {budgetLoad.totalPct}% бюджета
+              </p>
+              <div className="space-y-2 pt-1">
+                {budgetLoad.categories.slice(0, 5).map((cat) => (
+                  <div key={cat.id} className="space-y-0.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        <span className="truncate">{cat.name}</span>
+                      </div>
+                      <span className="tabular-nums ml-1">
+                        {cat.spent.toLocaleString()} /{" "}
+                        {cat.limit.toLocaleString()} ₽
                       </span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Цель</span>
-                      <span>
-                        {emergencyFund.targetAmount.toLocaleString()} ₽
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div className="h-1 rounded-full bg-muted overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-emerald-500 transition-all"
-                        style={{
-                          width: `${Math.min((emergencyFund.currentAmount / emergencyFund.targetAmount) * 100, 100)}%`,
-                        }}
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          cat.pct > 100
+                            ? "bg-rose-500"
+                            : cat.pct > 80
+                              ? "bg-amber-500"
+                              : "bg-emerald-500",
+                        )}
+                        style={{ width: `${Math.min(cat.pct, 100)}%` }}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground text-center">
-                      {Math.round(
-                        (emergencyFund.currentAmount /
-                          emergencyFund.targetAmount) *
-                          100,
-                      )}
-                      % от цели
-                    </p>
-                  </>
-                ) : (
-                  <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                      <PiggyBank className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Не настроено
-                      </p>
-                      <p className="text-xs text-muted-foreground/60">
-                        Установите цель в разделе Подушка
-                      </p>
-                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {emergencyFund && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <PiggyBank className="h-4 w-4" />
+                Подушка безопасности
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {emergencyFund.targetAmount > 0 ? (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Накоплено</span>
+                    <span className="font-semibold">
+                      {emergencyFund.currentAmount.toLocaleString()} ₽
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Цель</span>
+                    <span>
+                      {emergencyFund.targetAmount.toLocaleString()} ₽
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-all"
+                      style={{
+                        width: `${Math.min((emergencyFund.currentAmount / emergencyFund.targetAmount) * 100, 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    {Math.round(
+                      (emergencyFund.currentAmount /
+                        emergencyFund.targetAmount) *
+                        100,
+                    )}
+                    % от цели
+                  </p>
+                </>
+              ) : (
+                <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                    <PiggyBank className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Не настроено
+                    </p>
+                    <p className="text-xs text-muted-foreground/60">
+                      Установите цель в разделе Подушка
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
