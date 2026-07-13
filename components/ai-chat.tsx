@@ -328,13 +328,14 @@ export default function AiChat({ open, onClose }: AiChatProps) {
   const [loading, setLoading] = useState(false);
   const [contextBuilt, setContextBuilt] = useState(false);
   const [userContext, setUserContext] = useState("");
+  const [showMainMenu, setShowMainMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const contextualPrompts = useMemo(
-    () => suggestPrompts(messages),
-    [messages],
+    () => (showMainMenu ? DEFAULT_PROMPTS : suggestPrompts(messages)),
+    [messages, showMainMenu],
   );
 
   useEffect(() => {
@@ -381,6 +382,7 @@ export default function AiChat({ open, onClose }: AiChatProps) {
       };
       setMessages((prev) => [...prev, userMsg]);
       setInput("");
+      setShowMainMenu(false);
       setLoading(true);
 
       try {
@@ -430,18 +432,13 @@ export default function AiChat({ open, onClose }: AiChatProps) {
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 isolate z-[100] bg-black/20 backdrop-blur-[2px]"
-        onClick={onClose}
-      />
-
       {/* Panel */}
       <div
         ref={panelRef}
         className={cn(
-          "fixed right-0 top-0 h-full w-full sm:w-[420px] z-[101]",
-          "flex flex-col bg-background border-l shadow-2xl",
+          "fixed right-0 top-14 h-[calc(100vh-3.5rem)] w-full sm:w-[420px] z-[101]",
+          "flex flex-col bg-background border-l shadow-[0_0_40px_-12px_rgba(0,0,0,0.3)]",
+          "rounded-tl-2xl rounded-bl-2xl overflow-hidden",
           "translate-x-0 transition-transform duration-300",
         )}
         style={{
@@ -587,7 +584,7 @@ export default function AiChat({ open, onClose }: AiChatProps) {
                     i === messages.length - 1 && (
                       <div className="mt-3 ml-10 space-y-2">
                         <p className="text-[10px] text-muted-foreground/40 uppercase tracking-wider font-medium">
-                          Продолжить:
+                          {showMainMenu ? "Быстрый старт" : "Продолжить:"}
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {contextualPrompts.map((prompt) => (
@@ -601,6 +598,15 @@ export default function AiChat({ open, onClose }: AiChatProps) {
                               {prompt.label}
                             </button>
                           ))}
+                          {!showMainMenu && (
+                            <button
+                              onClick={() => setShowMainMenu(true)}
+                              className="flex items-center gap-1.5 rounded-lg border border-dashed bg-background/50 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-all"
+                            >
+                              <ChevronRight className="h-3 w-3 shrink-0" />
+                              В главное меню
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
