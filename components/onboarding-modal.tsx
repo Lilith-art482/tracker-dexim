@@ -337,13 +337,13 @@ export default function OnboardingModal() {
                   <span>@artyom_medoed</span>
                 </a>
                 <a
-                  href="tg://resolve?domain=inmotion_bot"
+                  href="tg://resolve?domain=inmotion_use_bot"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 text-xs text-foreground/80 hover:text-foreground transition-colors font-medium"
                 >
                   <Send className="h-3.5 w-3.5" />
-                  <span>@inmotion_bot</span>
+                  <span>@inmotion_use_bot</span>
                 </a>
               </div>
             </div>
