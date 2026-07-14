@@ -326,9 +326,7 @@ export async function createLoan(
 
 export async function updateLoan(
   id: string,
-  data: Partial<
-    Omit<Loan, "id" | "userId" | "createdAt" | "updatedAt">
-  >,
+  data: Partial<Omit<Loan, "id" | "userId" | "createdAt" | "updatedAt">>,
 ): Promise<Loan> {
   const ref = doc(loansCol(), id);
   await updateDoc(ref, clean({ ...data, updatedAt: new Date().toISOString() }));

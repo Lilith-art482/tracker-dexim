@@ -149,11 +149,7 @@ export interface FinanceGoal {
   updatedAt: string;
 }
 
-export type ObligationType =
-  | "credit"
-  | "enforcement"
-  | "fine"
-  | "utilities";
+export type ObligationType = "credit" | "enforcement" | "fine" | "utilities";
 
 export interface Loan {
   id: string;
