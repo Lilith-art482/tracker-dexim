@@ -1,29 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { initializeApp, getApps, cert, App } from "firebase-admin/app";
 
-let adminApp: App;
-
-function getFirebaseAdmin() {
-  if (!adminApp || getApps().length === 0) {
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-    if (!privateKey || !process.env.FIREBASE_CLIENT_EMAIL) {
-      throw new Error("Firebase Admin not configured");
-    }
-    adminApp = initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID || "tracker-74204",
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey,
-      }),
-    });
+function generatePromoCode(_uid: string): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let random = "";
+  for (let i = 0; i < 6; i++) {
+    random += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  return getAdminDb();
-}
-
-function generatePromoCode(uid: string): string {
-  const suffix = uid.slice(0, 6).toUpperCase();
-  return `INMOTION25-${suffix}`;
+  return `GIFT25-${random}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -34,34 +18,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "uid обязателен" }, { status: 400 });
     }
 
-    const db = getFirebaseAdmin();
     const now = new Date();
     const deletionDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const promoCode = generatePromoCode(uid);
 
-    // 1. Save deletion feedback
-    if (reason) {
-      await db.collection("deletion_feedback").add({
-        uid,
-        reason,
-        createdAt: now.toISOString(),
-      });
+    let dbAvailable = false;
+    try {
+      getAdminDb();
+      dbAvailable = true;
+    } catch {
+      dbAvailable = false;
     }
 
-    // 2. Mark user for deletion + attach promo code
-    await db
-      .collection("users")
-      .doc(uid)
-      .update({
-        deletionScheduledAt: now.toISOString(),
-        deletionDate: deletionDate.toISOString(),
-        promoCode: {
+    if (dbAvailable) {
+      try {
+        const db = getAdminDb();
+
+        if (reason) {
+          await db.collection("deletion_requests").add({
+            uid,
+            reason: reason.trim() || "Не указана",
+            createdAt: now.toISOString(),
+            deletionDate: deletionDate.toISOString(),
+            status: "scheduled",
+          });
+        }
+
+        await db.collection("promo_codes").add({
+          uid,
           code: promoCode,
           discountPercent: 25,
+          createdAt: now.toISOString(),
           validUntil: deletionDate.toISOString(),
           used: false,
-        },
-      });
+        });
+
+        await db
+          .collection("users")
+          .doc(uid)
+          .set(
+            {
+              deletionScheduledAt: now.toISOString(),
+              deletionDate: deletionDate.toISOString(),
+              promoCode: {
+                code: promoCode,
+                discountPercent: 25,
+                validUntil: deletionDate.toISOString(),
+                used: false,
+              },
+            },
+            { merge: true },
+          );
+      } catch (e) {
+        console.error("DB write error in delete-account:", e);
+      }
+    }
 
     return NextResponse.json({
       success: true,

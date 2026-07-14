@@ -10,11 +10,12 @@ import {
   MessageCircle,
   Bot,
   X,
+  Mail,
+  Send,
 } from "lucide-react";
 import { FAQ_DATA } from "@/lib/faq";
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import AiChat from "@/components/ai-chat";
 
 export default function FaqPage() {
@@ -33,6 +34,17 @@ export default function FaqPage() {
       )
     : [];
 
+  const allFilteredCategories = searchQuery
+    ? FAQ_DATA.map((cat) => ({
+        ...cat,
+        items: cat.items.filter(
+          (item) =>
+            item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.answer.toLowerCase().includes(searchQuery.toLowerCase()),
+        ),
+      })).filter((cat) => cat.items.length > 0)
+    : FAQ_DATA;
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-4 py-6">
@@ -44,13 +56,6 @@ export default function FaqPage() {
             <ArrowLeft className="h-4 w-4" />
             На главную
           </Link>
-          <button
-            onClick={() => setChatOpen(true)}
-            className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-          >
-            <Bot className="h-4 w-4" />
-            Спросить AI
-          </button>
         </div>
 
         <div className="text-center mb-8">
@@ -65,7 +70,7 @@ export default function FaqPage() {
           </p>
         </div>
 
-        {/* Search */}
+        {/* Search + AI */}
         <div className="relative mb-8">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
           <Input
@@ -76,16 +81,25 @@ export default function FaqPage() {
                 ? "Поиск по вопросам..."
                 : "Поиск по всем категориям..."
             }
-            className="pl-9 h-10 text-sm"
+            className="pl-9 pr-24 h-10 text-sm"
           />
-          {searchQuery && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/40 hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
             <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-foreground"
+              onClick={() => setChatOpen(true)}
+              className="flex items-center gap-1 rounded-md bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 px-2 py-1 text-xs font-medium transition-colors"
             >
-              <X className="h-4 w-4" />
+              <Bot className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AI</span>
             </button>
-          )}
+          </div>
         </div>
 
         {categoryId ? (
@@ -130,83 +144,90 @@ export default function FaqPage() {
             )}
           </div>
         ) : (
-          /* Category grid */
+          /* Category grid with inline search results */
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {FAQ_DATA.map((cat) => {
-              const matchingItems = searchQuery
-                ? cat.items.filter(
-                    (item) =>
-                      item.question
-                        .toLowerCase()
-                        .includes(searchQuery.toLowerCase()) ||
-                      item.answer
-                        .toLowerCase()
-                        .includes(searchQuery.toLowerCase()),
-                  )
-                : cat.items;
-
-              if (searchQuery && matchingItems.length === 0) return null;
-
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setCategoryId(cat.id)}
-                  className="flex flex-col items-start gap-2 rounded-2xl border border-border/60 bg-card/50 p-5 text-left hover:bg-muted/30 hover:shadow-sm transition-all"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-                    <HelpCircle className="h-4 w-4 text-primary" />
+            {allFilteredCategories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setCategoryId(cat.id)}
+                className="flex flex-col items-start gap-2 rounded-2xl border border-border/60 bg-card/50 p-5 text-left hover:bg-muted/30 hover:shadow-sm transition-all"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                  <HelpCircle className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">{cat.label}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-0.5">
+                    {searchQuery
+                      ? `${cat.items.length} совпадений`
+                      : `${cat.items.length} вопросов`}
+                  </p>
+                </div>
+                {searchQuery && cat.items.length > 0 && (
+                  <div className="w-full pt-2 border-t border-border/40 mt-1">
+                    {cat.items.slice(0, 2).map((item, i) => (
+                      <p
+                        key={i}
+                        className="text-xs text-muted-foreground/70 truncate"
+                      >
+                        {item.question}
+                      </p>
+                    ))}
+                    {cat.items.length > 2 && (
+                      <p className="text-xs text-muted-foreground/40 mt-1">
+                        + ещё {cat.items.length - 2}
+                      </p>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold">{cat.label}</p>
-                    <p className="text-xs text-muted-foreground/60 mt-0.5">
-                      {searchQuery
-                        ? `${matchingItems.length} совпадений`
-                        : `${cat.items.length} вопросов`}
-                    </p>
-                  </div>
-                  {searchQuery && matchingItems.length > 0 && (
-                    <div className="w-full pt-2 border-t border-border/40 mt-1">
-                      {matchingItems.slice(0, 2).map((item, i) => (
-                        <p
-                          key={i}
-                          className="text-xs text-muted-foreground/70 truncate"
-                        >
-                          {item.question}
-                        </p>
-                      ))}
-                      {matchingItems.length > 2 && (
-                        <p className="text-xs text-muted-foreground/40 mt-1">
-                          + ещё {matchingItems.length - 2}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                )}
+              </button>
+            ))}
           </div>
         )}
 
-        {/* Contact CTA */}
-        <div className="mt-10 text-center">
-          <p className="text-sm text-muted-foreground/70 mb-3">
-            Не нашли ответ? Свяжитесь с разработчиками
+        {/* Contact developers block */}
+        <div className="mt-12 rounded-2xl border border-border/60 bg-gradient-to-br from-primary/5 to-primary/[0.02] p-6 sm:p-8 text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+              <MessageCircle className="h-6 w-6 text-primary" />
+            </div>
+          </div>
+          <h2 className="text-lg font-semibold mb-2">
+            Не нашли ответ?
+          </h2>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+            Свяжитесь с разработчиками — мы ответим на любой вопрос и учтём
+            ваши пожелания
           </p>
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/contact">
-              <Button variant="outline" className="gap-2">
-                <MessageCircle className="h-4 w-4" />
+              <Button variant="outline" className="gap-2 w-full sm:w-auto">
+                <Send className="h-4 w-4" />
                 Написать нам
               </Button>
             </Link>
             <Button
               variant="default"
-              className="gap-2"
+              className="gap-2 w-full sm:w-auto"
               onClick={() => setChatOpen(true)}
             >
               <Bot className="h-4 w-4" />
               Спросить AI
             </Button>
+          </div>
+          <div className="mt-4 flex items-center justify-center gap-4 text-xs text-muted-foreground/60">
+            <a
+              href="mailto:In-motion@info.io"
+              className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              In-motion@info.io
+            </a>
+            <span className="text-muted-foreground/30">·</span>
+            <span className="flex items-center gap-1.5">
+              <MessageCircle className="h-3.5 w-3.5" />
+              @artyom_medoed
+            </span>
           </div>
         </div>
       </div>

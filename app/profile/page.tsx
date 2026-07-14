@@ -22,10 +22,7 @@ import {
   Trash2,
   Star,
   Plus,
-  Check,
-  X,
   ShieldCheck,
-  Settings2,
   AlertTriangle,
   Gift,
 } from "lucide-react";
@@ -921,13 +918,7 @@ export default function ProfilePage() {
                   <MessageCircle className="h-3.5 w-3.5" />
                   Связь с разработчиками
                 </Link>
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-                >
-                  <Settings2 className="h-3.5 w-3.5" />
-                  Настройки профиля
-                </Link>
+
               </CardContent>
             </Card>
 

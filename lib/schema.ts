@@ -17,6 +17,8 @@ export const TableName = {
   HABIT_LOGS: "habit_logs",
   ACHIEVEMENTS: "achievements",
   REMINDERS: "reminders",
+  DELETION_REQUESTS: "deletion_requests",
+  PROMO_CODES: "promo_codes",
 } as const;
 
 export type TableName = (typeof TableName)[keyof typeof TableName];
