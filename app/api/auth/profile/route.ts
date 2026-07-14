@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateProfileSchema } from "@/lib/validation/auth";
+import {
+  updateProfileSchema,
+  updateSettingsSchema,
+} from "@/lib/validation/auth";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { initializeApp, getApps, cert, App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
@@ -51,38 +54,46 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const parsed = updateProfileSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Некорректные данные", details: parsed.error.flatten() },
-        { status: 400 },
-      );
-    }
-
     const uid = body.uid;
     if (!uid) {
       return NextResponse.json({ error: "uid обязателен" }, { status: 400 });
     }
 
-    const auth = getFirebaseAuth();
     const db = getAdminDb();
-
-    // Обновление displayName в Firebase Auth
-    await auth.updateUser(uid, {
-      displayName: parsed.data.nickname,
-    });
-
-    // Обновление в Firestore
-    await db.collection("users").doc(uid).update({
-      nickname: parsed.data.nickname,
+    const updateData: Record<string, unknown> = {
       updatedAt: new Date().toISOString(),
-    });
+    };
 
-    return NextResponse.json({
-      uid,
-      nickname: parsed.data.nickname,
-    });
+    // Если есть nickname — обновляем displayName в Firebase Auth
+    if (body.nickname) {
+      const parsed = updateProfileSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: "Некорректные данные", details: parsed.error.flatten() },
+          { status: 400 },
+        );
+      }
+      const auth = getFirebaseAuth();
+      await auth.updateUser(uid, { displayName: parsed.data.nickname });
+      updateData.nickname = parsed.data.nickname;
+    }
+
+    // Если есть paymentMethod или autoPay — валидируем
+    if ("paymentMethod" in body || "autoPay" in body) {
+      const parsed = updateSettingsSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: "Некорректные данные", details: parsed.error.flatten() },
+          { status: 400 },
+        );
+      }
+      updateData.paymentMethod = parsed.data.paymentMethod;
+      updateData.autoPay = parsed.data.autoPay;
+    }
+
+    await db.collection("users").doc(uid).update(updateData);
+
+    return NextResponse.json({ uid, ...updateData });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error("Update profile error:", err.message);

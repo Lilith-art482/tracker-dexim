@@ -65,7 +65,11 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[AI Chat] External API error:", response.status, errorText);
+      console.error(
+        "[AI Chat] External API error:",
+        response.status,
+        errorText,
+      );
       return NextResponse.json(
         { error: "AI-сервис временно недоступен" },
         { status: 502 },

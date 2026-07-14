@@ -20,7 +20,11 @@ import { toast } from "sonner";
 
 type FeedbackType = "idea" | "suggestion" | "complaint";
 
-const FEEDBACK_TYPES: { value: FeedbackType; label: string; icon: typeof Lightbulb }[] = [
+const FEEDBACK_TYPES: {
+  value: FeedbackType;
+  label: string;
+  icon: typeof Lightbulb;
+}[] = [
   { value: "idea", label: "Идея", icon: Lightbulb },
   { value: "suggestion", label: "Предложение", icon: Sparkles },
   { value: "complaint", label: "Жалоба", icon: AlertTriangle },
@@ -103,8 +107,8 @@ export default function ContactPage() {
             </div>
 
             <p className="text-xs text-muted-foreground/60 mb-6">
-              Если у вас есть дополнительные вопросы, напишите нам в Telegram или
-              на почту.
+              Если у вас есть дополнительные вопросы, напишите нам в Telegram
+              или на почту.
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
@@ -228,7 +232,9 @@ export default function ContactPage() {
                     className="peer sr-only"
                   />
                   <div className="h-5 w-5 rounded-md border-2 border-muted-foreground/30 group-hover:border-primary/50 transition-colors peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100 flex items-center justify-center">
-                    {needReply && <Check className="h-3.5 w-3.5 text-primary-foreground opacity-100" />}
+                    {needReply && (
+                      <Check className="h-3.5 w-3.5 text-primary-foreground opacity-100" />
+                    )}
                   </div>
                 </div>
                 <div>

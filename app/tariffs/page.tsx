@@ -12,17 +12,23 @@ const TIERS = [
     icon: Sparkles,
     price: "0",
     period: "мес",
-    gradient: "from-slate-100 to-slate-50 dark:from-slate-900 dark:to-slate-950",
+    gradient:
+      "from-slate-100 to-slate-50 dark:from-slate-900 dark:to-slate-950",
     border: "border-border/60",
     btnClass: "bg-muted/80 text-foreground hover:bg-muted",
     features: [
-      { label: "Доски", ok: true, detail: "до 3 шт." },
-      { label: "Задачи", ok: true, detail: "до 50 шт." },
+      { label: "Доски (личное)", ok: true, detail: "до 3 шт." },
+      { label: "Задачи", ok: true, detail: "до 4 шт/день" },
       { label: "Счета", ok: true, detail: "до 2 шт." },
       { label: "Транзакции", ok: true, detail: "до 50 / мес" },
-      { label: "Привычки", ok: true, detail: "1 шт." },
-      { label: "AI-помощник", ok: true, detail: "до 10 запросов / день" },
+      { label: "Привычки", ok: true, detail: "2 шт." },
+      { label: "AI-помощник", ok: true, detail: "до 5 запросов/день" },
       { label: "Командные доски", ok: false },
+      { label: "Планирование бюджета", ok: false },
+      { label: "Финансовая подушка", ok: false },
+      { label: "Обязательства", ok: false },
+      { label: "Проекты и цели", ok: false },
+      { label: "Достижения", ok: false },
       { label: "Экспорт данных", ok: false },
       { label: "Интеграции", ok: false },
       { label: "Своя цветовая схема", ok: false },
@@ -33,7 +39,7 @@ const TIERS = [
     name: "PRO",
     subtitle: "Для продуктивных людей",
     icon: Rocket,
-    price: "499",
+    price: "349",
     period: "мес",
     gradient: "from-violet-500/10 to-purple-500/5",
     border: "border-violet-200 dark:border-violet-800",
@@ -41,17 +47,20 @@ const TIERS = [
     btnClass:
       "bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-500/25",
     features: [
-      { label: "Доски", ok: true, detail: "до 15 шт." },
+      { label: "Доски (личное)", ok: true, detail: "до 20 шт." },
+      { label: "Доски (команда)", ok: true, detail: "до 20 шт." },
       { label: "Задачи", ok: true, detail: "без лимита" },
-      { label: "Счета", ok: true, detail: "до 10 шт." },
-      { label: "Транзакции", ok: true, detail: "без лимита" },
-      { label: "Привычки", ok: true, detail: "до 10 шт." },
-      { label: "AI-помощник", ok: true, detail: "без лимита" },
+      { label: "Счета", ok: true, detail: "до 15 шт." },
+      { label: "Транзакции", ok: true, detail: "до 500 / мес" },
+      { label: "Планирование бюджета", ok: true },
+      { label: "Финансовая подушка", ok: true },
+      { label: "Обязательства", ok: true },
+      { label: "Проекты и цели", ok: true },
+      { label: "Привычки", ok: true, detail: "15 шт." },
+      { label: "Достижения", ok: true },
+      { label: "AI-помощник", ok: true, detail: "до 30 запросов/день" },
       { label: "Командные доски", ok: true, detail: "до 5 участников" },
-
-      { label: "Экспорт данных", ok: false },
-      { label: "Интеграции", ok: false },
-      { label: "Своя цветовая схема", ok: false },
+      { label: "Экспорт данных", ok: true },
     ],
   },
   {
@@ -59,25 +68,33 @@ const TIERS = [
     name: "APEX",
     subtitle: "Максимум возможностей",
     icon: Crown,
-    price: "1 499",
+    price: "549",
     period: "мес",
     gradient: "from-amber-500/10 to-yellow-500/5",
     border: "border-amber-200 dark:border-amber-800",
     btnClass:
       "bg-gradient-to-r from-amber-600 to-yellow-600 text-white hover:from-amber-500 hover:to-yellow-500 shadow-lg shadow-amber-500/25",
     features: [
-      { label: "Доски", ok: true, detail: "без лимита" },
+      { label: "Доски (личное)", ok: true, detail: "без лимита" },
+      { label: "Доски (команда)", ok: true, detail: "без лимита" },
       { label: "Задачи", ok: true, detail: "без лимита" },
       { label: "Счета", ok: true, detail: "без лимита" },
       { label: "Транзакции", ok: true, detail: "без лимита" },
+      { label: "Планирование бюджета", ok: true },
+      { label: "Финансовая подушка", ok: true },
+      { label: "Обязательства", ok: true },
+      { label: "Подробный дашборд по финансам", ok: true },
+      { label: "Проекты и цели", ok: true },
       { label: "Привычки", ok: true, detail: "без лимита" },
+      { label: "Достижения", ok: true },
+      { label: "Расписание привычек", ok: true },
       { label: "AI-помощник", ok: true, detail: "без лимита" },
-      { label: "Командные доски", ok: true, detail: "до 50 участников" },
-
+      { label: "Командные доски", ok: true, detail: "до 100 участников" },
       { label: "Экспорт данных", ok: true, detail: "CSV, PDF" },
-      { label: "Интеграции", ok: true, detail: "Telegram, Email" },
+      { label: "Интеграции", ok: true, detail: "Telegram" },
       { label: "Своя цветовая схема", ok: true },
       { label: "Музыкальные треки", ok: true },
+      { label: "Кастомные настройки разделов", ok: true },
     ],
   },
 ];
@@ -208,7 +225,10 @@ export default function TariffsPage() {
         </div>
 
         <div className="text-center mt-12 text-xs text-muted-foreground/50">
-          <p>Все цены указаны с учётом НДС. Можно отменить подписку в любой момент.</p>
+          <p>
+            Все цены указаны с учётом НДС. Можно отменить подписку в любой
+            момент.
+          </p>
         </div>
       </div>
     </div>
