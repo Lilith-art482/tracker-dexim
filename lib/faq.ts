@@ -269,7 +269,7 @@ export const FAQ_DATA: FaqCategory[] = [
       {
         question: "Какие контакты для связи?",
         answer:
-          "Email: In-motion@info.io, Telegram пользователь: @artyom_medoed, Telegram бот: @inmotion_bot. Все контакты доступны на странице /contact.",
+          "Email: In-motion@info.io, Telegram пользователь: @artyom_medoed, Telegram бот: @inmotion_use_bot. Все контакты доступны на странице /contact.",
       },
       {
         question: "Можно ли экспортировать данные?",

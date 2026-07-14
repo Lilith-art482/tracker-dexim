@@ -452,8 +452,8 @@ export default function ContactPage() {
                     },
                     {
                       icon: Send,
-                      label: "@inmotion_bot",
-                      href: "tg://resolve?domain=inmotion_bot",
+                      label: "@inmotion_use_bot",
+                      href: "tg://resolve?domain=inmotion_use_bot",
                     },
                   ].map((c) => (
                     <a
