@@ -62,8 +62,6 @@ const CATEGORIES: CategoryConfig[] = [
     gradient: "from-violet-500/10 via-violet-500/5 to-transparent",
     placeholder: "Опишите ваше предложение...",
     responseTime: "до 5 дней",
-      "Упростить навигацию",
-    ],
   },
   {
     value: "complaint",
