@@ -50,7 +50,7 @@ const CATEGORIES: CategoryConfig[] = [
     bgColor: "bg-amber-500/10",
     gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
     placeholder: "Расскажите, что можно улучшить...",
-    responseTime: "до 3 дней",
+    responseTime: "до 14 дней",
   },
   {
     value: "suggestion",
@@ -61,7 +61,7 @@ const CATEGORIES: CategoryConfig[] = [
     bgColor: "bg-violet-500/10",
     gradient: "from-violet-500/10 via-violet-500/5 to-transparent",
     placeholder: "Опишите ваше предложение...",
-    responseTime: "до 5 дней",
+    responseTime: "до 14 дней",
   },
   {
     value: "complaint",
@@ -72,7 +72,7 @@ const CATEGORIES: CategoryConfig[] = [
     bgColor: "bg-rose-500/10",
     gradient: "from-rose-500/10 via-rose-500/5 to-transparent",
     placeholder: "Опишите проблему: что произошло, когда, как воспроизвести...",
-    responseTime: "до 12 часов",
+    responseTime: "до 14 дней",
   },
   {
     value: "question",
@@ -83,7 +83,7 @@ const CATEGORIES: CategoryConfig[] = [
     bgColor: "bg-sky-500/10",
     gradient: "from-sky-500/10 via-sky-500/5 to-transparent",
     placeholder: "Задайте ваш вопрос...",
-    responseTime: "до 2 дней",
+    responseTime: "до 14 дней",
   },
 ];
 
@@ -263,13 +263,10 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+              <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
                 <span className="text-[11px] text-muted-foreground/60 flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  Ожидаемое время ответа:
-                </span>
-                <span className="text-[11px] font-semibold text-foreground/80 px-2 py-0.5 rounded-full bg-muted/60">
-                  {cat?.responseTime || "до 3 дней"}
+                  Максимальный срок — до 14 дней, обычно 24–48 ч
                 </span>
               </div>
 
@@ -346,8 +343,9 @@ export default function ContactPage() {
                   Связь с разработчиками
                 </h1>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                  Выберите тему обращения — мы подберём нужный отдел и ответим
-                  быстрее
+                  Максимальный срок рассмотрения — до 14 дней, но обычно
+                  отвечаем в течение 24–48 часов. Если нужно срочно —
+                  напишите в личные сообщения Telegram или на почту.
                 </p>
               </div>
 
@@ -377,8 +375,7 @@ export default function ContactPage() {
                         In-motion@info.io
                       </a>
                       <span className="text-[10px] text-amber-600/60 dark:text-amber-500/50">
-                        Срок ответа — до 10 дней или в срок, установленный в
-                        требовании
+                        Максимальный срок — до 14 дней, обычно 24–48 ч
                       </span>
                     </div>
                   </div>
@@ -438,6 +435,10 @@ export default function ContactPage() {
                   </span>
                   <span className="h-px w-12 bg-border/40" />
                 </div>
+                <p className="text-[10px] text-muted-foreground/50 mb-3">
+                  Если нужно срочно — пишите в личные сообщения Telegram или на
+                  почту
+                </p>
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   {[
                     {
