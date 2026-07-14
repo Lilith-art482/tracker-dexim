@@ -75,9 +75,9 @@ const DEFAULT_PROMPTS: SuggestedPrompt[] = [
     text: "Как у меня с привычками?",
   },
   {
-    icon: HelpCircle,
-    label: "FAQ по сервису",
-    text: "Какие есть частые вопросы о сервисе?",
+    icon: Crown,
+    label: "Тарифы",
+    text: "Расскажи о тарифах In Motion",
   },
 ];
 
@@ -100,17 +100,17 @@ const SERVICE_PROMPTS: SuggestedPrompt[] = [
   {
     icon: ShieldCheck,
     label: "Персональные данные",
-    text: "Как вы обрабатываете мои персональные данные и как удалить аккаунт?",
+    text: "Расскажи о персональных данных: как их обрабатывают, как отозвать согласие или удалить аккаунт? Это регулируется ФЗ №152-ФЗ?",
   },
   {
     icon: MessageCircle,
     label: "Связь с разработчиками",
-    text: "Как связаться с разработчиками?",
+    text: "Хочу связаться с разработчиками: могу предложить идею, сообщить о проблеме, запросить индивидуальные лимиты или узнать о персональных данных в соответствии с ФЗ №152. Как это сделать?",
   },
   {
     icon: Crown,
     label: "Промокод",
-    text: "Как получить промокод на скидку?",
+    text: "Расскажи про промокоды: как получить скидку, где проходят акции и розыгрыши? Хочу попробовать PRO.",
   },
 ];
 
@@ -486,9 +486,10 @@ function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
 interface AiChatProps {
   open: boolean;
   onClose: () => void;
+  initialMessage?: string | null;
 }
 
-export default function AiChat({ open, onClose }: AiChatProps) {
+export default function AiChat({ open, onClose, initialMessage }: AiChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -503,38 +504,6 @@ export default function AiChat({ open, onClose }: AiChatProps) {
     () => (showMainMenu ? [...DEFAULT_PROMPTS, ...SERVICE_PROMPTS] : suggestPrompts(messages)),
     [messages, showMainMenu],
   );
-
-  useEffect(() => {
-    if (open) {
-      setMessages(loadMessages());
-      setTimeout(() => inputRef.current?.focus(), 300);
-      if (!contextBuilt) {
-        buildUserContext().then((ctx) => {
-          setUserContext(ctx);
-          setContextBuilt(true);
-        });
-      }
-    }
-  }, [open, contextBuilt]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  useEffect(() => {
-    if (messages.length > 0) {
-      saveMessages(messages);
-    }
-  }, [messages]);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -593,6 +562,44 @@ export default function AiChat({ open, onClose }: AiChatProps) {
     setContextBuilt(false);
     setUserContext("");
   };
+
+  useEffect(() => {
+    if (open) {
+      setMessages(loadMessages());
+      setTimeout(() => inputRef.current?.focus(), 300);
+      if (!contextBuilt) {
+        buildUserContext().then((ctx) => {
+          setUserContext(ctx);
+          setContextBuilt(true);
+        });
+      }
+    }
+  }, [open, contextBuilt]);
+
+  useEffect(() => {
+    if (open && initialMessage && contextBuilt) {
+      sendMessage(initialMessage);
+    }
+  }, [open, initialMessage, contextBuilt, sendMessage]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      saveMessages(messages);
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
 
   if (!open) return null;
 
