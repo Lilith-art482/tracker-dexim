@@ -79,7 +79,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Если есть paymentMethod или autoPay — валидируем
-    if ("paymentMethod" in body || "autoPay" in body) {
+    if (
+      "paymentMethod" in body ||
+      "autoPay" in body ||
+      "savedCards" in body ||
+      "defaultCardId" in body
+    ) {
       const parsed = updateSettingsSchema.safeParse(body);
       if (!parsed.success) {
         return NextResponse.json(
@@ -88,7 +93,10 @@ export async function PATCH(request: NextRequest) {
         );
       }
       updateData.paymentMethod = parsed.data.paymentMethod;
+      updateData.defaultCardId = parsed.data.defaultCardId;
       updateData.autoPay = parsed.data.autoPay;
+      if (parsed.data.savedCards)
+        updateData.savedCards = parsed.data.savedCards;
     }
 
     await db.collection("users").doc(uid).update(updateData);
