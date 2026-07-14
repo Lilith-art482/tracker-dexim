@@ -155,7 +155,9 @@ export function FinanceDashboard() {
     (s, l) => (l.repaymentType === "monthly" ? s + l.monthlyPayment : s),
     0,
   );
-  const overdueLoans = loans.filter((l) => l.overdueMonths > 0 && l.remainingAmount > 0).length;
+  const overdueLoans = loans.filter(
+    (l) => l.overdueMonths > 0 && l.remainingAmount > 0,
+  ).length;
 
   const hasData = periodIncome > 0 || periodExpenses > 0;
   const healthRatio = hasData
@@ -330,19 +332,19 @@ export function FinanceDashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Wallet className="h-4 w-4" />
-              Общий баланс
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {Math.round(totalBalance).toLocaleString()} ₽
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              USDT/RUB: {usdtRate.toFixed(2)} ₽
-            </p>
-          </CardContent>
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Wallet className="h-4 w-4" />
+                Общий баланс
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">
+                {Math.round(totalBalance).toLocaleString()} ₽
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                USDT/RUB: {usdtRate.toFixed(2)} ₽
+              </p>
+            </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">

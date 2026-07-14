@@ -34,7 +34,11 @@ import {
   getGoalsByUser,
   getCategoriesByUser,
 } from "@/lib/finance-client";
-import { getUSDTtoRUB, convertToRUB, getConversionNote } from "@/lib/exchange-rates";
+import {
+  getUSDTtoRUB,
+  convertToRUB,
+  getConversionNote,
+} from "@/lib/exchange-rates";
 import type {
   FinanceAccount,
   Transaction,
@@ -160,9 +164,7 @@ async function buildUserContext(): Promise<string> {
 
     const today = new Date().toISOString().split("T")[0];
     const thisMonth = today.slice(0, 7);
-    const monthTxns = transactions.filter((t) =>
-      t.date.startsWith(thisMonth),
-    );
+    const monthTxns = transactions.filter((t) => t.date.startsWith(thisMonth));
     const income = monthTxns
       .filter((t) => t.type === "income")
       .reduce((s, t) => s + t.amount, 0);
@@ -233,23 +235,27 @@ function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
   if (!last) return DEFAULT_PROMPTS;
 
   const allContent =
-    last.content.toLowerCase() +
-    (secondLast?.content.toLowerCase() || "");
+    last.content.toLowerCase() + (secondLast?.content.toLowerCase() || "");
 
   const sets: { keywords: string[]; prompts: SuggestedPrompt[] }[] = [
     {
-      keywords: [
-        "задач",
-        "план",
-        "сегодня",
-        "дедлайн",
-        "сделать",
-        "список",
-      ],
+      keywords: ["задач", "план", "сегодня", "дедлайн", "сделать", "список"],
       prompts: [
-        { icon: Calendar, label: "Что важно сегодня?", text: "Какие задачи самые важные на сегодня?" },
-        { icon: ListChecks, label: "Просроченное", text: "Есть ли у меня просроченные задачи?" },
-        { icon: Lightbulb, label: "Расписание", text: "Помоги составить расписание на день" },
+        {
+          icon: Calendar,
+          label: "Что важно сегодня?",
+          text: "Какие задачи самые важные на сегодня?",
+        },
+        {
+          icon: ListChecks,
+          label: "Просроченное",
+          text: "Есть ли у меня просроченные задачи?",
+        },
+        {
+          icon: Lightbulb,
+          label: "Расписание",
+          text: "Помоги составить расписание на день",
+        },
       ],
     },
     {
@@ -266,8 +272,16 @@ function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
         "кредит",
       ],
       prompts: [
-        { icon: TrendingUp, label: "Доходы", text: "Сколько я заработал в этом месяце?" },
-        { icon: TrendingDown, label: "Расходы", text: "На что я трачу больше всего?" },
+        {
+          icon: TrendingUp,
+          label: "Доходы",
+          text: "Сколько я заработал в этом месяце?",
+        },
+        {
+          icon: TrendingDown,
+          label: "Расходы",
+          text: "На что я трачу больше всего?",
+        },
         { icon: Target, label: "Бюджет", text: "Как мне улучшить бюджет?" },
       ],
     },
@@ -281,23 +295,36 @@ function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
         "достижен",
       ],
       prompts: [
-        { icon: Award, label: "Лучшие серии", text: "Какие у меня самые длинные серии?" },
-        { icon: BarChart3, label: "Прогресс", text: "Покажи прогресс по привычкам" },
-        { icon: ListChecks, label: "Что добавить", text: "Какие привычки стоит добавить?" },
+        {
+          icon: Award,
+          label: "Лучшие серии",
+          text: "Какие у меня самые длинные серии?",
+        },
+        {
+          icon: BarChart3,
+          label: "Прогресс",
+          text: "Покажи прогресс по привычкам",
+        },
+        {
+          icon: ListChecks,
+          label: "Что добавить",
+          text: "Какие привычки стоит добавить?",
+        },
       ],
     },
     {
-      keywords: [
-        "цел",
-        "goal",
-        "накоп",
-        "отлож",
-        "копилк",
-        "мечта",
-      ],
+      keywords: ["цел", "goal", "накоп", "отлож", "копилк", "мечта"],
       prompts: [
-        { icon: Target, label: "Достижение целей", text: "Как у меня идёт прогресс по целям?" },
-        { icon: DollarSign, label: "Накопления", text: "Сколько нужно откладывать, чтобы достичь целей?" },
+        {
+          icon: Target,
+          label: "Достижение целей",
+          text: "Как у меня идёт прогресс по целям?",
+        },
+        {
+          icon: DollarSign,
+          label: "Накопления",
+          text: "Сколько нужно откладывать, чтобы достичь целей?",
+        },
       ],
     },
     {
@@ -312,23 +339,33 @@ function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
         "исполнительн",
       ],
       prompts: [
-        { icon: DollarSign, label: "Долги", text: "Какой у меня общий долг по обязательствам?" },
+        {
+          icon: DollarSign,
+          label: "Долги",
+          text: "Какой у меня общий долг по обязательствам?",
+        },
         { icon: Calendar, label: "Платежи", text: "Какие платежи скоро?" },
-        { icon: Lightbulb, label: "Снизить долги", text: "Как быстрее погасить долги?" },
+        {
+          icon: Lightbulb,
+          label: "Снизить долги",
+          text: "Как быстрее погасить долги?",
+        },
       ],
     },
     {
-      keywords: [
-        "совет",
-        "рекомендац",
-        "помоги",
-        "подскаж",
-        "планирован",
-      ],
+      keywords: ["совет", "рекомендац", "помоги", "подскаж", "планирован"],
       prompts: [
         { icon: Calendar, label: "План дня", text: "Помоги спланировать день" },
-        { icon: DollarSign, label: "Финансовый план", text: "Как оптимизировать бюджет?" },
-        { icon: ListChecks, label: "Приоритеты", text: "На что мне стоит обратить внимание?" },
+        {
+          icon: DollarSign,
+          label: "Финансовый план",
+          text: "Как оптимизировать бюджет?",
+        },
+        {
+          icon: ListChecks,
+          label: "Приоритеты",
+          text: "На что мне стоит обратить внимание?",
+        },
       ],
     },
   ];
@@ -470,7 +507,7 @@ export default function AiChat({ open, onClose }: AiChatProps) {
           animation: "slideInFromRight 0.3s ease-out",
         }}
       >
-      <style>{`
+        <style>{`
         @keyframes slideInFromRight {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
@@ -484,9 +521,7 @@ export default function AiChat({ open, onClose }: AiChatProps) {
             </div>
             <div>
               <p className="text-sm font-semibold">AI-помощник</p>
-              <p className="text-[10px] text-muted-foreground/60">
-                In Motion
-              </p>
+              <p className="text-[10px] text-muted-foreground/60">In Motion</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -605,36 +640,35 @@ export default function AiChat({ open, onClose }: AiChatProps) {
                   </div>
 
                   {/* Contextual follow-up prompts after the last assistant message */}
-                  {msg.role === "assistant" &&
-                    i === messages.length - 1 && (
-                      <div className="mt-3 ml-10 space-y-2">
-                        <p className="text-[10px] text-muted-foreground/40 uppercase tracking-wider font-medium">
-                          {showMainMenu ? "Быстрый старт" : "Продолжить:"}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {contextualPrompts.map((prompt) => (
-                            <button
-                              key={prompt.label}
-                              onClick={() => sendMessage(prompt.text)}
-                              disabled={loading}
-                              className="flex items-center gap-1.5 rounded-lg border bg-background/80 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:border-primary/30 transition-all disabled:opacity-40 disabled:pointer-events-none"
-                            >
-                              <prompt.icon className="h-3 w-3 text-violet-500 shrink-0" />
-                              {prompt.label}
-                            </button>
-                          ))}
-                          {!showMainMenu && (
-                            <button
-                              onClick={() => setShowMainMenu(true)}
-                              className="flex items-center gap-1.5 rounded-lg border border-dashed bg-background/50 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-all"
-                            >
-                              <ChevronRight className="h-3 w-3 shrink-0" />
-                              В главное меню
-                            </button>
-                          )}
-                        </div>
+                  {msg.role === "assistant" && i === messages.length - 1 && (
+                    <div className="mt-3 ml-10 space-y-2">
+                      <p className="text-[10px] text-muted-foreground/40 uppercase tracking-wider font-medium">
+                        {showMainMenu ? "Быстрый старт" : "Продолжить:"}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {contextualPrompts.map((prompt) => (
+                          <button
+                            key={prompt.label}
+                            onClick={() => sendMessage(prompt.text)}
+                            disabled={loading}
+                            className="flex items-center gap-1.5 rounded-lg border bg-background/80 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:border-primary/30 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                          >
+                            <prompt.icon className="h-3 w-3 text-violet-500 shrink-0" />
+                            {prompt.label}
+                          </button>
+                        ))}
+                        {!showMainMenu && (
+                          <button
+                            onClick={() => setShowMainMenu(true)}
+                            className="flex items-center gap-1.5 rounded-lg border border-dashed bg-background/50 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-all"
+                          >
+                            <ChevronRight className="h-3 w-3 shrink-0" />В
+                            главное меню
+                          </button>
+                        )}
                       </div>
-                    )}
+                    </div>
+                  )}
                 </div>
               ))}
             </>

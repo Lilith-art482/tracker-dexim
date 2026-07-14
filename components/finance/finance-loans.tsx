@@ -168,10 +168,7 @@ export function FinanceLoans() {
   );
 
   useEffect(() => {
-    if (
-      formObligationType !== "enforcement" ||
-      formRepaymentType !== "monthly"
-    )
+    if (formObligationType !== "enforcement" || formRepaymentType !== "monthly")
       return;
     const income = parseFloat(formOfficialIncome);
     const pct = parseFloat(formFsspPercent);
@@ -236,8 +233,12 @@ export function FinanceLoans() {
     setFormHasInterest(loan.interestRate > 0);
     setFormRepaymentType(loan.repaymentType);
     setFormDueDate(loan.dueDate || "");
-    setFormEnforcementFee(loan.enforcementFee ? String(loan.enforcementFee) : "");
-    setFormOfficialIncome(loan.officialIncome ? String(loan.officialIncome) : "");
+    setFormEnforcementFee(
+      loan.enforcementFee ? String(loan.enforcementFee) : "",
+    );
+    setFormOfficialIncome(
+      loan.officialIncome ? String(loan.officialIncome) : "",
+    );
     setFormFsspPercent(loan.fsspPercent ? String(loan.fsspPercent) : "");
     setFormOverdueMonths(String(loan.overdueMonths || 0));
     setDialogOpen(true);
@@ -286,7 +287,9 @@ export function FinanceLoans() {
     if (formRepaymentType === "monthly") {
       if (
         isNaN(totalAmount) ||
-        (showRateFields && formHasInterest && (isNaN(interestRate) || interestRate < 0)) ||
+        (showRateFields &&
+          formHasInterest &&
+          (isNaN(interestRate) || interestRate < 0)) ||
         isNaN(monthlyPayment) ||
         totalAmount <= 0 ||
         monthlyPayment <= 0
@@ -295,15 +298,15 @@ export function FinanceLoans() {
         return;
       }
     } else {
-      if (
-        isNaN(totalAmount) ||
-        totalAmount <= 0 ||
-        !formDueDate
-      ) {
+      if (isNaN(totalAmount) || totalAmount <= 0 || !formDueDate) {
         toast.error("Проверьте правильность введённых данных");
         return;
       }
-      if (showRateFields && formHasInterest && (isNaN(interestRate) || interestRate < 0)) {
+      if (
+        showRateFields &&
+        formHasInterest &&
+        (isNaN(interestRate) || interestRate < 0)
+      ) {
         toast.error("Проверьте правильность введённых данных");
         return;
       }
@@ -311,7 +314,9 @@ export function FinanceLoans() {
 
     const toastId = toast.loading("Сохраняем...");
 
-    const loanData: Partial<Omit<Loan, "id" | "userId" | "createdAt" | "updatedAt">> = {
+    const loanData: Partial<
+      Omit<Loan, "id" | "userId" | "createdAt" | "updatedAt">
+    > = {
       name: formName,
       totalAmount,
       remainingAmount,
