@@ -8,11 +8,11 @@ export async function getUSDTtoRUB(): Promise<number> {
 
   try {
     const res = await fetch(
-      "https://api.binance.com/api/v3/ticker/price?symbol=USDTRUB",
+      "https://www.okx.com/api/v5/market/ticker?instId=USDT-RUB",
       { signal: AbortSignal.timeout(5000) },
     );
     const data = await res.json();
-    const rate = parseFloat(data.price);
+    const rate = parseFloat(data.data?.[0]?.last);
     if (rate > 0) {
       cachedRate = rate;
       cachedAt = now;

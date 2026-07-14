@@ -24,9 +24,22 @@ export const updateProfileSchema = z.object({
     .max(30, "Никнейм слишком длинный"),
 });
 
+const cardBrands = ["visa", "mastercard", "mir", "amex", "maestro"] as const;
+
+export const savedCardSchema = z.object({
+  id: z.string(),
+  brand: z.enum(cardBrands),
+  last4: z.string().length(4),
+  expiryMonth: z.number().int().min(1).max(12),
+  expiryYear: z.number().int().min(24).max(40),
+  isDefault: z.boolean().default(false),
+});
+
 export const updateSettingsSchema = z.object({
   paymentMethod: z.enum(["card", "crypto"]).nullable(),
+  defaultCardId: z.string().nullable(),
   autoPay: z.boolean(),
+  savedCards: z.array(savedCardSchema).optional(),
 });
 
 export const TARIFF_FEATURES: Record<
