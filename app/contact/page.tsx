@@ -363,10 +363,10 @@ export default function ContactPage() {
                     </p>
                     <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-relaxed">
                       Обращения от представителей СМИ, государственных органов и
-                      блогеров принимаются только по электронной почте. Направьте
-                      запрос на официальном бланке с печатью и подписью
-                      уполномоченного лица (в том числе электронной подписью в
-                      рамках действующего законодательства РФ).
+                      блогеров принимаются только по электронной почте.
+                      Направьте запрос на официальном бланке с печатью и
+                      подписью уполномоченного лица (в том числе электронной
+                      подписью в рамках действующего законодательства РФ).
                     </p>
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       <a
@@ -557,7 +557,6 @@ export default function ContactPage() {
                           </div>
                         </div>
                       </div>
-                      )}
 
                       {/* Priority — for complaints only */}
                       {type === "complaint" && (
@@ -682,7 +681,11 @@ export default function ContactPage() {
                       {/* Submit */}
                       <button
                         onClick={handleSubmit}
-                        disabled={!message.trim() || message.trim().length < 20 || sending}
+                        disabled={
+                          !message.trim() ||
+                          message.trim().length < 20 ||
+                          sending
+                        }
                         className="w-full py-3 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm hover:from-primary/90 hover:to-primary/70 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
                       >
                         {sending ? (
@@ -694,10 +697,10 @@ export default function ContactPage() {
                           <>
                             <Send className="h-4 w-4" />
                             Отправить
-                        </>
-                       )}
-                       </button>
-                      </div>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
