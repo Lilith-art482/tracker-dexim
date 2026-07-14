@@ -12,6 +12,7 @@ export const TableName = {
   FINANCE_GOALS: "finance_goals",
   FINANCE_LOANS: "finance_loans",
   FINANCE_EMERGENCY_FUND: "finance_emergency_fund",
+  SHOPPING_LISTS: "shopping_lists",
   HABITS: "habits",
   HABIT_LOGS: "habit_logs",
   ACHIEVEMENTS: "achievements",

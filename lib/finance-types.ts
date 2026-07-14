@@ -204,3 +204,26 @@ export interface TransactionFilters {
   dateTo?: string;
   tags?: string[];
 }
+
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  checked: boolean;
+  amount?: number;
+  accountId?: string;
+  transactionId?: string;
+}
+
+export interface ShoppingList {
+  id: string;
+  userId: string;
+  name: string;
+  date: string;
+  items: ShoppingItem[];
+  completed: boolean;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

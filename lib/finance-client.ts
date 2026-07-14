@@ -28,6 +28,7 @@ import type {
   FinanceProject,
   EmergencyFund,
   TransactionFilters,
+  ShoppingList,
 } from "./finance-types";
 
 const accountsCol = () => collection(db, "FINANCE_ACCOUNTS");
@@ -38,6 +39,7 @@ const goalsCol = () => collection(db, "FINANCE_GOALS");
 const loansCol = () => collection(db, "FINANCE_LOANS");
 const projectsCol = () => collection(db, "FINANCE_PROJECTS");
 const emergencyFundCol = () => collection(db, "FINANCE_EMERGENCY_FUND");
+const shoppingListsCol = () => collection(db, "SHOPPING_LISTS");
 
 function toPlain<T>(snap: {
   id: string;
@@ -409,4 +411,37 @@ export async function upsertEmergencyFund(
   await updateDoc(ref, clean(data as Record<string, unknown>));
   const snap = await getDoc(ref);
   return toPlain<EmergencyFund>(snap);
+}
+
+export async function getShoppingListsByUser(
+  uid: string,
+): Promise<ShoppingList[]> {
+  const q = query(shoppingListsCol(), where("userId", "==", uid));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => toPlain<ShoppingList>(d));
+}
+
+export async function createShoppingList(
+  data: Omit<ShoppingList, "createdAt" | "updatedAt">,
+): Promise<ShoppingList> {
+  const now = new Date().toISOString();
+  const list: ShoppingList = { ...data, createdAt: now, updatedAt: now };
+  await setDoc(doc(shoppingListsCol(), list.id), clean(list));
+  return list;
+}
+
+export async function updateShoppingList(
+  id: string,
+  data: Partial<
+    Omit<ShoppingList, "id" | "userId" | "createdAt" | "updatedAt">
+  >,
+): Promise<ShoppingList> {
+  const ref = doc(shoppingListsCol(), id);
+  await updateDoc(ref, clean({ ...data, updatedAt: new Date().toISOString() }));
+  const snap = await getDoc(ref);
+  return toPlain<ShoppingList>(snap);
+}
+
+export async function deleteShoppingList(id: string): Promise<void> {
+  await deleteDoc(doc(shoppingListsCol(), id));
 }

@@ -42,6 +42,10 @@ export const updateSettingsSchema = z.object({
   savedCards: z.array(savedCardSchema).optional(),
 });
 
+export const updateConsentSchema = z.object({
+  dataConsent: z.boolean(),
+});
+
 export const TARIFF_FEATURES: Record<
   string,
   { name: string; price: string; features: string[] }

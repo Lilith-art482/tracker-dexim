@@ -26,6 +26,8 @@ import {
   X,
   ShieldCheck,
   Settings2,
+  AlertTriangle,
+  Gift,
 } from "lucide-react";
 import Link from "next/link";
 import { TARIFF_FEATURES } from "@/lib/validation/auth";
@@ -335,6 +337,14 @@ export default function ProfilePage() {
     }
   };
 
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteResult, setDeleteResult] = useState<{
+    deletionDate: string;
+    promoCode: string;
+  } | null>(null);
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -342,6 +352,33 @@ export default function ProfilePage() {
       router.push("/auth");
     } catch {
       toast.error("Ошибка выхода");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!uid) return;
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/auth/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, reason: deleteReason.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Ошибка");
+        return;
+      }
+      const data = await res.json();
+      setDeleteResult({
+        deletionDate: data.deletionDate,
+        promoCode: data.promoCode,
+      });
+      toast.success("Запрос на удаление принят");
+    } catch {
+      toast.error("Ошибка");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -925,9 +962,194 @@ export default function ProfilePage() {
               <LogOut className="h-4 w-4" />
               Выйти из аккаунта
             </button>
+
+            {/* Удалить аккаунт */}
+            <button
+              onClick={() => setDeleteOpen(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border/30 py-2.5 text-xs font-medium text-muted-foreground/50 hover:text-rose-500/70 hover:border-rose-200/40 dark:hover:border-rose-900/30 dark:hover:bg-rose-950/10 transition-all"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Удалить аккаунт
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Delete account modal */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <AlertTriangle className="h-5 w-5 text-rose-500" />
+              Удаление аккаунта
+            </DialogTitle>
+          </DialogHeader>
+          {deleteResult ? (
+            <div className="space-y-4 pt-1">
+              <div className="flex flex-col items-center text-center py-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 mb-3">
+                  <Gift className="h-7 w-7 text-emerald-500" />
+                </div>
+                <p className="text-base font-semibold">Запрос принят</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Аккаунт будет удалён через 30 дней.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-amber-200/50 dark:border-amber-800/40 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Crown className="h-4 w-4 text-amber-600" />
+                  <p className="text-sm font-semibold">Ваш промокод</p>
+                </div>
+                <div className="flex items-center gap-2 bg-background/80 rounded-lg px-3 py-2.5 border border-amber-200/40 dark:border-amber-800/30">
+                  <code className="text-sm font-mono font-bold tracking-wider text-amber-700 dark:text-amber-400 flex-1 select-all">
+                    {deleteResult.promoCode}
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(deleteResult.promoCode);
+                      toast.success("Промокод скопирован");
+                    }}
+                    className="text-xs font-medium text-amber-600 hover:text-amber-700 shrink-0"
+                  >
+                    Копировать
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground/70">
+                  262 ₽ вместо 349 ₽ за первый месяц PRO. Промокод привязан к
+                  вашему аккаунту и действует до даты удаления.
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-muted/30 p-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Дата удаления</span>
+                  <span className="font-medium">
+                    {new Date(deleteResult.deletionDate).toLocaleDateString(
+                      "ru-RU",
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      },
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Промокод активен до
+                  </span>
+                  <span className="font-medium text-amber-600">
+                    {new Date(deleteResult.deletionDate).toLocaleDateString(
+                      "ru-RU",
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      },
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground/50 text-center">
+                Если передумаете — просто зайдите в профиль и отмените удаление.
+              </p>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteResult(null);
+                }}
+              >
+                Понятно
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4 pt-1">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Нам правда важно понять, почему вы уходите — чтобы мы могли
+                исправиться и сделать приложение удобнее.
+              </p>
+
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Расскажите, что пошло не так (или чего не хватило), и в
+                благодарность мы отправим вам:
+              </p>
+
+              <div className="space-y-2.5 rounded-xl bg-gradient-to-br from-emerald-500/5 to-emerald-500/[0.02] border border-emerald-200/40 dark:border-emerald-800/30 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 shrink-0 mt-0.5">
+                    <Gift className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">
+                      Гайд «Как навести порядок в финансах за 7 дней»
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-0.5">
+                      С чёткими шагами, чек-листами и таблицами для планирования
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 shrink-0 mt-0.5">
+                    <Crown className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">
+                      Промокод на 25% скидки на первый месяц PRO
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-0.5">
+                      262 ₽ вместо 349 ₽ — промокод привяжется к вашему аккаунту
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground/60">
+                Без спама. Просто спасибо за честность.
+              </p>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground/80">
+                  Что вас не устроило? (пара слов — уже помощь)
+                </label>
+                <textarea
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder="Например: не хватило интеграций или запутался в интерфейсе..."
+                  rows={3}
+                  className="w-full resize-none rounded-xl border border-border/60 bg-background/50 px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 pt-1">
+                <Button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                  className="w-full gap-1.5"
+                >
+                  {deleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Gift className="h-4 w-4" />
+                  )}
+                  {deleting ? "Отправляем..." : "Отправить и получить подарки"}
+                </Button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                  className="text-xs text-muted-foreground/40 hover:text-rose-500/70 transition-colors py-1"
+                >
+                  Не хочу подарки, просто удалить аккаунт
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

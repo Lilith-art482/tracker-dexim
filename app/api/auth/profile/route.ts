@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   updateProfileSchema,
   updateSettingsSchema,
+  updateConsentSchema,
 } from "@/lib/validation/auth";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { initializeApp, getApps, cert, App } from "firebase-admin/app";
@@ -97,6 +98,18 @@ export async function PATCH(request: NextRequest) {
       updateData.autoPay = parsed.data.autoPay;
       if (parsed.data.savedCards)
         updateData.savedCards = parsed.data.savedCards;
+    }
+
+    // Если есть dataConsent — валидируем
+    if ("dataConsent" in body) {
+      const parsed = updateConsentSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: "Некорректные данные", details: parsed.error.flatten() },
+          { status: 400 },
+        );
+      }
+      updateData.dataConsent = parsed.data.dataConsent;
     }
 
     await db.collection("users").doc(uid).update(updateData);

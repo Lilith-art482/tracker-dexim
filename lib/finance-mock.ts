@@ -7,6 +7,7 @@ import type {
   Loan,
   FinanceProject,
   EmergencyFund,
+  ShoppingList,
 } from "./finance-types";
 
 const now = new Date();
@@ -933,3 +934,65 @@ export const mockFinanceEmergencyFund: EmergencyFund = {
   targetAmount: 300000,
   currentAmount: 120000,
 };
+
+export const mockShoppingLists: ShoppingList[] = [
+  {
+    id: "shop-1",
+    userId: "user-1",
+    name: "Продукты на неделю",
+    date: new Date().toISOString().split("T")[0],
+    items: [
+      { id: "item-1", name: "Молоко", quantity: 2, unit: "л", checked: false },
+      {
+        id: "item-2",
+        name: "Хлеб",
+        quantity: 1,
+        unit: "шт",
+        checked: true,
+        amount: 60,
+        accountId: "fin-acc-2",
+        transactionId: "fin-tx-1",
+      },
+      { id: "item-3", name: "Яйца", quantity: 10, unit: "шт", checked: false },
+      { id: "item-4", name: "Сыр", quantity: 200, unit: "г", checked: false },
+      {
+        id: "item-5",
+        name: "Масло сливочное",
+        quantity: 1,
+        unit: "шт",
+        checked: false,
+      },
+    ],
+    completed: false,
+    archived: false,
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "shop-2",
+    userId: "user-1",
+    name: "Стройматериалы",
+    date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+    items: [
+      {
+        id: "item-6",
+        name: "Шпаклёвка",
+        quantity: 2,
+        unit: "кг",
+        checked: false,
+      },
+      {
+        id: "item-7",
+        name: "Краска белая",
+        quantity: 1,
+        unit: "л",
+        checked: false,
+      },
+      { id: "item-8", name: "Валик", quantity: 2, unit: "шт", checked: false },
+    ],
+    completed: false,
+    archived: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];

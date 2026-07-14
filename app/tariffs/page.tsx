@@ -61,6 +61,12 @@ const TIERS = [
       { label: "AI-помощник", ok: true, detail: "до 30 запросов/день" },
       { label: "Командные доски", ok: true, detail: "до 5 участников" },
       { label: "Экспорт данных", ok: true },
+      { label: "Подробный дашборд по финансам", ok: false },
+      { label: "Расписание привычек", ok: false },
+      { label: "Интеграции", ok: false, detail: "Telegram" },
+      { label: "Своя цветовая схема", ok: false },
+      { label: "Музыкальные треки", ok: false },
+      { label: "Кастомные настройки разделов", ok: false },
     ],
   },
   {

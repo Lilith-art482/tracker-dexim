@@ -10,6 +10,7 @@ import {
   Landmark,
   Briefcase,
   Shield,
+  ShoppingCart,
   Settings,
 } from "lucide-react";
 import { FinanceDashboard } from "@/components/finance/finance-dashboard";
@@ -21,6 +22,7 @@ import { FinanceLoans } from "@/components/finance/finance-loans";
 import { FinanceProjects } from "@/components/finance/finance-projects";
 import { FinanceEmergencyFund } from "@/components/finance/finance-emergency-fund";
 import { FinanceSettings } from "@/components/finance/finance-settings";
+import { FinanceShopping } from "@/components/finance/finance-shopping";
 import { cn } from "@/lib/utils";
 import { getHiddenModules } from "@/lib/finance-visibility";
 
@@ -33,6 +35,7 @@ const ALL_MODULES = [
   { id: "loans", label: "Обязательства", icon: Landmark },
   { id: "projects", label: "Проекты", icon: Briefcase },
   { id: "emergency", label: "Подушка", icon: Shield },
+  { id: "shopping", label: "Список покупок", icon: ShoppingCart },
   { id: "settings", label: "Настройки", icon: Settings },
 ] as const;
 
@@ -81,6 +84,8 @@ export default function FinancePage() {
         return <FinanceProjects />;
       case "emergency":
         return <FinanceEmergencyFund />;
+      case "shopping":
+        return <FinanceShopping />;
       case "settings":
         return <FinanceSettings onVisibilityChange={handleSave} />;
       default:
