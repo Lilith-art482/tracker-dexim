@@ -16,25 +16,17 @@ import {
   AlertTriangle,
   Sparkles,
   HelpCircle,
-  Mic,
   Flag,
   Paperclip,
   X,
   Clock,
   Upload,
   Shield,
-  Gavel,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type FeedbackType =
-  | "idea"
-  | "suggestion"
-  | "complaint"
-  | "question"
-  | "media"
-  | "government";
+type FeedbackType = "idea" | "suggestion" | "complaint" | "question";
 
 interface CategoryConfig {
   value: FeedbackType;
@@ -46,7 +38,6 @@ interface CategoryConfig {
   gradient: string;
   placeholder: string;
   responseTime: string;
-  quickTopics?: string[];
 }
 
 const CATEGORIES: CategoryConfig[] = [
@@ -60,7 +51,6 @@ const CATEGORIES: CategoryConfig[] = [
     gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
     placeholder: "Расскажите, что можно улучшить...",
     responseTime: "до 3 дней",
-    quickTopics: ["Новый тип задач", "Интеграция с календарём", "Тёмная тема"],
   },
   {
     value: "suggestion",
@@ -72,9 +62,6 @@ const CATEGORIES: CategoryConfig[] = [
     gradient: "from-violet-500/10 via-violet-500/5 to-transparent",
     placeholder: "Опишите ваше предложение...",
     responseTime: "до 5 дней",
-    quickTopics: [
-      "Изменить интерфейс",
-      "Добавить отчёт",
       "Упростить навигацию",
     ],
   },
@@ -88,11 +75,6 @@ const CATEGORIES: CategoryConfig[] = [
     gradient: "from-rose-500/10 via-rose-500/5 to-transparent",
     placeholder: "Опишите проблему: что произошло, когда, как воспроизвести...",
     responseTime: "до 12 часов",
-    quickTopics: [
-      "Не работает сохранение",
-      "Ошибка в финансах",
-      "Проблема с авторизацией",
-    ],
   },
   {
     value: "question",
@@ -104,39 +86,6 @@ const CATEGORIES: CategoryConfig[] = [
     gradient: "from-sky-500/10 via-sky-500/5 to-transparent",
     placeholder: "Задайте ваш вопрос...",
     responseTime: "до 2 дней",
-    quickTopics: [
-      "Как работает триал?",
-      "Можно ли сменить тариф?",
-      "Как экспортировать данные?",
-    ],
-  },
-  {
-    value: "media",
-    label: "Для СМИ",
-    icon: Mic,
-    description: "Пресс-релизы, интервью, сотрудничество",
-    color: "text-emerald-600 dark:text-emerald-400",
-    bgColor: "bg-emerald-500/10",
-    gradient: "from-emerald-500/10 via-emerald-500/5 to-transparent",
-    placeholder: "Опишите ваш запрос: издание, тема, сроки...",
-    responseTime: "до 1 дня",
-    quickTopics: [
-      "Запрос на комментарий",
-      "Приглашение на интервью",
-      "Пресс-релиз",
-    ],
-  },
-  {
-    value: "government",
-    label: "Для госорганов",
-    icon: Gavel,
-    description: "Официальные запросы и уведомления",
-    color: "text-blue-600 dark:text-blue-400",
-    bgColor: "bg-blue-500/10",
-    gradient: "from-blue-500/10 via-blue-500/5 to-transparent",
-    placeholder: "Укажите ведомство, номер документа и суть запроса...",
-    responseTime: "до 3 рабочих дней",
-    quickTopics: ["Запрос данных", "Уведомление", "Предписание"],
   },
 ];
 
@@ -185,7 +134,7 @@ export default function ContactPage() {
     ? CATEGORIES.find((c) => c.value === type)
     : undefined;
 
-  const charLimit = type === "government" ? 10000 : 3000;
+  const charLimit = 3000;
   const charProgress = message.length / charLimit;
 
   const handleFileDrop = useCallback((e: React.DragEvent) => {
@@ -208,10 +157,6 @@ export default function ContactPage() {
 
   const handleSubmit = async () => {
     if (!type || !message.trim() || message.trim().length < 20) return;
-    if ((type === "media" || type === "government") && files.length === 0 && !email) {
-      toast.error("Для данного типа обращения укажите почту для ответа");
-      return;
-    }
     setSending(true);
     await new Promise((r) => setTimeout(r, 1500));
     setTicketId(generateTicketId());
@@ -224,11 +169,6 @@ export default function ContactPage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     toast.success("ID скопирован");
-  };
-
-  const handleQuickTopic = (topic: string) => {
-    setMessage(topic);
-    textareaRef.current?.focus();
   };
 
   const particles = Array.from({ length: 20 }, (_, i) => ({
@@ -413,6 +353,40 @@ export default function ContactPage() {
                 </p>
               </div>
 
+              {/* Official / media / blogger notice */}
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mb-6 rounded-xl border border-amber-200/60 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-950/20 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
+                    <Mail className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                      Для официальных запросов
+                    </p>
+                    <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-relaxed">
+                      Обращения от представителей СМИ, государственных органов и
+                      блогеров принимаются только по электронной почте. Направьте
+                      запрос на официальном бланке с печатью и подписью
+                      уполномоченного лица (в том числе электронной подписью в
+                      рамках действующего законодательства РФ).
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <a
+                        href="mailto:In-motion@info.io"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-3 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
+                      >
+                        <Mail className="h-3 w-3" />
+                        In-motion@info.io
+                      </a>
+                      <span className="text-[10px] text-amber-600/60 dark:text-amber-500/50">
+                        Срок ответа — до 10 дней или в срок, установленный в
+                        требовании
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {CATEGORIES.map((cat) => (
                   <button
@@ -540,27 +514,6 @@ export default function ContactPage() {
 
                   <div className="rounded-2xl border border-border/50 bg-card/40 p-5 sm:p-7">
                     <div className="space-y-5">
-                      {/* Quick topics */}
-                      {catConfig.quickTopics &&
-                        catConfig.quickTopics.length > 0 && (
-                          <div>
-                            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground/40 uppercase mb-2">
-                              Быстрый ответ
-                            </p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {catConfig.quickTopics.map((topic) => (
-                                <button
-                                  key={topic}
-                                  onClick={() => handleQuickTopic(topic)}
-                                  className="text-[11px] px-2.5 py-1.5 rounded-lg border border-border/30 bg-background/40 text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:border-border/60 transition-all"
-                                >
-                                  {topic}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
                       {/* Message */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -606,46 +559,10 @@ export default function ContactPage() {
                           </div>
                         </div>
                       </div>
-
-                      {/* Official notice for media / government */}
-                      {(type === "media" || type === "government") && (
-                        <div className="animate-in fade-in slide-in-from-top-2 duration-200 rounded-xl border border-amber-200/60 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-950/20 p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
-                              <Mail className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <div className="space-y-1">
-                              <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
-                                {type === "government"
-                                  ? "Официальный запрос"
-                                  : "Запрос от СМИ"}
-                              </p>
-                              <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-relaxed">
-                                {type === "government"
-                                  ? "Обращения от государственных органов принимаются только по электронной почте. Направьте запрос на фирменном бланке с печатью и подписью (в том числе электронной подписью уполномоченного лица) в рамках действующего законодательства Российской Федерации."
-                                  : "Обращения от представителей СМИ принимаются только по электронной почте. Направьте запрос на официальном бланке редакции с печатью и подписью уполномоченного лица."}
-                              </p>
-                              <div className="flex flex-wrap items-center gap-2 pt-1">
-                                <a
-                                  href="mailto:In-motion@info.io"
-                                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-3 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
-                                >
-                                  <Mail className="h-3 w-3" />
-                                  In-motion@info.io
-                                </a>
-                                <span className="text-[10px] text-amber-600/60 dark:text-amber-500/50">
-                                  {type === "government"
-                                    ? "Срок ответа — до 10 дней или в срок, установленный в требовании"
-                                    : "Срок ответа — до 10 рабочих дней"}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
                       )}
 
                       {/* Priority — for complaints only */}
-                      {(type === "complaint" || type === "government") && (
+                      {type === "complaint" && (
                         <div className="animate-in fade-in slide-in-from-top-2 duration-200">
                           <p className="text-xs font-medium text-muted-foreground mb-2">
                             Приоритет
@@ -779,10 +696,10 @@ export default function ContactPage() {
                           <>
                             <Send className="h-4 w-4" />
                             Отправить
-                          </>
-                        )}
-                      </button>
-                    </div>
+                        </>
+                       )}
+                       </button>
+                      </div>
                   </div>
                 </div>
               )}
