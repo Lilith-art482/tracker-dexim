@@ -59,7 +59,7 @@ export default function RegisterPage() {
       });
 
       toast.success("Регистрация успешна!");
-      router.push("/");
+      router.push("/about");
     } catch (error: unknown) {
       const err = error as { code?: string; message?: string };
       console.error("Register error:", err);

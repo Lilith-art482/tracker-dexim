@@ -71,7 +71,7 @@ export default function AuthPage() {
         });
 
         toast.success("Регистрация успешна!");
-        router.push("/");
+        router.push("/about");
       }
     } catch (error: unknown) {
       const err = error as { code?: string; message?: string };

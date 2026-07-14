@@ -22,17 +22,15 @@ import {
   Target,
   Heart,
   Users,
-  BarChart3,
   ListChecks,
-  DollarSign,
-  Calendar,
   MessageCircle,
   Zap,
   Lock,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -58,7 +56,7 @@ const FEATURES = [
   {
     icon: ListChecks,
     label: "Задачи и проекты",
-    desc: "Канбан-доски с drag-and-drop, личные и командные задачи, дедлайны, приоритеты и архив. Для одного или целой команды.",
+    desc: "Канбан-доски с drag-and-drop, личные и командные задачи, дедлайны, приоритеты и архив. Для себя или для целой команды.",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
   },
@@ -79,7 +77,7 @@ const FEATURES = [
   {
     icon: Zap,
     label: "Быстрый старт",
-    desc: "Начните работу за минуту: регистрация по коду доступа, интуитивный интерфейс, онбординг для новых пользователей.",
+    desc: "Начните работу за минуту: интуитивный интерфейс, онбординг для новых пользователей — всё понятно с первого экрана.",
     color: "text-amber-500",
     bg: "bg-amber-500/10",
   },
@@ -108,13 +106,13 @@ const VALUES = [
   {
     icon: Sparkles,
     label: "Минимализм",
-    desc: "Каждая функция решает конкретную задачу. Если функцию можно не добавлять — мы её не добавляем.",
+    desc: "Каждая функция рождается из реальных запросов пользователей. Если идея не делает жизнь проще — мы её откладываем. Мы всегда открыты к предложениям и внимательно читаем каждое сообщение.",
     color: "text-emerald-500",
   },
   {
     icon: Users,
     label: "Доступность",
-    desc: "У нас есть бесплатный тариф с полноценным функционалом. Хорошие инструменты должны быть доступны каждому.",
+    desc: "Базовый тариф бесплатен и даёт возможность попробовать ключевые сценарии: задачи, финансы, привычки. Для активных пользователей мы предлагаем PRO и APEX — без ограничений и с дополнительными возможностями.",
     color: "text-blue-500",
   },
 ];
@@ -134,6 +132,7 @@ export default function AboutPage() {
     promoCode: string;
   } | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatInitialMessage, setChatInitialMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -247,65 +246,7 @@ export default function AboutPage() {
           </p>
         </div>
 
-        {/* Stats / quick overview */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-10">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <BarChart3 className="h-4 w-4" />
-                Модулей
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">4</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Финансы · Задачи · Привычки · AI
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <DollarSign className="h-4 w-4" />
-                Тарифов
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">3</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Базовый · PRO · APEX
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Users className="h-4 w-4" />
-                Команда
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">4</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Разработка · Дизайн · QA
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                Запущен
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">2025</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Постоянное развитие
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+
 
         {/* О проекте */}
         <div className="mb-10">
@@ -319,22 +260,34 @@ export default function AboutPage() {
             <Card className="sm:col-span-2">
               <CardContent className="p-5 text-sm text-muted-foreground leading-relaxed space-y-3">
                 <p>
-                  In Motion родился из простой идеи: инструменты для управления
-                  финансами, задачами и привычками существуют отдельно друг от
-                  друга. Мы решили объединить их в одном сервисе, чтобы не
-                  прыгать между десятком приложений.
+                  In Motion родился из простой и в то же время дерзкой идеи: 
+                  зачем таскать за собой десяток приложений, когда всё 
+                  необходимое для управления жизнью может быть в одном месте? 
+                  Мы задались вопросом: почему трекер задач, финансовый 
+                  учёт и привычки существуют в разных вселенных? И решили 
+                  построить свою.
                 </p>
                 <p>
-                  Сегодня In Motion — это трекер, который закрывает ключевые
-                  потребности в планировании: от личных задач и командных
-                  проектов до финансового учёта и формирования привычек. Всё
-                  построено вокруг принципа минимализма — только нужные функции,
-                  никакого визуального шума.
+                  Сегодня In Motion — это пространство, где сходятся личные 
+                  задачи и командные проекты, финансы и привычки, планирование 
+                  и анализ. Без воды, без рекламы, без сложных настроек. 
+                  Каждый элемент интерфейса здесь не просто так — он либо 
+                  помогает вам двигаться вперёд, либо мы его убираем.
                 </p>
                 <p>
-                  Проект развивается силами небольшой команды энтузиастов. Мы не
-                  берём кредиты и не продаём данные пользователей — сервис
-                  существует за счёт подписок PRO и APEX.
+                  Проект развивается силами небольшой команды энтузиастов, 
+                  которые искренне пользуются своим же продуктом. Мы не берём 
+                  кредиты и не продаём данные пользователей — сервис существует 
+                  исключительно за счёт подписок PRO и APEX. Каждое 
+                  потраченное вами время и деньги конвертируются в развитие: 
+                  новые функции, исправления, забота о деталях.
+                </p>
+                <p>
+                  Мы не пытаемся угодить всем и сразу. Мы делаем инструмент 
+                  для тех, кто ценит порядок, прозрачность и уважение к 
+                  своему времени. И да — мы читаем каждое сообщение в 
+                  поддержке. Многие функции в In Motion появились именно 
+                  потому, что кто-то написал нам: «А было бы круто, если…»
                 </p>
               </CardContent>
             </Card>
@@ -550,6 +503,7 @@ export default function AboutPage() {
                   variant="outline"
                   className="gap-2"
                   onClick={() => {
+                    setChatInitialMessage("Расскажи подробнее о тарифах");
                     setChatOpen(true);
                   }}
                 >
@@ -777,7 +731,7 @@ export default function AboutPage() {
         </DialogContent>
       </Dialog>
 
-      <AiChat open={chatOpen} onClose={() => setChatOpen(false)} />
+      <AiChat open={chatOpen} onClose={() => { setChatOpen(false); setChatInitialMessage(null); }} initialMessage={chatInitialMessage} />
     </div>
   );
 }
