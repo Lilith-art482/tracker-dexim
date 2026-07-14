@@ -111,7 +111,7 @@ const SERVICE_PROMPTS: SuggestedPrompt[] = [
   {
     icon: Crown,
     label: "Промокод",
-    text: "Расскажи про промокоды: как получить скидку, где проходят акции и розыгрыши? Хочу попробовать PRO.",
+    text: "Расскажи про промокоды: как получить скидку и где проходят акции и розыгрыши?",
   },
 ];
 
@@ -484,9 +484,7 @@ function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
   return [...DEFAULT_PROMPTS, ...SERVICE_PROMPTS];
 }
 
-function getMessageActions(
-  content: string,
-): {
+function getMessageActions(content: string): {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
