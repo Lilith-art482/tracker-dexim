@@ -31,6 +31,7 @@ import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import {
   getAccountsByUser,
   getTransactionsByUser,
@@ -483,6 +484,84 @@ function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
   return [...DEFAULT_PROMPTS, ...SERVICE_PROMPTS];
 }
 
+function getMessageActions(
+  content: string,
+): {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] {
+  const lower = content.toLowerCase();
+  const actions: {
+    label: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[] = [];
+  if (
+    lower.includes("связь") ||
+    lower.includes("разработчик") ||
+    lower.includes("/contact") ||
+    lower.includes("контакт") ||
+    lower.includes("письмо") ||
+    lower.includes("email") ||
+    lower.includes("fz-152") ||
+    lower.includes("фз-152") ||
+    lower.includes("техническ") ||
+    lower.includes("предложени")
+  ) {
+    actions.push({
+      label: "Написать разработчикам",
+      href: "/contact",
+      icon: MessageCircle,
+    });
+  }
+  if (
+    lower.includes("удален") ||
+    lower.includes("аккаунт") ||
+    lower.includes("персональн") ||
+    lower.includes("согласи") ||
+    lower.includes("данн") ||
+    lower.includes("152-фз") ||
+    lower.includes("152фз")
+  ) {
+    actions.push({
+      label: "Подробнее об удалении",
+      href: "/about",
+      icon: FileText,
+    });
+  }
+  if (
+    lower.includes("тариф") ||
+    lower.includes("pro") ||
+    lower.includes("apex") ||
+    lower.includes("цена") ||
+    lower.includes("подписк") ||
+    lower.includes("оплат")
+  ) {
+    actions.push({ label: "Тарифы", href: "/tariffs", icon: Crown });
+  }
+  if (
+    lower.includes("faq") ||
+    lower.includes("вопрос") ||
+    lower.includes("часто")
+  ) {
+    actions.push({ label: "FAQ", href: "/faq", icon: HelpCircle });
+  }
+  if (
+    lower.includes("промокод") ||
+    lower.includes("акци") ||
+    lower.includes("скидк") ||
+    lower.includes("gift25")
+  ) {
+    actions.push({
+      label: "Написать разработчикам",
+      href: "/contact",
+      icon: MessageCircle,
+    });
+  }
+  return actions;
+}
+
 interface AiChatProps {
   open: boolean;
   onClose: () => void;
@@ -501,7 +580,10 @@ export default function AiChat({ open, onClose, initialMessage }: AiChatProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   const contextualPrompts = useMemo(
-    () => (showMainMenu ? [...DEFAULT_PROMPTS, ...SERVICE_PROMPTS] : suggestPrompts(messages)),
+    () =>
+      showMainMenu
+        ? [...DEFAULT_PROMPTS, ...SERVICE_PROMPTS]
+        : suggestPrompts(messages),
     [messages, showMainMenu],
   );
 
@@ -665,7 +747,8 @@ export default function AiChat({ open, onClose, initialMessage }: AiChatProps) {
                   </p>
                   <p className="text-muted-foreground text-xs leading-relaxed">
                     Могу рассказать о твоих задачах, помочь с финансами,
-                    привычками или ответить на вопросы о сервисе. Вот что я умею:
+                    привычками или ответить на вопросы о сервисе. Вот что я
+                    умею:
                   </p>
                   <ul className="mt-1.5 space-y-0.5">
                     <li className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -778,6 +861,26 @@ export default function AiChat({ open, onClose, initialMessage }: AiChatProps) {
                       <p className="whitespace-pre-wrap leading-relaxed">
                         {sanitize(msg.content)}
                       </p>
+                      {msg.role === "assistant" &&
+                        (() => {
+                          const actions = getMessageActions(msg.content);
+                          if (actions.length === 0) return null;
+                          return (
+                            <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-border/40">
+                              {actions.map((action) => (
+                                <Link
+                                  key={action.label}
+                                  href={action.href}
+                                  onClick={onClose}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
+                                >
+                                  <action.icon className="h-3 w-3" />
+                                  {action.label}
+                                </Link>
+                              ))}
+                            </div>
+                          );
+                        })()}
                     </div>
                   </div>
 

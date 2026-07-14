@@ -199,19 +199,22 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
 
   const donutSegments = useMemo(() => {
     const total = stats.categoryDonut.reduce((s, d) => s + d.value, 0) || 360;
-    let currentAngle = 0;
-    return stats.categoryDonut.map((d) => {
-      const angle = (d.value / total) * 360;
-      const startAngle = currentAngle;
-      currentAngle += angle;
-      const endAngle = currentAngle;
+    const r = 40;
+    const cx = 50;
+    const cy = 50;
 
+    const segments: Array<{ startAngle: number; angle: number }> = [];
+    let accAngle = 0;
+    for (const d of stats.categoryDonut) {
+      const angle = (d.value / total) * 360;
+      segments.push({ startAngle: accAngle, angle });
+      accAngle += angle;
+    }
+
+    return segments.map(({ startAngle, angle }, i) => {
+      const endAngle = startAngle + angle;
       const startRad = ((startAngle - 90) * Math.PI) / 180;
       const endRad = ((endAngle - 90) * Math.PI) / 180;
-
-      const r = 40;
-      const cx = 50;
-      const cy = 50;
 
       const x1 = cx + r * Math.cos(startRad);
       const y1 = cy + r * Math.sin(startRad);
@@ -221,7 +224,7 @@ export function ModuleStatistics({ habits, logs }: ModuleStatisticsProps) {
       const largeArc = angle > 180 ? 1 : 0;
 
       return {
-        ...d,
+        ...stats.categoryDonut[i],
         path: `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`,
       };
     });

@@ -912,8 +912,12 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
   const [editingCat, setEditingCat] = useState<TransactionCategory | null>(
     null,
   );
-  const [defaultAccount, setDefaultAccount] = useState("");
-  const [currency, setCurrency] = useState("RUB");
+  const [defaultAccount, setDefaultAccount] = useState(
+    () => localStorage.getItem("finance_default_account") || "",
+  );
+  const [currency, setCurrency] = useState(
+    () => localStorage.getItem("finance_currency") || "RUB",
+  );
   const [name, setName] = useState("");
   const [catType, setCatType] = useState<"income" | "expense">("expense");
   const [color, setColor] = useState("blue");
@@ -921,8 +925,6 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
   const uid = auth.currentUser?.uid || "user-1";
 
   useEffect(() => {
-    setDefaultAccount(localStorage.getItem("finance_default_account") || "");
-    setCurrency(localStorage.getItem("finance_currency") || "RUB");
     Promise.all([getCategoriesByUser(uid), getAccountsByUser(uid)]).then(
       ([cats, accts]) => {
         setCategories(cats);

@@ -22,9 +22,11 @@ import {
   HelpCircle,
   ChevronRight,
   FileText,
+  Check,
   X,
   Music,
   BookOpen,
+  Newspaper,
 } from "lucide-react";
 import { useMode } from "@/lib/mode-context";
 import { cn } from "@/lib/utils";
@@ -49,6 +51,8 @@ const NAV_ITEMS = [
   { id: "planner", label: "Планнер", icon: Calendar },
   { id: "finance", label: "Финансы", icon: DollarSign },
   { id: "habits", label: "Привычки", icon: ListChecks },
+  { id: "divider", label: "", icon: null },
+  { id: "blog", label: "Блог", icon: Newspaper },
 ] as const;
 
 export function HeaderNav() {
@@ -73,28 +77,39 @@ export function HeaderNav() {
       router.push("/habits");
       return;
     }
+    if (id === "blog") {
+      toast.info("Блог скоро появится!");
+      return;
+    }
     toast.info("Страница в разработке");
   };
 
   return (
     <div className="flex items-center gap-1 flex-1 overflow-x-auto">
-      {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-        <button
-          key={id}
-          onClick={() => handleNavClick(id)}
-          className={cn(
-            "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors shrink-0",
-            (id === "planner" && pathname === "/") ||
-              (id === "finance" && pathname.startsWith("/finance")) ||
-              (id === "habits" && pathname.startsWith("/habits"))
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-          )}
-        >
-          <Icon className="h-3.5 w-3.5" />
-          <span className="hidden md:inline">{label}</span>
-        </button>
-      ))}
+      {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
+        if (id === "divider") {
+          return (
+            <div key={id} className="h-5 w-px bg-border/50 mx-1.5 shrink-0" />
+          );
+        }
+        return (
+          <button
+            key={id}
+            onClick={() => handleNavClick(id)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors shrink-0",
+              (id === "planner" && pathname === "/") ||
+                (id === "finance" && pathname.startsWith("/finance")) ||
+                (id === "habits" && pathname.startsWith("/habits"))
+                ? "bg-primary/10 text-primary font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+            )}
+          >
+            {Icon && <Icon className="h-3.5 w-3.5" />}
+            <span className="hidden md:inline">{label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -159,20 +174,36 @@ export function HeaderActions() {
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim())
-      return { pages: SEARCH_PAGES, faq: FAQ_DATA.flatMap((c) => c.items), faqCategories: FAQ_DATA };
+      return {
+        pages: SEARCH_PAGES,
+        faq: FAQ_DATA.flatMap((c) => c.items),
+        faqCategories: FAQ_DATA,
+      };
 
     const q = searchQuery.toLowerCase();
-    const matchedPages = SEARCH_PAGES.filter((p) => p.label.toLowerCase().includes(q));
+    const matchedPages = SEARCH_PAGES.filter((p) =>
+      p.label.toLowerCase().includes(q),
+    );
 
     const matchedFaqItems = FAQ_DATA.flatMap((cat) =>
       cat.items
-        .filter((item) => item.question.toLowerCase().includes(q) || item.answer.toLowerCase().includes(q))
+        .filter(
+          (item) =>
+            item.question.toLowerCase().includes(q) ||
+            item.answer.toLowerCase().includes(q),
+        )
         .map((item) => ({ ...item, categoryLabel: cat.label })),
     );
 
-    const matchedCategories = FAQ_DATA.filter((cat) => cat.label.toLowerCase().includes(q));
+    const matchedCategories = FAQ_DATA.filter((cat) =>
+      cat.label.toLowerCase().includes(q),
+    );
 
-    return { pages: matchedPages, faq: matchedFaqItems, faqCategories: matchedCategories };
+    return {
+      pages: matchedPages,
+      faq: matchedFaqItems,
+      faqCategories: matchedCategories,
+    };
   }, [searchQuery]);
 
   const handleSearchSelect = (url: string) => {
@@ -271,7 +302,9 @@ export function HeaderActions() {
                           >
                             <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
                             <div className="min-w-0 flex-1">
-                              <span className="truncate block">{item.question}</span>
+                              <span className="truncate block">
+                                {item.question}
+                              </span>
                               <span className="text-[10px] text-muted-foreground/40 truncate block">
                                 {item.answer.slice(0, 80)}…
                               </span>
@@ -338,131 +371,162 @@ export function HeaderActions() {
         <PopoverContent
           align="end"
           sideOffset={8}
-          className="w-64 overflow-hidden rounded-2xl border-border/60 p-0 shadow-lg"
+          className="w-[360px] overflow-hidden rounded-2xl border-border/60 p-0 shadow-xl"
         >
-          <div className="px-4 pt-3.5 pb-2 border-b border-border/40 bg-muted/20">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-                <Settings className="h-3.5 w-3.5 text-primary" />
+          {/* Header with gradient */}
+          <div className="relative px-5 pt-4 pb-3.5 border-b border-border/40 bg-gradient-to-br from-muted/40 via-background to-muted/20">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/[0.03] to-transparent pointer-events-none" />
+            <div className="flex items-center gap-3 relative">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10">
+                <Settings className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold">Настройки</p>
-                <p className="text-[11px] text-muted-foreground/60">
-                  Интерфейс и управление
+                <p className="text-sm font-semibold tracking-tight">
+                  Настройки
+                </p>
+                <p className="text-[11px] text-muted-foreground/50">
+                  Интерфейс, тема, управление
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="p-2 space-y-1 max-h-[60vh] overflow-y-auto">
-            {/* Language */}
-            <div className="px-2.5 py-2">
-              <div className="flex items-center gap-2 mb-2.5">
-                <Globe className="h-3.5 w-3.5 text-muted-foreground/60" />
+          <div className="p-3 space-y-3 max-h-[65vh] overflow-y-auto">
+            {/* Language card */}
+            <div className="rounded-xl bg-muted/20 border border-border/40 p-3.5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/50">
+                  <Globe className="h-3.5 w-3.5 text-muted-foreground/60" />
+                </div>
                 <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
-                  Язык
+                  Язык интерфейса
                 </span>
               </div>
-              <div className="flex gap-1">
+              <div className="grid grid-cols-3 gap-1.5">
                 {languages.map((lang) => (
                   <button
                     key={lang.value}
                     onClick={() => setLanguage(lang.value)}
                     className={cn(
-                      "flex-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all",
+                      "relative flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all",
                       language === lang.value
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border/40",
                     )}
                   >
+                    {language === lang.value && (
+                      <Check className="h-3 w-3 shrink-0" />
+                    )}
                     {lang.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="mx-2.5 h-px bg-border/50" />
-
-            {/* Theme: light / dark / custom */}
-            <div className="px-2.5 py-2">
-              <div className="flex items-center gap-2 mb-2.5">
-                <Monitor className="h-3.5 w-3.5 text-muted-foreground/60" />
+            {/* Theme card */}
+            <div className="rounded-xl bg-muted/20 border border-border/40 p-3.5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/50">
+                  <Monitor className="h-3.5 w-3.5 text-muted-foreground/60" />
+                </div>
                 <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
-                  Тема
+                  Оформление
                 </span>
               </div>
-              <div className="flex gap-1">
+              <div className="grid grid-cols-3 gap-1.5">
                 <button
                   onClick={() => setTheme("light")}
                   className={cn(
-                    "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all",
+                    "relative flex flex-col items-center gap-2 rounded-lg px-2.5 py-2.5 text-xs font-medium transition-all",
                     theme === "light"
-                      ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:text-amber-600 dark:bg-amber-500/10 dark:ring-amber-500/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                      ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200 shadow-sm dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border/40",
                   )}
                 >
-                  <Sun className="h-3.5 w-3.5" />
-                  Светлая
+                  <div className="flex items-center gap-1">
+                    <Sun className="h-3.5 w-3.5" />
+                    {theme === "light" && <Check className="h-3 w-3" />}
+                  </div>
+                  <span>Светлая</span>
+                  <div className="flex gap-0.5 mt-0.5">
+                    <span className="h-1 w-3 rounded-full bg-amber-300" />
+                    <span className="h-1 w-3 rounded-full bg-zinc-200" />
+                  </div>
                 </button>
                 <button
                   onClick={() => setTheme("dark")}
                   className={cn(
-                    "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all",
+                    "relative flex flex-col items-center gap-2 rounded-lg px-2.5 py-2.5 text-xs font-medium transition-all",
                     theme === "dark"
-                      ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 dark:text-indigo-400 dark:bg-indigo-500/10 dark:ring-indigo-500/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                      ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 shadow-sm dark:bg-indigo-500/10 dark:text-indigo-400 dark:ring-indigo-500/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border/40",
                   )}
                 >
-                  <Moon className="h-3.5 w-3.5" />
-                  Тёмная
+                  <div className="flex items-center gap-1">
+                    <Moon className="h-3.5 w-3.5" />
+                    {theme === "dark" && <Check className="h-3 w-3" />}
+                  </div>
+                  <span>Тёмная</span>
+                  <div className="flex gap-0.5 mt-0.5">
+                    <span className="h-1 w-3 rounded-full bg-indigo-400" />
+                    <span className="h-1 w-3 rounded-full bg-zinc-700" />
+                  </div>
                 </button>
                 <button
                   disabled
-                  className={cn(
-                    "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all opacity-50 cursor-not-allowed",
-                  )}
+                  className="relative flex flex-col items-center gap-2 rounded-lg px-2.5 py-2.5 text-xs font-medium text-muted-foreground/40 border border-dashed border-border/30 cursor-not-allowed"
                 >
-                  <Palette className="h-3.5 w-3.5" />
-                  Своя
+                  <div className="flex items-center gap-1">
+                    <Palette className="h-3.5 w-3.5" />
+                  </div>
+                  <span>Своя</span>
+                  <span className="text-[9px] text-muted-foreground/30">
+                    Скоро
+                  </span>
                 </button>
               </div>
             </div>
 
-            <div className="mx-2.5 h-px bg-border/50" />
-
-            {/* Music management */}
-            <div className="px-2.5 py-2">
+            {/* Music card */}
+            <div className="rounded-xl bg-muted/20 border border-border/40 p-3.5">
               <div className="flex items-center gap-2 mb-2">
-                <Volume2 className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/50">
+                  <Volume2 className="h-3.5 w-3.5 text-muted-foreground/60" />
+                </div>
                 <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
-                  Управление музыкой
+                  Музыка
                 </span>
                 <span
                   className={cn(
-                    "ml-auto text-[10px] px-1.5 py-0.5 rounded",
+                    "ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-medium",
                     isPlaying
-                      ? "bg-primary/15 text-primary"
-                      : "bg-muted-foreground/10",
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                      : "bg-muted-foreground/10 text-muted-foreground/60",
                   )}
                 >
-                  {isPlaying ? "Вкл" : "Выкл"}
+                  {isPlaying ? "Звучит" : "Выкл"}
                 </span>
               </div>
               <button
                 onClick={() => setAudioModalOpen(true)}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all text-left"
+                className="flex w-full items-center gap-3 rounded-lg bg-background/60 hover:bg-background/90 px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-all border border-border/30 hover:border-border/60 group"
               >
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/60">
-                  <Music className="h-3.5 w-3.5" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10 group-hover:from-violet-500/20 group-hover:to-purple-500/20 transition-colors">
+                  <Music className="h-3.5 w-3.5 text-violet-500" />
                 </div>
-                <span>Выбрать мелодию</span>
+                <span className="flex-1 text-left">
+                  {isPlaying ? "Изменить мелодию" : "Выбрать фоновую мелодию"}
+                </span>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
               </button>
             </div>
 
-            {/* Onboarding */}
-            <div className="px-2.5 py-2">
+            {/* Onboarding card */}
+            <div className="rounded-xl bg-muted/20 border border-border/40 p-3.5">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/50">
+                  <Sparkles className="h-3.5 w-3.5 text-muted-foreground/60" />
+                </div>
                 <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
                   Онбординг
                 </span>
@@ -470,7 +534,8 @@ export function HeaderActions() {
               <button
                 onClick={() => {
                   const hidden =
-                    localStorage.getItem("inmotion_onboarding_hidden") === "true";
+                    localStorage.getItem("inmotion_onboarding_hidden") ===
+                    "true";
                   localStorage.setItem(
                     "inmotion_onboarding_hidden",
                     hidden ? "false" : "true",
@@ -478,84 +543,101 @@ export function HeaderActions() {
                   setOnboardingShown(hidden);
                 }}
                 className={cn(
-                  "flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-all",
+                  "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-xs font-medium transition-all border",
                   onboardingShown
-                    ? "bg-primary/10 text-primary ring-1 ring-primary/20"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    ? "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10"
+                    : "bg-background/60 text-muted-foreground border-border/30 hover:bg-background/90 hover:text-foreground hover:border-border/60",
                 )}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <BookOpen className="h-3.5 w-3.5" />
                   <span>Показывать при входе</span>
                 </div>
-                <span
+                <div
                   className={cn(
-                    "text-[10px] px-1.5 py-0.5 rounded",
+                    "flex items-center gap-1.5 text-[10px] font-medium",
                     onboardingShown
-                      ? "bg-primary/15 text-primary"
-                      : "bg-muted-foreground/10",
+                      ? "text-primary"
+                      : "text-muted-foreground/60",
                   )}
                 >
-                  {onboardingShown ? "Вкл" : "Выкл"}
-                </span>
+                  <div
+                    className={cn(
+                      "w-7 h-3.5 rounded-full transition-colors relative",
+                      onboardingShown
+                        ? "bg-primary/30"
+                        : "bg-muted-foreground/20",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-all",
+                        onboardingShown ? "left-4" : "left-0.5",
+                      )}
+                    />
+                  </div>
+                </div>
               </button>
             </div>
 
-            <div className="mx-2.5 h-px bg-border/50" />
-
-            {/* Navigation section */}
-            <div className="px-2.5 py-2 space-y-0.5">
-              <p className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase mb-2 px-1">
-                Навигация
-              </p>
-              <Link
-                href="/tariffs"
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-              >
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500/10">
-                  <Crown className="h-3.5 w-3.5 text-amber-600" />
+            {/* Navigation card */}
+            <div className="rounded-xl bg-muted/20 border border-border/40 p-3.5">
+              <div className="flex items-center gap-2 mb-2.5">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/50">
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
                 </div>
-                <span>Тарифы</span>
-              </Link>
-              <Link
-                href="/about"
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-              >
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/60">
-                  <FileText className="h-3.5 w-3.5" />
-                </div>
-                <span>О нас</span>
-              </Link>
-              <Link
-                href="/faq"
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-              >
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/60">
-                  <HelpCircle className="h-3.5 w-3.5" />
-                </div>
-                <span>FAQ — частые вопросы</span>
-              </Link>
-              <Link
-                href="/contact"
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-              >
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/60">
-                  <MessageCircle className="h-3.5 w-3.5" />
-                </div>
-                <span>Связь с разработчиками</span>
-              </Link>
+                <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
+                  Перейти
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <Link
+                  href="/tariffs"
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all bg-background/40 hover:bg-background/80 border border-border/20 hover:border-border/50 group"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
+                    <Crown className="h-3.5 w-3.5 text-amber-600" />
+                  </div>
+                  <span>Тарифы</span>
+                </Link>
+                <Link
+                  href="/about"
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all bg-background/40 hover:bg-background/80 border border-border/20 hover:border-border/50 group"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/10 group-hover:bg-sky-500/20 transition-colors">
+                    <FileText className="h-3.5 w-3.5 text-sky-600" />
+                  </div>
+                  <span>О нас</span>
+                </Link>
+                <Link
+                  href="/faq"
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all bg-background/40 hover:bg-background/80 border border-border/20 hover:border-border/50 group"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
+                    <HelpCircle className="h-3.5 w-3.5 text-purple-600" />
+                  </div>
+                  <span>FAQ</span>
+                </Link>
+                <Link
+                  href="/contact"
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all bg-background/40 hover:bg-background/80 border border-border/20 hover:border-border/50 group"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/10 group-hover:bg-rose-500/20 transition-colors">
+                    <MessageCircle className="h-3.5 w-3.5 text-rose-600" />
+                  </div>
+                  <span>Контакты</span>
+                </Link>
+              </div>
             </div>
 
-            <div className="mx-2.5 h-px bg-border/50" />
-
             {/* Logout */}
-            <div className="px-2.5 py-2">
+            <div className="pt-1">
               <button
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="flex w-full items-center gap-2 rounded-lg border border-rose-200 dark:border-rose-900/40 px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
+                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-rose-200/60 dark:border-rose-900/30 px-4 py-2.5 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:border-rose-300 dark:hover:border-rose-800/40 transition-all bg-rose-50/30 dark:bg-rose-950/10"
               >
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-100 dark:bg-rose-900/30">
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-rose-100 dark:bg-rose-900/30">
                   <LogOut className="h-3.5 w-3.5" />
                 </div>
                 <span>{loggingOut ? "Выход..." : "Выйти из аккаунта"}</span>

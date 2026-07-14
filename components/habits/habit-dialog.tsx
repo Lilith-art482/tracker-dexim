@@ -139,6 +139,7 @@ export function HabitDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (habit) {
       setName(habit.name);
       setCategory(habit.category);
@@ -169,6 +170,7 @@ export function HabitDialog({
       setNote("");
     }
     setErrors({});
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [habit, open]);
 
   const toggleDay = (day: number) => {
