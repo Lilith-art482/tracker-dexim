@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
-  Sparkles,
   Send,
   Bot,
   User,
@@ -21,6 +20,12 @@ import {
   Award,
   BarChart3,
   Trash2,
+  HelpCircle,
+  Crown,
+  FileText,
+  ShieldCheck,
+  MessageCircle,
+  Gift,
 } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -39,14 +44,7 @@ import {
   convertToRUB,
   getConversionNote,
 } from "@/lib/exchange-rates";
-import type {
-  FinanceAccount,
-  Transaction,
-  Loan,
-  BudgetPlan,
-  FinanceGoal,
-  TransactionCategory,
-} from "@/lib/finance-types";
+import { FAQ_DATA } from "@/lib/faq";
 
 interface Message {
   id: string;
@@ -77,9 +75,42 @@ const DEFAULT_PROMPTS: SuggestedPrompt[] = [
     text: "Как у меня с привычками?",
   },
   {
-    icon: Lightbulb,
-    label: "Совет дня",
-    text: "Дай совет по планированию дня",
+    icon: HelpCircle,
+    label: "FAQ по сервису",
+    text: "Какие есть частые вопросы о сервисе?",
+  },
+];
+
+const SERVICE_PROMPTS: SuggestedPrompt[] = [
+  {
+    icon: HelpCircle,
+    label: "О проекте",
+    text: "Расскажи подробнее о проекте In Motion",
+  },
+  {
+    icon: Crown,
+    label: "Тарифы",
+    text: "Какие тарифы есть и чем они отличаются?",
+  },
+  {
+    icon: FileText,
+    label: "FAQ",
+    text: "Что чаще всего спрашивают о сервисе?",
+  },
+  {
+    icon: ShieldCheck,
+    label: "Персональные данные",
+    text: "Как вы обрабатываете мои персональные данные и как удалить аккаунт?",
+  },
+  {
+    icon: MessageCircle,
+    label: "Связь с разработчиками",
+    text: "Как связаться с разработчиками?",
+  },
+  {
+    icon: Crown,
+    label: "Промокод",
+    text: "Как получить промокод на скидку?",
   },
 ];
 
@@ -114,7 +145,7 @@ function clearMessages() {
   localStorage.removeItem(CHAT_STORAGE_KEY);
 }
 
-function stripMarkdown(text: string): string {
+function sanitize(text: string): string {
   return text
     .replace(/\*\*(.+?)\*\*/g, "$1")
     .replace(/\*(.+?)\*/g, "$1")
@@ -122,6 +153,14 @@ function stripMarkdown(text: string): string {
     .replace(/__(.+?)__/g, "$1")
     .replace(/_(.+?)_/g, "$1");
 }
+
+const faqContext = FAQ_DATA.map(
+  (cat) =>
+    `=== ${cat.label} ===\n` +
+    cat.items
+      .map((item) => `Q: ${item.question}\nA: ${item.answer}`)
+      .join("\n"),
+).join("\n\n");
 
 async function buildUserContext(): Promise<string> {
   const uid = auth.currentUser?.uid;
@@ -218,7 +257,6 @@ async function buildUserContext(): Promise<string> {
     }
   } catch (e) {
     console.error("[AI Chat] Error building context:", e);
-    parts.push("Ошибка при загрузке данных.");
   }
 
   if (parts.length === 0) {
@@ -232,7 +270,7 @@ async function buildUserContext(): Promise<string> {
 function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
   const last = messages[messages.length - 1];
   const secondLast = messages[messages.length - 2];
-  if (!last) return DEFAULT_PROMPTS;
+  if (!last) return [...DEFAULT_PROMPTS, ...SERVICE_PROMPTS];
 
   const allContent =
     last.content.toLowerCase() + (secondLast?.content.toLowerCase() || "");
@@ -335,8 +373,6 @@ function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
         "долг",
         "платёж",
         "просрочк",
-        "fssp",
-        "исполнительн",
       ],
       prompts: [
         {
@@ -368,6 +404,74 @@ function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
         },
       ],
     },
+    {
+      keywords: [
+        "faq",
+        "вопрос",
+        "сервис",
+        "проект",
+        "in motion",
+        "о нас",
+        "о проекте",
+      ],
+      prompts: SERVICE_PROMPTS,
+    },
+    {
+      keywords: [
+        "тариф",
+        "цена",
+        "сколько",
+        "pro",
+        "apex",
+        "базовый",
+        "подписк",
+        "оплат",
+      ],
+      prompts: [
+        {
+          icon: Crown,
+          label: "Сравнение тарифов",
+          text: "Чем отличаются тарифы PRO и APEX?",
+        },
+        {
+          icon: DollarSign,
+          label: "Стоимость",
+          text: "Сколько стоят тарифы?",
+        },
+        {
+          icon: ShieldCheck,
+          label: "Оплата",
+          text: "Какие способы оплаты доступны?",
+        },
+      ],
+    },
+    {
+      keywords: [
+        "данн",
+        "персональн",
+        "конфиденциальн",
+        "согласи",
+        "удален",
+        "аккаунт",
+      ],
+      prompts: [
+        {
+          icon: ShieldCheck,
+          label: "Персональные данные",
+          text: "Как обрабатываются мои данные?",
+        },
+        {
+          icon: Trash2,
+          label: "Удалить аккаунт",
+          text: "Как удалить аккаунт и что для этого нужно?",
+        },
+        {
+          icon: Gift,
+          label: "Промокод",
+          text: "Могу ли я получить промокод при удалении?",
+        },
+      ],
+    },
   ];
 
   for (const set of sets) {
@@ -376,7 +480,7 @@ function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
     }
   }
 
-  return DEFAULT_PROMPTS;
+  return [...DEFAULT_PROMPTS, ...SERVICE_PROMPTS];
 }
 
 interface AiChatProps {
@@ -396,7 +500,7 @@ export default function AiChat({ open, onClose }: AiChatProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   const contextualPrompts = useMemo(
-    () => (showMainMenu ? DEFAULT_PROMPTS : suggestPrompts(messages)),
+    () => (showMainMenu ? [...DEFAULT_PROMPTS, ...SERVICE_PROMPTS] : suggestPrompts(messages)),
     [messages, showMainMenu],
   );
 
@@ -423,7 +527,6 @@ export default function AiChat({ open, onClose }: AiChatProps) {
     }
   }, [messages]);
 
-  /** Close on Escape */
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -454,6 +557,7 @@ export default function AiChat({ open, onClose }: AiChatProps) {
           body: JSON.stringify({
             message: text.trim(),
             context: userContext,
+            faqContext,
           }),
         });
 
@@ -494,7 +598,6 @@ export default function AiChat({ open, onClose }: AiChatProps) {
 
   return (
     <>
-      {/* Panel */}
       <div
         ref={panelRef}
         className={cn(
@@ -551,11 +654,11 @@ export default function AiChat({ open, onClose }: AiChatProps) {
                 </div>
                 <div className="rounded-xl bg-muted/50 px-3.5 py-2.5 text-sm">
                   <p className="font-medium mb-1">
-                    Привет! 👋 Я — твой AI-помощник
+                    Привет! Я — твой AI-помощник
                   </p>
                   <p className="text-muted-foreground text-xs leading-relaxed">
-                    Могу рассказать о твоих задачах, помочь с финансами или
-                    привычками. Вот что я умею:
+                    Могу рассказать о твоих задачах, помочь с финансами,
+                    привычками или ответить на вопросы о сервисе. Вот что я умею:
                   </p>
                   <ul className="mt-1.5 space-y-0.5">
                     <li className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -572,7 +675,11 @@ export default function AiChat({ open, onClose }: AiChatProps) {
                     </li>
                     <li className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <ChevronRight className="h-3 w-3 text-violet-500 shrink-0" />
-                      Советы по планированию
+                      FAQ, тарифы и информация о сервисе
+                    </li>
+                    <li className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <ChevronRight className="h-3 w-3 text-violet-500 shrink-0" />
+                      Персональные данные и удаление аккаунта
                     </li>
                   </ul>
                 </div>
@@ -585,20 +692,48 @@ export default function AiChat({ open, onClose }: AiChatProps) {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-2">
-                {DEFAULT_PROMPTS.map((prompt) => (
-                  <button
-                    key={prompt.label}
-                    onClick={() => sendMessage(prompt.text)}
-                    disabled={loading || !contextBuilt}
-                    className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2.5 text-xs text-left hover:bg-muted/50 hover:border-primary/30 transition-all disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    <prompt.icon className="h-3.5 w-3.5 text-violet-500 shrink-0" />
-                    <span className="font-medium leading-tight">
-                      {prompt.label}
-                    </span>
-                  </button>
-                ))}
+              {/* Default prompts */}
+              <div>
+                <p className="text-[10px] text-muted-foreground/40 uppercase tracking-wider font-medium mb-2 px-1">
+                  Быстрый старт
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {DEFAULT_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt.label}
+                      onClick={() => sendMessage(prompt.text)}
+                      disabled={loading || !contextBuilt}
+                      className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2.5 text-xs text-left hover:bg-muted/50 hover:border-primary/30 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <prompt.icon className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                      <span className="font-medium leading-tight">
+                        {prompt.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Service prompts */}
+              <div>
+                <p className="text-[10px] text-muted-foreground/40 uppercase tracking-wider font-medium mb-2 px-1">
+                  О сервисе
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {SERVICE_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt.label}
+                      onClick={() => sendMessage(prompt.text)}
+                      disabled={loading || !contextBuilt}
+                      className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2.5 text-xs text-left hover:bg-muted/50 hover:border-primary/30 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <prompt.icon className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                      <span className="font-medium leading-tight">
+                        {prompt.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           ) : (
@@ -634,7 +769,7 @@ export default function AiChat({ open, onClose }: AiChatProps) {
                       )}
                     >
                       <p className="whitespace-pre-wrap leading-relaxed">
-                        {stripMarkdown(msg.content)}
+                        {sanitize(msg.content)}
                       </p>
                     </div>
                   </div>

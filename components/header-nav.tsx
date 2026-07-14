@@ -23,6 +23,8 @@ import {
   ChevronRight,
   FileText,
   X,
+  Music,
+  BookOpen,
 } from "lucide-react";
 import { useMode } from "@/lib/mode-context";
 import { cn } from "@/lib/utils";
@@ -40,13 +42,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { FAQ_DATA } from "@/lib/faq";
 
@@ -55,16 +50,6 @@ const NAV_ITEMS = [
   { id: "finance", label: "Финансы", icon: DollarSign },
   { id: "habits", label: "Привычки", icon: ListChecks },
 ] as const;
-
-const SEARCH_PAGES = [
-  { url: "/", label: "Планнер (главная)" },
-  { url: "/finance", label: "Финансы" },
-  { url: "/habits", label: "Привычки" },
-  { url: "/profile", label: "Профиль" },
-  { url: "/tariffs", label: "Тарифы" },
-  { url: "/contact", label: "Связь с разработчиками" },
-  { url: "/auth", label: "Вход / Регистрация" },
-];
 
 export function HeaderNav() {
   const { setMode } = useMode();
@@ -129,10 +114,9 @@ export function HeaderActions() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [language, setLanguage] = useState("ru");
   const [loggingOut, setLoggingOut] = useState(false);
-  const [faqCategory, setFaqCategory] = useState<string | null>(null);
-  const [faqOpen, setFaqOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [searchTab, setSearchTab] = useState<"all" | "pages" | "faq">("all");
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -161,39 +145,34 @@ export function HeaderActions() {
     { value: "zh", label: "中文" },
   ];
 
+  const SEARCH_PAGES = [
+    { url: "/", label: "Планнер (главная)", icon: Calendar },
+    { url: "/finance", label: "Финансы", icon: DollarSign },
+    { url: "/habits", label: "Привычки", icon: ListChecks },
+    { url: "/profile", label: "Профиль", icon: User },
+    { url: "/tariffs", label: "Тарифы", icon: Crown },
+    { url: "/about", label: "О нас", icon: FileText },
+    { url: "/faq", label: "FAQ", icon: HelpCircle },
+    { url: "/contact", label: "Связь с разработчиками", icon: MessageCircle },
+    { url: "/auth", label: "Вход / Регистрация", icon: User },
+  ];
+
   const searchResults = useMemo(() => {
     if (!searchQuery.trim())
-      return {
-        pages: SEARCH_PAGES,
-        faq: FAQ_DATA.flatMap((c) => c.items),
-        faqCategories: FAQ_DATA,
-      };
+      return { pages: SEARCH_PAGES, faq: FAQ_DATA.flatMap((c) => c.items), faqCategories: FAQ_DATA };
 
     const q = searchQuery.toLowerCase();
-
-    const matchedPages = SEARCH_PAGES.filter((p) =>
-      p.label.toLowerCase().includes(q),
-    );
+    const matchedPages = SEARCH_PAGES.filter((p) => p.label.toLowerCase().includes(q));
 
     const matchedFaqItems = FAQ_DATA.flatMap((cat) =>
       cat.items
-        .filter(
-          (item) =>
-            item.question.toLowerCase().includes(q) ||
-            item.answer.toLowerCase().includes(q),
-        )
+        .filter((item) => item.question.toLowerCase().includes(q) || item.answer.toLowerCase().includes(q))
         .map((item) => ({ ...item, categoryLabel: cat.label })),
     );
 
-    const matchedCategories = FAQ_DATA.filter((cat) =>
-      cat.label.toLowerCase().includes(q),
-    );
+    const matchedCategories = FAQ_DATA.filter((cat) => cat.label.toLowerCase().includes(q));
 
-    return {
-      pages: matchedPages,
-      faq: matchedFaqItems,
-      faqCategories: matchedCategories,
-    };
+    return { pages: matchedPages, faq: matchedFaqItems, faqCategories: matchedCategories };
   }, [searchQuery]);
 
   const handleSearchSelect = (url: string) => {
@@ -216,23 +195,21 @@ export function HeaderActions() {
         </span>
       </button>
 
+      {/* Search */}
       <div className="hidden md:block relative" ref={searchRef}>
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
           <Input
             ref={searchInputRef}
             type="search"
-            placeholder="Поиск"
+            placeholder="Поиск задач, страниц, FAQ..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               if (e.target.value) setSearchOpen(true);
             }}
-            onFocus={() => {
-              if (searchQuery) setSearchOpen(true);
-              else setSearchOpen(true);
-            }}
-            className="h-8 w-48 pl-8 pr-8 text-sm"
+            onFocus={() => setSearchOpen(true)}
+            className="h-8 w-48 lg:w-56 pl-8 pr-8 text-sm"
           />
           {searchQuery && (
             <button
@@ -270,7 +247,7 @@ export function HeaderActions() {
                             onClick={() => handleSearchSelect(page.url)}
                             className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-foreground/80 hover:bg-muted/50 transition-all text-left"
                           >
-                            <FileText className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                            <page.icon className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
                             <span>{page.label}</span>
                           </button>
                         ))}
@@ -288,20 +265,13 @@ export function HeaderActions() {
                             onClick={() => {
                               setSearchOpen(false);
                               setSearchQuery("");
-                              setFaqCategory(
-                                FAQ_DATA.find((c) =>
-                                  c.items.includes(item as (typeof c.items)[0]),
-                                )?.id || null,
-                              );
-                              setFaqOpen(true);
+                              window.location.href = `/faq?q=${encodeURIComponent(item.question)}`;
                             }}
                             className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-foreground/80 hover:bg-muted/50 transition-all text-left"
                           >
                             <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
                             <div className="min-w-0 flex-1">
-                              <span className="truncate block">
-                                {item.question}
-                              </span>
+                              <span className="truncate block">{item.question}</span>
                               <span className="text-[10px] text-muted-foreground/40 truncate block">
                                 {item.answer.slice(0, 80)}…
                               </span>
@@ -329,7 +299,7 @@ export function HeaderActions() {
                     onClick={() => handleSearchSelect(page.url)}
                     className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-foreground/80 hover:bg-muted/50 transition-all text-left"
                   >
-                    <ChevronRight className="h-3 w-3 text-muted-foreground/30 shrink-0" />
+                    <page.icon className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
                     <span>{page.label}</span>
                   </button>
                 ))}
@@ -343,8 +313,7 @@ export function HeaderActions() {
                       key={cat.id}
                       onClick={() => {
                         setSearchOpen(false);
-                        setFaqCategory(cat.id);
-                        setFaqOpen(true);
+                        window.location.href = `/faq?category=${cat.id}`;
                       }}
                       className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/50 transition-all text-left"
                     >
@@ -359,6 +328,7 @@ export function HeaderActions() {
         )}
       </div>
 
+      {/* Settings */}
       <Popover>
         <PopoverTrigger>
           <button className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
@@ -368,7 +338,7 @@ export function HeaderActions() {
         <PopoverContent
           align="end"
           sideOffset={8}
-          className="w-60 overflow-hidden rounded-2xl border-border/60 p-0 shadow-lg"
+          className="w-64 overflow-hidden rounded-2xl border-border/60 p-0 shadow-lg"
         >
           <div className="px-4 pt-3.5 pb-2 border-b border-border/40 bg-muted/20">
             <div className="flex items-center gap-2.5">
@@ -378,13 +348,14 @@ export function HeaderActions() {
               <div>
                 <p className="text-sm font-semibold">Настройки</p>
                 <p className="text-[11px] text-muted-foreground/60">
-                  Интерфейс и язык
+                  Интерфейс и управление
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="p-2 space-y-1">
+          <div className="p-2 space-y-1 max-h-[60vh] overflow-y-auto">
+            {/* Language */}
             <div className="px-2.5 py-2">
               <div className="flex items-center gap-2 mb-2.5">
                 <Globe className="h-3.5 w-3.5 text-muted-foreground/60" />
@@ -412,6 +383,7 @@ export function HeaderActions() {
 
             <div className="mx-2.5 h-px bg-border/50" />
 
+            {/* Theme: light / dark / custom */}
             <div className="px-2.5 py-2">
               <div className="flex items-center gap-2 mb-2.5">
                 <Monitor className="h-3.5 w-3.5 text-muted-foreground/60" />
@@ -444,16 +416,26 @@ export function HeaderActions() {
                   <Moon className="h-3.5 w-3.5" />
                   Тёмная
                 </button>
+                <button
+                  disabled
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all opacity-50 cursor-not-allowed",
+                  )}
+                >
+                  <Palette className="h-3.5 w-3.5" />
+                  Своя
+                </button>
               </div>
             </div>
 
             <div className="mx-2.5 h-px bg-border/50" />
 
+            {/* Music management */}
             <div className="px-2.5 py-2">
               <div className="flex items-center gap-2 mb-2">
                 <Volume2 className="h-3.5 w-3.5 text-muted-foreground/60" />
                 <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
-                  Музыка
+                  Управление музыкой
                 </span>
                 <span
                   className={cn(
@@ -471,26 +453,24 @@ export function HeaderActions() {
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all text-left"
               >
                 <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/60">
-                  <Volume2 className="h-3.5 w-3.5" />
+                  <Music className="h-3.5 w-3.5" />
                 </div>
-                <span>Управление мелодией</span>
+                <span>Выбрать мелодию</span>
               </button>
             </div>
 
-            <div className="mx-2.5 h-px bg-border/50" />
-
+            {/* Onboarding */}
             <div className="px-2.5 py-2">
-              <div className="flex items-center gap-2 mb-2.5">
+              <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="h-3.5 w-3.5 text-muted-foreground/60" />
                 <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
-                  Обучение
+                  Онбординг
                 </span>
               </div>
               <button
                 onClick={() => {
                   const hidden =
-                    localStorage.getItem("inmotion_onboarding_hidden") ===
-                    "true";
+                    localStorage.getItem("inmotion_onboarding_hidden") === "true";
                   localStorage.setItem(
                     "inmotion_onboarding_hidden",
                     hidden ? "false" : "true",
@@ -505,8 +485,8 @@ export function HeaderActions() {
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>Онбординг</span>
+                  <BookOpen className="h-3.5 w-3.5" />
+                  <span>Показывать при входе</span>
                 </div>
                 <span
                   className={cn(
@@ -516,64 +496,18 @@ export function HeaderActions() {
                       : "bg-muted-foreground/10",
                   )}
                 >
-                  {onboardingShown ? "Показывать" : "Скрыт"}
+                  {onboardingShown ? "Вкл" : "Выкл"}
                 </span>
               </button>
             </div>
 
             <div className="mx-2.5 h-px bg-border/50" />
 
-            <div className="px-2.5 py-2">
-              <div className="flex items-center gap-2 mb-2.5">
-                <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60" />
-                <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
-                  Помощь
-                </span>
-              </div>
-              <button
-                onClick={() => {
-                  setFaqCategory(null);
-                  setFaqOpen(true);
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all text-left"
-              >
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/60">
-                  <HelpCircle className="h-3.5 w-3.5" />
-                </div>
-                <span>FAQ — частые вопросы</span>
-              </button>
-            </div>
-
-            <div className="mx-2.5 h-px bg-border/50" />
-
-            <div className="px-2.5 py-2">
-              <div className="flex items-center gap-2 mb-2.5">
-                <Palette className="h-3.5 w-3.5 text-muted-foreground/60" />
-                <span className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
-                  Акцент
-                </span>
-              </div>
-              <button
-                disabled
-                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs text-muted-foreground/50 bg-muted/30 cursor-not-allowed"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-1">
-                    <div className="h-3 w-3 rounded-full border-2 border-background bg-blue-500" />
-                    <div className="h-3 w-3 rounded-full border-2 border-background bg-violet-500" />
-                    <div className="h-3 w-3 rounded-full border-2 border-background bg-emerald-500" />
-                  </div>
-                  <span>Своя цветовая схема</span>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted-foreground/10">
-                  Soon
-                </span>
-              </button>
-            </div>
-
-            <div className="mx-2.5 h-px bg-border/50" />
-
-            <div className="px-2.5 py-2">
+            {/* Navigation section */}
+            <div className="px-2.5 py-2 space-y-0.5">
+              <p className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase mb-2 px-1">
+                Навигация
+              </p>
               <Link
                 href="/tariffs"
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
@@ -593,6 +527,15 @@ export function HeaderActions() {
                 <span>О нас</span>
               </Link>
               <Link
+                href="/faq"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/60">
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </div>
+                <span>FAQ — частые вопросы</span>
+              </Link>
+              <Link
                 href="/contact"
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
               >
@@ -605,6 +548,7 @@ export function HeaderActions() {
 
             <div className="mx-2.5 h-px bg-border/50" />
 
+            {/* Logout */}
             <div className="px-2.5 py-2">
               <button
                 onClick={handleLogout}
@@ -614,7 +558,7 @@ export function HeaderActions() {
                 <div className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-100 dark:bg-rose-900/30">
                   <LogOut className="h-3.5 w-3.5" />
                 </div>
-                <span>{loggingOut ? "Выход..." : "Выйти"}</span>
+                <span>{loggingOut ? "Выход..." : "Выйти из аккаунта"}</span>
               </button>
             </div>
           </div>
@@ -627,95 +571,6 @@ export function HeaderActions() {
       >
         <User className="h-4 w-4" />
       </Link>
-
-      {/* FAQ Dialog */}
-      <Dialog
-        open={faqOpen}
-        onOpenChange={(open) => {
-          setFaqOpen(open);
-          if (!open) setFaqCategory(null);
-        }}
-      >
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-primary" />
-              {faqCategory
-                ? FAQ_DATA.find((c) => c.id === faqCategory)?.label || "FAQ"
-                : "FAQ — частые вопросы"}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto -mx-4 px-4">
-            {faqCategory ? (
-              <div className="space-y-3 pb-4">
-                <button
-                  onClick={() => setFaqCategory(null)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-foreground transition-colors mb-3"
-                >
-                  ← Все категории
-                </button>
-                {FAQ_DATA.find((c) => c.id === faqCategory)?.items.map(
-                  (item, i) => (
-                    <details
-                      key={i}
-                      className="group rounded-xl border border-border/60 overflow-hidden"
-                    >
-                      <summary className="flex items-center justify-between px-4 py-3 text-sm font-medium cursor-pointer hover:bg-muted/30 transition-colors [&::-webkit-details-marker]:hidden">
-                        <span>{item.question}</span>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-open:rotate-90 transition-transform shrink-0" />
-                      </summary>
-                      <div className="px-4 pb-3 pt-1 text-sm text-muted-foreground/80 leading-relaxed border-t border-border/40">
-                        {item.answer}
-                      </div>
-                    </details>
-                  ),
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4 pb-4">
-                {FAQ_DATA.map((cat) => (
-                  <div key={cat.id}>
-                    <button
-                      onClick={() => setFaqCategory(cat.id)}
-                      className="flex w-full items-center justify-between rounded-xl border border-border/60 px-4 py-3 text-sm font-medium hover:bg-muted/30 transition-colors"
-                    >
-                      <span>{cat.label}</span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
-                    </button>
-                    <div className="mt-2 space-y-1 px-1">
-                      {cat.items.slice(0, 3).map((item, i) => (
-                        <details
-                          key={i}
-                          className="group rounded-lg border border-border/40 overflow-hidden"
-                        >
-                          <summary className="flex items-center justify-between px-3 py-2 text-xs cursor-pointer hover:bg-muted/20 transition-colors [&::-webkit-details-marker]:hidden">
-                            <span className="text-muted-foreground/80">
-                              {item.question}
-                            </span>
-                            <ChevronRight className="h-3 w-3 text-muted-foreground/30 group-open:rotate-90 transition-transform shrink-0" />
-                          </summary>
-                          <div className="px-3 pb-2 pt-1 text-xs text-muted-foreground/70 leading-relaxed border-t border-border/30">
-                            {item.answer}
-                          </div>
-                        </details>
-                      ))}
-                      {cat.items.length > 3 && (
-                        <button
-                          onClick={() => setFaqCategory(cat.id)}
-                          className="text-[11px] text-primary/70 hover:text-primary pl-1 transition-colors"
-                        >
-                          + ещё {cat.items.length - 3}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <AiChat open={chatOpen} onClose={() => setChatOpen(false)} />
       <AudioModal
