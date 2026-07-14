@@ -918,7 +918,6 @@ export default function ProfilePage() {
                   <MessageCircle className="h-3.5 w-3.5" />
                   Связь с разработчиками
                 </Link>
-
               </CardContent>
             </Card>
 

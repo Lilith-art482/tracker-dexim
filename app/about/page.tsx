@@ -24,9 +24,11 @@ import {
   Users,
   ListChecks,
   MessageCircle,
+  Send,
   Zap,
   Lock,
   BarChart3,
+  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -132,7 +134,9 @@ export default function AboutPage() {
     promoCode: string;
   } | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
-  const [chatInitialMessage, setChatInitialMessage] = useState<string | null>(null);
+  const [chatInitialMessage, setChatInitialMessage] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -231,22 +235,26 @@ export default function AboutPage() {
           На главную
         </Link>
 
-        {/* Hero */}
-        <div className="mb-12 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 mx-auto mb-4">
-            <Sparkles className="h-7 w-7 text-emerald-500" />
+        {/* Hero card */}
+        <Card className="mb-12 overflow-hidden">
+          <div className="bg-gradient-to-br from-emerald-500/5 to-emerald-500/[0.02] p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row items-center gap-5">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 shrink-0 shadow-lg shadow-emerald-500/20">
+                <Sparkles className="h-7 w-7 text-white" />
+              </div>
+              <div className="text-center sm:text-left">
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                  О проекте In Motion
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-xl">
+                  In Motion — это единое пространство для управления задачами,
+                  финансами, привычками и проектами. Без воды, без рекламы, без
+                  сложных настроек. Всё необходимое в одном месте.
+                </p>
+              </div>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            О проекте In Motion
-          </h1>
-          <p className="mt-3 text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            In Motion — это единое пространство для управления задачами,
-            финансами, привычками и проектами. Без воды, без рекламы, без
-            сложных настроек. Всё необходимое в одном месте.
-          </p>
-        </div>
-
-
+        </Card>
 
         {/* О проекте */}
         <div className="mb-10">
@@ -260,34 +268,34 @@ export default function AboutPage() {
             <Card className="sm:col-span-2">
               <CardContent className="p-5 text-sm text-muted-foreground leading-relaxed space-y-3">
                 <p>
-                  In Motion родился из простой и в то же время дерзкой идеи: 
-                  зачем таскать за собой десяток приложений, когда всё 
-                  необходимое для управления жизнью может быть в одном месте? 
-                  Мы задались вопросом: почему трекер задач, финансовый 
-                  учёт и привычки существуют в разных вселенных? И решили 
-                  построить свою.
+                  In Motion родился из простой и в то же время дерзкой идеи:
+                  зачем таскать за собой десяток приложений, когда всё
+                  необходимое для управления жизнью может быть в одном месте? Мы
+                  задались вопросом: почему трекер задач, финансовый учёт и
+                  привычки существуют в разных вселенных? И решили построить
+                  свою.
                 </p>
                 <p>
-                  Сегодня In Motion — это пространство, где сходятся личные 
-                  задачи и командные проекты, финансы и привычки, планирование 
-                  и анализ. Без воды, без рекламы, без сложных настроек. 
-                  Каждый элемент интерфейса здесь не просто так — он либо 
-                  помогает вам двигаться вперёд, либо мы его убираем.
+                  Сегодня In Motion — это пространство, где сходятся личные
+                  задачи и командные проекты, финансы и привычки, планирование и
+                  анализ. Без воды, без рекламы, без сложных настроек. Каждый
+                  элемент интерфейса здесь не просто так — он либо помогает вам
+                  двигаться вперёд, либо мы его убираем.
                 </p>
                 <p>
-                  Проект развивается силами небольшой команды энтузиастов, 
-                  которые искренне пользуются своим же продуктом. Мы не берём 
-                  кредиты и не продаём данные пользователей — сервис существует 
-                  исключительно за счёт подписок PRO и APEX. Каждое 
-                  потраченное вами время и деньги конвертируются в развитие: 
-                  новые функции, исправления, забота о деталях.
+                  Проект развивается силами небольшой команды энтузиастов,
+                  которые искренне пользуются своим же продуктом. Мы не берём
+                  кредиты и не продаём данные пользователей — сервис существует
+                  исключительно за счёт подписок PRO и APEX. Каждое потраченное
+                  вами время и деньги конвертируются в развитие: новые функции,
+                  исправления, забота о деталях.
                 </p>
                 <p>
-                  Мы не пытаемся угодить всем и сразу. Мы делаем инструмент 
-                  для тех, кто ценит порядок, прозрачность и уважение к 
-                  своему времени. И да — мы читаем каждое сообщение в 
-                  поддержке. Многие функции в In Motion появились именно 
-                  потому, что кто-то написал нам: «А было бы круто, если…»
+                  Мы не пытаемся угодить всем и сразу. Мы делаем инструмент для
+                  тех, кто ценит порядок, прозрачность и уважение к своему
+                  времени. И да — мы читаем каждое сообщение в поддержке. Многие
+                  функции в In Motion появились именно потому, что кто-то
+                  написал нам: «А было бы круто, если…»
                 </p>
               </CardContent>
             </Card>
@@ -310,7 +318,9 @@ export default function AboutPage() {
                     <div
                       className={`flex h-9 w-9 items-center justify-center rounded-xl ${feature.bg}`}
                     >
-                      <feature.icon className={`h-4.5 w-4.5 ${feature.color}`} />
+                      <feature.icon
+                        className={`h-4.5 w-4.5 ${feature.color}`}
+                      />
                     </div>
                     <p className="text-sm font-semibold">{feature.label}</p>
                   </div>
@@ -336,9 +346,7 @@ export default function AboutPage() {
               <Card key={value.label}>
                 <CardContent className="p-4 flex items-start gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted/50 shrink-0 mt-0.5">
-                    <value.icon
-                      className={`h-4.5 w-4.5 ${value.color}`}
-                    />
+                    <value.icon className={`h-4.5 w-4.5 ${value.color}`} />
                   </div>
                   <div>
                     <p className="text-sm font-medium">{value.label}</p>
@@ -423,7 +431,11 @@ export default function AboutPage() {
                   {uid === null ? (
                     <div className="mt-3 flex items-center gap-3">
                       <Link href="/auth">
-                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1"
+                        >
                           <ArrowLeft className="h-3 w-3" />
                           Войти в аккаунт
                         </Button>
@@ -512,6 +524,87 @@ export default function AboutPage() {
                 </Button>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Мы в соцсетях */}
+        <div className="mb-10">
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/10">
+              <MessageCircle className="h-4 w-4 text-sky-500" />
+            </div>
+            <h2 className="text-lg font-semibold">Мы в соцсетях</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <a
+              href="https://vk.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/50 p-4 hover:bg-muted/30 hover:border-sky-500/30 transition-all group"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/10 shrink-0 group-hover:bg-sky-500/20 transition-colors">
+                <MessageCircle className="h-5 w-5 text-sky-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">ВКонтакте</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">
+                  Новости, анонсы, розыгрыши
+                </p>
+              </div>
+              <ExternalLink className="h-4 w-4 text-muted-foreground/40 group-hover:text-sky-500 transition-colors shrink-0" />
+            </a>
+
+            <a
+              href="https://t.me"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/50 p-4 hover:bg-muted/30 hover:border-sky-500/30 transition-all group"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/10 shrink-0 group-hover:bg-sky-500/20 transition-colors">
+                <Send className="h-5 w-5 text-sky-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Telegram</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">
+                  Оперативные обновления и поддержка
+                </p>
+              </div>
+              <ExternalLink className="h-4 w-4 text-muted-foreground/40 group-hover:text-sky-500 transition-colors shrink-0" />
+            </a>
+
+            <a
+              href="https://max.ru"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/50 p-4 hover:bg-muted/30 hover:border-sky-500/30 transition-all group"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500/10 to-purple-500/10 shrink-0 group-hover:from-rose-500/20 group-hover:to-purple-500/20 transition-colors">
+                <Sparkles className="h-5 w-5 text-rose-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">MAX</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">
+                  Эксклюзивный контент и общение
+                </p>
+              </div>
+              <ExternalLink className="h-4 w-4 text-muted-foreground/40 group-hover:text-sky-500 transition-colors shrink-0" />
+            </a>
+
+            <Link
+              href="/blog"
+              className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/50 p-4 hover:bg-muted/30 hover:border-emerald-500/30 transition-all group"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 shrink-0 group-hover:bg-emerald-500/20 transition-colors">
+                <FileText className="h-5 w-5 text-emerald-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Блог In Motion</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">
+                  Статьи, гайды, новости проекта
+                </p>
+              </div>
+              <ExternalLink className="h-4 w-4 text-muted-foreground/40 group-hover:text-emerald-500 transition-colors shrink-0" />
+            </Link>
           </div>
         </div>
 
@@ -731,7 +824,14 @@ export default function AboutPage() {
         </DialogContent>
       </Dialog>
 
-      <AiChat open={chatOpen} onClose={() => { setChatOpen(false); setChatInitialMessage(null); }} initialMessage={chatInitialMessage} />
+      <AiChat
+        open={chatOpen}
+        onClose={() => {
+          setChatOpen(false);
+          setChatInitialMessage(null);
+        }}
+        initialMessage={chatInitialMessage}
+      />
     </div>
   );
 }

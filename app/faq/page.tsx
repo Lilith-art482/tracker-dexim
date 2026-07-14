@@ -192,12 +192,10 @@ export default function FaqPage() {
               <MessageCircle className="h-6 w-6 text-primary" />
             </div>
           </div>
-          <h2 className="text-lg font-semibold mb-2">
-            Не нашли ответ?
-          </h2>
+          <h2 className="text-lg font-semibold mb-2">Не нашли ответ?</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-            Свяжитесь с разработчиками — мы ответим на любой вопрос и учтём
-            ваши пожелания
+            Свяжитесь с разработчиками — мы ответим на любой вопрос и учтём ваши
+            пожелания
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/contact">

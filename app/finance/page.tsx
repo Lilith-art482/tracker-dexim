@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   LayoutDashboard,
   Wallet,
@@ -43,25 +43,18 @@ type ModuleId = (typeof ALL_MODULES)[number]["id"];
 
 export default function FinancePage() {
   const [activeModule, setActiveModule] = useState<ModuleId>("dashboard");
-  const [hiddenModules, setHiddenModules] = useState<string[]>([]);
-
-  useEffect(() => {
-    setHiddenModules(getHiddenModules());
-  }, []);
+  const [hiddenModules, setHiddenModules] = useState<string[]>(() =>
+    getHiddenModules(),
+  );
 
   const visibleModules = ALL_MODULES.filter(
     (m) => m.id === "settings" || !hiddenModules.includes(m.id),
   );
 
-  useEffect(() => {
-    if (hiddenModules.includes(activeModule)) {
-      setActiveModule("settings");
-    }
-  }, [hiddenModules, activeModule]);
-
   const handleSave = useCallback(() => {
-    setHiddenModules(getHiddenModules());
-    if (getHiddenModules().includes(activeModule)) {
+    const h = getHiddenModules();
+    setHiddenModules(h);
+    if (h.includes(activeModule)) {
       setActiveModule("settings");
     }
   }, [activeModule]);
