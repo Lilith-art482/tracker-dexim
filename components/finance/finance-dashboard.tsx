@@ -289,19 +289,20 @@ export function FinanceDashboard() {
 
   const budgetLoad = useMemo(() => {
     if (!budget || !budget.categoryBudgets.length) return null;
-    const totalLimit = budget.categoryBudgets.reduce(
-      (s, cb) => s + cb.limit,
-      0,
+    const activeCatBudgets = budget.categoryBudgets.filter((cb) =>
+      categoryMap.has(cb.categoryId),
     );
-    const categories = budget.categoryBudgets.map((cb) => {
+    if (!activeCatBudgets.length) return null;
+    const totalLimit = activeCatBudgets.reduce((s, cb) => s + cb.limit, 0);
+    const categories = activeCatBudgets.map((cb) => {
       const spent = periodTxns
         .filter((t) => t.type === "expense" && t.categoryId === cb.categoryId)
         .reduce((s, t) => s + t.amount, 0);
-      const cat = categoryMap.get(cb.categoryId);
+      const cat = categoryMap.get(cb.categoryId)!;
       return {
         id: cb.categoryId,
-        name: cat?.name || "Без категории",
-        color: CATEGORY_COLORS_HEX[cat?.color || ""] || "#6b7280",
+        name: cat.name,
+        color: CATEGORY_COLORS_HEX[cat.color] || "#6b7280",
         limit: cb.limit,
         spent,
         pct:
@@ -316,7 +317,7 @@ export function FinanceDashboard() {
         ? Math.min(Math.round((totalSpent / totalLimit) * 100), 100)
         : 0;
     return { totalLimit, totalSpent, totalPct, categories };
-  }, [budget, periodTxns]);
+  }, [budget, periodTxns, categoryMap]);
 
   if (initialLoading) {
     return (
@@ -703,183 +704,211 @@ export function FinanceDashboard() {
             </CardContent>
           </Card>
 
-          {emergencyFund && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <PiggyBank className="h-4 w-4" />
-                  Подушка безопасности
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {emergencyFund.targetAmount > 0 ? (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Накоплено</span>
-                      <span className="font-semibold">
-                        {emergencyFund.currentAmount.toLocaleString()} ₽
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Цель</span>
-                      <span>
-                        {emergencyFund.targetAmount.toLocaleString()} ₽
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-emerald-500 transition-all"
-                        style={{
-                          width: `${Math.min((emergencyFund.currentAmount / emergencyFund.targetAmount) * 100, 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground text-center">
-                      {Math.round(
-                        (emergencyFund.currentAmount /
-                          emergencyFund.targetAmount) *
-                          100,
-                      )}
-                      % от цели
-                    </p>
-                  </>
-                ) : (
-                  <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                      <PiggyBank className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Не настроено
-                      </p>
-                      <p className="text-xs text-muted-foreground/60">
-                        Установите цель в разделе Подушка
-                      </p>
-                    </div>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <PiggyBank className="h-4 w-4" />
+                Подушка безопасности
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {emergencyFund && emergencyFund.targetAmount > 0 ? (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Накоплено</span>
+                    <span className="font-semibold">
+                      {emergencyFund.currentAmount.toLocaleString()} ₽
+                    </span>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {loans.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <Landmark className="h-4 w-4" />
-                  Обязательства
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Долг</span>
-                  <span className="font-semibold tabular-nums">
-                    {totalLoanDebt.toLocaleString()} ₽
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Платёж/мес</span>
-                  <span className="font-semibold tabular-nums">
-                    {totalLoanMonthly.toLocaleString()} ₽
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Кол-во</span>
-                  <span className="tabular-nums">
-                    {loans.length}
-                    {overdueLoans > 0 && (
-                      <span className="text-rose-600 ml-1 text-xs font-medium">
-                        · {overdueLoans} просрочено
-                      </span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Цель</span>
+                    <span>{emergencyFund.targetAmount.toLocaleString()} ₽</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-all"
+                      style={{
+                        width: `${Math.min((emergencyFund.currentAmount / emergencyFund.targetAmount) * 100, 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    {Math.round(
+                      (emergencyFund.currentAmount /
+                        emergencyFund.targetAmount) *
+                        100,
                     )}
-                  </span>
+                    % от цели
+                  </p>
+                </>
+              ) : (
+                <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                    <PiggyBank className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Не настроено
+                    </p>
+                    <p className="text-xs text-muted-foreground/60">
+                      Установите цель в разделе Подушка
+                    </p>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Landmark className="h-4 w-4" />
+                Обязательства
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {loans.length > 0 ? (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Долг</span>
+                    <span className="font-semibold tabular-nums">
+                      {totalLoanDebt.toLocaleString()} ₽
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Платёж/мес</span>
+                    <span className="font-semibold tabular-nums">
+                      {totalLoanMonthly.toLocaleString()} ₽
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Кол-во</span>
+                    <span className="tabular-nums">
+                      {loans.length}
+                      {overdueLoans > 0 && (
+                        <span className="text-rose-600 ml-1 text-xs font-medium">
+                          · {overdueLoans} просрочено
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                    <Landmark className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Нет обязательств
+                    </p>
+                    <p className="text-xs text-muted-foreground/60">
+                      Кредиты, штрафы и коммунальные платежи
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
       <div className="lg:w-[340px] shrink-0">
-        {budgetLoad && (
-          <Card className="h-full">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Target className="h-4 w-4" />
-                Нагрузка на бюджет
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Всего расходов</span>
-                <span className="font-semibold">
-                  {budgetLoad.totalSpent.toLocaleString()} ₽
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Лимит бюджета</span>
-                <span>{budgetLoad.totalLimit.toLocaleString()} ₽</span>
-              </div>
-              <div className="h-2 rounded-full bg-muted overflow-hidden">
-                <div
+        <Card className="h-full">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Target className="h-4 w-4" />
+              Нагрузка на бюджет
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {budgetLoad ? (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Всего расходов</span>
+                  <span className="font-semibold">
+                    {budgetLoad.totalSpent.toLocaleString()} ₽
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Лимит бюджета</span>
+                  <span>{budgetLoad.totalLimit.toLocaleString()} ₽</span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all",
+                      budgetLoad.totalPct <= 50
+                        ? "bg-emerald-500"
+                        : budgetLoad.totalPct <= 80
+                          ? "bg-amber-500"
+                          : "bg-rose-500",
+                    )}
+                    style={{ width: `${budgetLoad.totalPct}%` }}
+                  />
+                </div>
+                <p
                   className={cn(
-                    "h-full rounded-full transition-all",
+                    "text-xs text-center font-medium",
                     budgetLoad.totalPct <= 50
-                      ? "bg-emerald-500"
+                      ? "text-emerald-600"
                       : budgetLoad.totalPct <= 80
-                        ? "bg-amber-500"
-                        : "bg-rose-500",
+                        ? "text-amber-600"
+                        : "text-rose-600",
                   )}
-                  style={{ width: `${budgetLoad.totalPct}%` }}
-                />
-              </div>
-              <p
-                className={cn(
-                  "text-xs text-center font-medium",
-                  budgetLoad.totalPct <= 50
-                    ? "text-emerald-600"
-                    : budgetLoad.totalPct <= 80
-                      ? "text-amber-600"
-                      : "text-rose-600",
-                )}
-              >
-                Использовано {budgetLoad.totalPct}% бюджета
-              </p>
-              <div className="space-y-2 pt-1">
-                {budgetLoad.categories.slice(0, 5).map((cat) => (
-                  <div key={cat.id} className="space-y-0.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                        <div
-                          className="h-2 w-2 rounded-full shrink-0"
-                          style={{ backgroundColor: cat.color }}
-                        />
-                        <span className="truncate">{cat.name}</span>
+                >
+                  Использовано {budgetLoad.totalPct}% бюджета
+                </p>
+                <div className="space-y-2 pt-1">
+                  {budgetLoad.categories.slice(0, 5).map((cat) => (
+                    <div key={cat.id} className="space-y-0.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <div
+                            className="h-2 w-2 rounded-full shrink-0"
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          <span className="truncate">{cat.name}</span>
+                        </div>
+                        <span className="tabular-nums ml-1">
+                          {cat.spent.toLocaleString()} /{" "}
+                          {cat.limit.toLocaleString()} ₽
+                        </span>
                       </div>
-                      <span className="tabular-nums ml-1">
-                        {cat.spent.toLocaleString()} /{" "}
-                        {cat.limit.toLocaleString()} ₽
-                      </span>
+                      <div className="h-1 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            cat.pct > 100
+                              ? "bg-rose-500"
+                              : cat.pct > 80
+                                ? "bg-amber-500"
+                                : "bg-emerald-500",
+                          )}
+                          style={{ width: `${Math.min(cat.pct, 100)}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-1 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className={cn(
-                          "h-full rounded-full transition-all",
-                          cat.pct > 100
-                            ? "bg-rose-500"
-                            : cat.pct > 80
-                              ? "bg-amber-500"
-                              : "bg-emerald-500",
-                        )}
-                        style={{ width: `${Math.min(cat.pct, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                  <Target className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Бюджет не настроен
+                  </p>
+                  <p className="text-xs text-muted-foreground/60">
+                    Установите лимиты по категориям в бюджете
+                  </p>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
