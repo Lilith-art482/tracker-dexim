@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
     const deletionDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     let promoCode: string | null = null;
     let alreadyHadPromo = false;
+    let existingPromoDiscount: number | null = null;
 
     if (dbAvailable) {
       try {
@@ -41,18 +42,19 @@ export async function POST(request: NextRequest) {
 
         // If there's already an active deletion request, return existing data
         if (userData?.deletionScheduledAt && !userData?.deletionCancelledAt) {
-          const existingPromo = userData?.promoCode?.code || null;
+          const existingPromo = (userData?.promoCode as Record<string, unknown>)?.code as string || null;
+          existingPromoDiscount = (userData?.promoCode as Record<string, unknown>)?.discountPercent as number || null;
           return NextResponse.json({
             success: true,
             deletionDate: userData.deletionDate,
             promoCode: existingPromo,
-            discountPercent: existingPromo ? (userData?.promoCode?.discountPercent || 25) : null,
+            discountPercent: existingPromo ? (existingPromoDiscount || 25) : null,
             alreadyExists: true,
           });
         }
 
         // Generate promo only if user never got one from deletion before
-        if (!userData?.gotDeletionPromo) {
+        if (!userData?.gotDeletionPromo && !userData?.promoCode) {
           promoCode = generatePromoCode();
           alreadyHadPromo = false;
 
@@ -95,6 +97,8 @@ export async function POST(request: NextRequest) {
             );
         } else {
           alreadyHadPromo = true;
+          promoCode = (userData?.promoCode as Record<string, unknown>)?.code as string || null;
+          existingPromoDiscount = (userData?.promoCode as Record<string, unknown>)?.discountPercent as number || null;
           // Repeat deletion after cancel — no promo, just schedule
           await db
             .collection("users")
@@ -127,7 +131,7 @@ export async function POST(request: NextRequest) {
       success: true,
       deletionDate: deletionDate.toISOString(),
       promoCode,
-      discountPercent: promoCode ? 25 : null,
+      discountPercent: promoCode ? (existingPromoDiscount || 25) : null,
       alreadyHadPromo,
     });
   } catch (error: unknown) {

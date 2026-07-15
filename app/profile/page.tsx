@@ -138,6 +138,9 @@ export default function ProfilePage() {
           }
           if (typeof data.gotDeletionPromo === "boolean") {
             setGotDeletionPromo(data.gotDeletionPromo);
+          } else if (data.promoCode) {
+            // Backward compat: old format had promoCode object
+            setGotDeletionPromo(true);
           }
         }
       } catch {
