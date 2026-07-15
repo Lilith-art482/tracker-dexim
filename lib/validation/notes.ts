@@ -20,7 +20,7 @@ export const blockSchema = z.object({
 });
 
 export const createNoteSchema = z.object({
-  title: z.string().min(1).max(300),
+  title: z.string().max(300).default(""),
   blocks: z.array(blockSchema).default([]),
   tags: z.array(z.string().max(50)).max(20).default([]),
 });
