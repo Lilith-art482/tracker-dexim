@@ -96,30 +96,35 @@ export function HeaderNav() {
   };
 
   return (
-    <div className="flex items-center gap-1 flex-1 overflow-x-auto">
+    <div
+      className="flex items-center flex-1 overflow-x-auto scrollbar-none gap-0.5"
+      style={{ maskImage: "linear-gradient(to right, transparent 0, black 12px, black 90%, transparent 100%)" }}
+    >
       {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
         if (id === "divider") {
           return (
-            <div key={id} className="h-5 w-px bg-border/50 mx-1.5 shrink-0" />
+            <div key={id} className="h-5 w-px bg-border/40 mx-1 shrink-0" />
           );
         }
+        const isActive =
+          (id === "planner" && pathname === "/") ||
+          (id === "finance" && pathname.startsWith("/finance")) ||
+          (id === "habits" && pathname.startsWith("/habits")) ||
+          (id === "sport" && pathname.startsWith("/sport")) ||
+          (id === "notes" && pathname.startsWith("/notes"));
         return (
           <button
             key={id}
             onClick={() => handleNavClick(id)}
             className={cn(
-              "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors shrink-0",
-              (id === "planner" && pathname === "/") ||
-                (id === "finance" && pathname.startsWith("/finance")) ||
-                (id === "habits" && pathname.startsWith("/habits")) ||
-                (id === "sport" && pathname.startsWith("/sport")) ||
-                (id === "notes" && pathname.startsWith("/notes"))
-                ? "bg-primary/10 text-primary font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+              "relative flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-all shrink-0 whitespace-nowrap",
+              isActive
+                ? "text-primary bg-primary/10 shadow-sm"
+                : "text-muted-foreground/80 hover:text-foreground hover:bg-muted/40",
             )}
           >
-            {Icon && <Icon className="h-3.5 w-3.5" />}
-            <span className="hidden md:inline">{label}</span>
+            {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+            <span className="hidden sm:inline">{label}</span>
           </button>
         );
       })}
