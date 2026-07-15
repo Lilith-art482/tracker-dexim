@@ -571,6 +571,94 @@ export async function cleanupExpiredPersonalTasks(): Promise<number> {
   return deleted;
 }
 
+export interface Note {
+  id: string;
+  title: string;
+  blocks: Array<{
+    id: string;
+    type: string;
+    content: string;
+    checked?: boolean;
+    language?: string;
+  }>;
+  tags: string[];
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getAllNotes(userId: string): Promise<Note[]> {
+  const db = getAdminDb();
+  const snap = await db
+    .collection("notes")
+    .where("userId", "==", userId)
+    .orderBy("updatedAt", "desc")
+    .get();
+  return snap.docs.map((d) => toPlain(d) as Note);
+}
+
+export async function getNoteById(
+  userId: string,
+  noteId: string,
+): Promise<Note | null> {
+  const db = getAdminDb();
+  const doc = await db.collection("notes").doc(noteId).get();
+  if (!doc.exists) return null;
+  const data = doc.data() as Note;
+  if (data.userId !== userId) return null;
+  return { ...data, id: doc.id } as Note;
+}
+
+export async function createNote(
+  userId: string,
+  data: { title: string; blocks: Note["blocks"]; tags: string[] },
+): Promise<Note> {
+  const db = getAdminDb();
+  const now = new Date().toISOString();
+  const ref = db.collection("notes").doc();
+  const note: Omit<Note, "id"> = {
+    title: data.title,
+    blocks: data.blocks,
+    tags: data.tags,
+    userId,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await ref.set(note);
+  return { id: ref.id, ...note };
+}
+
+export async function updateNote(
+  userId: string,
+  noteId: string,
+  data: Partial<{ title: string; blocks: Note["blocks"]; tags: string[] }>,
+): Promise<Note | null> {
+  const db = getAdminDb();
+  const doc = await db.collection("notes").doc(noteId).get();
+  if (!doc.exists) return null;
+  const existing = doc.data() as Note;
+  if (existing.userId !== userId) return null;
+  const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  if (data.title !== undefined) updates.title = data.title;
+  if (data.blocks !== undefined) updates.blocks = data.blocks;
+  if (data.tags !== undefined) updates.tags = data.tags;
+  await doc.ref.update(updates);
+  return { ...existing, ...updates, id: doc.id } as Note;
+}
+
+export async function deleteNote(
+  userId: string,
+  noteId: string,
+): Promise<boolean> {
+  const db = getAdminDb();
+  const doc = await db.collection("notes").doc(noteId).get();
+  if (!doc.exists) return false;
+  const data = doc.data() as Note;
+  if (data.userId !== userId) return false;
+  await doc.ref.delete();
+  return true;
+}
+
 export async function cleanupExpiredArchivedTasks(): Promise<number> {
   const db = getAdminDb();
   const now = Date.now();

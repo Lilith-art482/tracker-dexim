@@ -19,6 +19,7 @@ export const TableName = {
   REMINDERS: "reminders",
   DELETION_REQUESTS: "deletion_requests",
   PROMO_CODES: "promo_codes",
+  NOTES: "notes",
 } as const;
 
 export type TableName = (typeof TableName)[keyof typeof TableName];

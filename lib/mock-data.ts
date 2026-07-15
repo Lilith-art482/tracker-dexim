@@ -6,6 +6,7 @@ import {
   BoardMember,
   Column,
   Comment,
+  Note,
   PersonalTask,
   Service,
   Task,
@@ -418,6 +419,60 @@ export const mockPersonalTasks: PersonalTask[] = [
     createdAt: new Date("2026-07-16").toISOString(),
     updatedAt: new Date("2026-07-16").toISOString(),
     boardId: "board-2",
+  },
+];
+
+export const mockNotes: Note[] = [
+  {
+    id: "note-1",
+    title: "План развития продукта",
+    blocks: [
+      { id: "b1", type: "heading1", content: "План развития продукта" },
+      { id: "b2", type: "paragraph", content: "Основные направления на Q3-Q4 2026" },
+      { id: "b3", type: "heading2", content: "Приоритеты" },
+      { id: "b4", type: "bulletList", content: "Мобильное приложение" },
+      { id: "b5", type: "bulletList", content: "Интеграция с календарями" },
+      { id: "b6", type: "todo", content: "AI-ассистент для анализа трат", checked: true },
+      { id: "b7", type: "todo", content: "Тёмная тема", checked: false },
+      { id: "b8", type: "quote", content: "Главное — не скорость, а направление" },
+    ],
+    tags: ["продукт", "планы", "2026"],
+    userId: "user-1",
+    createdAt: new Date("2026-07-10").toISOString(),
+    updatedAt: new Date("2026-07-14").toISOString(),
+  },
+  {
+    id: "note-2",
+    title: "Встреча с командой",
+    blocks: [
+      { id: "b9", type: "heading1", content: "Встреча с командой" },
+      { id: "b10", type: "paragraph", content: "Обсуждение спринта" },
+      { id: "b11", type: "numberedList", content: "Обновить статусы задач" },
+      { id: "b12", type: "numberedList", content: "Согласовать дизайн" },
+      { id: "b13", type: "numberedList", content: "Подготовить демо" },
+      { id: "b14", type: "code", content: "const team = { members: 5, velocity: 30 };" },
+    ],
+    tags: ["встречи", "команда"],
+    userId: "user-1",
+    createdAt: new Date("2026-07-08").toISOString(),
+    updatedAt: new Date("2026-07-12").toISOString(),
+  },
+  {
+    id: "note-3",
+    title: "Идеи для блога",
+    blocks: [
+      { id: "b15", type: "heading1", content: "Идеи для блога" },
+      { id: "b16", type: "paragraph", content: "Контент-план на месяц" },
+      { id: "b17", type: "heading2", content: "Темы" },
+      { id: "b18", type: "bulletList", content: "Как управлять финансами" },
+      { id: "b19", type: "bulletList", content: "Обзор инструментов" },
+      { id: "b20", type: "todo", content: "Написать черновик", checked: true },
+      { id: "b21", type: "todo", content: "Подобрать иллюстрации", checked: false },
+    ],
+    tags: ["блог", "контент", "идеи"],
+    userId: "user-1",
+    createdAt: new Date("2026-07-05").toISOString(),
+    updatedAt: new Date("2026-07-11").toISOString(),
   },
 ];
 
