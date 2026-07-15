@@ -29,6 +29,10 @@ import {
   Lock,
   BarChart3,
   ExternalLink,
+  Dumbbell,
+  BookOpen,
+  Newspaper,
+  DollarSign,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -80,6 +84,27 @@ const FEATURES = [
     icon: Zap,
     label: "Быстрый старт",
     desc: "Начните работу за минуту: интуитивный интерфейс, онбординг для новых пользователей — всё понятно с первого экрана.",
+    color: "text-amber-500",
+    bg: "bg-amber-500/10",
+  },
+  {
+    icon: Dumbbell,
+    label: "Спорт и Питание",
+    desc: "Трекинг тренировок, дневник питания, план питания, статистика прогресса. Скоро — интеграция с фитнес-трекерами.",
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+  },
+  {
+    icon: BookOpen,
+    label: "Заметки",
+    desc: "Быстрые заметки с форматированием, тегами и поиском. Идеально для списков, идей, дневниковых записей и рабочих набросков.",
+    color: "text-violet-500",
+    bg: "bg-violet-500/10",
+  },
+  {
+    icon: Newspaper,
+    label: "Блог",
+    desc: "Статьи, гайды, новости проекта и полезные материалы по продуктивности, финансам и здоровью.",
     color: "text-amber-500",
     bg: "bg-amber-500/10",
   },
@@ -235,26 +260,57 @@ export default function AboutPage() {
           На главную
         </Link>
 
-        {/* Hero card */}
-        <Card className="mb-12 overflow-hidden">
-          <div className="bg-gradient-to-br from-emerald-500/5 to-emerald-500/[0.02] p-6 sm:p-8">
-            <div className="flex flex-col sm:flex-row items-center gap-5">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 shrink-0 shadow-lg shadow-emerald-500/20">
+        {/* Hero */}
+        <div className="mb-12">
+          <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-emerald-500/[0.04] via-background to-emerald-500/[0.01] p-7 sm:p-10">
+            <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-emerald-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative flex flex-col sm:flex-row items-start gap-6">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30">
                 <Sparkles className="h-7 w-7 text-white" />
               </div>
-              <div className="text-center sm:text-left">
-                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mb-3">
                   О проекте In Motion
                 </h1>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-xl">
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl mb-4">
                   In Motion — это единое пространство для управления задачами,
-                  финансами, привычками и проектами. Без воды, без рекламы, без
-                  сложных настроек. Всё необходимое в одном месте.
+                  финансами, привычками, спортом, питанием и заметками. Без
+                  воды, без рекламы, без сложных настроек. Всё необходимое в
+                  одном месте.
                 </p>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {[
+                    { label: "Задачи", icon: ListChecks, color: "text-blue-500 bg-blue-500/10" },
+                    { label: "Финансы", icon: DollarSign, color: "text-emerald-500 bg-emerald-500/10" },
+                    { label: "Привычки", icon: Heart, color: "text-rose-500 bg-rose-500/10" },
+                    { label: "Спорт", icon: Dumbbell, color: "text-orange-500 bg-orange-500/10" },
+                    { label: "Заметки", icon: BookOpen, color: "text-violet-500 bg-violet-500/10" },
+                    { label: "Блог", icon: Newspaper, color: "text-amber-500 bg-amber-500/10" },
+                    { label: "AI", icon: Bot, color: "text-indigo-500 bg-indigo-500/10" },
+                  ].map((tag) => (
+                    <span
+                      key={tag.label}
+                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium border border-border/30 bg-background/40 text-muted-foreground"
+                    >
+                      <tag.icon className="h-3 w-3 shrink-0" />
+                      {tag.label}
+                    </span>
+                  ))}
+                </div>
               </div>
+              <Link
+                href="/blog"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-border/40 bg-background/50 px-3.5 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/70 transition-all shrink-0"
+              >
+                <Newspaper className="h-3.5 w-3.5" />
+                Блог
+              </Link>
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* О проекте */}
         <div className="mb-10">
