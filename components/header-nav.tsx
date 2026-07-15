@@ -27,6 +27,7 @@ import {
   Music,
   BookOpen,
   Newspaper,
+  Dumbbell,
 } from "lucide-react";
 import { useMode } from "@/lib/mode-context";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,8 @@ const NAV_ITEMS = [
   { id: "planner", label: "Планнер", icon: Calendar },
   { id: "finance", label: "Финансы", icon: DollarSign },
   { id: "habits", label: "Привычки", icon: ListChecks },
+  { id: "sport", label: "Спорт и Питание", icon: Dumbbell },
+  { id: "notes", label: "Заметки", icon: FileText },
   { id: "divider", label: "", icon: null },
   { id: "blog", label: "Блог", icon: Newspaper },
 ] as const;
@@ -77,6 +80,14 @@ export function HeaderNav() {
       router.push("/habits");
       return;
     }
+    if (id === "sport") {
+      router.push("/sport");
+      return;
+    }
+    if (id === "notes") {
+      router.push("/notes");
+      return;
+    }
     if (id === "blog") {
       toast.info("Блог скоро появится!");
       return;
@@ -100,7 +111,9 @@ export function HeaderNav() {
               "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors shrink-0",
               (id === "planner" && pathname === "/") ||
                 (id === "finance" && pathname.startsWith("/finance")) ||
-                (id === "habits" && pathname.startsWith("/habits"))
+                (id === "habits" && pathname.startsWith("/habits")) ||
+                (id === "sport" && pathname.startsWith("/sport")) ||
+                (id === "notes" && pathname.startsWith("/notes"))
                 ? "bg-primary/10 text-primary font-medium"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
