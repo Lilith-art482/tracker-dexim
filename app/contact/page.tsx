@@ -344,8 +344,8 @@ export default function ContactPage() {
                 </h1>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
                   Максимальный срок рассмотрения — до 14 дней, но обычно
-                  отвечаем в течение 24–48 часов. Если нужно срочно —
-                  напишите в личные сообщения Telegram или на почту.
+                  отвечаем в течение 24–48 часов. Если нужно срочно — напишите в
+                  личные сообщения Telegram или на почту.
                 </p>
               </div>
 
