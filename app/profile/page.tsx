@@ -136,12 +136,6 @@ export default function ProfilePage() {
               promoCode: data.promoCode?.code || null,
             });
           }
-          if (typeof data.gotDeletionPromo === "boolean") {
-            setGotDeletionPromo(data.gotDeletionPromo);
-          } else if (data.promoCode) {
-            // Backward compat: old format had promoCode object
-            setGotDeletionPromo(true);
-          }
         }
       } catch {
         // use defaults
@@ -384,7 +378,6 @@ export default function ProfilePage() {
       source?: string;
     }>
   >([]);
-  const [gotDeletionPromo, setGotDeletionPromo] = useState(false);
   const [cancellingDeletion, setCancellingDeletion] = useState(false);
 
   const handleLogout = async () => {
@@ -420,7 +413,6 @@ export default function ProfilePage() {
         deletionDate: data.deletionDate,
         promoCode: data.promoCode,
       });
-      if (data.promoCode) setGotDeletionPromo(true);
       toast.success("Запрос на удаление принят");
     } catch {
       toast.error("Ошибка");
@@ -1298,7 +1290,7 @@ export default function ProfilePage() {
           ) : (
             /* State 2 or 3: first-time vs repeat delete */
             <div className="space-y-4 pt-1">
-              {!gotDeletionPromo ? (
+              {promoCodes.length === 0 ? (
                 <>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     Нам правда важно понять, почему вы уходите — чтобы мы могли
