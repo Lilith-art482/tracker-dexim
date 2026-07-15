@@ -1103,8 +1103,74 @@ export default function ProfilePage() {
             </DialogTitle>
           </DialogHeader>
 
-          {/* State 1: Active deletion — cancel dialog */}
-          {pendingDeletion ? (
+          {/* State: just submitted — show result first */}
+          {deleteResult ? (
+            <div className="space-y-4 pt-1">
+              <div className="flex flex-col items-center text-center py-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 mb-3">
+                  <Gift className="h-7 w-7 text-emerald-500" />
+                </div>
+                <p className="text-base font-semibold">Запрос принят</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Аккаунт будет удалён через 30 дней.
+                </p>
+              </div>
+
+              {deleteResult.promoCode && (
+                <div className="rounded-xl border border-amber-200/50 dark:border-amber-800/40 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4 text-amber-600" />
+                    <p className="text-sm font-semibold">Ваш промокод</p>
+                  </div>
+                  <div className="flex items-center gap-2 bg-background/80 rounded-lg px-3 py-2.5 border border-amber-200/40 dark:border-amber-800/30">
+                    <code className="text-sm font-mono font-bold tracking-wider text-amber-700 dark:text-amber-400 flex-1 select-all">
+                      {deleteResult.promoCode}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(deleteResult.promoCode!);
+                        toast.success("Промокод скопирован");
+                      }}
+                      className="text-xs font-medium text-amber-600 hover:text-amber-700 shrink-0"
+                    >
+                      Копировать
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground/70">
+                    262 ₽ вместо 349 ₽ за первый месяц PRO. Промокод привязан к
+                    вашему аккаунту и действует до даты удаления.
+                  </p>
+                </div>
+              )}
+
+              <div className="rounded-xl bg-muted/30 p-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Дата удаления</span>
+                  <span className="font-medium">
+                    {new Date(deleteResult.deletionDate).toLocaleDateString(
+                      "ru-RU",
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      },
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteResult(null);
+                }}
+              >
+                Понятно
+              </Button>
+            </div>
+          ) : pendingDeletion ? (
             <div className="space-y-4 pt-1">
               <div className="flex flex-col items-center text-center py-2">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 mb-3">
@@ -1228,73 +1294,6 @@ export default function ProfilePage() {
                 Промокод останется активным до указанной даты, даже если вы
                 отмените удаление.
               </p>
-            </div>
-          ) : deleteResult ? (
-            /* State: just submitted (brief intermediate state) */
-            <div className="space-y-4 pt-1">
-              <div className="flex flex-col items-center text-center py-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 mb-3">
-                  <Gift className="h-7 w-7 text-emerald-500" />
-                </div>
-                <p className="text-base font-semibold">Запрос принят</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Аккаунт будет удалён через 30 дней.
-                </p>
-              </div>
-
-              {deleteResult.promoCode && (
-                <div className="rounded-xl border border-amber-200/50 dark:border-amber-800/40 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Gift className="h-4 w-4 text-amber-600" />
-                    <p className="text-sm font-semibold">Ваш промокод</p>
-                  </div>
-                  <div className="flex items-center gap-2 bg-background/80 rounded-lg px-3 py-2.5 border border-amber-200/40 dark:border-amber-800/30">
-                    <code className="text-sm font-mono font-bold tracking-wider text-amber-700 dark:text-amber-400 flex-1 select-all">
-                      {deleteResult.promoCode}
-                    </code>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(deleteResult.promoCode!);
-                        toast.success("Промокод скопирован");
-                      }}
-                      className="text-xs font-medium text-amber-600 hover:text-amber-700 shrink-0"
-                    >
-                      Копировать
-                    </button>
-                  </div>
-                  <p className="text-xs text-muted-foreground/70">
-                    262 ₽ вместо 349 ₽ за первый месяц PRO. Промокод привязан к
-                    вашему аккаунту и действует до даты удаления.
-                  </p>
-                </div>
-              )}
-
-              <div className="rounded-xl bg-muted/30 p-4 space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Дата удаления</span>
-                  <span className="font-medium">
-                    {new Date(deleteResult.deletionDate).toLocaleDateString(
-                      "ru-RU",
-                      {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      },
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  setDeleteOpen(false);
-                  setDeleteResult(null);
-                }}
-              >
-                Понятно
-              </Button>
             </div>
           ) : (
             /* State 2 or 3: first-time vs repeat delete */
