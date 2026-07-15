@@ -33,6 +33,7 @@ import {
   BookOpen,
   Newspaper,
   DollarSign,
+  Timer,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -156,8 +157,13 @@ export default function AboutPage() {
   const [revoking, setRevoking] = useState(false);
   const [revokeResult, setRevokeResult] = useState<{
     deletionDate: string;
-    promoCode: string;
+    promoCode: string | null;
   } | null>(null);
+  const [revokePendingDeletion, setRevokePendingDeletion] = useState<{
+    deletionDate: string;
+    promoCode: string | null;
+  } | null>(null);
+  const [revokeGotPromo, setRevokeGotPromo] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInitialMessage, setChatInitialMessage] = useState<string | null>(
     null,
@@ -176,6 +182,15 @@ export default function AboutPage() {
           const data = await res.json();
           if (typeof data.dataConsent === "boolean") {
             setDataConsent(data.dataConsent);
+          }
+          if (data.deletionScheduledAt && data.deletionDate) {
+            setRevokePendingDeletion({
+              deletionDate: data.deletionDate,
+              promoCode: data.promoCode?.code || null,
+            });
+          }
+          if (typeof data.gotDeletionPromo === "boolean") {
+            setRevokeGotPromo(data.gotDeletionPromo);
           }
         }
       } catch {
@@ -228,6 +243,11 @@ export default function AboutPage() {
       }
       const data = await res.json();
       setRevokeResult({
+        deletionDate: data.deletionDate,
+        promoCode: data.promoCode,
+      });
+      if (data.promoCode) setRevokeGotPromo(true);
+      setRevokePendingDeletion({
         deletionDate: data.deletionDate,
         promoCode: data.promoCode,
       });
@@ -724,7 +744,113 @@ export default function AboutPage() {
         }}
       >
         <DialogContent className="sm:max-w-md">
-          {revokeResult ? (
+          {revokePendingDeletion ? (
+            <div className="space-y-4 pt-1">
+              <div className="flex flex-col items-center text-center py-2">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 mb-3">
+                  <Timer className="h-7 w-7 text-amber-500" />
+                </div>
+                <p className="text-base font-semibold">
+                  Запрос на удаление активен
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Аккаунт будет удалён через{" "}
+                  {Math.max(
+                    0,
+                    Math.ceil(
+                      (new Date(
+                        revokePendingDeletion.deletionDate,
+                      ).getTime() -
+                        new Date().getTime()) /
+                        (1000 * 60 * 60 * 24),
+                    ),
+                  )}{" "}
+                  дн.
+                </p>
+              </div>
+
+              {revokePendingDeletion.promoCode && (
+                <div className="rounded-xl border border-amber-200/50 dark:border-amber-800/40 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4 text-amber-600" />
+                    <p className="text-sm font-semibold">Ваш промокод</p>
+                  </div>
+                  <div className="flex items-center gap-2 bg-background/80 rounded-lg px-3 py-2.5 border border-amber-200/40 dark:border-amber-800/30">
+                    <code className="text-sm font-mono font-bold tracking-wider text-amber-700 dark:text-amber-400 flex-1 select-all">
+                      {revokePendingDeletion.promoCode}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          revokePendingDeletion.promoCode!,
+                        );
+                        toast.success("Промокод скопирован");
+                      }}
+                      className="text-xs font-medium text-amber-600 hover:text-amber-700 shrink-0"
+                    >
+                      Копировать
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground/70">
+                    262 ₽ вместо 349 ₽ за первый месяц PRO. Промокод
+                    сохранится даже после отмены удаления.
+                  </p>
+                </div>
+              )}
+
+              <div className="rounded-xl bg-muted/30 p-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Дата удаления</span>
+                  <span className="font-medium">
+                    {new Date(
+                      revokePendingDeletion.deletionDate,
+                    ).toLocaleDateString("ru-RU", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+                {revokePendingDeletion.promoCode && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Промокод активен до
+                    </span>
+                    <span className="font-medium text-amber-600">
+                      {new Date(
+                        revokePendingDeletion.deletionDate,
+                      ).toLocaleDateString("ru-RU", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-muted-foreground/50 text-center">
+                Чтобы отменить удаление, перейдите в{" "}
+                <Link
+                  href="/profile"
+                  className="text-primary hover:underline"
+                >
+                  профиль
+                </Link>
+                .
+              </p>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setRevokeOpen(false);
+                }}
+              >
+                Понятно
+              </Button>
+            </div>
+          ) : revokeResult ? (
             <div className="space-y-4 pt-1">
               <div className="flex flex-col items-center text-center py-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 mb-3">
@@ -736,30 +862,32 @@ export default function AboutPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-amber-200/50 dark:border-amber-800/40 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Crown className="h-4 w-4 text-amber-600" />
-                  <p className="text-sm font-semibold">Ваш промокод</p>
+              {revokeResult.promoCode && (
+                <div className="rounded-xl border border-amber-200/50 dark:border-amber-800/40 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4 text-amber-600" />
+                    <p className="text-sm font-semibold">Ваш промокод</p>
+                  </div>
+                  <div className="flex items-center gap-2 bg-background/80 rounded-lg px-3 py-2.5 border border-amber-200/40 dark:border-amber-800/30">
+                    <code className="text-sm font-mono font-bold tracking-wider text-amber-700 dark:text-amber-400 flex-1 select-all">
+                      {revokeResult.promoCode}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(revokeResult.promoCode!);
+                        toast.success("Промокод скопирован");
+                      }}
+                      className="text-xs font-medium text-amber-600 hover:text-amber-700 shrink-0"
+                    >
+                      Копировать
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground/70">
+                    262 ₽ вместо 349 ₽ за первый месяц PRO. Промокод привязан к
+                    вашему аккаунту и действует до даты удаления.
+                  </p>
                 </div>
-                <div className="flex items-center gap-2 bg-background/80 rounded-lg px-3 py-2.5 border border-amber-200/40 dark:border-amber-800/30">
-                  <code className="text-sm font-mono font-bold tracking-wider text-amber-700 dark:text-amber-400 flex-1 select-all">
-                    {revokeResult.promoCode}
-                  </code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(revokeResult.promoCode);
-                      toast.success("Промокод скопирован");
-                    }}
-                    className="text-xs font-medium text-amber-600 hover:text-amber-700 shrink-0"
-                  >
-                    Копировать
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground/70">
-                  262 ₽ вместо 349 ₽ за первый месяц PRO. Промокод привязан к
-                  вашему аккаунту и действует до даты удаления.
-                </p>
-              </div>
+              )}
 
               <div className="rounded-xl bg-muted/30 p-4 space-y-2">
                 <div className="flex items-center justify-between text-sm">
@@ -775,26 +903,7 @@ export default function AboutPage() {
                     )}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    Промокод активен до
-                  </span>
-                  <span className="font-medium text-amber-600">
-                    {new Date(revokeResult.deletionDate).toLocaleDateString(
-                      "ru-RU",
-                      {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      },
-                    )}
-                  </span>
-                </div>
               </div>
-
-              <p className="text-xs text-muted-foreground/50 text-center">
-                Если передумаете — просто зайдите в профиль и отмените удаление.
-              </p>
 
               <Button
                 variant="outline"
@@ -838,6 +947,27 @@ export default function AboutPage() {
                   </ul>
                 </div>
               </div>
+
+              {!revokeGotPromo && (
+                <div className="space-y-2.5 rounded-xl bg-gradient-to-br from-emerald-500/5 to-emerald-500/[0.02] border border-emerald-200/40 dark:border-emerald-800/30 p-4">
+                  <p className="text-xs font-medium text-muted-foreground/70 mb-1">
+                    В благодарность за обратную связь:
+                  </p>
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 shrink-0 mt-0.5">
+                      <Crown className="h-4 w-4 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        Промокод на 25% скидки на первый месяц PRO
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-0.5">
+                        262 ₽ вместо 349 ₽
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground/80">
