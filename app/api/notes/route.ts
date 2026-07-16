@@ -10,6 +10,9 @@ import {
 } from "@/lib/models";
 import { mockNotes } from "@/lib/mock-data";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function GET(request: NextRequest) {
   try {
     const uid = request.nextUrl.searchParams.get("uid");
@@ -19,8 +22,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "uid обязателен" }, { status: 400 });
     }
 
+    const dbAvailable = await isDatabaseAvailable();
+
     if (noteId) {
-      if (!isDatabaseAvailable()) {
+      if (!dbAvailable) {
         const found = mockNotes.find((n) => n.id === noteId && n.userId === uid);
         if (!found) {
           return NextResponse.json({ error: "Заметка не найдена" }, { status: 404 });
@@ -34,7 +39,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(note);
     }
 
-    if (!isDatabaseAvailable()) {
+    if (!dbAvailable) {
       return NextResponse.json(
         mockNotes.filter((n) => n.userId === uid),
       );
@@ -69,7 +74,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!isDatabaseAvailable()) {
+    const dbAvailable = await isDatabaseAvailable();
+
+    if (!dbAvailable) {
       return NextResponse.json(
         { error: "База данных недоступна" },
         { status: 503 },
@@ -108,7 +115,9 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    if (!isDatabaseAvailable()) {
+    const dbAvailable = await isDatabaseAvailable();
+
+    if (!dbAvailable) {
       return NextResponse.json(
         { error: "База данных недоступна" },
         { status: 503 },
@@ -146,7 +155,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    if (!isDatabaseAvailable()) {
+    const dbAvailable = await isDatabaseAvailable();
+
+    if (!dbAvailable) {
       return NextResponse.json(
         { error: "База данных недоступна" },
         { status: 503 },
