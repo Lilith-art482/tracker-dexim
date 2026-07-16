@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, FileText } from "lucide-react";
-import Link from "next/link";
+import { Loader2, FileText } from "lucide-react";
 import type { Note } from "@/lib/models";
 import { NoteList } from "./note-list";
 import { BlockEditor, type Block } from "./block-editor";
@@ -226,24 +225,14 @@ export function NotesShell() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-[2000px] px-4 h-full flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center justify-between py-2 border-b border-border/20 shrink-0">
-        <div className="flex items-center gap-2">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            На главную
-          </Link>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => { setShowLeft(!showLeft); setShowCenter(true); }}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted/30 transition-all"
-          >
-            <FileText className="h-4 w-4" />
-          </button>
-        </div>
+      <div className="flex items-center justify-end py-2 border-b border-border/20 shrink-0">
+        <button
+          onClick={() => { setShowLeft(!showLeft); setShowCenter(true); }}
+          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted/30 transition-all"
+          title="Показать теги"
+        >
+          <FileText className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Three-column layout */}

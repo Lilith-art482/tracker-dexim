@@ -48,20 +48,26 @@ function generateBlockId(): string {
 }
 
 const SLASH_ITEMS: Array<{
-  type: BlockType;
+  type: BlockType | "bold" | "italic" | "underline" | "strikethrough" | "inlineCode";
   label: string;
   icon: React.ReactNode;
+  category: string;
 }> = [
-  { type: "heading1", label: "Заголовок 1", icon: <Heading1 className="h-4 w-4" /> },
-  { type: "heading2", label: "Заголовок 2", icon: <Heading2 className="h-4 w-4" /> },
-  { type: "heading3", label: "Заголовок 3", icon: <Heading3 className="h-4 w-4" /> },
-  { type: "paragraph", label: "Текст", icon: <Type className="h-4 w-4" /> },
-  { type: "bulletList", label: "Маркированный список", icon: <List className="h-4 w-4" /> },
-  { type: "numberedList", label: "Нумерованный список", icon: <ListOrdered className="h-4 w-4" /> },
-  { type: "todo", label: "Чек-лист", icon: <CheckSquare className="h-4 w-4" /> },
-  { type: "quote", label: "Цитата", icon: <Quote className="h-4 w-4" /> },
-  { type: "code", label: "Код", icon: <Code2 className="h-4 w-4" /> },
-  { type: "divider", label: "Разделитель", icon: <Minus className="h-4 w-4" /> },
+  { type: "heading1", label: "Заголовок 1", icon: <Heading1 className="h-4 w-4" />, category: "Блоки" },
+  { type: "heading2", label: "Заголовок 2", icon: <Heading2 className="h-4 w-4" />, category: "Блоки" },
+  { type: "heading3", label: "Заголовок 3", icon: <Heading3 className="h-4 w-4" />, category: "Блоки" },
+  { type: "paragraph", label: "Текст", icon: <Type className="h-4 w-4" />, category: "Блоки" },
+  { type: "bulletList", label: "Маркированный список", icon: <List className="h-4 w-4" />, category: "Блоки" },
+  { type: "numberedList", label: "Нумерованный список", icon: <ListOrdered className="h-4 w-4" />, category: "Блоки" },
+  { type: "todo", label: "Чек-лист", icon: <CheckSquare className="h-4 w-4" />, category: "Блоки" },
+  { type: "quote", label: "Цитата", icon: <Quote className="h-4 w-4" />, category: "Блоки" },
+  { type: "code", label: "Блок кода", icon: <Code2 className="h-4 w-4" />, category: "Блоки" },
+  { type: "divider", label: "Разделитель", icon: <Minus className="h-4 w-4" />, category: "Блоки" },
+  { type: "bold", label: "Полужирный", icon: <Bold className="h-4 w-4" />, category: "Формат" },
+  { type: "italic", label: "Курсив", icon: <Italic className="h-4 w-4" />, category: "Формат" },
+  { type: "underline", label: "Подчёркнутый", icon: <Underline className="h-4 w-4" />, category: "Формат" },
+  { type: "strikethrough", label: "Зачёркнутый", icon: <Strikethrough className="h-4 w-4" />, category: "Формат" },
+  { type: "inlineCode", label: "Моноширинный", icon: <Code2 className="h-4 w-4" />, category: "Формат" },
 ];
 
 function getBlockPlaceholder(type: BlockType): string {
@@ -108,7 +114,6 @@ function FormatToolbar({ blockType, onBlockTypeChange }: {
 
   return (
     <div className="flex items-center gap-0.5 px-1 py-1 rounded-lg bg-muted/20 border border-border/20 flex-wrap">
-      {/* Block type selector */}
       <div className="relative">
         <button
           onClick={() => setShowBlockMenu(!showBlockMenu)}
@@ -144,33 +149,16 @@ function FormatToolbar({ blockType, onBlockTypeChange }: {
 
       <span className="w-px h-5 bg-border/30 mx-0.5" />
 
-      {/* Inline formatting */}
-      <button
-        onClick={() => exec("bold")}
-        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all"
-        title="Полужирный (Ctrl+B)"
-      >
+      <button onClick={() => exec("bold")} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all" title="Полужирный (Ctrl+B)">
         <Bold className="h-3.5 w-3.5" />
       </button>
-      <button
-        onClick={() => exec("italic")}
-        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all"
-        title="Курсив (Ctrl+I)"
-      >
+      <button onClick={() => exec("italic")} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all" title="Курсив (Ctrl+I)">
         <Italic className="h-3.5 w-3.5" />
       </button>
-      <button
-        onClick={() => exec("underline")}
-        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all"
-        title="Подчёркнутый (Ctrl+U)"
-      >
+      <button onClick={() => exec("underline")} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all" title="Подчёркнутый (Ctrl+U)">
         <Underline className="h-3.5 w-3.5" />
       </button>
-      <button
-        onClick={() => exec("strikeThrough")}
-        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all"
-        title="Зачёркнутый"
-      >
+      <button onClick={() => exec("strikeThrough")} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all" title="Зачёркнутый">
         <Strikethrough className="h-3.5 w-3.5" />
       </button>
       <button
@@ -192,19 +180,10 @@ function FormatToolbar({ blockType, onBlockTypeChange }: {
 
       <span className="w-px h-5 bg-border/30 mx-0.5" />
 
-      {/* Undo/Redo */}
-      <button
-        onClick={() => exec("undo")}
-        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all"
-        title="Отменить (Ctrl+Z)"
-      >
+      <button onClick={() => exec("undo")} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all" title="Отменить (Ctrl+Z)">
         <Undo2 className="h-3.5 w-3.5" />
       </button>
-      <button
-        onClick={() => exec("redo")}
-        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all"
-        title="Повторить (Ctrl+Shift+Z)"
-      >
+      <button onClick={() => exec("redo")} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all" title="Повторить (Ctrl+Shift+Z)">
         <Redo2 className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -213,24 +192,40 @@ function FormatToolbar({ blockType, onBlockTypeChange }: {
 
 function BlockRenderer({
   block,
-  onChange,
+  onContentChange,
   onFocus,
   onKeyDown,
   onSlashCommand,
   isFocused,
 }: {
   block: Block;
-  onChange: (content: string) => void;
+  onContentChange: (content: string) => void;
   onFocus: () => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
   onSlashCommand: () => void;
   isFocused: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const contentRef = useRef(block.content);
   const showPlaceholder = !block.content;
 
   useEffect(() => {
+    if (ref.current && ref.current.innerText !== block.content) {
+      ref.current.innerText = block.content;
+    }
+    contentRef.current = block.content;
+  }, [block.content]);
+
+  useEffect(() => {
     if (isFocused && ref.current) {
+      const sel = window.getSelection();
+      if (sel) {
+        const range = document.createRange();
+        range.selectNodeContents(ref.current);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
       ref.current.focus();
     }
   }, [isFocused]);
@@ -238,19 +233,22 @@ function BlockRenderer({
   const handleInput = useCallback(() => {
     if (ref.current) {
       const text = ref.current.innerText;
-      onChange(text);
-      if (text.endsWith("/")) {
-        onSlashCommand();
-      }
+      contentRef.current = text;
     }
-  }, [onChange, onSlashCommand]);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    if (ref.current && ref.current.innerText !== block.content) {
+      onContentChange(ref.current.innerText);
+    }
+  }, [block.content, onContentChange]);
 
   const handleKeyDownInner = useCallback(
     (e: React.KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && ["b", "i", "u", "z", "y"].includes(e.key.toLowerCase())) {
         return;
       }
-      if (e.key === "/" && !ref.current?.innerText) {
+      if (e.key === "/") {
         onSlashCommand();
         return;
       }
@@ -265,9 +263,9 @@ function BlockRenderer({
 
   const baseClass = "outline-none w-full py-0.5 leading-relaxed";
   const typeClasses: Record<string, string> = {
-    heading1: "text-2xl font-bold tracking-tight mt-2 [&_code]:text-2xl",
-    heading2: "text-xl font-semibold tracking-tight mt-1.5 [&_code]:text-xl",
-    heading3: "text-lg font-medium mt-1 [&_code]:text-lg",
+    heading1: "text-2xl font-bold tracking-tight mt-2",
+    heading2: "text-xl font-semibold tracking-tight mt-1.5",
+    heading3: "text-lg font-medium mt-1",
     paragraph: "text-base",
     bulletList: "text-base ml-5",
     numberedList: "text-base ml-5",
@@ -282,7 +280,7 @@ function BlockRenderer({
         <input
           type="checkbox"
           checked={block.checked || false}
-          onChange={() => onChange(block.content)}
+          onChange={() => onContentChange(block.content)}
           className="h-4 w-4 rounded border-border accent-primary shrink-0 mt-1.5"
         />
       )}
@@ -291,6 +289,7 @@ function BlockRenderer({
         contentEditable
         suppressContentEditableWarning
         onInput={handleInput}
+        onBlur={handleBlur}
         onFocus={onFocus}
         onKeyDown={handleKeyDownInner}
         className={cn(baseClass, typeClasses[block.type] || "text-base")}
@@ -314,9 +313,19 @@ function BlockRenderer({
   );
 }
 
+function groupBy<T>(arr: T[], keyFn: (item: T) => string): Record<string, T[]> {
+  const result: Record<string, T[]> = {};
+  for (const item of arr) {
+    const key = keyFn(item);
+    if (!result[key]) result[key] = [];
+    result[key].push(item);
+  }
+  return result;
+}
+
 interface SlashMenuProps {
   open: boolean;
-  onSelect: (type: BlockType) => void;
+  onSelect: (type: string) => void;
   onClose: () => void;
   search: string;
 }
@@ -335,9 +344,10 @@ function SlashMenu({ open, onSelect, onClose, search }: SlashMenuProps) {
     [search],
   );
 
+  const grouped = useMemo(() => groupBy(filtered, (i) => i.category), [filtered]);
+
   useEffect(() => {
     setSelectedIndex(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   useEffect(() => {
@@ -351,23 +361,25 @@ function SlashMenu({ open, onSelect, onClose, search }: SlashMenuProps) {
     return () => document.removeEventListener("mousedown", handler);
   }, [open, onClose]);
 
+  const flatItems = useMemo(() => filtered, [filtered]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!open) return;
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((i) => (i + 1) % filtered.length);
+        setSelectedIndex((i) => (i + 1) % flatItems.length);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSelectedIndex((i) => (i - 1 + filtered.length) % filtered.length);
-      } else if (e.key === "Enter" && filtered[selectedIndex]) {
+        setSelectedIndex((i) => (i - 1 + flatItems.length) % flatItems.length);
+      } else if (e.key === "Enter" && flatItems[selectedIndex]) {
         e.preventDefault();
-        onSelect(filtered[selectedIndex].type);
+        onSelect(flatItems[selectedIndex].type);
       } else if (e.key === "Escape") {
         onClose();
       }
     },
-    [open, filtered, selectedIndex, onSelect, onClose],
+    [open, flatItems, selectedIndex, onSelect, onClose],
   );
 
   useEffect(() => {
@@ -377,42 +389,50 @@ function SlashMenu({ open, onSelect, onClose, search }: SlashMenuProps) {
 
   if (!open) return null;
 
+  const categories = Object.keys(grouped);
+
   return (
     <div
       ref={ref}
-      className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-border/60 bg-popover shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200"
+      className="fixed left-1/2 -translate-x-1/2 bottom-4 z-50 w-[400px] max-h-[50vh] rounded-xl border border-border/60 bg-popover shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200 overflow-y-auto"
+      style={{ maxWidth: "calc(100vw - 2rem)" }}
     >
-      <div className="p-1.5">
-        <p className="px-2 py-1 text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider">
-          Блоки
-        </p>
-        {filtered.map((item, i) => (
-          <button
-            key={item.type}
-            onClick={() => onSelect(item.type)}
-            onMouseEnter={() => setSelectedIndex(i)}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
-              i === selectedIndex
-                ? "bg-primary/10 text-primary"
-                : "text-foreground hover:bg-muted/50",
-            )}
-          >
-            <span
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-md",
-                i === selectedIndex ? "bg-primary/15" : "bg-muted/50",
-              )}
-            >
-              {item.icon}
-            </span>
-            <span>{item.label}</span>
-          </button>
+      <div className="p-2">
+        {categories.map((cat) => (
+          <div key={cat}>
+            <p className="px-2 py-1 text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider">
+              {cat}
+            </p>
+            {grouped[cat].map((item, _i) => {
+              const globalIndex = flatItems.indexOf(item);
+              return (
+                <button
+                  key={item.type}
+                  onClick={() => onSelect(item.type)}
+                  onMouseEnter={() => setSelectedIndex(globalIndex)}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
+                    globalIndex === selectedIndex
+                      ? "bg-primary/10 text-primary"
+                      : "text-foreground hover:bg-muted/50",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-md",
+                      globalIndex === selectedIndex ? "bg-primary/15" : "bg-muted/50",
+                    )}
+                  >
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
         ))}
         {filtered.length === 0 && (
-          <p className="px-3 py-3 text-sm text-muted-foreground/50">
-            Ничего не найдено
-          </p>
+          <p className="px-3 py-3 text-sm text-muted-foreground/50">Ничего не найдено</p>
         )}
       </div>
     </div>
@@ -477,10 +497,13 @@ export function BlockEditor({
 
   const handleBlockKeyDown = useCallback(
     (index: number, e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
+      const block = blocks[index];
+      if (e.key === "Enter" && !e.shiftKey && block?.type !== "code") {
         e.preventDefault();
         addBlock(index);
-      } else if (e.key === "Backspace" && !blocks[index].content) {
+      } else if (e.key === "Enter" && e.shiftKey && block?.type === "code") {
+        return;
+      } else if (e.key === "Backspace" && !block?.content) {
         e.preventDefault();
         removeBlock(index);
       }
@@ -489,10 +512,22 @@ export function BlockEditor({
   );
 
   const handleSlashCommand = useCallback(
-    (type: BlockType) => {
+    (type: string) => {
+      if (type === "bold") { exec("bold"); setSlashMenuOpen(false); return; }
+      if (type === "italic") { exec("italic"); setSlashMenuOpen(false); return; }
+      if (type === "underline") { exec("underline"); setSlashMenuOpen(false); return; }
+      if (type === "strikethrough") { exec("strikeThrough"); setSlashMenuOpen(false); return; }
+      if (type === "inlineCode") {
+        const sel = window.getSelection();
+        if (sel && sel.toString()) {
+          document.execCommand("insertHTML", false, `<code>${sel.toString()}</code>`);
+        }
+        setSlashMenuOpen(false);
+        return;
+      }
+
       if (focusedBlockIndex === null) return;
       const block = blocks[focusedBlockIndex];
-      const text = block.content;
 
       if (type === "divider") {
         const updated = blocks.map((b, i) =>
@@ -503,8 +538,10 @@ export function BlockEditor({
         return;
       }
 
-      const newContent = text.endsWith("/") ? text.slice(0, -1) : text;
-      updateBlock(focusedBlockIndex, { type, content: newContent });
+      const cleanContent = block.content.startsWith("/")
+        ? block.content.slice(1).trimStart()
+        : block.content;
+      updateBlock(focusedBlockIndex, { type: type as BlockType, content: cleanContent });
       setSlashMenuOpen(false);
     },
     [focusedBlockIndex, blocks, onChange, updateBlock],
@@ -536,9 +573,15 @@ export function BlockEditor({
     [noteTags, onTagsChange],
   );
 
+  const handleSlashTrigger = useCallback((index: number) => {
+    setFocusedBlockIndex(index);
+    setSlashSearch("");
+    setSlashMenuOpen(true);
+  }, []);
+
   return (
     <div ref={editorRef} className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-1 scrollbar-none">
+      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-1 scrollbar-none min-h-0">
         <input
           value={noteTitle}
           onChange={(e) => onTitleChange(e.target.value)}
@@ -546,7 +589,6 @@ export function BlockEditor({
           className="w-full text-3xl font-bold tracking-tight bg-transparent border-none outline-none placeholder:text-muted-foreground/20 mb-4"
         />
 
-        {/* Formatting toolbar */}
         {focusedBlockIndex !== null && blocks[focusedBlockIndex] && (
           <div className="mb-3">
             <FormatToolbar
@@ -567,29 +609,26 @@ export function BlockEditor({
           <div key={block.id} className="relative">
             <BlockRenderer
               block={block}
-              onChange={(content) => updateBlock(i, { content })}
+              onContentChange={(content) => updateBlock(i, { content })}
               onFocus={() => setFocusedBlockIndex(i)}
               onKeyDown={(e) => handleBlockKeyDown(i, e)}
-              onSlashCommand={() => {
-                setFocusedBlockIndex(i);
-                setSlashSearch("");
-                setSlashMenuOpen(true);
-              }}
+              onSlashCommand={() => handleSlashTrigger(i)}
               isFocused={focusedBlockIndex === i}
             />
-            {focusedBlockIndex === i && (
-              <SlashMenu
-                open={slashMenuOpen}
-                search={slashSearch}
-                onSelect={handleSlashCommand}
-                onClose={() => setSlashMenuOpen(false)}
-              />
-            )}
           </div>
         ))}
       </div>
 
-      <div className="border-t border-border/20 px-8 py-3">
+      {slashMenuOpen && (
+        <SlashMenu
+          open={slashMenuOpen}
+          search={slashSearch}
+          onSelect={handleSlashCommand}
+          onClose={() => setSlashMenuOpen(false)}
+        />
+      )}
+
+      <div className="border-t border-border/20 px-8 py-3 shrink-0">
         <div className="flex items-center gap-2 flex-wrap">
           {noteTags.map((tag) => (
             <span
@@ -597,10 +636,7 @@ export function BlockEditor({
               className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-xs px-2.5 py-0.5"
             >
               #{tag}
-              <button
-                onClick={() => removeTag(tag)}
-                className="hover:text-destructive transition-colors"
-              >
+              <button onClick={() => removeTag(tag)} className="hover:text-destructive transition-colors">
                 ×
               </button>
             </span>
