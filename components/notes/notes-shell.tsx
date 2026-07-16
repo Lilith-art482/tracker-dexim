@@ -224,8 +224,9 @@ export function NotesShell() {
 
   return (
     <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-[2000px] px-4 h-full flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border/20">
+      <div className="flex items-center justify-between py-2 border-b border-border/20 shrink-0">
         <div className="flex items-center gap-2">
           <Link
             href="/"
@@ -246,7 +247,7 @@ export function NotesShell() {
       </div>
 
       {/* Three-column layout */}
-      <div className="flex h-[calc(100vh-49px)]">
+      <div className="flex flex-1 min-h-0">
         {/* Left column — Tags (15%) */}
         {showLeft && (
           <div className="w-[15%] min-w-[120px] border-r border-border/20 hidden md:flex flex-col">
@@ -314,6 +315,7 @@ export function NotesShell() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
