@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,7 +10,7 @@ import {
   Loader2,
   Plus,
 } from "lucide-react";
-import type { PersonalTask, Board } from "@/lib/models";
+import type { PersonalTask, Board, Note } from "@/lib/models";
 import { mockPersonalTasks } from "@/lib/mock-data";
 import { WeeklyTable } from "@/components/weekly-table";
 import { PersonalTaskList } from "@/components/personal-task-list";
@@ -62,6 +63,7 @@ function getWeekDates(weekOffset: number): Date[] {
 }
 
 export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const today = new Date().getDay();
@@ -69,6 +71,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   });
   const [weekOffset, setWeekOffset] = useState(0);
   const [tasks, setTasks] = useState<PersonalTask[]>([]);
+  const [noteSnippets, setNoteSnippets] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -110,6 +113,55 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
           if (!cancelled) setTasks(data);
         } else {
           if (!cancelled) setTasks(mockPersonalTasks);
+        }
+
+        // Convert scheduled notes to tasks
+        if (uid) {
+          try {
+            const timezoneOffset = new Date().getTimezoneOffset();
+            const convertRes = await fetch("/api/notes/convert-scheduled", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ uid, timezoneOffset }),
+            });
+            if (convertRes.ok) {
+              const { tasks: newTasks } = await convertRes.json();
+              if (newTasks?.length) {
+                setTasks((prev) => {
+                  const existingIds = new Set(prev.map((t) => t.id));
+                  const unique = newTasks.filter((t: PersonalTask) => !existingIds.has(t.id));
+                  return [...unique, ...prev];
+                });
+                if (newTasks.length === 1) {
+                  toast.success("Заметка превращена в задачу");
+                } else if (newTasks.length > 1) {
+                  toast.success(`${newTasks.length} заметок превращены в задачи`);
+                }
+              }
+            }
+          } catch {
+            // silent
+          }
+
+          // Load note snippets for tooltips
+          try {
+            const notesRes = await fetch(`/api/notes?uid=${uid}`);
+            if (notesRes.ok) {
+              const notesData: Note[] = await notesRes.json();
+              const snippets: Record<string, string> = {};
+              for (const note of notesData) {
+                const firstBlock = note.blocks?.find(
+                  (b) => b.type === "paragraph" && b.content.trim(),
+                );
+                snippets[note.id] = firstBlock
+                  ? firstBlock.content.slice(0, 120)
+                  : "";
+              }
+              setNoteSnippets(snippets);
+            }
+          } catch {
+            // silent
+          }
         }
       } catch {
         if (!cancelled) setTasks(mockPersonalTasks);
@@ -190,6 +242,13 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
       }
     },
     [toast],
+  );
+
+  const handleNoteClick = useCallback(
+    (noteId: string) => {
+      router.push(`/notes?noteId=${noteId}`);
+    },
+    [router],
   );
 
   const handleEditTask = useCallback((task: PersonalTask) => {
@@ -365,6 +424,8 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
           onSaved={handleTaskSaved}
           onToggleComplete={handleToggleComplete}
           onDelete={handleDeleteTask}
+          onNoteClick={handleNoteClick}
+          noteSnippets={noteSnippets}
           activeBoard={activeBoard}
         />
       ) : (

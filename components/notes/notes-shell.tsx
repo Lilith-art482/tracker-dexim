@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { Loader2, FileText } from "lucide-react";
 import type { Note } from "@/lib/models";
 import { NoteList } from "./note-list";
 import { BlockEditor, type Block } from "./block-editor";
+import type { CanvasState } from "@/lib/models";
 
 function createEmptyNote(): {
   title: string;
@@ -24,6 +25,8 @@ function createEmptyNote(): {
 
 export function NotesShell() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const noteIdParam = searchParams.get("noteId");
   const [uid, setUid] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -37,10 +40,16 @@ export function NotesShell() {
   const [editTitle, setEditTitle] = useState("");
   const [editBlocks, setEditBlocks] = useState<Block[]>([]);
   const [editTags, setEditTags] = useState<string[]>([]);
+  const [editScheduledDate, setEditScheduledDate] = useState<string | null>(null);
+  const [editScheduledTime, setEditScheduledTime] = useState<string | null>(null);
+  const [editRecurringInterval, setEditRecurringInterval] = useState<string | null>(null);
+  const [editCanvasState, setEditCanvasState] = useState<CanvasState | null>(null);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const originalNoteRef = useRef<string>("");
+
+  const noteIdParamRef = useRef(noteIdParam);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -54,6 +63,32 @@ export function NotesShell() {
         if (res.ok) {
           const data = await res.json();
           setNotes(data);
+          // Auto-select note if noteIdParam is present
+          if (noteIdParamRef.current) {
+            const target = data.find((n: Note) => n.id === noteIdParamRef.current);
+            if (target) {
+              setSelectedId(target.id);
+              setEditTitle(target.title);
+              setEditBlocks(target.blocks as Block[]);
+              setEditTags(target.tags || []);
+              setEditScheduledDate(target.scheduledDate ?? null);
+              setEditScheduledTime(target.scheduledTime ?? null);
+              setEditRecurringInterval(target.recurringInterval ?? null);
+              setEditCanvasState(target.canvasState ?? null);
+              originalNoteRef.current = JSON.stringify({
+                title: target.title,
+                blocks: target.blocks,
+                tags: target.tags,
+                scheduledDate: target.scheduledDate ?? null,
+                scheduledTime: target.scheduledTime ?? null,
+                recurringInterval: target.recurringInterval ?? null,
+                canvasState: target.canvasState ?? null,
+              });
+              setHasChanges(false);
+              // Clean URL
+              window.history.replaceState(null, "", "/notes");
+            }
+          }
         }
       } catch {
         // fallback
@@ -65,19 +100,49 @@ export function NotesShell() {
 
   // Auto-save
   const saveNote = useCallback(
-    async (noteId: string, title: string, blocks: Block[], tags: string[]) => {
+    async (
+      noteId: string,
+      title: string,
+      blocks: Block[],
+      tags: string[],
+      scheduledDate?: string | null,
+      scheduledTime?: string | null,
+      recurringInterval?: string | null,
+      canvasState?: CanvasState | null,
+    ) => {
       if (!uid) return;
       setSaving(true);
       try {
-        await fetch("/api/notes", {
+        const res = await fetch("/api/notes", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ uid, noteId, title, blocks, tags }),
+          body: JSON.stringify({
+            uid,
+            noteId,
+            title,
+            blocks,
+            tags,
+            scheduledDate: scheduledDate ?? null,
+            scheduledTime: scheduledTime ?? null,
+            recurringInterval: recurringInterval ?? null,
+            canvasState: canvasState ?? null,
+          }),
         });
+        if (!res.ok) return;
         setNotes((prev) =>
           prev.map((n) =>
             n.id === noteId
-              ? { ...n, title, blocks, tags, updatedAt: new Date().toISOString() }
+              ? {
+                  ...n,
+                  title,
+                  blocks,
+                  tags,
+                  scheduledDate: scheduledDate ?? null,
+                  scheduledTime: scheduledTime ?? null,
+                  recurringInterval: recurringInterval ?? null,
+                  canvasState: canvasState ?? null,
+                  updatedAt: new Date().toISOString(),
+                }
               : n,
           ),
         );
@@ -94,19 +159,19 @@ export function NotesShell() {
     if (!hasChanges || !selectedId || saving) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveNote(selectedId, editTitle, editBlocks, editTags);
+      saveNote(selectedId, editTitle, editBlocks, editTags, editScheduledDate, editScheduledTime, editRecurringInterval, editCanvasState);
       setHasChanges(false);
     }, 1500);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [hasChanges, selectedId, editTitle, editBlocks, editTags, saving, saveNote]);
+  }, [hasChanges, selectedId, editTitle, editBlocks, editTags, editScheduledDate, editScheduledTime, editRecurringInterval, editCanvasState, saving, saveNote]);
 
   const handleSelectNote = useCallback(
     (id: string) => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       if (selectedId && hasChanges) {
-        saveNote(selectedId, editTitle, editBlocks, editTags);
+        saveNote(selectedId, editTitle, editBlocks, editTags, editScheduledDate, editScheduledTime, editRecurringInterval);
       }
       setSelectedId(id);
       const note = notes.find((n) => n.id === id);
@@ -114,7 +179,19 @@ export function NotesShell() {
         setEditTitle(note.title);
         setEditBlocks(note.blocks as Block[]);
         setEditTags(note.tags || []);
-        originalNoteRef.current = JSON.stringify({ title: note.title, blocks: note.blocks, tags: note.tags });
+        setEditScheduledDate(note.scheduledDate ?? null);
+        setEditScheduledTime(note.scheduledTime ?? null);
+        setEditRecurringInterval(note.recurringInterval ?? null);
+        setEditCanvasState(note.canvasState ?? null);
+        originalNoteRef.current = JSON.stringify({
+          title: note.title,
+          blocks: note.blocks,
+          tags: note.tags,
+          scheduledDate: note.scheduledDate ?? null,
+          scheduledTime: note.scheduledTime ?? null,
+          recurringInterval: note.recurringInterval ?? null,
+          canvasState: note.canvasState ?? null,
+        });
         setHasChanges(false);
       }
       // On mobile-ish, auto-show editor
@@ -145,7 +222,19 @@ export function NotesShell() {
       setEditTitle(note.title);
       setEditBlocks(note.blocks as Block[]);
       setEditTags(note.tags || []);
-      originalNoteRef.current = JSON.stringify({ title: note.title, blocks: note.blocks, tags: note.tags });
+      setEditScheduledDate(note.scheduledDate ?? null);
+      setEditScheduledTime(note.scheduledTime ?? null);
+      setEditRecurringInterval(note.recurringInterval ?? null);
+      setEditCanvasState(note.canvasState ?? null);
+      originalNoteRef.current = JSON.stringify({
+        title: note.title,
+        blocks: note.blocks,
+        tags: note.tags,
+        scheduledDate: note.scheduledDate ?? null,
+        scheduledTime: note.scheduledTime ?? null,
+        recurringInterval: note.recurringInterval ?? null,
+        canvasState: note.canvasState ?? null,
+      });
       setHasChanges(false);
       toast.success("Заметка создана");
     } catch {
@@ -201,14 +290,34 @@ export function NotesShell() {
   );
 
   const handleContentChange = useCallback(
-    (title: string, blocks: Block[], tags: string[]) => {
+    (
+      title: string,
+      blocks: Block[],
+      tags: string[],
+      scheduledDate?: string | null,
+      scheduledTime?: string | null,
+      recurringInterval?: string | null,
+      canvasState?: CanvasState | null,
+    ) => {
       setEditTitle(title);
       setEditBlocks(blocks);
       setEditTags(tags);
-      const current = JSON.stringify({ title, blocks, tags });
+      if (scheduledDate !== undefined) setEditScheduledDate(scheduledDate);
+      if (scheduledTime !== undefined) setEditScheduledTime(scheduledTime);
+      if (recurringInterval !== undefined) setEditRecurringInterval(recurringInterval);
+      if (canvasState !== undefined) setEditCanvasState(canvasState);
+      const current = JSON.stringify({
+        title,
+        blocks,
+        tags,
+        scheduledDate: scheduledDate ?? editScheduledDate,
+        scheduledTime: scheduledTime ?? editScheduledTime,
+        recurringInterval: recurringInterval ?? editRecurringInterval,
+        canvasState: canvasState ?? editCanvasState,
+      });
       setHasChanges(current !== originalNoteRef.current);
     },
-    [],
+    [editScheduledDate, editScheduledTime, editRecurringInterval, editCanvasState],
   );
 
   if (loading) {
@@ -283,12 +392,27 @@ export function NotesShell() {
         <div className="flex-1 min-w-0">
           {selectedNote ? (
             <BlockEditor
+              uid={uid ?? ""}
+              noteId={selectedNote.id}
               blocks={editBlocks}
               onChange={(blocks) => handleContentChange(editTitle, blocks, editTags)}
               noteTitle={editTitle}
               noteTags={editTags}
+              scheduledDate={editScheduledDate}
+              scheduledTime={editScheduledTime}
+              recurringInterval={editRecurringInterval}
+              linkedNoteIds={selectedNote.linkedNoteIds ?? []}
+              noteTitles={Object.fromEntries(notes.map((n) => [n.id, n.title]))}
+              canvasState={editCanvasState}
               onTitleChange={(title) => handleContentChange(title, editBlocks, editTags)}
               onTagsChange={(tags) => handleContentChange(editTitle, editBlocks, tags)}
+              onScheduleChange={(date, time, interval) =>
+                handleContentChange(editTitle, editBlocks, editTags, date, time, interval)
+              }
+              onCanvasStateChange={(state) => {
+                setEditCanvasState(state);
+                handleContentChange(editTitle, editBlocks, editTags, undefined, undefined, undefined, state);
+              }}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center px-8">

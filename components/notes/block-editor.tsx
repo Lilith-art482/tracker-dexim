@@ -19,7 +19,17 @@ import {
   Undo2,
   Redo2,
   Pilcrow,
+  Calendar,
+  Clock,
+  Repeat,
+  Sparkles,
+  Loader2,
+  LayoutDashboard,
+  AlignLeft,
 } from "lucide-react";
+import { toast } from "sonner";
+import { CanvasView } from "./canvas-view";
+import type { CanvasState } from "@/lib/models";
 
 export type BlockType =
   | "heading1"
@@ -439,21 +449,55 @@ function SlashMenu({ open, onSelect, onClose, search }: SlashMenuProps) {
   );
 }
 
+function toDateInputValue(dateStr?: string | null): string {
+  if (dateStr) return dateStr;
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function BlockEditor({
+  uid,
+  noteId,
   blocks,
   onChange,
   noteTitle,
   noteTags,
+  scheduledDate,
+  scheduledTime,
+  recurringInterval,
+  linkedNoteIds,
+  noteTitles,
+  canvasState,
   onTitleChange,
   onTagsChange,
+  onScheduleChange,
+  onCanvasStateChange,
 }: {
+  uid?: string;
+  noteId?: string;
   blocks: Block[];
   onChange: (blocks: Block[]) => void;
   noteTitle: string;
   noteTags: string[];
+  scheduledDate?: string | null;
+  scheduledTime?: string | null;
+  recurringInterval?: string | null;
+  linkedNoteIds?: string[];
+  noteTitles?: Record<string, string>;
+  canvasState?: CanvasState | null;
   onTitleChange: (title: string) => void;
   onTagsChange: (tags: string[]) => void;
+  onScheduleChange?: (
+    date: string | null,
+    time: string | null,
+    interval: string | null,
+  ) => void;
+  onCanvasStateChange?: (state: CanvasState) => void;
 }) {
+  const [canvasMode, setCanvasMode] = useState(false);
   const [focusedBlockIndex, setFocusedBlockIndex] = useState<number | null>(null);
   const [slashMenuOpen, setSlashMenuOpen] = useState(false);
   const [slashSearch, setSlashSearch] = useState("");
@@ -579,8 +623,112 @@ export function BlockEditor({
     setSlashMenuOpen(true);
   }, []);
 
+  // AI extraction
+  const [extracting, setExtracting] = useState(false);
+  const [extractedTasks, setExtractedTasks] = useState<
+    Array<{ title: string; priority?: string; date?: string; comment?: string }>
+  >([]);
+  const [extractDialogOpen, setExtractDialogOpen] = useState(false);
+
+  const handleExtractTasks = useCallback(async () => {
+    const text = blocks
+      .filter((b) => b.type !== "divider" && b.content.trim())
+      .map((b) => {
+        const prefix =
+          b.type === "heading1"
+            ? "## "
+            : b.type === "heading2"
+              ? "### "
+              : b.type === "heading3"
+                ? "#### "
+                : b.type === "bulletList"
+                  ? "- "
+                  : b.type === "numberedList"
+                    ? "1. "
+                    : b.type === "todo"
+                      ? `[${b.checked ? "x" : " "}] `
+                      : "";
+        return prefix + b.content;
+      })
+      .join("\n");
+
+    if (!text.trim()) {
+      toast("Нет текста для анализа");
+      return;
+    }
+
+    setExtracting(true);
+    try {
+      const res = await fetch("/api/notes/extract-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!res.ok) {
+        toast.error("Ошибка AI-анализа");
+        return;
+      }
+
+      const data = await res.json();
+      if (!data.tasks?.length) {
+        toast("Не найдено задач в тексте");
+        return;
+      }
+
+      setExtractedTasks(data.tasks);
+      setExtractDialogOpen(true);
+    } catch {
+      toast.error("Ошибка AI-анализа");
+    } finally {
+      setExtracting(false);
+    }
+  }, [blocks]);
+
   return (
     <div ref={editorRef} className="flex flex-col h-full">
+      {/* Mode toggle */}
+      <div className="flex items-center justify-between px-4 py-1.5 border-b border-border/10 shrink-0">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setCanvasMode(false)}
+            className={cn(
+              "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md transition-colors",
+              !canvasMode
+                ? "bg-primary/10 text-primary font-medium"
+                : "text-muted-foreground/50 hover:text-foreground hover:bg-muted/30",
+            )}
+            title="Режим текста"
+          >
+            <AlignLeft className="h-3.5 w-3.5" />
+            Текст
+          </button>
+          <button
+            onClick={() => setCanvasMode(true)}
+            className={cn(
+              "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md transition-colors",
+              canvasMode
+                ? "bg-primary/10 text-primary font-medium"
+                : "text-muted-foreground/50 hover:text-foreground hover:bg-muted/30",
+            )}
+            title="Режим канваса"
+          >
+            <LayoutDashboard className="h-3.5 w-3.5" />
+            Канвас
+          </button>
+        </div>
+      </div>
+
+      {canvasMode && onCanvasStateChange && uid && noteId ? (
+        <CanvasView
+          blocks={blocks}
+          canvasState={canvasState ?? null}
+          onCanvasStateChange={onCanvasStateChange}
+          uid={uid}
+          noteId={noteId}
+        />
+      ) : canvasMode ? null : (
+        <>
       <div className="flex-1 overflow-y-auto px-8 py-6 space-y-1 scrollbar-none min-h-0">
         <input
           value={noteTitle}
@@ -629,30 +777,294 @@ export function BlockEditor({
       )}
 
       <div className="border-t border-border/20 px-8 py-3 shrink-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          {noteTags.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-xs px-2.5 py-0.5"
-            >
-              #{tag}
-              <button onClick={() => removeTag(tag)} className="hover:text-destructive transition-colors">
-                ×
+        <div className="flex items-center gap-4 flex-wrap">
+          {/* AI Extract */}
+          <button
+            onClick={handleExtractTasks}
+            disabled={extracting}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/30 px-2 py-1 rounded-md transition-colors disabled:opacity-50"
+            title="Извлечь задачи из текста"
+          >
+            {extracting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            Извлечь задачи
+          </button>
+          <span className="w-px h-5 bg-border/30 mx-1" />
+          {/* Schedule */}
+          {onScheduleChange && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Calendar className="h-3.5 w-3.5" />
+              <input
+                type="date"
+                value={toDateInputValue(scheduledDate)}
+                onChange={(e) =>
+                  onScheduleChange(
+                    e.target.value || null,
+                    scheduledTime ?? null,
+                    recurringInterval ?? null,
+                  )
+                }
+                className="bg-transparent border border-border/30 rounded-md px-2 py-1 text-xs text-foreground outline-none w-[140px]"
+              />
+              <Clock className="h-3.5 w-3.5" />
+              <input
+                type="time"
+                value={scheduledTime ?? "09:00"}
+                onChange={(e) =>
+                  onScheduleChange(
+                    scheduledDate ?? null,
+                    e.target.value || null,
+                    recurringInterval ?? null,
+                  )
+                }
+                className="bg-transparent border border-border/30 rounded-md px-2 py-1 text-xs text-foreground outline-none w-[100px]"
+              />
+              <button
+                onClick={() => {
+                  if (scheduledDate || scheduledTime) {
+                    onScheduleChange(null, null, null);
+                  }
+                }}
+                className="text-muted-foreground/50 hover:text-destructive transition-colors text-xs"
+                title="Сбросить расписание"
+              >
+                {scheduledDate || scheduledTime ? "×" : null}
               </button>
-            </span>
+              <Repeat className="h-3.5 w-3.5 ml-1" />
+              <select
+                value={recurringInterval ?? ""}
+                onChange={(e) =>
+                  onScheduleChange(
+                    scheduledDate ?? null,
+                    scheduledTime ?? null,
+                    e.target.value || null,
+                  )
+                }
+                className="bg-transparent border border-border/30 rounded-md px-2 py-1 text-xs text-foreground outline-none"
+              >
+                <option value="">Нет</option>
+                <option value="daily">Ежедневно</option>
+                <option value="weekly">Еженедельно</option>
+                <option value="monthly">Ежемесячно</option>
+              </select>
+            </div>
+          )}
+          <span className="w-px h-5 bg-border/30 mx-1" />
+          {/* Tags */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {noteTags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-xs px-2.5 py-0.5"
+              >
+                #{tag}
+                <button onClick={() => removeTag(tag)} className="hover:text-destructive transition-colors">
+                  ×
+                </button>
+              </span>
+            ))}
+            <input
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && tagInput.trim()) {
+                  e.preventDefault();
+                  handleAddTag(tagInput);
+                }
+              }}
+              placeholder={noteTags.length === 0 ? "Добавить тег..." : ""}
+              className="bg-transparent border-none outline-none text-xs text-muted-foreground placeholder:text-muted-foreground/30 min-w-[80px]"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Backlinks */}
+      {linkedNoteIds && linkedNoteIds.length > 0 && noteTitles && (
+        <div className="px-8 py-2 border-t border-border/10 shrink-0">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
+            <span className="font-medium">Связанные заметки:</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {linkedNoteIds.map((id) => (
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1 rounded-md bg-primary/5 text-primary text-xs px-2 py-0.5"
+                >
+                  {noteTitles[id] || "—"}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+        </>
+      )}
+
+      {/* Extract tasks dialog */}
+      {extractDialogOpen && extractedTasks.length > 0 && (
+        <ExtractTasksDialog
+          tasks={extractedTasks}
+          uid={uid ?? ""}
+          onClose={() => setExtractDialogOpen(false)}
+          onTaskCreated={() => {
+            setExtractDialogOpen(false);
+            toast.success("Задачи созданы");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ExtractTasksDialog({
+  tasks,
+  uid,
+  onClose,
+  onTaskCreated,
+}: {
+  tasks: Array<{ title: string; priority?: string; date?: string; comment?: string }>;
+  uid: string;
+  onClose: () => void;
+  onTaskCreated: () => void;
+}) {
+  const [selected, setSelected] = useState<Set<number>>(
+    new Set(tasks.map((_, i) => i)),
+  );
+  const [creating, setCreating] = useState(false);
+
+  const toggle = (i: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  };
+
+  const createAll = async () => {
+    if (!uid) return;
+    setCreating(true);
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    const defaultDate = `${y}-${m}-${d}`;
+
+    let created = 0;
+    for (const i of selected) {
+      const t = tasks[i];
+      if (!t?.title?.trim()) continue;
+
+      try {
+        const res = await fetch("/api/personal-tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: t.title.trim(),
+            date: t.date || defaultDate,
+            startTime: "09:00",
+            endTime: "10:00",
+            priority: t.priority || "medium",
+            comment: t.comment?.trim() || undefined,
+            ownerId: uid,
+          }),
+        });
+
+        if (res.ok) created++;
+      } catch {
+        // silent
+      }
+    }
+
+    setCreating(false);
+    if (created > 0) {
+      onTaskCreated();
+    } else {
+      toast.error("Не удалось создать задачи");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 animate-in fade-in duration-200">
+      <div className="bg-popover rounded-xl border border-border/60 shadow-2xl w-full max-w-md mx-4 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="px-5 py-4 border-b border-border/20">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Извлечённые задачи
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Выберите задачи для добавления в планировщик
+          </p>
+        </div>
+        <div className="px-5 py-3 max-h-60 overflow-y-auto space-y-1.5">
+          {tasks.map((t, i) => (
+            <label
+              key={i}
+              className="flex items-start gap-2.5 py-1.5 px-2 rounded-lg hover:bg-muted/30 cursor-pointer transition-colors"
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(i)}
+                onChange={() => toggle(i)}
+                className="h-4 w-4 rounded border-border accent-primary shrink-0 mt-0.5"
+              />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium">{t.title}</span>
+                {t.comment && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    {t.comment}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 mt-0.5">
+                  {t.priority && (
+                    <span
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded-full",
+                        t.priority === "high"
+                          ? "bg-rose-500/10 text-rose-500"
+                          : t.priority === "medium"
+                            ? "bg-amber-500/10 text-amber-500"
+                            : "bg-sky-500/10 text-sky-500",
+                      )}
+                    >
+                      {t.priority === "high"
+                        ? "Высокий"
+                        : t.priority === "medium"
+                          ? "Средний"
+                          : "Низкий"}
+                    </span>
+                  )}
+                  {t.date && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {t.date}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </label>
           ))}
-          <input
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && tagInput.trim()) {
-                e.preventDefault();
-                handleAddTag(tagInput);
-              }
-            }}
-            placeholder={noteTags.length === 0 ? "Добавить тег..." : ""}
-            className="bg-transparent border-none outline-none text-xs text-muted-foreground placeholder:text-muted-foreground/30 min-w-[80px]"
-          />
+        </div>
+        <div className="px-5 py-3 border-t border-border/20 flex items-center justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 text-xs rounded-lg hover:bg-muted/50 transition-colors"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={createAll}
+            disabled={creating || selected.size === 0}
+            className="px-3 py-1.5 text-xs rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+          >
+            {creating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              `Создать (${selected.size})`
+            )}
+          </button>
         </div>
       </div>
     </div>

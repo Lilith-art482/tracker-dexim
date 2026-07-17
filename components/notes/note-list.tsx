@@ -9,6 +9,8 @@ import {
   Tag,
   Clock,
   Loader2,
+  Calendar,
+  Repeat,
 } from "lucide-react";
 import type { Note } from "@/lib/models";
 import { cn } from "@/lib/utils";
@@ -196,6 +198,16 @@ export function NoteList({
                     </button>
                   </div>
                   <div className="flex items-center gap-2 mt-1.5">
+                    {note.scheduledDate && (
+                      <span className="text-[10px] text-primary/60 flex items-center gap-1" title={`Запланирована на ${note.scheduledDate} ${note.scheduledTime || ""}`}>
+                        {note.recurringInterval ? (
+                          <Repeat className="h-2.5 w-2.5" />
+                        ) : (
+                          <Calendar className="h-2.5 w-2.5" />
+                        )}
+                        {note.scheduledTime || note.scheduledDate}
+                      </span>
+                    )}
                     <span className="text-[10px] text-muted-foreground/40 flex items-center gap-1">
                       <Clock className="h-2.5 w-2.5" />
                       {humanTime(note.updatedAt)}
