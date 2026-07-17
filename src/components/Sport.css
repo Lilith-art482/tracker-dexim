@@ -1,0 +1,225 @@
+.sport {
+  padding: 0.5rem;
+}
+
+.sport-date {
+  margin: 1rem 0;
+}
+
+.sport-date input {
+  padding: 8px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.3);
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #5a4a6b;
+  outline: none;
+}
+
+.sport-date input:focus {
+  border-color: #CFBAE1;
+}
+
+.sport-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.sport-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.sport-stat-icon {
+  font-size: 1.5rem;
+}
+
+.sport-stat-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #8a7a9b;
+}
+
+.sport-stat-value {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #5a4a6b;
+}
+
+.sport-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.sport-subtitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #5a4a6b;
+}
+
+.sport-add-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, #FDE2E4, #CFBAE1);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(207, 186, 225, 0.3);
+  flex-shrink: 0;
+}
+
+.workout-form {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+.workout-input {
+  padding: 10px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.3);
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #5a4a6b;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.workout-input:focus {
+  border-color: #CFBAE1;
+}
+
+.workout-form-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.workout-submit {
+  padding: 10px;
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(135deg, #B5EAD7, #7ec8a0);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.workout-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.workout-empty {
+  text-align: center;
+  color: #b8a8c8;
+  font-size: 0.9rem;
+  padding: 2rem 0;
+}
+
+.workout-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s;
+}
+
+.workout-item:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.workout-icon {
+  font-size: 1.3rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+}
+
+.workout-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.workout-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #3a2a4b;
+}
+
+.workout-meta {
+  font-size: 0.7rem;
+  color: #a89bc0;
+}
+
+.workout-duration {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #5a4a6b;
+}
+
+.workout-cal {
+  font-size: 0.75rem;
+  color: #8a7a9b;
+  font-weight: 500;
+}
+
+.workout-delete {
+  background: none;
+  border: none;
+  color: #d4b8c8;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  padding: 4px;
+}
+
+.workout-item:hover .workout-delete {
+  opacity: 1;
+}
+
+@media (max-width: 480px) {
+  .sport-summary {
+    grid-template-columns: 1fr;
+  }
+  .workout-form-row {
+    flex-direction: column;
+  }
+}

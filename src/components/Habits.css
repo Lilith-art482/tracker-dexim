@@ -1,0 +1,236 @@
+.habits {
+  padding: 0.5rem;
+}
+
+.habits-header {
+  margin: 1rem 0;
+}
+
+.habit-add-btn {
+  padding: 10px 20px;
+  border-radius: 60px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, #CFBAE1, #B5EAD7);
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(207, 186, 225, 0.3);
+}
+
+.habit-form {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.habit-input {
+  padding: 10px 16px;
+  border-radius: 60px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.3);
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #5a4a6b;
+  outline: none;
+}
+
+.habit-input:focus {
+  border-color: #CFBAE1;
+}
+
+.habit-color-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.color-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.color-dot.selected {
+  border-color: #5a4a6b;
+  transform: scale(1.15);
+}
+
+.habit-submit {
+  padding: 10px;
+  border-radius: 60px;
+  border: none;
+  background: linear-gradient(135deg, #CFBAE1, #B5EAD7);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.crystal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 480px) {
+  .crystal-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.crystal {
+  position: relative;
+  border-radius: 20px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s;
+  overflow: hidden;
+}
+
+.crystal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: linear-gradient(135deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 30%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+.crystal.glowing {
+  animation: crystalGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes crystalGlow {
+  0% {
+    box-shadow: 0 0 20px var(--crystal-color, #CFBAE1)66,
+                0 0 40px var(--crystal-color, #CFBAE1)33;
+  }
+  100% {
+    box-shadow: 0 0 35px var(--crystal-color, #CFBAE1)99,
+                0 0 70px var(--crystal-color, #CFBAE1)44;
+  }
+}
+
+.crystal-face {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.crystal-face::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    135deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 60%
+  );
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { transform: translateX(-100%) rotate(25deg); }
+  50% { transform: translateX(100%) rotate(25deg); }
+}
+
+.crystal-icon {
+  font-size: 1.5rem;
+}
+
+.crystal-name {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #5a4a6b;
+  text-align: center;
+}
+
+.crystal-streak {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.streak-icon {
+  font-size: 1rem;
+}
+
+.streak-count {
+  font-weight: 700;
+  color: #5a4a6b;
+  font-size: 0.85rem;
+}
+
+.crystal-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.3);
+  color: #c8a8b8;
+  font-size: 0.7rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crystal:hover .crystal-delete {
+  opacity: 1;
+}
+
+.habits-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #b8a8c8;
+  gap: 0.5rem;
+}
