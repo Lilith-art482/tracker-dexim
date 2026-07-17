@@ -47,6 +47,7 @@ export const createPersonalTaskSchema = z.object({
   comment: z.string().max(2000).optional(),
   ownerId: z.string().min(1).optional(),
   boardId: z.string().min(1).optional(),
+  sourceNoteId: z.string().nullable().optional(),
 });
 
 export const updatePersonalTaskSchema = z.object({
@@ -68,6 +69,7 @@ export const updatePersonalTaskSchema = z.object({
   completed: z.boolean().optional(),
   comment: z.string().max(2000).optional(),
   boardId: z.string().min(1).optional(),
+  sourceNoteId: z.string().nullable().optional(),
 });
 
 export type CreatePersonalTaskInput = z.infer<typeof createPersonalTaskSchema>;

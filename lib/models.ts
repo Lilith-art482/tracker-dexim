@@ -72,6 +72,7 @@ export interface PersonalTask {
   updatedAt: string;
   ownerId?: string;
   boardId?: string;
+  sourceNoteId?: string | null;
 }
 
 export interface Service {
@@ -531,6 +532,7 @@ export async function updatePersonalTask(
       | "completed"
       | "comment"
       | "boardId"
+      | "sourceNoteId"
     >
   >,
 ): Promise<PersonalTask> {
@@ -571,6 +573,17 @@ export async function cleanupExpiredPersonalTasks(): Promise<number> {
   return deleted;
 }
 
+export interface CanvasConnection {
+  fromBlockId: string;
+  toBlockId: string;
+  type: "arrow" | "dashed";
+}
+
+export interface CanvasState {
+  positions: Record<string, { x: number; y: number }>;
+  connections: CanvasConnection[];
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -585,6 +598,11 @@ export interface Note {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  scheduledDate?: string | null;
+  scheduledTime?: string | null;
+  recurringInterval?: string | null;
+  linkedNoteIds?: string[];
+  canvasState?: CanvasState | null;
 }
 
 export async function getAllNotes(userId: string): Promise<Note[]> {
@@ -609,17 +627,56 @@ export async function getNoteById(
   return { ...data, id: doc.id } as Note;
 }
 
+function extractLinkedTitles(text: string): string[] {
+  const matches = text.match(/\[\[([^\]]+)\]\]/g);
+  if (!matches) return [];
+  return matches.map((m) => m.slice(2, -2).trim().toLowerCase());
+}
+
+function computeLinkedNoteIds(
+  blocks: Note["blocks"],
+  allNotes: Note[],
+): string[] {
+  const linkedTitles = new Set<string>();
+  for (const block of blocks) {
+    for (const title of extractLinkedTitles(block.content)) {
+      linkedTitles.add(title);
+    }
+  }
+  if (linkedTitles.size === 0) return [];
+  return allNotes
+    .filter((n) => linkedTitles.has(n.title.trim().toLowerCase()))
+    .map((n) => n.id);
+}
+
 export async function createNote(
   userId: string,
-  data: { title: string; blocks: Note["blocks"]; tags: string[] },
+  data: {
+    title: string;
+    blocks: Note["blocks"];
+    tags: string[];
+    scheduledDate?: string | null;
+    scheduledTime?: string | null;
+    recurringInterval?: string | null;
+    canvasState?: CanvasState | null;
+  },
 ): Promise<Note> {
   const db = getAdminDb();
   const now = new Date().toISOString();
   const ref = db.collection("notes").doc();
+
+  const allNotes = await getAllNotes(userId);
+  const linkedNoteIds = computeLinkedNoteIds(data.blocks, allNotes);
+
   const note: Omit<Note, "id"> = {
     title: data.title,
     blocks: data.blocks,
     tags: data.tags,
+    scheduledDate: data.scheduledDate ?? null,
+    scheduledTime: data.scheduledTime ?? null,
+    recurringInterval: data.recurringInterval ?? null,
+    linkedNoteIds,
+    canvasState: data.canvasState ?? null,
     userId,
     createdAt: now,
     updatedAt: now,
@@ -631,7 +688,15 @@ export async function createNote(
 export async function updateNote(
   userId: string,
   noteId: string,
-  data: Partial<{ title: string; blocks: Note["blocks"]; tags: string[] }>,
+  data: Partial<{
+    title: string;
+    blocks: Note["blocks"];
+    tags: string[];
+    scheduledDate: string | null;
+    scheduledTime: string | null;
+    recurringInterval: string | null;
+    canvasState: CanvasState | null;
+  }>,
 ): Promise<Note | null> {
   const db = getAdminDb();
   const doc = await db.collection("notes").doc(noteId).get();
@@ -640,8 +705,16 @@ export async function updateNote(
   if (existing.userId !== userId) return null;
   const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
   if (data.title !== undefined) updates.title = data.title;
-  if (data.blocks !== undefined) updates.blocks = data.blocks;
+  if (data.blocks !== undefined) {
+    updates.blocks = data.blocks;
+    const allNotes = await getAllNotes(userId);
+    updates.linkedNoteIds = computeLinkedNoteIds(data.blocks, allNotes);
+  }
   if (data.tags !== undefined) updates.tags = data.tags;
+  if (data.scheduledDate !== undefined) updates.scheduledDate = data.scheduledDate;
+  if (data.scheduledTime !== undefined) updates.scheduledTime = data.scheduledTime;
+  if (data.recurringInterval !== undefined) updates.recurringInterval = data.recurringInterval;
+  if (data.canvasState !== undefined) updates.canvasState = data.canvasState;
   await doc.ref.update(updates);
   return { ...existing, ...updates, id: doc.id } as Note;
 }

@@ -440,6 +440,11 @@ export const mockNotes: Note[] = [
     userId: "user-1",
     createdAt: new Date("2026-07-10").toISOString(),
     updatedAt: new Date("2026-07-14").toISOString(),
+    scheduledDate: null,
+    scheduledTime: null,
+    recurringInterval: null,
+    linkedNoteIds: [],
+    canvasState: null,
   },
   {
     id: "note-2",
@@ -456,6 +461,11 @@ export const mockNotes: Note[] = [
     userId: "user-1",
     createdAt: new Date("2026-07-08").toISOString(),
     updatedAt: new Date("2026-07-12").toISOString(),
+    scheduledDate: "2026-07-17",
+    scheduledTime: "09:00",
+    recurringInterval: null,
+    linkedNoteIds: ["note-1"],
+    canvasState: null,
   },
   {
     id: "note-3",
@@ -473,6 +483,11 @@ export const mockNotes: Note[] = [
     userId: "user-1",
     createdAt: new Date("2026-07-05").toISOString(),
     updatedAt: new Date("2026-07-11").toISOString(),
+    scheduledDate: null,
+    scheduledTime: null,
+    recurringInterval: "weekly",
+    linkedNoteIds: [],
+    canvasState: null,
   },
 ];
 
