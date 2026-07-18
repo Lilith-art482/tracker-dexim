@@ -53,7 +53,6 @@ const NAV_ITEMS = [
   { id: "finance", label: "Финансы", icon: DollarSign },
   { id: "habits", label: "Привычки", icon: ListChecks },
   { id: "sport", label: "Спорт и Питание", icon: Dumbbell },
-  { id: "notes", label: "Заметки", icon: FileText },
   { id: "divider", label: "", icon: null },
   { id: "blog", label: "Блог", icon: Newspaper },
 ] as const;
