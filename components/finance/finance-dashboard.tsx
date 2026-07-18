@@ -319,8 +319,18 @@ export function FinanceDashboard() {
   }, [transactions]);
 
   const MONTH_NAMES = [
-    "Январь","Февраль","Март","Апрель","Май","Июнь",
-    "Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь",
+    "Январь",
+    "Февраль",
+    "Март",
+    "Апрель",
+    "Май",
+    "Июнь",
+    "Июль",
+    "Август",
+    "Сентябрь",
+    "Октябрь",
+    "Ноябрь",
+    "Декабрь",
   ];
   const CHART_LEFT = 50;
   const CHART_RIGHT = 780;
@@ -434,7 +444,8 @@ export function FinanceDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <BarChart3 className="h-4 w-4 text-emerald-500" />
-              Динамика за {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()} г.
+              Динамика за {MONTH_NAMES[new Date().getMonth()]}{" "}
+              {new Date().getFullYear()} г.
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -485,15 +496,10 @@ export function FinanceDashboard() {
                       </g>
                     );
                   })}
-                  {Array.from(
-                    { length: dailyChartData.days },
-                    (_, i) => i + 1,
-                  )
+                  {Array.from({ length: dailyChartData.days }, (_, i) => i + 1)
                     .filter(
                       (d) =>
-                        d === 1 ||
-                        d === dailyChartData.days ||
-                        d % 5 === 0,
+                        d === 1 || d === dailyChartData.days || d % 5 === 0,
                     )
                     .map((d) => {
                       const x =
@@ -557,7 +563,8 @@ export function FinanceDashboard() {
                       />
                       {(["income", "expense"] as const).map((type) => {
                         const dayData = dailyChartData.data[hoveredDay - 1];
-                        const val = type === "income" ? dayData.income : dayData.expense;
+                        const val =
+                          type === "income" ? dayData.income : dayData.expense;
                         if (!val) return null;
                         const y =
                           CHART_TOP +
@@ -569,7 +576,14 @@ export function FinanceDashboard() {
                             CHART_W;
                         return (
                           <g key={type}>
-                            <circle cx={x} cy={y} r="4" fill={type === "income" ? "#22c55e" : "#f43f5e"} stroke="white" strokeWidth="2" />
+                            <circle
+                              cx={x}
+                              cy={y}
+                              r="4"
+                              fill={type === "income" ? "#22c55e" : "#f43f5e"}
+                              stroke="white"
+                              strokeWidth="2"
+                            />
                             <rect
                               x={type === "income" ? x + 8 : x - 80}
                               y={y - 14}
@@ -586,7 +600,8 @@ export function FinanceDashboard() {
                               fontSize="11"
                               fontWeight="600"
                             >
-                              {type === "income" ? "Доход" : "Расход"}: {val.toLocaleString()} ₽
+                              {type === "income" ? "Доход" : "Расход"}:{" "}
+                              {val.toLocaleString()} ₽
                             </text>
                           </g>
                         );
@@ -674,10 +689,12 @@ export function FinanceDashboard() {
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             <div
                               className="h-2.5 w-2.5 rounded-full shrink-0 ring-2 ring-offset-1"
-                              style={{
-                                backgroundColor: cat.color,
-                                "--tw-ring-color": cat.color,
-                              } as React.CSSProperties}
+                              style={
+                                {
+                                  backgroundColor: cat.color,
+                                  "--tw-ring-color": cat.color,
+                                } as React.CSSProperties
+                              }
                             />
                             <span className="truncate font-medium">
                               {cat.name}
@@ -757,10 +774,12 @@ export function FinanceDashboard() {
                             <td className="px-3 py-2.5">
                               <div
                                 className="h-2.5 w-2.5 rounded-full ring-2 ring-offset-1"
-                                style={{
-                                  backgroundColor: cat.color,
-                                  "--tw-ring-color": cat.color,
-                                } as React.CSSProperties}
+                                style={
+                                  {
+                                    backgroundColor: cat.color,
+                                    "--tw-ring-color": cat.color,
+                                  } as React.CSSProperties
+                                }
                               />
                             </td>
                             <td className="px-3 py-2.5 font-medium">

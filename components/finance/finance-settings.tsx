@@ -7,7 +7,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  TrendingUp,
   Loader2,
   Download,
   Upload,
@@ -65,14 +64,9 @@ import {
   Target,
   Shield,
   ChevronDown,
-  ChevronRight,
   EyeOff,
-  CreditCard,
-  Coins,
-  Bitcoin,
   Check,
   Search,
-  X,
 } from "lucide-react";
 import type { TransactionCategory, FinanceAccount } from "@/lib/finance-types";
 import { CURRENCIES } from "@/lib/finance-types";
@@ -906,23 +900,72 @@ const getCategoryGroup = (catName: string) => {
 
 const FIAT_CURRENCIES = CURRENCIES.filter((c) => c.type === "fiat");
 
-const COUNTRY_FLAGS: Record<string, string> = {
-  RUB: "🇷🇺", USD: "🇺🇸", EUR: "🇪🇺", CNY: "🇨🇳", GBP: "🇬🇧",
-  JPY: "🇯🇵", KZT: "🇰🇿", BYN: "🇧🇾", UAH: "🇺🇦", AMD: "🇦🇲",
-  GEL: "🇬🇪", AZN: "🇦🇿", KGS: "🇰🇬", TJS: "🇹🇯", TRY: "🇹🇷",
-  AED: "🇦🇪", THB: "🇹🇭", VND: "🇻🇳", IDR: "🇮🇩", KRW: "🇰🇷",
-  INR: "🇮🇳", BRL: "🇧🇷", MXN: "🇲🇽", ZAR: "🇿🇦", CHF: "🇨🇭",
-  SEK: "🇸🇪", NOK: "🇳🇴", DKK: "🇩🇰", PLN: "🇵🇱", CZK: "🇨🇿",
-  HUF: "🇭🇺", RON: "🇷🇴", BGN: "🇧🇬", ISK: "🇮🇸",
-};
+const CURRENCY_ORDER = [
+  "RUB", "USD", "EUR", "CNY", "GBP", "JPY",
+  "KZT", "BYN", "UAH",
+  "TRY", "AED", "THB", "CHF", "KRW", "INR",
+  "AUD", "CAD", "SGD", "HKD", "NZD",
+  "PLN", "CZK", "HUF", "RON", "BGN", "RSD", "MDL",
+  "SEK", "NOK", "DKK", "ISK",
+  "AMD", "GEL", "AZN", "KGS", "TJS", "UZS", "TMT", "MNT",
+  "ILS", "SAR", "EGP",
+  "VND", "IDR", "MXN", "BRL", "ZAR",
+  "NGN", "ARS", "CLP", "COP", "PEN",
+];
 
-const ACCOUNT_TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType }> = {
-  cash: { label: "Наличные", icon: Coins },
-  card: { label: "Карта", icon: CreditCard },
-  crypto: { label: "Криптовалюта", icon: Bitcoin },
-  investment: { label: "Инвестиции", icon: TrendingUp },
-  savings: { label: "Сбережения", icon: PiggyBank },
-  deposit: { label: "Вклад", icon: Building2 },
+const COUNTRY_FLAGS: Record<string, string> = {
+  RUB: "🇷🇺",
+  USD: "🇺🇸",
+  EUR: "🇪🇺",
+  CNY: "🇨🇳",
+  GBP: "🇬🇧",
+  JPY: "🇯🇵",
+  KZT: "🇰🇿",
+  BYN: "🇧🇾",
+  UAH: "🇺🇦",
+  AMD: "🇦🇲",
+  GEL: "🇬🇪",
+  AZN: "🇦🇿",
+  KGS: "🇰🇬",
+  TJS: "🇹🇯",
+  TRY: "🇹🇷",
+  AED: "🇦🇪",
+  THB: "🇹🇭",
+  VND: "🇻🇳",
+  IDR: "🇮🇩",
+  KRW: "🇰🇷",
+  INR: "🇮🇳",
+  BRL: "🇧🇷",
+  MXN: "🇲🇽",
+  ZAR: "🇿🇦",
+  CHF: "🇨🇭",
+  SEK: "🇸🇪",
+  NOK: "🇳🇴",
+  DKK: "🇩🇰",
+  PLN: "🇵🇱",
+  CZK: "🇨🇿",
+  HUF: "🇭🇺",
+  RON: "🇷🇴",
+  BGN: "🇧🇬",
+  ISK: "🇮🇸",
+  RSD: "🇷🇸",
+  MDL: "🇲🇩",
+  UZS: "🇺🇿",
+  TMT: "🇹🇲",
+  MNT: "🇲🇳",
+  ILS: "🇮🇱",
+  SAR: "🇸🇦",
+  EGP: "🇪🇬",
+  NGN: "🇳🇬",
+  ARS: "🇦🇷",
+  CLP: "🇨🇱",
+  COP: "🇨🇴",
+  PEN: "🇵🇪",
+  AUD: "🇦🇺",
+  CAD: "🇨🇦",
+  SGD: "🇸🇬",
+  HKD: "🇭🇰",
+  NZD: "🇳🇿",
 };
 
 function CurrencyPickerDialog({
@@ -937,23 +980,65 @@ function CurrencyPickerDialog({
   onChange: (v: string) => void;
 }) {
   const [search, setSearch] = useState("");
-  const filtered = useMemo(
-    () =>
-      FIAT_CURRENCIES.filter(
-        (c) =>
-          c.code.toLowerCase().includes(search.toLowerCase()) ||
-          c.label.toLowerCase().includes(search.toLowerCase()),
-      ),
-    [search],
-  );
+  const sorted = useMemo(() => {
+    const orderMap = new Map(CURRENCY_ORDER.map((code, i) => [code, i]));
+    return FIAT_CURRENCIES.filter(
+      (c) =>
+        !search ||
+        c.code.toLowerCase().includes(search.toLowerCase()) ||
+        c.label.toLowerCase().includes(search.toLowerCase()),
+    ).sort((a, b) => {
+      const ai = orderMap.get(a.code);
+      const bi = orderMap.get(b.code);
+      if (ai !== undefined && bi !== undefined) return ai - bi;
+      if (ai !== undefined) return -1;
+      if (bi !== undefined) return 1;
+      return a.code.localeCompare(b.code);
+    });
+  }, [search]);
+
+  const renderCurrency = (c: (typeof FIAT_CURRENCIES)[number]) => {
+    const isSelected = value === c.code;
+    return (
+      <button
+        key={c.code}
+        className={cn(
+          "flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all hover:bg-muted/50",
+          isSelected
+            ? "border-primary bg-primary/5"
+            : "border-transparent bg-muted/30",
+        )}
+        onClick={() => {
+          onChange(c.code);
+          onOpenChange(false);
+        }}
+      >
+        <span className="text-3xl leading-none shrink-0">
+          {COUNTRY_FLAGS[c.code] || "🏳️"}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="font-semibold text-sm">{c.code}</span>
+            <span className="text-sm text-muted-foreground">{c.symbol}</span>
+            {isSelected && (
+              <Check className="h-3.5 w-3.5 text-primary ml-auto shrink-0" />
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground leading-tight mt-0.5">
+            {c.label}
+          </p>
+        </div>
+      </button>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Выберите валюту</DialogTitle>
         </DialogHeader>
-        <div className="relative mb-3">
+        <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-9"
@@ -962,132 +1047,13 @@ function CurrencyPickerDialog({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[360px] overflow-y-auto pr-1">
-          {filtered.map((c) => {
-            const isSelected = value === c.code;
-            return (
-              <button
-                key={c.code}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all hover:bg-muted/50",
-                  isSelected
-                    ? "border-primary bg-primary/5"
-                    : "border-transparent bg-muted/30",
-                )}
-                onClick={() => {
-                  onChange(c.code);
-                  onOpenChange(false);
-                }}
-              >
-                <span className="text-2xl leading-none">
-                  {COUNTRY_FLAGS[c.code] || "🏳️"}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-sm">{c.code}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {c.symbol}
-                    </span>
-                    {isSelected && (
-                      <Check className="h-3.5 w-3.5 text-primary ml-auto shrink-0" />
-                    )}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {c.label}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function AccountPickerDialog({
-  open,
-  onOpenChange,
-  value,
-  accounts,
-  onChange,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  value: string;
-  accounts: FinanceAccount[];
-  onChange: (v: string) => void;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Выберите счёт по умолчанию</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-          <button
-            className={cn(
-              "flex items-center gap-3 rounded-xl border-2 p-3 w-full text-left transition-all hover:bg-muted/50",
-              !value
-                ? "border-primary bg-primary/5"
-                : "border-transparent bg-muted/30",
-            )}
-            onClick={() => {
-              onChange("");
-              onOpenChange(false);
-            }}
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted shrink-0">
-              <X className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-medium text-sm">Не выбран</p>
-              <p className="text-[11px] text-muted-foreground">
-                Все операции без счёта по умолчанию
-              </p>
-            </div>
-            {!value && (
-              <Check className="h-4 w-4 text-primary shrink-0" />
-            )}
-          </button>
-          {accounts.map((a) => {
-            const isSelected = value === a.id;
-            const cfg = ACCOUNT_TYPE_CONFIG[a.type] || ACCOUNT_TYPE_CONFIG.card;
-            const Icon = cfg.icon;
-            return (
-              <button
-                key={a.id}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl border-2 p-3 w-full text-left transition-all hover:bg-muted/50",
-                  isSelected
-                    ? "border-primary bg-primary/5"
-                    : "border-transparent bg-muted/30",
-                )}
-                onClick={() => {
-                  onChange(a.id);
-                  onOpenChange(false);
-                }}
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 shrink-0">
-                  <Icon className="h-4 w-4 text-blue-600" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm truncate">{a.name}</p>
-                    {isSelected && (
-                      <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                    )}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    {cfg.label} · {a.balance.toLocaleString()} ₽
-                  </p>
-                </div>
-                <span className="font-semibold text-sm tabular-nums shrink-0">
-                  {a.balance.toLocaleString()} ₽
-                </span>
-              </button>
-            );
-          })}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[520px] overflow-y-auto pr-1">
+          {sorted.map(renderCurrency)}
+          {sorted.length === 0 && (
+            <p className="text-sm text-muted-foreground col-span-full text-center py-4">
+              Ничего не найдено
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -1105,12 +1071,8 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
   const [showDialog, setShowDialog] = useState(false);
   const [showHideDialog, setShowHideDialog] = useState(false);
   const [showCurrencyDialog, setShowCurrencyDialog] = useState(false);
-  const [showAccountDialog, setShowAccountDialog] = useState(false);
   const [editingCat, setEditingCat] = useState<TransactionCategory | null>(
     null,
-  );
-  const [defaultAccount, setDefaultAccount] = useState(
-    () => localStorage.getItem("finance_default_account") || "",
   );
   const [currency, setCurrency] = useState(
     () => localStorage.getItem("finance_currency") || "RUB",
@@ -1135,12 +1097,6 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
     setCurrency(val);
     localStorage.setItem("finance_currency", val);
     toast.success("Валюта сохранена");
-  }, []);
-
-  const saveDefaultAccount = useCallback((val: string) => {
-    setDefaultAccount(val);
-    localStorage.setItem("finance_default_account", val);
-    toast.success("Счёт по умолчанию сохранён");
   }, []);
 
   const handleSaveCategory = useCallback(async () => {
@@ -1209,11 +1165,7 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
   }, []);
 
   const exportAll = useCallback(() => {
-    const data = JSON.stringify(
-      { categories, accounts, currency, defaultAccount },
-      null,
-      2,
-    );
+    const data = JSON.stringify({ categories, accounts, currency }, null, 2);
     const blob = new Blob([data], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1222,7 +1174,7 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Экспорт завершён");
-  }, [categories, accounts, currency, defaultAccount]);
+  }, [categories, accounts, currency]);
 
   const importAll = useCallback(() => {
     const input = document.createElement("input");
@@ -1236,24 +1188,21 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
         const data = JSON.parse(text);
         if (data.categories) setCategories(data.categories);
         if (data.currency) saveCurrency(data.currency);
-        if (data.defaultAccount) saveDefaultAccount(data.defaultAccount);
         toast.success("Данные импортированы");
       } catch {
         toast.error("Ошибка при импорте");
       }
     };
     input.click();
-  }, [saveCurrency, saveDefaultAccount]);
+  }, [saveCurrency]);
 
   const resetAll = useCallback(() => {
     toast("Сбросить все данные?", {
       action: {
         label: "Сбросить",
         onClick: () => {
-          localStorage.removeItem("finance_default_account");
           localStorage.removeItem("finance_currency");
           setCategories([]);
-          setDefaultAccount("");
           setCurrency("RUB");
           toast.success("Данные сброшены");
         },
@@ -1308,50 +1257,6 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
                   {FIAT_CURRENCIES.find((c) => c.code === currency)?.label}
                 </p>
               </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-            </button>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-            <label className="text-sm font-medium sm:w-36">
-              Счёт по умолчанию
-            </label>
-            <button
-              className="flex items-center gap-3 rounded-xl border-2 border-input bg-background px-4 py-2.5 w-full sm:w-auto min-w-[220px] text-left transition-all hover:bg-muted/50 hover:border-muted-foreground/30"
-              onClick={() => setShowAccountDialog(true)}
-            >
-              {defaultAccount ? (
-                (() => {
-                  const a = accounts.find((a) => a.id === defaultAccount);
-                  const cfg = a
-                    ? ACCOUNT_TYPE_CONFIG[a.type] || ACCOUNT_TYPE_CONFIG.card
-                    : null;
-                  const Icon = cfg?.icon || Wallet;
-                  return (
-                    <>
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-500/10 shrink-0">
-                        <Icon className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">
-                          {a?.name || "Счёт"}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {a ? `${a.balance.toLocaleString()} ₽` : ""}
-                        </p>
-                      </div>
-                    </>
-                  );
-                })()
-              ) : (
-                <>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted shrink-0">
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <span className="text-sm text-muted-foreground flex-1">
-                    Не выбран
-                  </span>
-                </>
-              )}
               <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
             </button>
           </div>
@@ -1549,15 +1454,6 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
         onOpenChange={setShowCurrencyDialog}
         value={currency}
         onChange={saveCurrency}
-      />
-
-      {/* Диалог выбора счета */}
-      <AccountPickerDialog
-        open={showAccountDialog}
-        onOpenChange={setShowAccountDialog}
-        value={defaultAccount}
-        accounts={accounts}
-        onChange={saveDefaultAccount}
       />
 
       {/* Диалог скрытия пунктов */}
