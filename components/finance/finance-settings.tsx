@@ -144,7 +144,6 @@ const COLORS = [
   { value: "amber", bg: "bg-amber-500", label: "Янтарный" },
   { value: "violet", bg: "bg-violet-500", label: "Сиреневый" },
   { value: "rose", bg: "bg-rose-500", label: "Розовый" },
-  { value: "fuchsia", bg: "bg-fuchsia-500", label: "Фуксия" },
   { value: "slate", bg: "bg-slate-500", label: "Серый" },
 ];
 
@@ -315,7 +314,8 @@ const ICON_GROUPS: {
     type: "income",
     items: [
       { value: "DollarSign", label: "Зарплата", icon: DollarSign },
-      { value: "Wallet", label: "Аванс/Оклад", icon: Wallet },
+      { value: "DollarSign", label: "Оклад", icon: DollarSign },
+      { value: "Wallet", label: "Аванс", icon: Wallet },
       { value: "Award", label: "Премия", icon: Award },
       { value: "Briefcase", label: "Подработка", icon: Briefcase },
       { value: "Percent", label: "Проценты", icon: Percent },
@@ -370,7 +370,7 @@ const ICON_GROUPS: {
   {
     name: "Госуслуги",
     color: "bg-red-500",
-    type: "both",
+    type: "expense",
     items: [
       { value: "Building2", label: "Госуслуги", icon: Building2 },
       { value: "ScrollText", label: "Документы", icon: ScrollText },
@@ -793,7 +793,7 @@ const CATEGORY_GROUPS: {
       {
         id: "cat-motorcycle",
         name: "Мотоцикл",
-        icon: "Helmet",
+        icon: "Shield",
         color: "orange",
         type: "expense",
       },
@@ -963,7 +963,7 @@ const CATEGORY_GROUPS: {
       {
         id: "cat-lab-tests",
         name: "Анализы",
-        icon: "Flask",
+        icon: "Pill",
         color: "pink",
         type: "expense",
       },
@@ -998,7 +998,7 @@ const CATEGORY_GROUPS: {
       {
         id: "cat-swimming-pool",
         name: "Бассейн (абонемент или разовое посещение)",
-        icon: "Pool",
+        icon: "Droplets",
         color: "cyan",
         type: "expense",
       },
@@ -1585,7 +1585,7 @@ const CATEGORY_GROUPS: {
       {
         id: "cat-water-park",
         name: "Аквапарк",
-        icon: "Pool",
+        icon: "Droplets",
         color: "amber",
         type: "expense",
       },
