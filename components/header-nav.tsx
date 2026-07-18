@@ -83,10 +83,6 @@ export function HeaderNav() {
       router.push("/sport");
       return;
     }
-    if (id === "notes") {
-      router.push("/notes");
-      return;
-    }
     if (id === "blog") {
       toast.info("Блог скоро появится!");
       return;
@@ -109,8 +105,7 @@ export function HeaderNav() {
           (id === "planner" && pathname === "/") ||
           (id === "finance" && pathname.startsWith("/finance")) ||
           (id === "habits" && pathname.startsWith("/habits")) ||
-          (id === "sport" && pathname.startsWith("/sport")) ||
-          (id === "notes" && pathname.startsWith("/notes"));
+          (id === "sport" && pathname.startsWith("/sport"));
         return (
           <button
             key={id}
