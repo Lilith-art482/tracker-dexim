@@ -37,7 +37,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { getUSDTtoRUB, convertToRUB } from "@/lib/exchange-rates";
@@ -60,6 +59,13 @@ const CATEGORY_COLORS_HEX: Record<string, string> = {
   fuchsia: "#d946ef",
   slate: "#6b7280",
 };
+
+function formatDate(date: string): string {
+  if (date.includes("T")) {
+    return date.slice(5, 16).replace("T", " ");
+  }
+  return date.slice(5);
+}
 
 export function FinanceDashboard() {
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
@@ -401,7 +407,7 @@ export function FinanceDashboard() {
                   onValueChange={(v) => setCatPeriod(v as typeof catPeriod)}
                 >
                   <SelectTrigger className="w-[130px] h-8">
-                    <SelectValue />
+                    {CAT_PERIOD_LABELS[catPeriod]}
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="week">Неделя</SelectItem>
@@ -411,27 +417,29 @@ export function FinanceDashboard() {
                     <SelectItem value="year">Год</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="flex rounded-lg border p-0.5">
+                <div className="flex rounded-lg bg-muted p-0.5">
                   <button
                     onClick={() => setCatType("expense")}
                     className={cn(
-                      "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all",
                       catType === "expense"
                         ? "bg-rose-500 text-white shadow-sm"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >
+                    <TrendingDown className="h-3.5 w-3.5" />
                     Расходы
                   </button>
                   <button
                     onClick={() => setCatType("income")}
                     className={cn(
-                      "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all",
                       catType === "income"
                         ? "bg-emerald-500 text-white shadow-sm"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >
+                    <TrendingUp className="h-3.5 w-3.5" />
                     Доходы
                   </button>
                 </div>
@@ -446,52 +454,59 @@ export function FinanceDashboard() {
                 <div className="space-y-6">
                   <div className="space-y-3">
                     {chartCategories.map((cat) => (
-                      <div key={cat.id} className="space-y-1">
+                      <div key={cat.id} className="space-y-1.5">
                         <div className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             <div
-                              className="h-3 w-3 rounded-full shrink-0"
-                              style={{ backgroundColor: cat.color }}
+                              className="h-2.5 w-2.5 rounded-full shrink-0 ring-2 ring-offset-1"
+                              style={{
+                                backgroundColor: cat.color,
+                                "--tw-ring-color": cat.color,
+                              } as React.CSSProperties}
                             />
                             <span className="truncate font-medium">
                               {cat.name}
                             </span>
                           </div>
-                          <span className="tabular-nums font-medium ml-2">
-                            {cat.amount.toLocaleString()} ₽
-                          </span>
-                          <span className="text-xs text-muted-foreground w-12 text-right tabular-nums">
-                            {cat.percentage.toFixed(1)}%
-                          </span>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="tabular-nums font-medium">
+                              {cat.amount.toLocaleString()} ₽
+                            </span>
+                            <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">
+                              {cat.percentage.toFixed(1)}%
+                            </span>
+                          </div>
                         </div>
-                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div className="h-2.5 rounded-full bg-muted/60 overflow-hidden">
                           <div
-                            className="h-full rounded-full transition-all duration-500"
+                            className="h-full rounded-full transition-all duration-700 ease-out"
                             style={{
                               width: `${cat.percentage}%`,
-                              backgroundColor: cat.color,
+                              background: `linear-gradient(90deg, ${cat.color}, ${cat.color}dd)`,
                             }}
                           />
                         </div>
                       </div>
                     ))}
                     {chartOtherTotal > 0 && (
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <div className="h-3 w-3 rounded-full shrink-0 bg-muted-foreground/40" />
+                            <div className="h-2.5 w-2.5 rounded-full shrink-0 ring-2 ring-offset-1 ring-muted-foreground/30 bg-muted-foreground/40" />
                             <span>Прочее</span>
                           </div>
-                          <span className="tabular-nums ml-2">
-                            {chartOtherTotal.toLocaleString()} ₽
-                          </span>
-                          <span className="text-xs w-12 text-right tabular-nums">
-                            {chartOtherPct.toFixed(1)}%
-                          </span>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="tabular-nums">
+                              {chartOtherTotal.toLocaleString()} ₽
+                            </span>
+                            <span className="text-xs w-10 text-right tabular-nums">
+                              {chartOtherPct.toFixed(1)}%
+                            </span>
+                          </div>
                         </div>
-                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div className="h-2.5 rounded-full bg-muted/60 overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-muted-foreground/40 transition-all duration-500"
+                            className="h-full rounded-full bg-muted-foreground/40 transition-all duration-700 ease-out"
                             style={{ width: `${chartOtherPct}%` }}
                           />
                         </div>
@@ -502,44 +517,65 @@ export function FinanceDashboard() {
                   <div className="overflow-x-auto rounded-lg border">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b bg-muted/30">
-                          <th className="text-left px-3 py-2 font-medium w-8" />
-                          <th className="text-left px-3 py-2 font-medium">
+                        <tr className="border-b bg-muted/40">
+                          <th className="text-left px-3 py-2.5 font-medium w-8" />
+                          <th className="text-left px-3 py-2.5 font-medium text-xs uppercase tracking-wider text-muted-foreground">
                             Категория
                           </th>
-                          <th className="text-right px-3 py-2 font-medium">
+                          <th className="text-right px-3 py-2.5 font-medium text-xs uppercase tracking-wider text-muted-foreground">
                             Сумма
                           </th>
-                          <th className="text-right px-3 py-2 font-medium">
+                          <th className="text-right px-3 py-2.5 font-medium text-xs uppercase tracking-wider text-muted-foreground">
                             %
                           </th>
-                          <th className="text-right px-3 py-2 font-medium">
+                          <th className="text-right px-3 py-2.5 font-medium text-xs uppercase tracking-wider text-muted-foreground">
                             Операций
                           </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {sortedCategories.map((cat) => (
+                        {sortedCategories.map((cat, i) => (
                           <tr
                             key={cat.id}
                             className="border-b last:border-0 hover:bg-muted/20 transition-colors"
                           >
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-2.5">
                               <div
-                                className="h-3 w-3 rounded-full"
-                                style={{ backgroundColor: cat.color }}
+                                className="h-2.5 w-2.5 rounded-full ring-2 ring-offset-1"
+                                style={{
+                                  backgroundColor: cat.color,
+                                  "--tw-ring-color": cat.color,
+                                } as React.CSSProperties}
                               />
                             </td>
-                            <td className="px-3 py-2 font-medium">
-                              {cat.name}
+                            <td className="px-3 py-2.5 font-medium">
+                              <div className="flex items-center gap-2">
+                                <span>{cat.name}</span>
+                                <span className="text-[10px] text-muted-foreground/50">
+                                  #{i + 1}
+                                </span>
+                              </div>
                             </td>
-                            <td className="px-3 py-2 text-right tabular-nums font-medium">
+                            <td className="px-3 py-2.5 text-right tabular-nums font-medium">
                               {cat.amount.toLocaleString()} ₽
                             </td>
-                            <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">
-                              {cat.percentage.toFixed(1)}%
+                            <td className="px-3 py-2.5 text-right tabular-nums">
+                              <div className="inline-flex items-center gap-1.5">
+                                <div className="h-1.5 w-12 rounded-full bg-muted overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full"
+                                    style={{
+                                      width: `${cat.percentage}%`,
+                                      backgroundColor: cat.color,
+                                    }}
+                                  />
+                                </div>
+                                <span className="text-xs text-muted-foreground w-8 text-right">
+                                  {cat.percentage.toFixed(1)}%
+                                </span>
+                              </div>
                             </td>
-                            <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">
+                            <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums">
                               {cat.count}
                             </td>
                           </tr>
@@ -559,43 +595,62 @@ export function FinanceDashboard() {
                 Последние операции
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {transactions.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
+                <p className="text-sm text-muted-foreground py-4 text-center px-6">
                   Нет операций
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div>
                   {transactions
                     .sort((a, b) => (a.date < b.date ? 1 : -1))
                     .slice(0, 10)
-                    .map((tx) => {
+                    .map((tx, i) => {
                       const cat = categoryMap.get(tx.categoryId);
-                      const color =
-                        CATEGORY_COLORS_HEX[cat?.color || ""] || "#6b7280";
+                      const isIncome = tx.type === "income";
                       return (
                         <div
                           key={tx.id}
-                          className="flex items-center justify-between text-sm"
+                          className={cn(
+                            "flex items-center justify-between px-6 py-3 text-sm transition-colors hover:bg-muted/20",
+                            i !== 0 && "border-t",
+                          )}
                         >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div
-                              className="h-2 w-2 rounded-full shrink-0"
-                              style={{ backgroundColor: color }}
-                            />
-                            <span className="truncate">
-                              {cat?.name || "Без категории"}
-                            </span>
+                              className={cn(
+                                "flex h-8 w-8 items-center justify-center rounded-full shrink-0",
+                                isIncome
+                                  ? "bg-emerald-500/10"
+                                  : "bg-rose-500/10",
+                              )}
+                            >
+                              {isIncome ? (
+                                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                              ) : (
+                                <TrendingDown className="h-4 w-4 text-rose-500" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium truncate">
+                                {cat?.name || "Без категории"}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {tx.description || formatDate(tx.date)}
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="font-medium tabular-nums">
-                              {tx.type === "income" ? "+" : "-"}
+                          <div className="flex items-center gap-2 shrink-0 ml-3">
+                            <span
+                              className={cn(
+                                "font-semibold tabular-nums",
+                                isIncome
+                                  ? "text-emerald-500"
+                                  : "text-foreground",
+                              )}
+                            >
+                              {isIncome ? "+" : "-"}
                               {tx.amount.toLocaleString()} ₽
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {tx.date.includes("T")
-                                ? tx.date.slice(5, 16).replace("T", " ")
-                                : tx.date.slice(5)}
                             </span>
                           </div>
                         </div>
