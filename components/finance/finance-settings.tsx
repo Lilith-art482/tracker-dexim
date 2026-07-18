@@ -64,6 +64,8 @@ import {
   Target,
   Shield,
   ChevronDown,
+  TrendingDown,
+  TrendingUp,
   EyeOff,
   Check,
   Search,
@@ -89,13 +91,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { HideModulesDialog } from "@/components/finance/hide-modules-dialog";
@@ -901,16 +897,58 @@ const getCategoryGroup = (catName: string) => {
 const FIAT_CURRENCIES = CURRENCIES.filter((c) => c.type === "fiat");
 
 const CURRENCY_ORDER = [
-  "RUB", "USD", "EUR", "CNY", "GBP", "JPY",
-  "KZT", "BYN", "UAH",
-  "TRY", "AED", "THB", "CHF", "KRW", "INR",
-  "AUD", "CAD", "SGD", "HKD", "NZD",
-  "PLN", "CZK", "HUF", "RON", "BGN", "RSD", "MDL",
-  "SEK", "NOK", "DKK", "ISK",
-  "AMD", "GEL", "AZN", "KGS", "TJS", "UZS", "TMT", "MNT",
-  "ILS", "SAR", "EGP",
-  "VND", "IDR", "MXN", "BRL", "ZAR",
-  "NGN", "ARS", "CLP", "COP", "PEN",
+  "RUB",
+  "USD",
+  "EUR",
+  "CNY",
+  "GBP",
+  "JPY",
+  "KZT",
+  "BYN",
+  "UAH",
+  "TRY",
+  "AED",
+  "THB",
+  "CHF",
+  "KRW",
+  "INR",
+  "AUD",
+  "CAD",
+  "SGD",
+  "HKD",
+  "NZD",
+  "PLN",
+  "CZK",
+  "HUF",
+  "RON",
+  "BGN",
+  "RSD",
+  "MDL",
+  "SEK",
+  "NOK",
+  "DKK",
+  "ISK",
+  "AMD",
+  "GEL",
+  "AZN",
+  "KGS",
+  "TJS",
+  "UZS",
+  "TMT",
+  "MNT",
+  "ILS",
+  "SAR",
+  "EGP",
+  "VND",
+  "IDR",
+  "MXN",
+  "BRL",
+  "ZAR",
+  "NGN",
+  "ARS",
+  "CLP",
+  "COP",
+  "PEN",
 ];
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -1465,83 +1503,119 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
 
       {/* Диалог категории */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {editingCat ? "Редактировать категорию" : "Новая категория"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Название</label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Продукты"
-              />
+          <div className="space-y-5 py-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">
+                  Название
+                </label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Продукты"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Тип</label>
+                <div className="flex rounded-lg bg-muted p-0.5">
+                  <button
+                    onClick={() => setCatType("expense")}
+                    className={cn(
+                      "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-all",
+                      catType === "expense"
+                        ? "bg-rose-500 text-white shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <TrendingDown className="h-3.5 w-3.5" />
+                    Расход
+                  </button>
+                  <button
+                    onClick={() => setCatType("income")}
+                    className={cn(
+                      "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-all",
+                      catType === "income"
+                        ? "bg-emerald-500 text-white shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    Доход
+                  </button>
+                </div>
+              </div>
             </div>
+
             <div>
-              <label className="text-sm font-medium mb-1 block">Тип</label>
-              <Select
-                value={catType}
-                onValueChange={(v) =>
-                  v && setCatType(v as "income" | "expense")
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="expense">Расход</SelectItem>
-                  <SelectItem value="income">Доход</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Цвет</label>
-              <div className="flex flex-wrap gap-2">
+              <label className="text-sm font-medium mb-2 block">Цвет</label>
+              <div className="flex flex-wrap gap-2.5">
                 {COLORS.map((c) => (
                   <button
                     key={c.value}
                     title={c.label}
                     className={cn(
-                      "h-7 w-7 rounded-full transition-all",
+                      "h-8 w-8 rounded-full transition-all",
                       c.bg,
-                      color === c.value &&
-                        "ring-2 ring-offset-2 ring-foreground",
+                      color === c.value
+                        ? "ring-2 ring-offset-2 ring-foreground scale-110"
+                        : "ring-1 ring-offset-1 ring-transparent hover:scale-105",
                     )}
                     onClick={() => setColor(c.value)}
                   />
                 ))}
               </div>
             </div>
+
             <div>
-              <label className="text-sm font-medium mb-1 block">Иконка</label>
-              <div className="max-h-[240px] overflow-y-auto space-y-2 pr-1">
+              <label className="text-sm font-medium mb-2 block">Иконка</label>
+              <div className="max-h-[320px] overflow-y-auto space-y-3 pr-1">
                 {ICON_GROUPS.map((grp) => (
                   <div key={grp.name}>
-                    <div className="flex items-center gap-1.5 mb-1">
+                    <div className="flex items-center gap-2 mb-1.5 px-0.5">
                       <div
-                        className={cn("h-1.5 w-1.5 rounded-full", grp.color)}
+                        className={cn(
+                          "h-2 w-2 rounded-full shrink-0",
+                          grp.color,
+                        )}
                       />
-                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                         {grp.name}
                       </span>
                     </div>
-                    <div className="grid grid-cols-5 gap-1">
+                    <div className="grid grid-cols-7 sm:grid-cols-8 gap-1.5">
                       {grp.items.map((opt) => (
                         <button
                           key={opt.value}
                           className={cn(
-                            "flex flex-col items-center gap-0.5 rounded-md border p-1.5 transition-colors",
+                            "flex flex-col items-center gap-1 rounded-lg border p-2 transition-all",
                             icon === opt.value
-                              ? "border-primary bg-primary/10 ring-1 ring-primary/30"
-                              : "border-input hover:bg-muted",
+                              ? "border-primary bg-primary/10 shadow-sm"
+                              : "border-input hover:bg-muted hover:border-muted-foreground/30",
                           )}
                           onClick={() => setIcon(opt.value)}
                         >
-                          <opt.icon className="h-4 w-4" />
-                          <span className="text-[7px] text-muted-foreground text-center leading-tight">
+                          <opt.icon
+                            className={cn(
+                              "h-5 w-5",
+                              icon === opt.value
+                                ? "text-foreground"
+                                : "text-muted-foreground",
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "text-[8px] text-center leading-tight",
+                              icon === opt.value
+                                ? "text-foreground font-medium"
+                                : "text-muted-foreground",
+                            )}
+                          >
                             {opt.label}
                           </span>
                         </button>
