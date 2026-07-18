@@ -1,4 +1,4 @@
-const CACHE_TTL = 60_000;
+const CACHE_TTL = 300_000;
 let cachedRate: number | null = null;
 let cachedAt = 0;
 
@@ -8,11 +8,11 @@ export async function getUSDTtoRUB(): Promise<number> {
 
   try {
     const res = await fetch(
-      "https://www.okx.com/api/v5/market/ticker?instId=USDT-RUB",
+      "https://www.cbr-xml-daily.ru/daily_json.js",
       { signal: AbortSignal.timeout(5000) },
     );
     const data = await res.json();
-    const rate = parseFloat(data.data?.[0]?.last);
+    const rate = data.Valute?.USD?.Value;
     if (rate > 0) {
       cachedRate = rate;
       cachedAt = now;
@@ -20,7 +20,7 @@ export async function getUSDTtoRUB(): Promise<number> {
     }
   } catch {}
 
-  return cachedRate ?? 90;
+  return cachedRate ?? 85;
 }
 
 const STABLECOINS = new Set(["USDT", "USDC", "USD"]);
