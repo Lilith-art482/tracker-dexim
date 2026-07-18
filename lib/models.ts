@@ -703,7 +703,9 @@ export async function updateNote(
   if (!doc.exists) return null;
   const existing = doc.data() as Note;
   if (existing.userId !== userId) return null;
-  const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  const updates: Record<string, unknown> = {
+    updatedAt: new Date().toISOString(),
+  };
   if (data.title !== undefined) updates.title = data.title;
   if (data.blocks !== undefined) {
     updates.blocks = data.blocks;
@@ -711,9 +713,12 @@ export async function updateNote(
     updates.linkedNoteIds = computeLinkedNoteIds(data.blocks, allNotes);
   }
   if (data.tags !== undefined) updates.tags = data.tags;
-  if (data.scheduledDate !== undefined) updates.scheduledDate = data.scheduledDate;
-  if (data.scheduledTime !== undefined) updates.scheduledTime = data.scheduledTime;
-  if (data.recurringInterval !== undefined) updates.recurringInterval = data.recurringInterval;
+  if (data.scheduledDate !== undefined)
+    updates.scheduledDate = data.scheduledDate;
+  if (data.scheduledTime !== undefined)
+    updates.scheduledTime = data.scheduledTime;
+  if (data.recurringInterval !== undefined)
+    updates.recurringInterval = data.recurringInterval;
   if (data.canvasState !== undefined) updates.canvasState = data.canvasState;
   await doc.ref.update(updates);
   return { ...existing, ...updates, id: doc.id } as Note;

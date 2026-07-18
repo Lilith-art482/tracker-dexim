@@ -34,9 +34,20 @@ export const createNoteSchema = z.object({
   title: z.string().max(300).default(""),
   blocks: z.array(blockSchema).default([]),
   tags: z.array(z.string().max(50)).max(20).default([]),
-  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  scheduledTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
-  recurringInterval: z.enum(["daily", "weekly", "monthly"]).nullable().optional(),
+  scheduledDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
+  scheduledTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .nullable()
+    .optional(),
+  recurringInterval: z
+    .enum(["daily", "weekly", "monthly"])
+    .nullable()
+    .optional(),
   linkedNoteIds: z.array(z.string()).optional(),
   canvasState: canvasStateSchema.nullable().optional(),
 });
@@ -45,9 +56,20 @@ export const updateNoteSchema = z.object({
   title: z.string().max(300).optional(),
   blocks: z.array(blockSchema).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
-  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  scheduledTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
-  recurringInterval: z.enum(["daily", "weekly", "monthly"]).nullable().optional(),
+  scheduledDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
+  scheduledTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .nullable()
+    .optional(),
+  recurringInterval: z
+    .enum(["daily", "weekly", "monthly"])
+    .nullable()
+    .optional(),
   linkedNoteIds: z.array(z.string()).optional(),
   canvasState: canvasStateSchema.nullable().optional(),
 });

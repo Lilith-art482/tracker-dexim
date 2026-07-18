@@ -7,10 +7,9 @@ export async function getUSDTtoRUB(): Promise<number> {
   if (cachedRate !== null && now - cachedAt < CACHE_TTL) return cachedRate;
 
   try {
-    const res = await fetch(
-      "https://www.cbr-xml-daily.ru/daily_json.js",
-      { signal: AbortSignal.timeout(5000) },
-    );
+    const res = await fetch("https://www.cbr-xml-daily.ru/daily_json.js", {
+      signal: AbortSignal.timeout(5000),
+    });
     const data = await res.json();
     const rate = data.Valute?.USD?.Value;
     if (rate > 0) {
