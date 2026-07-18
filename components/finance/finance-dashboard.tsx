@@ -293,6 +293,42 @@ export function FinanceDashboard() {
   const dailyAvgIncome = daysInMonth > 0 ? periodIncome / daysInMonth : 0;
   const projectedRemaining = periodIncome - periodExpenses;
 
+  const [hoveredDay, setHoveredDay] = useState<number | null>(null);
+
+  const dailyChartData = useMemo(() => {
+    if (!transactions.length) return null;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const days = new Date(year, month + 1, 0).getDate();
+    const data: { day: number; income: number; expense: number }[] = [];
+    let maxVal = 0;
+    for (let d = 1; d <= days; d++) {
+      const prefix = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const income = transactions
+        .filter((t) => t.type === "income" && t.date.startsWith(prefix))
+        .reduce((s, t) => s + t.amount, 0);
+      const expense = transactions
+        .filter((t) => t.type === "expense" && t.date.startsWith(prefix))
+        .reduce((s, t) => s + t.amount, 0);
+      data.push({ day: d, income, expense });
+      if (income > maxVal) maxVal = income;
+      if (expense > maxVal) maxVal = expense;
+    }
+    return { days, data, maxVal: maxVal || 1 };
+  }, [transactions]);
+
+  const MONTH_NAMES = [
+    "Январь","Февраль","Март","Апрель","Май","Июнь",
+    "Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь",
+  ];
+  const CHART_LEFT = 50;
+  const CHART_RIGHT = 780;
+  const CHART_TOP = 20;
+  const CHART_BOTTOM = 210;
+  const CHART_W = CHART_RIGHT - CHART_LEFT;
+  const CHART_H = CHART_BOTTOM - CHART_TOP;
+
   const budgetLoad = useMemo(() => {
     if (!budget || !budget.categoryBudgets.length) return null;
     const activeCatBudgets = budget.categoryBudgets.filter((cb) =>
@@ -393,6 +429,185 @@ export function FinanceDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <BarChart3 className="h-4 w-4 text-emerald-500" />
+              Динамика за {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()} г.
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!dailyChartData ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                Нет данных за период
+              </p>
+            ) : (
+              <div className="relative">
+                <svg
+                  viewBox="0 0 800 230"
+                  className="w-full h-auto"
+                  onMouseMove={(e) => {
+                    const svg = e.currentTarget;
+                    const rect = svg.getBoundingClientRect();
+                    const x = ((e.clientX - rect.left) / rect.width) * 800;
+                    const idx = Math.round(
+                      ((x - CHART_LEFT) / CHART_W) * (dailyChartData.days - 1),
+                    );
+                    setHoveredDay(
+                      Math.max(0, Math.min(dailyChartData.days - 1, idx)) + 1,
+                    );
+                  }}
+                  onMouseLeave={() => setHoveredDay(null)}
+                >
+                  {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+                    const y = CHART_TOP + ratio * CHART_H;
+                    const val = Math.round(dailyChartData.maxVal * (1 - ratio));
+                    return (
+                      <g key={ratio}>
+                        <line
+                          x1={CHART_LEFT}
+                          y1={y}
+                          x2={CHART_RIGHT}
+                          y2={y}
+                          stroke="hsl(var(--border))"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x={CHART_LEFT - 8}
+                          y={y + 4}
+                          textAnchor="end"
+                          className="fill-muted-foreground"
+                          fontSize="11"
+                        >
+                          {val.toLocaleString()}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  {Array.from(
+                    { length: dailyChartData.days },
+                    (_, i) => i + 1,
+                  )
+                    .filter(
+                      (d) =>
+                        d === 1 ||
+                        d === dailyChartData.days ||
+                        d % 5 === 0,
+                    )
+                    .map((d) => {
+                      const x =
+                        CHART_LEFT +
+                        ((d - 1) / (dailyChartData.days - 1)) * CHART_W;
+                      return (
+                        <text
+                          key={d}
+                          x={x}
+                          y={CHART_BOTTOM + 18}
+                          textAnchor="middle"
+                          className="fill-muted-foreground"
+                          fontSize="11"
+                        >
+                          {d}
+                        </text>
+                      );
+                    })}
+                  <polyline
+                    points={dailyChartData.data
+                      .map(
+                        (d, i) =>
+                          `${CHART_LEFT + (i / (dailyChartData.days - 1)) * CHART_W},${CHART_TOP + CHART_H - (d.expense / dailyChartData.maxVal) * CHART_H}`,
+                      )
+                      .join(" ")}
+                    fill="none"
+                    stroke="#f43f5e"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+                  <polyline
+                    points={dailyChartData.data
+                      .map(
+                        (d, i) =>
+                          `${CHART_LEFT + (i / (dailyChartData.days - 1)) * CHART_W},${CHART_TOP + CHART_H - (d.income / dailyChartData.maxVal) * CHART_H}`,
+                      )
+                      .join(" ")}
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+                  {hoveredDay && (
+                    <>
+                      <line
+                        x1={
+                          CHART_LEFT +
+                          ((hoveredDay - 1) / (dailyChartData.days - 1)) *
+                            CHART_W
+                        }
+                        y1={CHART_TOP}
+                        x2={
+                          CHART_LEFT +
+                          ((hoveredDay - 1) / (dailyChartData.days - 1)) *
+                            CHART_W
+                        }
+                        y2={CHART_BOTTOM}
+                        stroke="hsl(var(--muted-foreground))"
+                        strokeWidth="1"
+                        strokeDasharray="4"
+                      />
+                      {(["income", "expense"] as const).map((type) => {
+                        const dayData = dailyChartData.data[hoveredDay - 1];
+                        const val = type === "income" ? dayData.income : dayData.expense;
+                        if (!val) return null;
+                        const y =
+                          CHART_TOP +
+                          CHART_H -
+                          (val / dailyChartData.maxVal) * CHART_H;
+                        const x =
+                          CHART_LEFT +
+                          ((hoveredDay - 1) / (dailyChartData.days - 1)) *
+                            CHART_W;
+                        return (
+                          <g key={type}>
+                            <circle cx={x} cy={y} r="4" fill={type === "income" ? "#22c55e" : "#f43f5e"} stroke="white" strokeWidth="2" />
+                            <rect
+                              x={type === "income" ? x + 8 : x - 80}
+                              y={y - 14}
+                              width="72"
+                              height="20"
+                              rx="4"
+                              fill={type === "income" ? "#22c55e" : "#f43f5e"}
+                            />
+                            <text
+                              x={type === "income" ? x + 44 : x - 44}
+                              y={y - 1}
+                              textAnchor="middle"
+                              fill="white"
+                              fontSize="11"
+                              fontWeight="600"
+                            >
+                              {type === "income" ? "Доход" : "Расход"}: {val.toLocaleString()} ₽
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </>
+                  )}
+                </svg>
+                <div className="flex items-center justify-center gap-6 mt-1">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="h-3 w-6 rounded-sm bg-rose-500" />
+                    Расходы
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="h-3 w-6 rounded-sm bg-emerald-500" />
+                    Доходы
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>

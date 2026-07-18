@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Settings,
   Palette,
   Plus,
   Pencil,
   Trash2,
+  TrendingUp,
   Loader2,
   Download,
   Upload,
@@ -66,6 +67,12 @@ import {
   ChevronDown,
   ChevronRight,
   EyeOff,
+  CreditCard,
+  Coins,
+  Bitcoin,
+  Check,
+  Search,
+  X,
 } from "lucide-react";
 import type { TransactionCategory, FinanceAccount } from "@/lib/finance-types";
 import { CURRENCIES } from "@/lib/finance-types";
@@ -899,6 +906,194 @@ const getCategoryGroup = (catName: string) => {
 
 const FIAT_CURRENCIES = CURRENCIES.filter((c) => c.type === "fiat");
 
+const COUNTRY_FLAGS: Record<string, string> = {
+  RUB: "🇷🇺", USD: "🇺🇸", EUR: "🇪🇺", CNY: "🇨🇳", GBP: "🇬🇧",
+  JPY: "🇯🇵", KZT: "🇰🇿", BYN: "🇧🇾", UAH: "🇺🇦", AMD: "🇦🇲",
+  GEL: "🇬🇪", AZN: "🇦🇿", KGS: "🇰🇬", TJS: "🇹🇯", TRY: "🇹🇷",
+  AED: "🇦🇪", THB: "🇹🇭", VND: "🇻🇳", IDR: "🇮🇩", KRW: "🇰🇷",
+  INR: "🇮🇳", BRL: "🇧🇷", MXN: "🇲🇽", ZAR: "🇿🇦", CHF: "🇨🇭",
+  SEK: "🇸🇪", NOK: "🇳🇴", DKK: "🇩🇰", PLN: "🇵🇱", CZK: "🇨🇿",
+  HUF: "🇭🇺", RON: "🇷🇴", BGN: "🇧🇬", ISK: "🇮🇸",
+};
+
+const ACCOUNT_TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType }> = {
+  cash: { label: "Наличные", icon: Coins },
+  card: { label: "Карта", icon: CreditCard },
+  crypto: { label: "Криптовалюта", icon: Bitcoin },
+  investment: { label: "Инвестиции", icon: TrendingUp },
+  savings: { label: "Сбережения", icon: PiggyBank },
+  deposit: { label: "Вклад", icon: Building2 },
+};
+
+function CurrencyPickerDialog({
+  open,
+  onOpenChange,
+  value,
+  onChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(
+    () =>
+      FIAT_CURRENCIES.filter(
+        (c) =>
+          c.code.toLowerCase().includes(search.toLowerCase()) ||
+          c.label.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [search],
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Выберите валюту</DialogTitle>
+        </DialogHeader>
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Поиск валюты..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[360px] overflow-y-auto pr-1">
+          {filtered.map((c) => {
+            const isSelected = value === c.code;
+            return (
+              <button
+                key={c.code}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all hover:bg-muted/50",
+                  isSelected
+                    ? "border-primary bg-primary/5"
+                    : "border-transparent bg-muted/30",
+                )}
+                onClick={() => {
+                  onChange(c.code);
+                  onOpenChange(false);
+                }}
+              >
+                <span className="text-2xl leading-none">
+                  {COUNTRY_FLAGS[c.code] || "🏳️"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-sm">{c.code}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {c.symbol}
+                    </span>
+                    {isSelected && (
+                      <Check className="h-3.5 w-3.5 text-primary ml-auto shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {c.label}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AccountPickerDialog({
+  open,
+  onOpenChange,
+  value,
+  accounts,
+  onChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  value: string;
+  accounts: FinanceAccount[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Выберите счёт по умолчанию</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+          <button
+            className={cn(
+              "flex items-center gap-3 rounded-xl border-2 p-3 w-full text-left transition-all hover:bg-muted/50",
+              !value
+                ? "border-primary bg-primary/5"
+                : "border-transparent bg-muted/30",
+            )}
+            onClick={() => {
+              onChange("");
+              onOpenChange(false);
+            }}
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted shrink-0">
+              <X className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-sm">Не выбран</p>
+              <p className="text-[11px] text-muted-foreground">
+                Все операции без счёта по умолчанию
+              </p>
+            </div>
+            {!value && (
+              <Check className="h-4 w-4 text-primary shrink-0" />
+            )}
+          </button>
+          {accounts.map((a) => {
+            const isSelected = value === a.id;
+            const cfg = ACCOUNT_TYPE_CONFIG[a.type] || ACCOUNT_TYPE_CONFIG.card;
+            const Icon = cfg.icon;
+            return (
+              <button
+                key={a.id}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl border-2 p-3 w-full text-left transition-all hover:bg-muted/50",
+                  isSelected
+                    ? "border-primary bg-primary/5"
+                    : "border-transparent bg-muted/30",
+                )}
+                onClick={() => {
+                  onChange(a.id);
+                  onOpenChange(false);
+                }}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 shrink-0">
+                  <Icon className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm truncate">{a.name}</p>
+                    {isSelected && (
+                      <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {cfg.label} · {a.balance.toLocaleString()} ₽
+                  </p>
+                </div>
+                <span className="font-semibold text-sm tabular-nums shrink-0">
+                  {a.balance.toLocaleString()} ₽
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 interface Props {
   onVisibilityChange?: () => void;
 }
@@ -909,6 +1104,8 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showHideDialog, setShowHideDialog] = useState(false);
+  const [showCurrencyDialog, setShowCurrencyDialog] = useState(false);
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
   const [editingCat, setEditingCat] = useState<TransactionCategory | null>(
     null,
   );
@@ -1093,41 +1290,70 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             <label className="text-sm font-medium sm:w-36">Валюта</label>
-            <Select
-              value={currency}
-              onValueChange={(v) => v && saveCurrency(v)}
+            <button
+              className="flex items-center gap-3 rounded-xl border-2 border-input bg-background px-4 py-2.5 w-full sm:w-auto min-w-[200px] text-left transition-all hover:bg-muted/50 hover:border-muted-foreground/30"
+              onClick={() => setShowCurrencyDialog(true)}
             >
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                {FIAT_CURRENCIES.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>
-                    {c.symbol} {c.code} — {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <span className="text-xl leading-none">
+                {COUNTRY_FLAGS[currency] || "🏳️"}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-sm">{currency}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {FIAT_CURRENCIES.find((c) => c.code === currency)?.symbol}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {FIAT_CURRENCIES.find((c) => c.code === currency)?.label}
+                </p>
+              </div>
+              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+            </button>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             <label className="text-sm font-medium sm:w-36">
               Счёт по умолчанию
             </label>
-            <Select
-              value={defaultAccount}
-              onValueChange={(v) => v && saveDefaultAccount(v)}
+            <button
+              className="flex items-center gap-3 rounded-xl border-2 border-input bg-background px-4 py-2.5 w-full sm:w-auto min-w-[220px] text-left transition-all hover:bg-muted/50 hover:border-muted-foreground/30"
+              onClick={() => setShowAccountDialog(true)}
             >
-              <SelectTrigger className="w-full sm:w-60">
-                <SelectValue placeholder="Не выбран" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.name} — {a.balance.toLocaleString()} ₽
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {defaultAccount ? (
+                (() => {
+                  const a = accounts.find((a) => a.id === defaultAccount);
+                  const cfg = a
+                    ? ACCOUNT_TYPE_CONFIG[a.type] || ACCOUNT_TYPE_CONFIG.card
+                    : null;
+                  const Icon = cfg?.icon || Wallet;
+                  return (
+                    <>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-500/10 shrink-0">
+                        <Icon className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">
+                          {a?.name || "Счёт"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {a ? `${a.balance.toLocaleString()} ₽` : ""}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()
+              ) : (
+                <>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted shrink-0">
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <span className="text-sm text-muted-foreground flex-1">
+                    Не выбран
+                  </span>
+                </>
+              )}
+              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+            </button>
           </div>
         </CardContent>
       </Card>
@@ -1261,36 +1487,78 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
         </CardContent>
       </Card>
 
-      {/* Управление данными */}
+      {/* Быстрые действия по данным */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Download className="h-4 w-4" />
-            Управление данными
+            <Zap className="h-4 w-4" />
+            Быстрые действия по данным
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={exportAll}>
-              <Download className="h-3.5 w-3.5 mr-1.5" />
-              Экспорт всех данных
-            </Button>
-            <Button variant="outline" size="sm" onClick={importAll}>
-              <Upload className="h-3.5 w-3.5 mr-1.5" />
-              Импорт данных
-            </Button>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button
+              className="flex items-center gap-3 rounded-xl border-2 border-emerald-500/20 bg-emerald-500/5 p-4 text-left transition-all hover:bg-emerald-500/10 hover:border-emerald-500/40"
+              onClick={exportAll}
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 shrink-0">
+                <Download className="h-5 w-5 text-emerald-500" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Экспорт</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Скачать все данные JSON
+                </p>
+              </div>
+            </button>
+            <button
+              className="flex items-center gap-3 rounded-xl border-2 border-blue-500/20 bg-blue-500/5 p-4 text-left transition-all hover:bg-blue-500/10 hover:border-blue-500/40"
+              onClick={importAll}
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 shrink-0">
+                <Upload className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Импорт</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Загрузить данные из JSON
+                </p>
+              </div>
+            </button>
+            <button
+              className="flex items-center gap-3 rounded-xl border-2 border-rose-500/20 bg-rose-500/5 p-4 text-left transition-all hover:bg-rose-500/10 hover:border-rose-500/40 sm:col-span-1 col-span-full"
+              onClick={resetAll}
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-500/10 shrink-0">
+                <AlertTriangle className="h-5 w-5 text-rose-500" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Сброс</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Очистить все настройки
+                </p>
+              </div>
+            </button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-destructive border-destructive/30 hover:bg-destructive/10"
-            onClick={resetAll}
-          >
-            <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
-            Сбросить все данные
-          </Button>
         </CardContent>
       </Card>
+
+      {/* Диалог выбора валюты */}
+      <CurrencyPickerDialog
+        open={showCurrencyDialog}
+        onOpenChange={setShowCurrencyDialog}
+        value={currency}
+        onChange={saveCurrency}
+      />
+
+      {/* Диалог выбора счета */}
+      <AccountPickerDialog
+        open={showAccountDialog}
+        onOpenChange={setShowAccountDialog}
+        value={defaultAccount}
+        accounts={accounts}
+        onChange={saveDefaultAccount}
+      />
 
       {/* Диалог скрытия пунктов */}
       <HideModulesDialog
