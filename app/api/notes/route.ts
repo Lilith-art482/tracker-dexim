@@ -74,9 +74,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const dbAvailable = await isDatabaseAvailable();
-
-    if (!dbAvailable) {
+    if (!(await isDatabaseAvailable())) {
       return NextResponse.json(
         { error: "База данных недоступна" },
         { status: 503 },
@@ -115,9 +113,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const dbAvailable = await isDatabaseAvailable();
-
-    if (!dbAvailable) {
+    if (!(await isDatabaseAvailable())) {
       return NextResponse.json(
         { error: "База данных недоступна" },
         { status: 503 },
@@ -125,6 +121,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const note = await updateNote(uid, noteId, parsed.data);
+
     if (!note) {
       return NextResponse.json(
         { error: "Заметка не найдена" },
@@ -155,9 +152,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const dbAvailable = await isDatabaseAvailable();
-
-    if (!dbAvailable) {
+    if (!(await isDatabaseAvailable())) {
       return NextResponse.json(
         { error: "База данных недоступна" },
         { status: 503 },
