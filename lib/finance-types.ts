@@ -106,6 +106,10 @@ export interface TransactionCategory {
   icon: string;
   type: TransactionType;
   color: string;
+  isArchived?: boolean;
+  isPinned?: boolean;
+  sortOrder?: number;
+  monthlyBudget?: number;
 }
 
 export interface Transaction {
