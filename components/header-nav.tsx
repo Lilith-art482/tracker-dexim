@@ -93,7 +93,10 @@ export function HeaderNav() {
   return (
     <div
       className="flex items-center flex-1 overflow-x-auto scrollbar-none gap-0.5"
-      style={{ maskImage: "linear-gradient(to right, transparent 0, black 12px, black 90%, transparent 100%)" }}
+      style={{
+        maskImage:
+          "linear-gradient(to right, transparent 0, black 12px, black 90%, transparent 100%)",
+      }}
     >
       {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
         if (id === "divider") {

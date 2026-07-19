@@ -35,7 +35,11 @@ function humanTime(dateStr: string): string {
 
 function getPreview(blocks: Note["blocks"]): string {
   for (const b of blocks) {
-    if (b.type === "paragraph" || b.type === "bulletList" || b.type === "numberedList") {
+    if (
+      b.type === "paragraph" ||
+      b.type === "bulletList" ||
+      b.type === "numberedList"
+    ) {
       if (b.content.trim()) return b.content;
     }
   }
@@ -199,7 +203,10 @@ export function NoteList({
                   </div>
                   <div className="flex items-center gap-2 mt-1.5">
                     {note.scheduledDate && (
-                      <span className="text-[10px] text-primary/60 flex items-center gap-1" title={`Запланирована на ${note.scheduledDate} ${note.scheduledTime || ""}`}>
+                      <span
+                        className="text-[10px] text-primary/60 flex items-center gap-1"
+                        title={`Запланирована на ${note.scheduledDate} ${note.scheduledTime || ""}`}
+                      >
                         {note.recurringInterval ? (
                           <Repeat className="h-2.5 w-2.5" />
                         ) : (

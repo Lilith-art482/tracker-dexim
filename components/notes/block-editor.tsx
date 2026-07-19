@@ -58,39 +58,129 @@ function generateBlockId(): string {
 }
 
 const SLASH_ITEMS: Array<{
-  type: BlockType | "bold" | "italic" | "underline" | "strikethrough" | "inlineCode";
+  type:
+    | BlockType
+    | "bold"
+    | "italic"
+    | "underline"
+    | "strikethrough"
+    | "inlineCode";
   label: string;
   icon: React.ReactNode;
   category: string;
 }> = [
-  { type: "heading1", label: "Заголовок 1", icon: <Heading1 className="h-4 w-4" />, category: "Блоки" },
-  { type: "heading2", label: "Заголовок 2", icon: <Heading2 className="h-4 w-4" />, category: "Блоки" },
-  { type: "heading3", label: "Заголовок 3", icon: <Heading3 className="h-4 w-4" />, category: "Блоки" },
-  { type: "paragraph", label: "Текст", icon: <Type className="h-4 w-4" />, category: "Блоки" },
-  { type: "bulletList", label: "Маркированный список", icon: <List className="h-4 w-4" />, category: "Блоки" },
-  { type: "numberedList", label: "Нумерованный список", icon: <ListOrdered className="h-4 w-4" />, category: "Блоки" },
-  { type: "todo", label: "Чек-лист", icon: <CheckSquare className="h-4 w-4" />, category: "Блоки" },
-  { type: "quote", label: "Цитата", icon: <Quote className="h-4 w-4" />, category: "Блоки" },
-  { type: "code", label: "Блок кода", icon: <Code2 className="h-4 w-4" />, category: "Блоки" },
-  { type: "divider", label: "Разделитель", icon: <Minus className="h-4 w-4" />, category: "Блоки" },
-  { type: "bold", label: "Полужирный", icon: <Bold className="h-4 w-4" />, category: "Формат" },
-  { type: "italic", label: "Курсив", icon: <Italic className="h-4 w-4" />, category: "Формат" },
-  { type: "underline", label: "Подчёркнутый", icon: <Underline className="h-4 w-4" />, category: "Формат" },
-  { type: "strikethrough", label: "Зачёркнутый", icon: <Strikethrough className="h-4 w-4" />, category: "Формат" },
-  { type: "inlineCode", label: "Моноширинный", icon: <Code2 className="h-4 w-4" />, category: "Формат" },
+  {
+    type: "heading1",
+    label: "Заголовок 1",
+    icon: <Heading1 className="h-4 w-4" />,
+    category: "Блоки",
+  },
+  {
+    type: "heading2",
+    label: "Заголовок 2",
+    icon: <Heading2 className="h-4 w-4" />,
+    category: "Блоки",
+  },
+  {
+    type: "heading3",
+    label: "Заголовок 3",
+    icon: <Heading3 className="h-4 w-4" />,
+    category: "Блоки",
+  },
+  {
+    type: "paragraph",
+    label: "Текст",
+    icon: <Type className="h-4 w-4" />,
+    category: "Блоки",
+  },
+  {
+    type: "bulletList",
+    label: "Маркированный список",
+    icon: <List className="h-4 w-4" />,
+    category: "Блоки",
+  },
+  {
+    type: "numberedList",
+    label: "Нумерованный список",
+    icon: <ListOrdered className="h-4 w-4" />,
+    category: "Блоки",
+  },
+  {
+    type: "todo",
+    label: "Чек-лист",
+    icon: <CheckSquare className="h-4 w-4" />,
+    category: "Блоки",
+  },
+  {
+    type: "quote",
+    label: "Цитата",
+    icon: <Quote className="h-4 w-4" />,
+    category: "Блоки",
+  },
+  {
+    type: "code",
+    label: "Блок кода",
+    icon: <Code2 className="h-4 w-4" />,
+    category: "Блоки",
+  },
+  {
+    type: "divider",
+    label: "Разделитель",
+    icon: <Minus className="h-4 w-4" />,
+    category: "Блоки",
+  },
+  {
+    type: "bold",
+    label: "Полужирный",
+    icon: <Bold className="h-4 w-4" />,
+    category: "Формат",
+  },
+  {
+    type: "italic",
+    label: "Курсив",
+    icon: <Italic className="h-4 w-4" />,
+    category: "Формат",
+  },
+  {
+    type: "underline",
+    label: "Подчёркнутый",
+    icon: <Underline className="h-4 w-4" />,
+    category: "Формат",
+  },
+  {
+    type: "strikethrough",
+    label: "Зачёркнутый",
+    icon: <Strikethrough className="h-4 w-4" />,
+    category: "Формат",
+  },
+  {
+    type: "inlineCode",
+    label: "Моноширинный",
+    icon: <Code2 className="h-4 w-4" />,
+    category: "Формат",
+  },
 ];
 
 function getBlockPlaceholder(type: BlockType): string {
   switch (type) {
-    case "heading1": return "Заголовок 1";
-    case "heading2": return "Заголовок 2";
-    case "heading3": return "Заголовок 3";
-    case "bulletList": return "Список";
-    case "numberedList": return "Нумерованный список";
-    case "todo": return "Задача";
-    case "quote": return "Цитата";
-    case "code": return "Код";
-    default: return "Напишите / чтобы открыть меню...";
+    case "heading1":
+      return "Заголовок 1";
+    case "heading2":
+      return "Заголовок 2";
+    case "heading3":
+      return "Заголовок 3";
+    case "bulletList":
+      return "Список";
+    case "numberedList":
+      return "Нумерованный список";
+    case "todo":
+      return "Задача";
+    case "quote":
+      return "Цитата";
+    case "code":
+      return "Код";
+    default:
+      return "Напишите / чтобы открыть меню...";
   }
 }
 
@@ -102,25 +192,61 @@ function exec(cmd: string, val?: string) {
   document.execCommand(cmd, false, val);
 }
 
-function FormatToolbar({ blockType, onBlockTypeChange }: {
+function FormatToolbar({
+  blockType,
+  onBlockTypeChange,
+}: {
   blockType: BlockType;
   onBlockTypeChange: (type: BlockType) => void;
 }) {
   const [showBlockMenu, setShowBlockMenu] = useState(false);
 
-  const blockTypeOptions: Array<{ type: BlockType; label: string; icon: React.ReactNode }> = [
-    { type: "paragraph", label: "Текст", icon: <Pilcrow className="h-3.5 w-3.5" /> },
-    { type: "heading1", label: "H1", icon: <Heading1 className="h-3.5 w-3.5" /> },
-    { type: "heading2", label: "H2", icon: <Heading2 className="h-3.5 w-3.5" /> },
-    { type: "heading3", label: "H3", icon: <Heading3 className="h-3.5 w-3.5" /> },
+  const blockTypeOptions: Array<{
+    type: BlockType;
+    label: string;
+    icon: React.ReactNode;
+  }> = [
+    {
+      type: "paragraph",
+      label: "Текст",
+      icon: <Pilcrow className="h-3.5 w-3.5" />,
+    },
+    {
+      type: "heading1",
+      label: "H1",
+      icon: <Heading1 className="h-3.5 w-3.5" />,
+    },
+    {
+      type: "heading2",
+      label: "H2",
+      icon: <Heading2 className="h-3.5 w-3.5" />,
+    },
+    {
+      type: "heading3",
+      label: "H3",
+      icon: <Heading3 className="h-3.5 w-3.5" />,
+    },
     { type: "quote", label: "Цитата", icon: <Quote className="h-3.5 w-3.5" /> },
     { type: "code", label: "Код", icon: <Code2 className="h-3.5 w-3.5" /> },
-    { type: "bulletList", label: "Список", icon: <List className="h-3.5 w-3.5" /> },
-    { type: "numberedList", label: "Нум. список", icon: <ListOrdered className="h-3.5 w-3.5" /> },
-    { type: "todo", label: "Задача", icon: <CheckSquare className="h-3.5 w-3.5" /> },
+    {
+      type: "bulletList",
+      label: "Список",
+      icon: <List className="h-3.5 w-3.5" />,
+    },
+    {
+      type: "numberedList",
+      label: "Нум. список",
+      icon: <ListOrdered className="h-3.5 w-3.5" />,
+    },
+    {
+      type: "todo",
+      label: "Задача",
+      icon: <CheckSquare className="h-3.5 w-3.5" />,
+    },
   ];
 
-  const currentLabel = blockTypeOptions.find((o) => o.type === blockType)?.label || "Текст";
+  const currentLabel =
+    blockTypeOptions.find((o) => o.type === blockType)?.label || "Текст";
 
   return (
     <div className="flex items-center gap-0.5 px-1 py-1 rounded-lg bg-muted/20 border border-border/20 flex-wrap">
@@ -133,13 +259,19 @@ function FormatToolbar({ blockType, onBlockTypeChange }: {
         </button>
         {showBlockMenu && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setShowBlockMenu(false)} />
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowBlockMenu(false)}
+            />
             <div className="absolute left-0 top-full z-50 mt-1 w-40 rounded-xl border border-border/60 bg-popover shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150">
               <div className="p-1 space-y-0.5">
                 {blockTypeOptions.map((opt) => (
                   <button
                     key={opt.type}
-                    onClick={() => { onBlockTypeChange(opt.type); setShowBlockMenu(false); }}
+                    onClick={() => {
+                      onBlockTypeChange(opt.type);
+                      setShowBlockMenu(false);
+                    }}
                     className={cn(
                       "flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
                       opt.type === blockType
@@ -159,16 +291,32 @@ function FormatToolbar({ blockType, onBlockTypeChange }: {
 
       <span className="w-px h-5 bg-border/30 mx-0.5" />
 
-      <button onClick={() => exec("bold")} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all" title="Полужирный (Ctrl+B)">
+      <button
+        onClick={() => exec("bold")}
+        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all"
+        title="Полужирный (Ctrl+B)"
+      >
         <Bold className="h-3.5 w-3.5" />
       </button>
-      <button onClick={() => exec("italic")} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all" title="Курсив (Ctrl+I)">
+      <button
+        onClick={() => exec("italic")}
+        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all"
+        title="Курсив (Ctrl+I)"
+      >
         <Italic className="h-3.5 w-3.5" />
       </button>
-      <button onClick={() => exec("underline")} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all" title="Подчёркнутый (Ctrl+U)">
+      <button
+        onClick={() => exec("underline")}
+        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all"
+        title="Подчёркнутый (Ctrl+U)"
+      >
         <Underline className="h-3.5 w-3.5" />
       </button>
-      <button onClick={() => exec("strikeThrough")} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all" title="Зачёркнутый">
+      <button
+        onClick={() => exec("strikeThrough")}
+        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all"
+        title="Зачёркнутый"
+      >
         <Strikethrough className="h-3.5 w-3.5" />
       </button>
       <button
@@ -178,7 +326,11 @@ function FormatToolbar({ blockType, onBlockTypeChange }: {
             if (document.queryCommandState("insertHTML")) {
               document.execCommand("removeFormat");
             } else {
-              document.execCommand("insertHTML", false, `<code>${sel.toString()}</code>`);
+              document.execCommand(
+                "insertHTML",
+                false,
+                `<code>${sel.toString()}</code>`,
+              );
             }
           }
         }}
@@ -190,10 +342,18 @@ function FormatToolbar({ blockType, onBlockTypeChange }: {
 
       <span className="w-px h-5 bg-border/30 mx-0.5" />
 
-      <button onClick={() => exec("undo")} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all" title="Отменить (Ctrl+Z)">
+      <button
+        onClick={() => exec("undo")}
+        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all"
+        title="Отменить (Ctrl+Z)"
+      >
         <Undo2 className="h-3.5 w-3.5" />
       </button>
-      <button onClick={() => exec("redo")} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all" title="Повторить (Ctrl+Shift+Z)">
+      <button
+        onClick={() => exec("redo")}
+        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-all"
+        title="Повторить (Ctrl+Shift+Z)"
+      >
         <Redo2 className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -255,7 +415,10 @@ function BlockRenderer({
 
   const handleKeyDownInner = useCallback(
     (e: React.KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && ["b", "i", "u", "z", "y"].includes(e.key.toLowerCase())) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        ["b", "i", "u", "z", "y"].includes(e.key.toLowerCase())
+      ) {
         return;
       }
       if (e.key === "/") {
@@ -280,7 +443,8 @@ function BlockRenderer({
     bulletList: "text-base ml-5",
     numberedList: "text-base ml-5",
     todo: "text-base",
-    quote: "text-base italic border-l-4 border-primary/40 pl-4 py-1 text-muted-foreground bg-muted/10 rounded-r-lg",
+    quote:
+      "text-base italic border-l-4 border-primary/40 pl-4 py-1 text-muted-foreground bg-muted/10 rounded-r-lg",
     code: "text-sm font-mono bg-muted/20 rounded-lg p-3 border border-border/40",
   };
 
@@ -303,7 +467,9 @@ function BlockRenderer({
         onFocus={onFocus}
         onKeyDown={handleKeyDownInner}
         className={cn(baseClass, typeClasses[block.type] || "text-base")}
-        data-placeholder={showPlaceholder ? getBlockPlaceholder(block.type) : undefined}
+        data-placeholder={
+          showPlaceholder ? getBlockPlaceholder(block.type) : undefined
+        }
       >
         {block.content}
       </div>
@@ -311,7 +477,9 @@ function BlockRenderer({
         <div
           className="pointer-events-none absolute left-0 top-0 text-muted-foreground/30 select-none truncate"
           style={
-            block.type === "todo" || block.type === "bulletList" || block.type === "numberedList"
+            block.type === "todo" ||
+            block.type === "bulletList" ||
+            block.type === "numberedList"
               ? { left: block.type === "todo" ? "1.75rem" : "1.25rem" }
               : {}
           }
@@ -354,7 +522,10 @@ function SlashMenu({ open, onSelect, onClose, search }: SlashMenuProps) {
     [search],
   );
 
-  const grouped = useMemo(() => groupBy(filtered, (i) => i.category), [filtered]);
+  const grouped = useMemo(
+    () => groupBy(filtered, (i) => i.category),
+    [filtered],
+  );
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -430,7 +601,9 @@ function SlashMenu({ open, onSelect, onClose, search }: SlashMenuProps) {
                   <span
                     className={cn(
                       "flex h-7 w-7 items-center justify-center rounded-md",
-                      globalIndex === selectedIndex ? "bg-primary/15" : "bg-muted/50",
+                      globalIndex === selectedIndex
+                        ? "bg-primary/15"
+                        : "bg-muted/50",
                     )}
                   >
                     {item.icon}
@@ -442,7 +615,9 @@ function SlashMenu({ open, onSelect, onClose, search }: SlashMenuProps) {
           </div>
         ))}
         {filtered.length === 0 && (
-          <p className="px-3 py-3 text-sm text-muted-foreground/50">Ничего не найдено</p>
+          <p className="px-3 py-3 text-sm text-muted-foreground/50">
+            Ничего не найдено
+          </p>
         )}
       </div>
     </div>
@@ -498,7 +673,9 @@ export function BlockEditor({
   onCanvasStateChange?: (state: CanvasState) => void;
 }) {
   const [canvasMode, setCanvasMode] = useState(false);
-  const [focusedBlockIndex, setFocusedBlockIndex] = useState<number | null>(null);
+  const [focusedBlockIndex, setFocusedBlockIndex] = useState<number | null>(
+    null,
+  );
   const [slashMenuOpen, setSlashMenuOpen] = useState(false);
   const [slashSearch, setSlashSearch] = useState("");
   const [tagInput, setTagInput] = useState("");
@@ -557,14 +734,34 @@ export function BlockEditor({
 
   const handleSlashCommand = useCallback(
     (type: string) => {
-      if (type === "bold") { exec("bold"); setSlashMenuOpen(false); return; }
-      if (type === "italic") { exec("italic"); setSlashMenuOpen(false); return; }
-      if (type === "underline") { exec("underline"); setSlashMenuOpen(false); return; }
-      if (type === "strikethrough") { exec("strikeThrough"); setSlashMenuOpen(false); return; }
+      if (type === "bold") {
+        exec("bold");
+        setSlashMenuOpen(false);
+        return;
+      }
+      if (type === "italic") {
+        exec("italic");
+        setSlashMenuOpen(false);
+        return;
+      }
+      if (type === "underline") {
+        exec("underline");
+        setSlashMenuOpen(false);
+        return;
+      }
+      if (type === "strikethrough") {
+        exec("strikeThrough");
+        setSlashMenuOpen(false);
+        return;
+      }
       if (type === "inlineCode") {
         const sel = window.getSelection();
         if (sel && sel.toString()) {
-          document.execCommand("insertHTML", false, `<code>${sel.toString()}</code>`);
+          document.execCommand(
+            "insertHTML",
+            false,
+            `<code>${sel.toString()}</code>`,
+          );
         }
         setSlashMenuOpen(false);
         return;
@@ -575,7 +772,9 @@ export function BlockEditor({
 
       if (type === "divider") {
         const updated = blocks.map((b, i) =>
-          i === focusedBlockIndex ? { ...b, type: "divider" as const, content: "" } : b,
+          i === focusedBlockIndex
+            ? { ...b, type: "divider" as const, content: "" }
+            : b,
         );
         onChange(updated);
         setSlashMenuOpen(false);
@@ -585,7 +784,10 @@ export function BlockEditor({
       const cleanContent = block.content.startsWith("/")
         ? block.content.slice(1).trimStart()
         : block.content;
-      updateBlock(focusedBlockIndex, { type: type as BlockType, content: cleanContent });
+      updateBlock(focusedBlockIndex, {
+        type: type as BlockType,
+        content: cleanContent,
+      });
       setSlashMenuOpen(false);
     },
     [focusedBlockIndex, blocks, onChange, updateBlock],
@@ -729,177 +931,180 @@ export function BlockEditor({
         />
       ) : canvasMode ? null : (
         <>
-      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-1 scrollbar-none min-h-0">
-        <input
-          value={noteTitle}
-          onChange={(e) => onTitleChange(e.target.value)}
-          placeholder="Без названия"
-          className="w-full text-3xl font-bold tracking-tight bg-transparent border-none outline-none placeholder:text-muted-foreground/20 mb-4"
-        />
-
-        {focusedBlockIndex !== null && blocks[focusedBlockIndex] && (
-          <div className="mb-3">
-            <FormatToolbar
-              blockType={blocks[focusedBlockIndex]?.type || "paragraph"}
-              onBlockTypeChange={handleBlockTypeChange}
+          <div className="flex-1 overflow-y-auto px-8 py-6 space-y-1 scrollbar-none min-h-0">
+            <input
+              value={noteTitle}
+              onChange={(e) => onTitleChange(e.target.value)}
+              placeholder="Без названия"
+              className="w-full text-3xl font-bold tracking-tight bg-transparent border-none outline-none placeholder:text-muted-foreground/20 mb-4"
             />
-          </div>
-        )}
 
-        {blocks.length === 0 && focusedBlockIndex === null && (
-          <div className="text-muted-foreground/30 text-center py-20 select-none">
-            <Type className="h-8 w-8 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Нажмите / чтобы начать</p>
-          </div>
-        )}
-
-        {blocks.map((block, i) => (
-          <div key={block.id} className="relative">
-            <BlockRenderer
-              block={block}
-              onContentChange={(content) => updateBlock(i, { content })}
-              onFocus={() => setFocusedBlockIndex(i)}
-              onKeyDown={(e) => handleBlockKeyDown(i, e)}
-              onSlashCommand={() => handleSlashTrigger(i)}
-              isFocused={focusedBlockIndex === i}
-            />
-          </div>
-        ))}
-      </div>
-
-      {slashMenuOpen && (
-        <SlashMenu
-          open={slashMenuOpen}
-          search={slashSearch}
-          onSelect={handleSlashCommand}
-          onClose={() => setSlashMenuOpen(false)}
-        />
-      )}
-
-      <div className="border-t border-border/20 px-8 py-3 shrink-0">
-        <div className="flex items-center gap-4 flex-wrap">
-          {/* AI Extract */}
-          <button
-            onClick={handleExtractTasks}
-            disabled={extracting}
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/30 px-2 py-1 rounded-md transition-colors disabled:opacity-50"
-            title="Извлечь задачи из текста"
-          >
-            {extracting ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="h-3.5 w-3.5" />
+            {focusedBlockIndex !== null && blocks[focusedBlockIndex] && (
+              <div className="mb-3">
+                <FormatToolbar
+                  blockType={blocks[focusedBlockIndex]?.type || "paragraph"}
+                  onBlockTypeChange={handleBlockTypeChange}
+                />
+              </div>
             )}
-            Извлечь задачи
-          </button>
-          <span className="w-px h-5 bg-border/30 mx-1" />
-          {/* Schedule */}
-          {onScheduleChange && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-              <input
-                type="date"
-                value={toDateInputValue(scheduledDate)}
-                onChange={(e) =>
-                  onScheduleChange(
-                    e.target.value || null,
-                    scheduledTime ?? null,
-                    recurringInterval ?? null,
-                  )
-                }
-                className="bg-transparent border border-border/30 rounded-md px-2 py-1 text-xs text-foreground outline-none w-[140px]"
-              />
-              <Clock className="h-3.5 w-3.5" />
-              <input
-                type="time"
-                value={scheduledTime ?? "09:00"}
-                onChange={(e) =>
-                  onScheduleChange(
-                    scheduledDate ?? null,
-                    e.target.value || null,
-                    recurringInterval ?? null,
-                  )
-                }
-                className="bg-transparent border border-border/30 rounded-md px-2 py-1 text-xs text-foreground outline-none w-[100px]"
-              />
+
+            {blocks.length === 0 && focusedBlockIndex === null && (
+              <div className="text-muted-foreground/30 text-center py-20 select-none">
+                <Type className="h-8 w-8 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">Нажмите / чтобы начать</p>
+              </div>
+            )}
+
+            {blocks.map((block, i) => (
+              <div key={block.id} className="relative">
+                <BlockRenderer
+                  block={block}
+                  onContentChange={(content) => updateBlock(i, { content })}
+                  onFocus={() => setFocusedBlockIndex(i)}
+                  onKeyDown={(e) => handleBlockKeyDown(i, e)}
+                  onSlashCommand={() => handleSlashTrigger(i)}
+                  isFocused={focusedBlockIndex === i}
+                />
+              </div>
+            ))}
+          </div>
+
+          {slashMenuOpen && (
+            <SlashMenu
+              open={slashMenuOpen}
+              search={slashSearch}
+              onSelect={handleSlashCommand}
+              onClose={() => setSlashMenuOpen(false)}
+            />
+          )}
+
+          <div className="border-t border-border/20 px-8 py-3 shrink-0">
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* AI Extract */}
               <button
-                onClick={() => {
-                  if (scheduledDate || scheduledTime) {
-                    onScheduleChange(null, null, null);
-                  }
-                }}
-                className="text-muted-foreground/50 hover:text-destructive transition-colors text-xs"
-                title="Сбросить расписание"
+                onClick={handleExtractTasks}
+                disabled={extracting}
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/30 px-2 py-1 rounded-md transition-colors disabled:opacity-50"
+                title="Извлечь задачи из текста"
               >
-                {scheduledDate || scheduledTime ? "×" : null}
+                {extracting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" />
+                )}
+                Извлечь задачи
               </button>
-              <Repeat className="h-3.5 w-3.5 ml-1" />
-              <select
-                value={recurringInterval ?? ""}
-                onChange={(e) =>
-                  onScheduleChange(
-                    scheduledDate ?? null,
-                    scheduledTime ?? null,
-                    e.target.value || null,
-                  )
-                }
-                className="bg-transparent border border-border/30 rounded-md px-2 py-1 text-xs text-foreground outline-none"
-              >
-                <option value="">Нет</option>
-                <option value="daily">Ежедневно</option>
-                <option value="weekly">Еженедельно</option>
-                <option value="monthly">Ежемесячно</option>
-              </select>
+              <span className="w-px h-5 bg-border/30 mx-1" />
+              {/* Schedule */}
+              {onScheduleChange && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <input
+                    type="date"
+                    value={toDateInputValue(scheduledDate)}
+                    onChange={(e) =>
+                      onScheduleChange(
+                        e.target.value || null,
+                        scheduledTime ?? null,
+                        recurringInterval ?? null,
+                      )
+                    }
+                    className="bg-transparent border border-border/30 rounded-md px-2 py-1 text-xs text-foreground outline-none w-[140px]"
+                  />
+                  <Clock className="h-3.5 w-3.5" />
+                  <input
+                    type="time"
+                    value={scheduledTime ?? "09:00"}
+                    onChange={(e) =>
+                      onScheduleChange(
+                        scheduledDate ?? null,
+                        e.target.value || null,
+                        recurringInterval ?? null,
+                      )
+                    }
+                    className="bg-transparent border border-border/30 rounded-md px-2 py-1 text-xs text-foreground outline-none w-[100px]"
+                  />
+                  <button
+                    onClick={() => {
+                      if (scheduledDate || scheduledTime) {
+                        onScheduleChange(null, null, null);
+                      }
+                    }}
+                    className="text-muted-foreground/50 hover:text-destructive transition-colors text-xs"
+                    title="Сбросить расписание"
+                  >
+                    {scheduledDate || scheduledTime ? "×" : null}
+                  </button>
+                  <Repeat className="h-3.5 w-3.5 ml-1" />
+                  <select
+                    value={recurringInterval ?? ""}
+                    onChange={(e) =>
+                      onScheduleChange(
+                        scheduledDate ?? null,
+                        scheduledTime ?? null,
+                        e.target.value || null,
+                      )
+                    }
+                    className="bg-transparent border border-border/30 rounded-md px-2 py-1 text-xs text-foreground outline-none"
+                  >
+                    <option value="">Нет</option>
+                    <option value="daily">Ежедневно</option>
+                    <option value="weekly">Еженедельно</option>
+                    <option value="monthly">Ежемесячно</option>
+                  </select>
+                </div>
+              )}
+              <span className="w-px h-5 bg-border/30 mx-1" />
+              {/* Tags */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {noteTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-xs px-2.5 py-0.5"
+                  >
+                    #{tag}
+                    <button
+                      onClick={() => removeTag(tag)}
+                      className="hover:text-destructive transition-colors"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+                <input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && tagInput.trim()) {
+                      e.preventDefault();
+                      handleAddTag(tagInput);
+                    }
+                  }}
+                  placeholder={noteTags.length === 0 ? "Добавить тег..." : ""}
+                  className="bg-transparent border-none outline-none text-xs text-muted-foreground placeholder:text-muted-foreground/30 min-w-[80px]"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Backlinks */}
+          {linkedNoteIds && linkedNoteIds.length > 0 && noteTitles && (
+            <div className="px-8 py-2 border-t border-border/10 shrink-0">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
+                <span className="font-medium">Связанные заметки:</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {linkedNoteIds.map((id) => (
+                    <span
+                      key={id}
+                      className="inline-flex items-center gap-1 rounded-md bg-primary/5 text-primary text-xs px-2 py-0.5"
+                    >
+                      {noteTitles[id] || "—"}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
-          <span className="w-px h-5 bg-border/30 mx-1" />
-          {/* Tags */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {noteTags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-xs px-2.5 py-0.5"
-              >
-                #{tag}
-                <button onClick={() => removeTag(tag)} className="hover:text-destructive transition-colors">
-                  ×
-                </button>
-              </span>
-            ))}
-            <input
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && tagInput.trim()) {
-                  e.preventDefault();
-                  handleAddTag(tagInput);
-                }
-              }}
-              placeholder={noteTags.length === 0 ? "Добавить тег..." : ""}
-              className="bg-transparent border-none outline-none text-xs text-muted-foreground placeholder:text-muted-foreground/30 min-w-[80px]"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Backlinks */}
-      {linkedNoteIds && linkedNoteIds.length > 0 && noteTitles && (
-        <div className="px-8 py-2 border-t border-border/10 shrink-0">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
-            <span className="font-medium">Связанные заметки:</span>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {linkedNoteIds.map((id) => (
-                <span
-                  key={id}
-                  className="inline-flex items-center gap-1 rounded-md bg-primary/5 text-primary text-xs px-2 py-0.5"
-                >
-                  {noteTitles[id] || "—"}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
         </>
       )}
 
@@ -925,7 +1130,12 @@ function ExtractTasksDialog({
   onClose,
   onTaskCreated,
 }: {
-  tasks: Array<{ title: string; priority?: string; date?: string; comment?: string }>;
+  tasks: Array<{
+    title: string;
+    priority?: string;
+    date?: string;
+    comment?: string;
+  }>;
   uid: string;
   onClose: () => void;
   onTaskCreated: () => void;

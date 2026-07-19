@@ -9,7 +9,6 @@ import {
   Trash2,
   Loader2,
   CheckSquare,
-  Square,
   TrendingUp,
   TrendingDown,
   ArrowRightLeft,
@@ -18,6 +17,7 @@ import {
   Tags,
   Calendar,
   ChevronDown,
+  Camera,
 } from "lucide-react";
 import type {
   Transaction,
@@ -36,12 +36,12 @@ import {
   createCategory,
 } from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
+import { QrScannerDialog } from "@/components/finance/qr-scanner-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -92,33 +92,38 @@ const TYPE_BGS: Record<TransactionType, string> = {
   transfer: "bg-sky-500/10",
 };
 
-const TYPE_BADGE: Record<TransactionType, string> = {
-  income: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
-  expense: "bg-rose-500/10 text-rose-600 border-rose-200",
-  transfer: "bg-sky-500/10 text-sky-600 border-sky-200",
-};
-
-function formatDate(dateStr: string) {
+function formatTime(dateStr: string) {
   const d = new Date(dateStr);
-  return isNaN(d.getTime())
-    ? dateStr
-    : d.toLocaleDateString("ru-RU", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 }
 
-function formatDateTime(dateStr: string) {
+function getDateGroup(dateStr: string): string {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
+  const datePart = dateStr.split("T")[0];
+  if (datePart === todayStr) return "Сегодня";
+  if (datePart === yesterdayStr) return "Вчера";
   return d.toLocaleDateString("ru-RU", {
     day: "numeric",
-    month: "short",
+    month: "long",
     year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
+}
+
+function groupByDate(txs: Transaction[]): Map<string, Transaction[]> {
+  const groups = new Map<string, Transaction[]>();
+  for (const tx of txs) {
+    const key = getDateGroup(tx.date);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(tx);
+  }
+  return groups;
 }
 
 export function FinanceTransactions() {
@@ -138,6 +143,7 @@ export function FinanceTransactions() {
   const [sortAsc, setSortAsc] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [qrOpen, setQrOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
@@ -556,6 +562,23 @@ export function FinanceTransactions() {
             <Download className="h-4 w-4" />
           </Button>
           <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setSortAsc(!sortAsc)}
+            title={sortAsc ? "Сначала старые" : "Сначала новые"}
+            className={cn(sortAsc && "text-muted-foreground/50")}
+          >
+            <ChevronDown className={cn("h-4 w-4 transition-transform", sortAsc && "rotate-180")} />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={() => setQrOpen(true)}
+            title="QR-код"
+          >
+            <Camera className="h-4 w-4" />
+          </Button>
+          <Button
             size="sm"
             onClick={() => {
               resetForm();
@@ -697,185 +720,168 @@ export function FinanceTransactions() {
         </CardContent>
       </Card>
 
-      {/* Transactions table */}
-      <Card>
-        <CardContent className="p-0">
-          {filteredTransactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+      {/* Transactions list */}
+      <div className="space-y-6">
+        {filteredTransactions.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Filter className="h-10 w-10 mb-2 opacity-40" />
               <p className="text-sm">Операции не найдены</p>
               <p className="text-xs mt-1">
                 Попробуйте изменить фильтры или добавьте новую операцию
               </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/50">
-                    <th className="px-3 py-2.5 text-left w-8">
-                      <button
-                        onClick={toggleSelectAll}
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {selectedIds.size === filteredTransactions.length &&
-                        filteredTransactions.length > 0 ? (
-                          <CheckSquare className="h-4 w-4" />
-                        ) : (
-                          <Square className="h-4 w-4" />
-                        )}
-                      </button>
-                    </th>
-                    <th
-                      className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground cursor-pointer select-none whitespace-nowrap"
-                      onClick={() => setSortAsc(!sortAsc)}
-                    >
-                      Дата {sortAsc ? "↑" : "↓"}
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">
-                      Тип
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">
-                      Описание
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">
-                      Категория
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">
-                      Счёт
-                    </th>
-                    <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">
-                      Сумма
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">
-                      Теги
-                    </th>
-                    <th className="px-3 py-2.5 w-12" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTransactions.map((tx) => {
+            </CardContent>
+          </Card>
+        ) : (
+          Array.from(groupByDate(filteredTransactions).entries()).map(
+            ([groupLabel, txs]) => (
+              <div key={groupLabel}>
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="text-sm font-semibold text-foreground/80">
+                    {groupLabel}
+                  </h3>
+                  <div className="h-px flex-1 bg-border/60" />
+                </div>
+                <div className="space-y-2">
+                  {txs.map((tx) => {
                     const cat = categoryMap[tx.categoryId];
                     const acc = accountMap[tx.accountId];
                     const TypeIcon = TYPE_ICONS[tx.type];
                     const typeColor = TYPE_COLORS[tx.type];
+                    const typeBg = TYPE_BGS[tx.type];
                     return (
-                      <tr
+                      <div
                         key={tx.id}
                         className={cn(
-                          "border-b border-border/30 hover:bg-muted/30 transition-colors cursor-pointer",
-                          selectedIds.has(tx.id) && "bg-primary/5",
+                          "group relative flex items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-all duration-200 hover:shadow-sm hover:border-foreground/20 hover:-translate-y-0.5",
+                          selectedIds.has(tx.id) && "border-primary/40 bg-primary/[0.03]",
                         )}
                         onClick={() => openEdit(tx)}
                       >
-                        <td
-                          className="px-3 py-2.5"
+                        {/* Select */}
+                        <div
+                          className="shrink-0"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
                             onClick={() => toggleSelect(tx.id)}
-                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            className={cn(
+                              "flex h-5 w-5 items-center justify-center rounded border text-muted-foreground transition-colors",
+                              selectedIds.has(tx.id)
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border hover:border-foreground/30",
+                            )}
                           >
-                            {selectedIds.has(tx.id) ? (
-                              <CheckSquare className="h-4 w-4" />
-                            ) : (
-                              <Square className="h-4 w-4" />
+                            {selectedIds.has(tx.id) && (
+                              <CheckSquare className="h-3.5 w-3.5" />
                             )}
                           </button>
-                        </td>
-                        <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                          <span title={tx.date}>{formatDateTime(tx.date)}</span>
-                        </td>
-                        <td className="px-3 py-2.5">
+                        </div>
+
+                        {/* Category icon */}
+                        <div
+                          className={cn(
+                            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg",
+                            typeBg,
+                          )}
+                        >
+                          {cat?.icon || <TypeIcon className={cn("h-5 w-5", typeColor)} />}
+                        </div>
+
+                        {/* Info */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="truncate text-sm font-medium">
+                              {tx.description ||
+                                (cat?.name || "Без категории")}
+                            </span>
+                            {cat && tx.description && (
+                              <span className="shrink-0 text-[10px] text-muted-foreground/60">
+                                {cat.name}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="tabular-nums">
+                              {formatTime(tx.date)}
+                            </span>
+                            {acc && (
+                              <>
+                                <span>·</span>
+                                <span>{acc.name}</span>
+                              </>
+                            )}
+                            {tx.tags.length > 0 && (
+                              <>
+                                <span>·</span>
+                                <div className="flex gap-1">
+                                  {tx.tags.slice(0, 1).map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className="rounded-md bg-muted px-1.5 py-0.5 text-[10px]"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {tx.tags.length > 1 && (
+                                    <span className="text-[10px] text-muted-foreground/60">
+                                      +{tx.tags.length - 1}
+                                    </span>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Amount */}
+                        <div className="shrink-0 text-right">
                           <div
                             className={cn(
-                              "flex h-6 w-6 items-center justify-center rounded-full",
-                              TYPE_BGS[tx.type],
+                              "text-base font-bold tabular-nums tracking-tight",
+                              typeColor,
                             )}
                           >
-                            <TypeIcon
-                              className={cn("h-3.5 w-3.5", typeColor)}
-                            />
-                          </div>
-                        </td>
-                        <td className="px-3 py-2.5 max-w-[200px] truncate font-medium">
-                          {tx.description}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[10px] px-1.5 py-0 font-normal",
-                              TYPE_BADGE[tx.type],
-                            )}
-                          >
-                            {cat?.name || "Без категории"}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                          {acc?.name || "Без счёта"}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-semibold tabular-nums whitespace-nowrap">
-                          <span className={typeColor}>
                             {tx.type === "income"
                               ? "+"
                               : tx.type === "expense"
                                 ? "−"
                                 : ""}
                             {tx.amount.toLocaleString()} ₽
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <div className="flex flex-wrap gap-1">
-                            {tx.tags.slice(0, 2).map((tag) => (
-                              <Badge
-                                key={tag}
-                                variant="secondary"
-                                className="text-[10px] px-1.5 py-0"
-                              >
-                                {tag}
-                              </Badge>
-                            ))}
-                            {tx.tags.length > 2 && (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] px-1.5 py-0"
-                              >
-                                +{tx.tags.length - 2}
-                              </Badge>
-                            )}
                           </div>
-                        </td>
-                        <td
-                          className="px-3 py-2.5"
+                        </div>
+
+                        {/* Actions */}
+                        <div
+                          className="absolute right-3 top-3 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div className="flex gap-0.5">
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => openEdit(tx)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => handleDelete(tx.id)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => openEdit(tx)}
+                            className="h-7 w-7"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleDelete(tx.id)}
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                </div>
+              </div>
+            ),
+          )
+        )}
+      </div>
 
       {/* Bulk actions */}
       {selectedIds.size > 0 && (
@@ -889,6 +895,17 @@ export function FinanceTransactions() {
           </Button>
         </div>
       )}
+
+      <QrScannerDialog
+        open={qrOpen}
+        onOpenChange={setQrOpen}
+        accounts={accounts}
+        categories={categories}
+        uid={uid}
+        onTransactionCreated={() => {
+          fetchAll();
+        }}
+      />
 
       {/* Add dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>

@@ -58,7 +58,8 @@ function BlockCard({
     : undefined;
 
   const typeIcon = () => {
-    if (block.type === "todo") return <CheckSquare className="h-3 w-3 shrink-0" />;
+    if (block.type === "todo")
+      return <CheckSquare className="h-3 w-3 shrink-0" />;
     return <FileText className="h-3 w-3 shrink-0" />;
   };
 
@@ -104,7 +105,13 @@ function BlockCard({
           className="shrink-0 h-5 w-5 flex items-center justify-center rounded text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors"
           title="Соединить"
         >
-          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            className="h-3 w-3"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </button>
@@ -154,7 +161,14 @@ function ConnectionsSvg({
       height={CANVAS_HEIGHT}
     >
       <defs>
-        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <marker
+          id="arrowhead"
+          markerWidth="8"
+          markerHeight="6"
+          refX="8"
+          refY="3"
+          orient="auto"
+        >
           <polygon points="0 0, 8 3, 0 6" fill="hsl(var(--primary))" />
         </marker>
       </defs>
@@ -196,7 +210,10 @@ export function CanvasView({
   );
 
   const positions = useMemo(() => {
-    if (canvasState?.positions && Object.keys(canvasState.positions).length > 0) {
+    if (
+      canvasState?.positions &&
+      Object.keys(canvasState.positions).length > 0
+    ) {
       return canvasState.positions;
     }
     return layoutInitial(blocks);
@@ -208,8 +225,14 @@ export function CanvasView({
   );
 
   const persist = useCallback(
-    (newPositions: Record<string, { x: number; y: number }>, newConnections: CanvasConnection[]) => {
-      onCanvasStateChange({ positions: newPositions, connections: newConnections });
+    (
+      newPositions: Record<string, { x: number; y: number }>,
+      newConnections: CanvasConnection[],
+    ) => {
+      onCanvasStateChange({
+        positions: newPositions,
+        connections: newConnections,
+      });
     },
     [onCanvasStateChange],
   );
@@ -253,7 +276,11 @@ export function CanvasView({
         if (!exists && connectingFrom !== blockId) {
           const newConnections = [
             ...connections,
-            { fromBlockId: connectingFrom, toBlockId: blockId, type: "arrow" as const },
+            {
+              fromBlockId: connectingFrom,
+              toBlockId: blockId,
+              type: "arrow" as const,
+            },
           ];
           persist(positions, newConnections);
         }
@@ -301,8 +328,12 @@ export function CanvasView({
     () =>
       connections.map((c) => ({
         ...c,
-        fromTitle: blocks.find((b) => b.id === c.fromBlockId)?.content.slice(0, 20) || c.fromBlockId,
-        toTitle: blocks.find((b) => b.id === c.toBlockId)?.content.slice(0, 20) || c.toBlockId,
+        fromTitle:
+          blocks.find((b) => b.id === c.fromBlockId)?.content.slice(0, 20) ||
+          c.fromBlockId,
+        toTitle:
+          blocks.find((b) => b.id === c.toBlockId)?.content.slice(0, 20) ||
+          c.toBlockId,
       })),
     [connections, blocks],
   );
@@ -317,7 +348,9 @@ export function CanvasView({
         <span className="text-muted-foreground/40">|</span>
         <span>{connections.length} связей</span>
         <span className="text-muted-foreground/40">|</span>
-        <span className="text-muted-foreground/50">Перетащите блоки для группировки</span>
+        <span className="text-muted-foreground/50">
+          Перетащите блоки для группировки
+        </span>
 
         {/* Connection list */}
         {connectionList.length > 0 && (
@@ -325,7 +358,9 @@ export function CanvasView({
             {connectionList.map((c) => (
               <button
                 key={`${c.fromBlockId}-${c.toBlockId}`}
-                onClick={() => handleRemoveConnection(c.fromBlockId, c.toBlockId)}
+                onClick={() =>
+                  handleRemoveConnection(c.fromBlockId, c.toBlockId)
+                }
                 className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-primary/5 text-primary/60 hover:bg-primary/15 hover:text-primary transition-colors"
                 title="Удалить связь"
               >
@@ -344,7 +379,11 @@ export function CanvasView({
         onClick={handleCanvasClick}
       >
         <div
-          style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, position: "relative" }}
+          style={{
+            width: CANVAS_WIDTH,
+            height: CANVAS_HEIGHT,
+            position: "relative",
+          }}
           className="bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-muted/20 to-transparent"
         >
           {/* Connection mode indicator */}

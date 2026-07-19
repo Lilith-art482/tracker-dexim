@@ -40,10 +40,18 @@ export function NotesShell() {
   const [editTitle, setEditTitle] = useState("");
   const [editBlocks, setEditBlocks] = useState<Block[]>([]);
   const [editTags, setEditTags] = useState<string[]>([]);
-  const [editScheduledDate, setEditScheduledDate] = useState<string | null>(null);
-  const [editScheduledTime, setEditScheduledTime] = useState<string | null>(null);
-  const [editRecurringInterval, setEditRecurringInterval] = useState<string | null>(null);
-  const [editCanvasState, setEditCanvasState] = useState<CanvasState | null>(null);
+  const [editScheduledDate, setEditScheduledDate] = useState<string | null>(
+    null,
+  );
+  const [editScheduledTime, setEditScheduledTime] = useState<string | null>(
+    null,
+  );
+  const [editRecurringInterval, setEditRecurringInterval] = useState<
+    string | null
+  >(null);
+  const [editCanvasState, setEditCanvasState] = useState<CanvasState | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,7 +73,9 @@ export function NotesShell() {
           setNotes(data);
           // Auto-select note if noteIdParam is present
           if (noteIdParamRef.current) {
-            const target = data.find((n: Note) => n.id === noteIdParamRef.current);
+            const target = data.find(
+              (n: Note) => n.id === noteIdParamRef.current,
+            );
             if (target) {
               setSelectedId(target.id);
               setEditTitle(target.title);
@@ -159,19 +169,48 @@ export function NotesShell() {
     if (!hasChanges || !selectedId || saving) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveNote(selectedId, editTitle, editBlocks, editTags, editScheduledDate, editScheduledTime, editRecurringInterval, editCanvasState);
+      saveNote(
+        selectedId,
+        editTitle,
+        editBlocks,
+        editTags,
+        editScheduledDate,
+        editScheduledTime,
+        editRecurringInterval,
+        editCanvasState,
+      );
       setHasChanges(false);
     }, 1500);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [hasChanges, selectedId, editTitle, editBlocks, editTags, editScheduledDate, editScheduledTime, editRecurringInterval, editCanvasState, saving, saveNote]);
+  }, [
+    hasChanges,
+    selectedId,
+    editTitle,
+    editBlocks,
+    editTags,
+    editScheduledDate,
+    editScheduledTime,
+    editRecurringInterval,
+    editCanvasState,
+    saving,
+    saveNote,
+  ]);
 
   const handleSelectNote = useCallback(
     (id: string) => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       if (selectedId && hasChanges) {
-        saveNote(selectedId, editTitle, editBlocks, editTags, editScheduledDate, editScheduledTime, editRecurringInterval);
+        saveNote(
+          selectedId,
+          editTitle,
+          editBlocks,
+          editTags,
+          editScheduledDate,
+          editScheduledTime,
+          editRecurringInterval,
+        );
       }
       setSelectedId(id);
       const note = notes.find((n) => n.id === id);
@@ -213,7 +252,8 @@ export function NotesShell() {
         body: JSON.stringify({ uid, ...empty }),
       });
       if (!res.ok) {
-        toast.error("Ошибка создания заметки");
+        const body = await res.json().catch(() => ({}));
+        toast.error(body?.error || "Ошибка создания заметки");
         return;
       }
       const note = await res.json();
@@ -267,7 +307,12 @@ export function NotesShell() {
                 const restoreRes = await fetch("/api/notes", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ uid, title: deletedNote.title, blocks: deletedNote.blocks, tags: deletedNote.tags }),
+                  body: JSON.stringify({
+                    uid,
+                    title: deletedNote.title,
+                    blocks: deletedNote.blocks,
+                    tags: deletedNote.tags,
+                  }),
                 });
                 if (restoreRes.ok) {
                   const restored = await restoreRes.json();
@@ -304,7 +349,8 @@ export function NotesShell() {
       setEditTags(tags);
       if (scheduledDate !== undefined) setEditScheduledDate(scheduledDate);
       if (scheduledTime !== undefined) setEditScheduledTime(scheduledTime);
-      if (recurringInterval !== undefined) setEditRecurringInterval(recurringInterval);
+      if (recurringInterval !== undefined)
+        setEditRecurringInterval(recurringInterval);
       if (canvasState !== undefined) setEditCanvasState(canvasState);
       const current = JSON.stringify({
         title,
@@ -317,7 +363,12 @@ export function NotesShell() {
       });
       setHasChanges(current !== originalNoteRef.current);
     },
-    [editScheduledDate, editScheduledTime, editRecurringInterval, editCanvasState],
+    [
+      editScheduledDate,
+      editScheduledTime,
+      editRecurringInterval,
+      editCanvasState,
+    ],
   );
 
   if (loading) {
@@ -333,102 +384,130 @@ export function NotesShell() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-[2000px] px-4 h-full flex flex-col">
-      {/* Top bar */}
-      <div className="flex items-center justify-end py-2 border-b border-border/20 shrink-0">
-        <button
-          onClick={() => { setShowLeft(!showLeft); setShowCenter(true); }}
-          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted/30 transition-all"
-          title="Показать теги"
-        >
-          <FileText className="h-4 w-4" />
-        </button>
-      </div>
+        {/* Top bar */}
+        <div className="flex items-center justify-end py-2 border-b border-border/20 shrink-0">
+          <button
+            onClick={() => {
+              setShowLeft(!showLeft);
+              setShowCenter(true);
+            }}
+            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted/30 transition-all"
+            title="Показать теги"
+          >
+            <FileText className="h-4 w-4" />
+          </button>
+        </div>
 
-      {/* Three-column layout */}
-      <div className="flex flex-1 min-h-0">
-        {/* Left column — Tags (15%) */}
-        {showLeft && (
-          <div className="w-[15%] min-w-[120px] border-r border-border/20 hidden md:flex flex-col">
-            <div className="p-3 border-b border-border/20">
-              <h3 className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
-                Теги
-              </h3>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-0.5 scrollbar-none">
-              {Array.from(new Set(notes.flatMap((n) => n.tags || []))).sort().map((tag) => (
-                <button
-                  key={tag}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground/70 hover:bg-muted/30 hover:text-foreground transition-all truncate"
-                >
-                  #{tag}
-                </button>
-              ))}
-              {notes.length === 0 && (
-                <p className="text-[10px] text-muted-foreground/30 text-center py-4">
-                  Пока нет тегов
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Center column — Note list (25%) */}
-        {showCenter && (
-          <div className="w-[25%] min-w-[200px] border-r border-border/20 flex-shrink-0">
-            <NoteList
-              notes={notes}
-              selectedId={selectedId}
-              onSelect={handleSelectNote}
-              onNew={handleNewNote}
-              onDelete={handleDeleteNote}
-              onSearch={setSearchQuery}
-              searchQuery={searchQuery}
-              deletingId={deletingId}
-            />
-          </div>
-        )}
-
-        {/* Right column — Editor (60%) */}
-        <div className="flex-1 min-w-0">
-          {selectedNote ? (
-            <BlockEditor
-              uid={uid ?? ""}
-              noteId={selectedNote.id}
-              blocks={editBlocks}
-              onChange={(blocks) => handleContentChange(editTitle, blocks, editTags)}
-              noteTitle={editTitle}
-              noteTags={editTags}
-              scheduledDate={editScheduledDate}
-              scheduledTime={editScheduledTime}
-              recurringInterval={editRecurringInterval}
-              linkedNoteIds={selectedNote.linkedNoteIds ?? []}
-              noteTitles={Object.fromEntries(notes.map((n) => [n.id, n.title]))}
-              canvasState={editCanvasState}
-              onTitleChange={(title) => handleContentChange(title, editBlocks, editTags)}
-              onTagsChange={(tags) => handleContentChange(editTitle, editBlocks, tags)}
-              onScheduleChange={(date, time, interval) =>
-                handleContentChange(editTitle, editBlocks, editTags, date, time, interval)
-              }
-              onCanvasStateChange={(state) => {
-                setEditCanvasState(state);
-                handleContentChange(editTitle, editBlocks, editTags, undefined, undefined, undefined, state);
-              }}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center px-8">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/20 mb-4">
-                <FileText className="h-8 w-8 text-muted-foreground/30" />
+        {/* Three-column layout */}
+        <div className="flex flex-1 min-h-0">
+          {/* Left column — Tags (15%) */}
+          {showLeft && (
+            <div className="w-[15%] min-w-[120px] border-r border-border/20 hidden md:flex flex-col">
+              <div className="p-3 border-b border-border/20">
+                <h3 className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
+                  Теги
+                </h3>
               </div>
-              <p className="text-base font-medium text-muted-foreground/60">
-                Выберите заметку
-              </p>
-              <p className="text-sm text-muted-foreground/30 mt-1">
-                или создайте новую
-              </p>
+              <div className="flex-1 overflow-y-auto p-2 space-y-0.5 scrollbar-none">
+                {Array.from(new Set(notes.flatMap((n) => n.tags || [])))
+                  .sort()
+                  .map((tag) => (
+                    <button
+                      key={tag}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground/70 hover:bg-muted/30 hover:text-foreground transition-all truncate"
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                {notes.length === 0 && (
+                  <p className="text-[10px] text-muted-foreground/30 text-center py-4">
+                    Пока нет тегов
+                  </p>
+                )}
+              </div>
             </div>
           )}
+
+          {/* Center column — Note list (25%) */}
+          {showCenter && (
+            <div className="w-[25%] min-w-[200px] border-r border-border/20 flex-shrink-0">
+              <NoteList
+                notes={notes}
+                selectedId={selectedId}
+                onSelect={handleSelectNote}
+                onNew={handleNewNote}
+                onDelete={handleDeleteNote}
+                onSearch={setSearchQuery}
+                searchQuery={searchQuery}
+                deletingId={deletingId}
+              />
+            </div>
+          )}
+
+          {/* Right column — Editor (60%) */}
+          <div className="flex-1 min-w-0">
+            {selectedNote ? (
+              <BlockEditor
+                uid={uid ?? ""}
+                noteId={selectedNote.id}
+                blocks={editBlocks}
+                onChange={(blocks) =>
+                  handleContentChange(editTitle, blocks, editTags)
+                }
+                noteTitle={editTitle}
+                noteTags={editTags}
+                scheduledDate={editScheduledDate}
+                scheduledTime={editScheduledTime}
+                recurringInterval={editRecurringInterval}
+                linkedNoteIds={selectedNote.linkedNoteIds ?? []}
+                noteTitles={Object.fromEntries(
+                  notes.map((n) => [n.id, n.title]),
+                )}
+                canvasState={editCanvasState}
+                onTitleChange={(title) =>
+                  handleContentChange(title, editBlocks, editTags)
+                }
+                onTagsChange={(tags) =>
+                  handleContentChange(editTitle, editBlocks, tags)
+                }
+                onScheduleChange={(date, time, interval) =>
+                  handleContentChange(
+                    editTitle,
+                    editBlocks,
+                    editTags,
+                    date,
+                    time,
+                    interval,
+                  )
+                }
+                onCanvasStateChange={(state) => {
+                  setEditCanvasState(state);
+                  handleContentChange(
+                    editTitle,
+                    editBlocks,
+                    editTags,
+                    undefined,
+                    undefined,
+                    undefined,
+                    state,
+                  );
+                }}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center px-8">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/20 mb-4">
+                  <FileText className="h-8 w-8 text-muted-foreground/30" />
+                </div>
+                <p className="text-base font-medium text-muted-foreground/60">
+                  Выберите заметку
+                </p>
+                <p className="text-sm text-muted-foreground/30 mt-1">
+                  или создайте новую
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );

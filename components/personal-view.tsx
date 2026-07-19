@@ -129,13 +129,17 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               if (newTasks?.length) {
                 setTasks((prev) => {
                   const existingIds = new Set(prev.map((t) => t.id));
-                  const unique = newTasks.filter((t: PersonalTask) => !existingIds.has(t.id));
+                  const unique = newTasks.filter(
+                    (t: PersonalTask) => !existingIds.has(t.id),
+                  );
                   return [...unique, ...prev];
                 });
                 if (newTasks.length === 1) {
                   toast.success("Заметка превращена в задачу");
                 } else if (newTasks.length > 1) {
-                  toast.success(`${newTasks.length} заметок превращены в задачи`);
+                  toast.success(
+                    `${newTasks.length} заметок превращены в задачи`,
+                  );
                 }
               }
             }

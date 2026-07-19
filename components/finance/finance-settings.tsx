@@ -102,14 +102,24 @@ import {
   Umbrella,
   Calendar,
   Snowflake,
+  GripVertical,
+  Star,
+  Archive,
+  BarChart3,
+  ChevronRight,
 } from "lucide-react";
-import type { TransactionCategory, FinanceAccount } from "@/lib/finance-types";
+import type {
+  TransactionCategory,
+  FinanceAccount,
+  Transaction,
+} from "@/lib/finance-types";
 import { CURRENCIES } from "@/lib/finance-types";
 import {
   getCategoriesByUser,
   createCategory,
   deleteCategory,
   getAccountsByUser,
+  getTransactionsByUser,
 } from "@/lib/finance-client";
 import { doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
@@ -128,6 +138,23 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { HideModulesDialog } from "@/components/finance/hide-modules-dialog";
+
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const COLORS = [
   { value: "red", bg: "bg-red-500", label: "Красный" },
@@ -2501,13 +2528,17 @@ const CATEGORY_GROUPS: {
   },
 ];
 
-const getCategoryGroup = (catName: string) => {
+const getCategoryGroup = (catName: string, catType?: string) => {
   for (const group of CATEGORY_GROUPS) {
     for (const c of group.categories) {
       if (c.name === catName) return group;
     }
   }
-  return CATEGORY_GROUPS[CATEGORY_GROUPS.length - 1];
+  const fallbackId = catType === "income" ? "other-income" : "other";
+  return (
+    CATEGORY_GROUPS.find((g) => g.id === fallbackId) ??
+    CATEGORY_GROUPS[CATEGORY_GROUPS.length - 1]
+  );
 };
 
 const FIAT_CURRENCIES = CURRENCIES.filter((c) => c.type === "fiat");
@@ -2714,6 +2745,137 @@ function CurrencyPickerDialog({
   );
 }
 
+const renderIcon = (iconName: string, className = "h-4 w-4") => {
+  const opt = ICON_OPTIONS.find((i) => i.value === iconName);
+  if (!opt) return <MoreHorizontal className={className} />;
+  const Icon = opt.icon;
+  return <Icon className={className} />;
+};
+
+function SortableCategoryItem({
+  cat,
+  colorInfo,
+  categoryCounts,
+  onEdit,
+  onDelete,
+  onTogglePin,
+  onToggleArchive,
+  onBudgetChange,
+}: {
+  cat: TransactionCategory;
+  colorInfo?: { value: string; bg: string; label: string };
+  categoryCounts: Record<string, number>;
+  onEdit: (cat: TransactionCategory) => void;
+  onDelete: (id: string) => void;
+  onTogglePin: (cat: TransactionCategory) => void;
+  onToggleArchive: (cat: TransactionCategory) => void;
+  onBudgetChange: (id: string, value: number) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: cat.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center justify-between rounded-lg px-2.5 py-1.5 hover:bg-muted/40 transition-colors",
+        isDragging && "opacity-50",
+      )}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="h-6 w-6 flex items-center justify-center cursor-grab text-muted-foreground hover:text-foreground shrink-0"
+      >
+        <GripVertical className="h-3 w-3" />
+      </button>
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div
+          className={cn(
+            "h-6 w-6 rounded flex items-center justify-center shrink-0 text-white",
+            colorInfo?.bg || "bg-gray-500",
+          )}
+        >
+          {renderIcon(cat.icon, "h-3 w-3")}
+        </div>
+        <span className="text-sm truncate">{cat.name}</span>
+        {cat.type === "income" && (
+          <Badge
+            variant="default"
+            className="text-[9px] px-1 py-0 h-3.5 leading-none"
+          >
+            доход
+          </Badge>
+        )}
+        {categoryCounts[cat.id] > 0 && (
+          <span className="text-xs text-muted-foreground flex items-center gap-0.5 tabular-nums">
+            <BarChart3 className="h-3 w-3" />
+            {categoryCounts[cat.id]}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-0.5 shrink-0 ml-2">
+        <input
+          type="number"
+          className="w-14 h-6 text-xs rounded border border-input bg-background px-1 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          value={cat.monthlyBudget ?? ""}
+          placeholder="0"
+          onChange={(e) => onBudgetChange(cat.id, Number(e.target.value))}
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={() => onTogglePin(cat)}
+        >
+          <Star
+            className={cn(
+              "h-3 w-3",
+              cat.isPinned && "fill-amber-400 text-amber-400",
+            )}
+          />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={() => onToggleArchive(cat)}
+        >
+          <Archive className="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={() => onEdit(cat)}
+        >
+          <Pencil className="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 text-destructive"
+          onClick={() => onDelete(cat.id)}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   onVisibilityChange?: () => void;
 }
@@ -2737,14 +2899,36 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
   const [icon, setIcon] = useState("MoreHorizontal");
   const uid = auth.currentUser?.uid || "user-1";
 
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor),
+  );
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const tx of transactions) {
+      if (tx.categoryId)
+        counts[tx.categoryId] = (counts[tx.categoryId] || 0) + 1;
+    }
+    return counts;
+  }, [transactions]);
+
   useEffect(() => {
-    Promise.all([getCategoriesByUser(uid), getAccountsByUser(uid)]).then(
-      ([cats, accts]) => {
-        setCategories(cats);
-        setAccounts(accts);
-        setLoading(false);
-      },
-    );
+    Promise.all([
+      getCategoriesByUser(uid),
+      getAccountsByUser(uid),
+      getTransactionsByUser(uid),
+    ]).then(([cats, accts, txs]) => {
+      setCategories(cats);
+      setAccounts(accts);
+      setTransactions(txs);
+      setLoading(false);
+    });
   }, [uid]);
 
   const saveCurrency = useCallback((val: string) => {
@@ -2789,6 +2973,160 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
     setColor("blue");
     setIcon("MoreHorizontal");
   }, [name, catType, color, icon, editingCat, uid]);
+
+  const handleTogglePin = useCallback(async (cat: TransactionCategory) => {
+    const next = !cat.isPinned;
+    try {
+      const ref = doc(db, "FINANCE_CATEGORIES", cat.id);
+      await updateDoc(ref, {
+        isPinned: next,
+        updatedAt: new Date().toISOString(),
+      });
+      setCategories((prev) =>
+        prev.map((c) => (c.id === cat.id ? { ...c, isPinned: next } : c)),
+      );
+      toast.success(next ? "Категория закреплена" : "Категория откреплена");
+    } catch {
+      toast.error("Ошибка при обновлении");
+    }
+  }, []);
+
+  const handleToggleArchive = useCallback(async (cat: TransactionCategory) => {
+    const next = !cat.isArchived;
+    try {
+      const ref = doc(db, "FINANCE_CATEGORIES", cat.id);
+      await updateDoc(ref, {
+        isArchived: next,
+        updatedAt: new Date().toISOString(),
+      });
+      setCategories((prev) =>
+        prev.map((c) => (c.id === cat.id ? { ...c, isArchived: next } : c)),
+      );
+      toast.success(
+        next ? "Категория архивирована" : "Категория восстановлена",
+      );
+    } catch {
+      toast.error("Ошибка при обновлении");
+    }
+  }, []);
+
+  const handleBudgetChange = useCallback(
+    async (catId: string, value: number) => {
+      const budget = isNaN(value) ? 0 : Math.max(0, value);
+      try {
+        const ref = doc(db, "FINANCE_CATEGORIES", catId);
+        await updateDoc(ref, {
+          monthlyBudget: budget,
+          updatedAt: new Date().toISOString(),
+        });
+        setCategories((prev) =>
+          prev.map((c) =>
+            c.id === catId ? { ...c, monthlyBudget: budget } : c,
+          ),
+        );
+      } catch {
+        toast.error("Ошибка при обновлении бюджета");
+      }
+    },
+    [],
+  );
+
+  const handleRestoreDefaults = useCallback(async () => {
+    const existingNames = new Set(categories.map((c) => c.name));
+    const toCreate: {
+      name: string;
+      icon: string;
+      color: string;
+      type: "expense" | "income";
+    }[] = [];
+    for (const group of CATEGORY_GROUPS) {
+      for (const preset of group.categories) {
+        if (!existingNames.has(preset.name)) {
+          toCreate.push({
+            name: preset.name,
+            icon: preset.icon,
+            color: preset.color,
+            type: preset.type,
+          });
+        }
+      }
+    }
+    if (toCreate.length === 0) {
+      toast.success("Все стандартные категории уже есть");
+      return;
+    }
+    const loadingId = toast.loading(
+      `Восстанавливаем ${toCreate.length} категорий...`,
+    );
+    try {
+      const created = await Promise.all(
+        toCreate.map((body) => createCategory({ ...body, userId: uid })),
+      );
+      setCategories((prev) => [...prev, ...created]);
+      toast.success(`Восстановлено ${created.length} категорий`, {
+        id: loadingId,
+      });
+    } catch {
+      toast.error("Ошибка при восстановлении", { id: loadingId });
+    }
+  }, [categories, uid]);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const findGroupId = (catId: string) => {
+        const cat = categories.find((c) => c.id === catId);
+        if (!cat) return null;
+        return getCategoryGroup(cat.name, cat.type).id;
+      };
+
+      const groupId = findGroupId(active.id as string);
+      if (!groupId) return;
+
+      const groupCats = categories
+        .filter((c) => {
+          const g = getCategoryGroup(c.name, c.type);
+          return g.id === groupId && !c.isArchived;
+        })
+        .sort((a, b) => (a.isPinned === b.isPinned ? 0 : a.isPinned ? -1 : 1));
+
+      const oldIndex = groupCats.findIndex((c) => c.id === active.id);
+      const newIndex = groupCats.findIndex((c) => c.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const reordered = arrayMove(groupCats, oldIndex, newIndex);
+
+      reordered.forEach((cat, idx) => {
+        const ref = doc(db, "FINANCE_CATEGORIES", cat.id);
+        updateDoc(ref, {
+          sortOrder: idx,
+          updatedAt: new Date().toISOString(),
+        });
+      });
+
+      setCategories((prev) =>
+        prev.map((c) => {
+          const updated = reordered.find((u) => u.id === c.id);
+          return updated ? { ...c, sortOrder: reordered.indexOf(updated) } : c;
+        }),
+      );
+    },
+    [categories],
+  );
+
+  const toggleGroupCollapse = useCallback((groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  }, []);
 
   const handleDeleteCategory = useCallback(async (id: string) => {
     try {
@@ -2865,13 +3203,6 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
     });
   }, []);
 
-  const renderIcon = (iconName: string, className = "h-4 w-4") => {
-    const opt = ICON_OPTIONS.find((i) => i.value === iconName);
-    if (!opt) return <MoreHorizontal className={className} />;
-    const Icon = opt.icon;
-    return <Icon className={className} />;
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -2935,89 +3266,172 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
               Нет категорий. Создайте первую.
             </p>
           ) : (
-            <div className="space-y-5">
-              {CATEGORY_GROUPS.map((group) => {
-                const groupCats = categories.filter((c) => {
-                  const g = getCategoryGroup(c.name);
-                  return g.id === group.id;
-                });
-                if (groupCats.length === 0) return null;
-                return (
-                  <div key={group.id}>
-                    <div
-                      className="flex items-center gap-2 mb-2 pb-1.5 border-b"
-                      style={{ borderColor: group.accent + "40" }}
-                    >
-                      <div
-                        className="h-6 w-6 rounded-md flex items-center justify-center text-white shrink-0"
-                        style={{ backgroundColor: group.accent }}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="space-y-5">
+                {CATEGORY_GROUPS.map((group) => {
+                  const groupCats = categories
+                    .filter((c) => {
+                      const g = getCategoryGroup(c.name, c.type);
+                      return g.id === group.id && !c.isArchived;
+                    })
+                    .sort((a, b) => {
+                      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+                      return (a.sortOrder ?? 999) - (b.sortOrder ?? 999);
+                    });
+                  if (groupCats.length === 0) return null;
+                  const isCollapsed = collapsedGroups.has(group.id);
+                  return (
+                    <div key={group.id}>
+                      <button
+                        onClick={() => toggleGroupCollapse(group.id)}
+                        className="flex items-center gap-2 mb-2 pb-1.5 border-b w-full text-left"
+                        style={{ borderColor: group.accent + "40" }}
                       >
-                        {renderIcon(group.icon, "h-3.5 w-3.5")}
-                      </div>
-                      <span className="text-sm font-semibold">
-                        {group.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground ml-auto tabular-nums">
-                        {groupCats.length}
-                      </span>
-                    </div>
-                    <div className="space-y-0.5">
-                      {groupCats.map((cat) => {
-                        const colorInfo = COLORS.find(
-                          (c) => c.value === cat.color,
-                        );
-                        return (
-                          <div
-                            key={cat.id}
-                            className="flex items-center justify-between rounded-lg px-2.5 py-1.5 hover:bg-muted/40 transition-colors"
-                          >
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <div
-                                className={cn(
-                                  "h-6 w-6 rounded flex items-center justify-center shrink-0 text-white",
-                                  colorInfo?.bg || "bg-gray-500",
-                                )}
-                              >
-                                {renderIcon(cat.icon, "h-3 w-3")}
-                              </div>
-                              <span className="text-sm truncate">
-                                {cat.name}
-                              </span>
-                              {cat.type === "income" && (
-                                <Badge
-                                  variant="default"
-                                  className="text-[9px] px-1 py-0 h-3.5 leading-none"
-                                >
-                                  доход
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-0.5 shrink-0 ml-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => openEdit(cat)}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-destructive"
-                                onClick={() => handleDeleteCategory(cat.id)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
+                        <ChevronRight
+                          className={cn(
+                            "h-3.5 w-3.5 text-muted-foreground transition-transform shrink-0",
+                            !isCollapsed && "rotate-90",
+                          )}
+                        />
+                        <div
+                          className="h-6 w-6 rounded-md flex items-center justify-center text-white shrink-0"
+                          style={{ backgroundColor: group.accent }}
+                        >
+                          {renderIcon(group.icon, "h-3.5 w-3.5")}
+                        </div>
+                        <span className="text-sm font-semibold">
+                          {group.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-auto tabular-nums">
+                          {groupCats.length}
+                        </span>
+                      </button>
+                      {!isCollapsed && (
+                        <SortableContext
+                          items={groupCats.map((c) => c.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-0.5">
+                            {groupCats.map((cat) => {
+                              const colorInfo = COLORS.find(
+                                (c) => c.value === cat.color,
+                              );
+                              return (
+                                <SortableCategoryItem
+                                  key={cat.id}
+                                  cat={cat}
+                                  colorInfo={colorInfo}
+                                  categoryCounts={categoryCounts}
+                                  onEdit={openEdit}
+                                  onDelete={handleDeleteCategory}
+                                  onTogglePin={handleTogglePin}
+                                  onToggleArchive={handleToggleArchive}
+                                  onBudgetChange={handleBudgetChange}
+                                />
+                              );
+                            })}
                           </div>
-                        );
-                      })}
+                        </SortableContext>
+                      )}
                     </div>
+                  );
+                })}
+
+                {/* Archive section */}
+                {categories.some((c) => c.isArchived) && (
+                  <div>
+                    <button
+                      onClick={() => toggleGroupCollapse("__archive")}
+                      className="flex items-center gap-2 mb-2 pb-1.5 border-b w-full text-left"
+                      style={{ borderColor: "#a1a1aa40" }}
+                    >
+                      <ChevronRight
+                        className={cn(
+                          "h-3.5 w-3.5 text-muted-foreground transition-transform shrink-0",
+                          !collapsedGroups.has("__archive") && "rotate-90",
+                        )}
+                      />
+                      <div className="h-6 w-6 rounded-md flex items-center justify-center text-white shrink-0 bg-muted-foreground/50">
+                        <Archive className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="text-sm font-semibold">Архив</span>
+                      <span className="text-xs text-muted-foreground ml-auto tabular-nums">
+                        {categories.filter((c) => c.isArchived).length}
+                      </span>
+                    </button>
+                    {!collapsedGroups.has("__archive") && (
+                      <div className="space-y-0.5">
+                        {categories
+                          .filter((c) => c.isArchived)
+                          .map((cat) => {
+                            const colorInfo = COLORS.find(
+                              (c) => c.value === cat.color,
+                            );
+                            return (
+                              <div
+                                key={cat.id}
+                                className="flex items-center justify-between rounded-lg px-2.5 py-1.5 hover:bg-muted/40 transition-colors"
+                              >
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <div
+                                    className={cn(
+                                      "h-6 w-6 rounded flex items-center justify-center shrink-0 text-white opacity-60",
+                                      colorInfo?.bg || "bg-gray-500",
+                                    )}
+                                  >
+                                    {renderIcon(cat.icon, "h-3 w-3")}
+                                  </div>
+                                  <span className="text-sm truncate text-muted-foreground">
+                                    {cat.name}
+                                  </span>
+                                  {categoryCounts[cat.id] > 0 && (
+                                    <span className="text-xs text-muted-foreground flex items-center gap-0.5 tabular-nums">
+                                      <BarChart3 className="h-3 w-3" />
+                                      {categoryCounts[cat.id]}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-0.5 shrink-0 ml-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleToggleArchive(cat)}
+                                  >
+                                    <RefreshCw className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-destructive"
+                                    onClick={() => handleDeleteCategory(cat.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
                   </div>
-                );
-              })}
-            </div>
+                )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2"
+                  onClick={handleRestoreDefaults}
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                  Восстановить стандартные
+                </Button>
+              </div>
+            </DndContext>
           )}
         </CardContent>
       </Card>
