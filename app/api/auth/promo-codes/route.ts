@@ -28,15 +28,22 @@ export async function GET(request: NextRequest) {
     }
 
     const userData = userDoc.data();
-    let promoCodes = Array.isArray(userData?.promoCodes) ? userData.promoCodes : [];
+    let promoCodes = Array.isArray(userData?.promoCodes)
+      ? userData.promoCodes
+      : [];
 
     // Backward compat: migrate old single promoCode into array
     if (promoCodes.length === 0 && userData?.promoCode) {
-      promoCodes = [{
-        ...userData.promoCode,
-        source: "deletion_reward",
-        createdAt: userData.deletionScheduledAt || userData.promoCode.createdAt || new Date().toISOString(),
-      }];
+      promoCodes = [
+        {
+          ...userData.promoCode,
+          source: "deletion_reward",
+          createdAt:
+            userData.deletionScheduledAt ||
+            userData.promoCode.createdAt ||
+            new Date().toISOString(),
+        },
+      ];
     }
 
     return NextResponse.json({ promoCodes });
@@ -80,7 +87,9 @@ export async function POST(request: NextRequest) {
     const db = getAdminDb();
     const userDoc = await db.collection("users").doc(uid).get();
     const userData = userDoc.exists ? userDoc.data() : {};
-    const existingCodes = Array.isArray(userData?.promoCodes) ? userData.promoCodes : [];
+    const existingCodes = Array.isArray(userData?.promoCodes)
+      ? userData.promoCodes
+      : [];
 
     const newEntry = {
       code,

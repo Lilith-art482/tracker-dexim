@@ -22,17 +22,14 @@ export async function POST(request: NextRequest) {
         const db = getAdminDb();
 
         // Remove deletion schedule, keep promoCode intact
-        await db
-          .collection("users")
-          .doc(uid)
-          .set(
-            {
-              deletionScheduledAt: null,
-              deletionDate: null,
-              deletionCancelledAt: new Date().toISOString(),
-            },
-            { merge: true },
-          );
+        await db.collection("users").doc(uid).set(
+          {
+            deletionScheduledAt: null,
+            deletionDate: null,
+            deletionCancelledAt: new Date().toISOString(),
+          },
+          { merge: true },
+        );
 
         // Update deletion_requests status
         const requests = await db
@@ -42,7 +39,10 @@ export async function POST(request: NextRequest) {
           .get();
 
         for (const doc of requests.docs) {
-          await doc.ref.update({ status: "cancelled", cancelledAt: new Date().toISOString() });
+          await doc.ref.update({
+            status: "cancelled",
+            cancelledAt: new Date().toISOString(),
+          });
         }
       } catch (e) {
         console.error("DB write error in cancel-deletion:", e);

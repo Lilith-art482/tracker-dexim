@@ -51,7 +51,8 @@ export async function POST(request: NextRequest) {
     for (const note of notes) {
       if (!note.scheduledDate || !note.scheduledTime) continue;
       if (note.scheduledDate > today) continue;
-      if (note.scheduledDate === today && note.scheduledTime > currentTime) continue;
+      if (note.scheduledDate === today && note.scheduledTime > currentTime)
+        continue;
 
       const existingDates = existingNoteTaskMap.get(note.id) || [];
       if (existingDates.includes(note.scheduledDate)) continue;
@@ -76,13 +77,21 @@ export async function POST(request: NextRequest) {
 
       if (note.recurringInterval) {
         // Advance date using local timezone offset
-        const utcMidnight = new Date(note.scheduledDate + "T00:00:00Z").getTime();
+        const utcMidnight = new Date(
+          note.scheduledDate + "T00:00:00Z",
+        ).getTime();
         const localMidnight = utcMidnight + offset * 60 * 1000;
         const local = new Date(localMidnight);
         switch (note.recurringInterval) {
-          case "daily":  local.setUTCDate(local.getUTCDate() + 1); break;
-          case "weekly": local.setUTCDate(local.getUTCDate() + 7); break;
-          case "monthly": local.setUTCMonth(local.getUTCMonth() + 1); break;
+          case "daily":
+            local.setUTCDate(local.getUTCDate() + 1);
+            break;
+          case "weekly":
+            local.setUTCDate(local.getUTCDate() + 7);
+            break;
+          case "monthly":
+            local.setUTCMonth(local.getUTCMonth() + 1);
+            break;
         }
         const nextUtc = new Date(local.getTime() - offset * 60 * 1000);
         nextDate = nextUtc.toISOString().split("T")[0];

@@ -42,13 +42,17 @@ export async function POST(request: NextRequest) {
 
         // If there's already an active deletion request, return existing data
         if (userData?.deletionScheduledAt && !userData?.deletionCancelledAt) {
-          const existingPromo = (userData?.promoCode as Record<string, unknown>)?.code as string || null;
-          existingPromoDiscount = (userData?.promoCode as Record<string, unknown>)?.discountPercent as number || null;
+          const existingPromo =
+            ((userData?.promoCode as Record<string, unknown>)
+              ?.code as string) || null;
+          existingPromoDiscount =
+            ((userData?.promoCode as Record<string, unknown>)
+              ?.discountPercent as number) || null;
           return NextResponse.json({
             success: true,
             deletionDate: userData.deletionDate,
             promoCode: existingPromo,
-            discountPercent: existingPromo ? (existingPromoDiscount || 25) : null,
+            discountPercent: existingPromo ? existingPromoDiscount || 25 : null,
             alreadyExists: true,
           });
         }
@@ -81,36 +85,34 @@ export async function POST(request: NextRequest) {
             : [];
           const updatedCodes = [...existingCodes, newPromoEntry];
 
-          await db
-            .collection("users")
-            .doc(uid)
-            .set(
-              {
-                deletionScheduledAt: now.toISOString(),
-                deletionDate: deletionDate.toISOString(),
-                deletionCancelledAt: null,
-                gotDeletionPromo: true,
-                promoCode: newPromoEntry,
-                promoCodes: updatedCodes,
-              },
-              { merge: true },
-            );
+          await db.collection("users").doc(uid).set(
+            {
+              deletionScheduledAt: now.toISOString(),
+              deletionDate: deletionDate.toISOString(),
+              deletionCancelledAt: null,
+              gotDeletionPromo: true,
+              promoCode: newPromoEntry,
+              promoCodes: updatedCodes,
+            },
+            { merge: true },
+          );
         } else {
           alreadyHadPromo = true;
-          promoCode = (userData?.promoCode as Record<string, unknown>)?.code as string || null;
-          existingPromoDiscount = (userData?.promoCode as Record<string, unknown>)?.discountPercent as number || null;
+          promoCode =
+            ((userData?.promoCode as Record<string, unknown>)
+              ?.code as string) || null;
+          existingPromoDiscount =
+            ((userData?.promoCode as Record<string, unknown>)
+              ?.discountPercent as number) || null;
           // Repeat deletion after cancel — no promo, just schedule
-          await db
-            .collection("users")
-            .doc(uid)
-            .set(
-              {
-                deletionScheduledAt: now.toISOString(),
-                deletionDate: deletionDate.toISOString(),
-                deletionCancelledAt: null,
-              },
-              { merge: true },
-            );
+          await db.collection("users").doc(uid).set(
+            {
+              deletionScheduledAt: now.toISOString(),
+              deletionDate: deletionDate.toISOString(),
+              deletionCancelledAt: null,
+            },
+            { merge: true },
+          );
         }
 
         if (reason) {
@@ -131,7 +133,7 @@ export async function POST(request: NextRequest) {
       success: true,
       deletionDate: deletionDate.toISOString(),
       promoCode,
-      discountPercent: promoCode ? (existingPromoDiscount || 25) : null,
+      discountPercent: promoCode ? existingPromoDiscount || 25 : null,
       alreadyHadPromo,
     });
   } catch (error: unknown) {

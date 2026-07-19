@@ -26,23 +26,29 @@ export async function GET(request: NextRequest) {
 
     if (noteId) {
       if (!dbAvailable) {
-        const found = mockNotes.find((n) => n.id === noteId && n.userId === uid);
+        const found = mockNotes.find(
+          (n) => n.id === noteId && n.userId === uid,
+        );
         if (!found) {
-          return NextResponse.json({ error: "Заметка не найдена" }, { status: 404 });
+          return NextResponse.json(
+            { error: "Заметка не найдена" },
+            { status: 404 },
+          );
         }
         return NextResponse.json(found);
       }
       const note = await getNoteById(uid, noteId);
       if (!note) {
-        return NextResponse.json({ error: "Заметка не найдена" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Заметка не найдена" },
+          { status: 404 },
+        );
       }
       return NextResponse.json(note);
     }
 
     if (!dbAvailable) {
-      return NextResponse.json(
-        mockNotes.filter((n) => n.userId === uid),
-      );
+      return NextResponse.json(mockNotes.filter((n) => n.userId === uid));
     }
 
     const notes = await getAllNotes(uid);

@@ -303,13 +303,41 @@ export default function AboutPage() {
 
                 <div className="flex flex-wrap items-center gap-2">
                   {[
-                    { label: "Задачи", icon: ListChecks, color: "text-blue-500 bg-blue-500/10" },
-                    { label: "Финансы", icon: DollarSign, color: "text-emerald-500 bg-emerald-500/10" },
-                    { label: "Привычки", icon: Heart, color: "text-rose-500 bg-rose-500/10" },
-                    { label: "Спорт", icon: Dumbbell, color: "text-orange-500 bg-orange-500/10" },
-                    { label: "Заметки", icon: BookOpen, color: "text-violet-500 bg-violet-500/10" },
-                    { label: "Блог", icon: Newspaper, color: "text-amber-500 bg-amber-500/10" },
-                    { label: "AI", icon: Bot, color: "text-indigo-500 bg-indigo-500/10" },
+                    {
+                      label: "Задачи",
+                      icon: ListChecks,
+                      color: "text-blue-500 bg-blue-500/10",
+                    },
+                    {
+                      label: "Финансы",
+                      icon: DollarSign,
+                      color: "text-emerald-500 bg-emerald-500/10",
+                    },
+                    {
+                      label: "Привычки",
+                      icon: Heart,
+                      color: "text-rose-500 bg-rose-500/10",
+                    },
+                    {
+                      label: "Спорт",
+                      icon: Dumbbell,
+                      color: "text-orange-500 bg-orange-500/10",
+                    },
+                    {
+                      label: "Заметки",
+                      icon: BookOpen,
+                      color: "text-violet-500 bg-violet-500/10",
+                    },
+                    {
+                      label: "Блог",
+                      icon: Newspaper,
+                      color: "text-amber-500 bg-amber-500/10",
+                    },
+                    {
+                      label: "AI",
+                      icon: Bot,
+                      color: "text-indigo-500 bg-indigo-500/10",
+                    },
                   ].map((tag) => (
                     <span
                       key={tag.label}
@@ -758,9 +786,7 @@ export default function AboutPage() {
                   {Math.max(
                     0,
                     Math.ceil(
-                      (new Date(
-                        revokePendingDeletion.deletionDate,
-                      ).getTime() -
+                      (new Date(revokePendingDeletion.deletionDate).getTime() -
                         new Date().getTime()) /
                         (1000 * 60 * 60 * 24),
                     ),
@@ -792,8 +818,8 @@ export default function AboutPage() {
                     </button>
                   </div>
                   <p className="text-xs text-muted-foreground/70">
-                    262 ₽ вместо 349 ₽ за первый месяц PRO. Промокод
-                    сохранится даже после отмены удаления.
+                    262 ₽ вместо 349 ₽ за первый месяц PRO. Промокод сохранится
+                    даже после отмены удаления.
                   </p>
                 </div>
               )}
@@ -831,10 +857,7 @@ export default function AboutPage() {
 
               <p className="text-xs text-muted-foreground/50 text-center">
                 Чтобы отменить удаление, перейдите в{" "}
-                <Link
-                  href="/profile"
-                  className="text-primary hover:underline"
-                >
+                <Link href="/profile" className="text-primary hover:underline">
                   профиль
                 </Link>
                 .

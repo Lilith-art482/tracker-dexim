@@ -13,10 +13,7 @@ export async function POST(request: NextRequest) {
     const { text } = body as { text: string };
 
     if (!text || typeof text !== "string") {
-      return NextResponse.json(
-        { error: "text обязателен" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "text обязателен" }, { status: 400 });
     }
 
     const systemPrompt = [
