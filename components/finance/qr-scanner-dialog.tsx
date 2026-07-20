@@ -35,9 +35,7 @@ function parseQRData(text: string): { amount: number; date: string } | null {
   if (!t || !s) return null;
   const amount = parseFloat(s.replace(",", "."));
   if (isNaN(amount) || amount <= 0) return null;
-  const match = t.match(
-    /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(?:(\d{2}))?$/,
-  );
+  const match = t.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(?:(\d{2}))?$/);
   if (!match) return { amount, date: new Date().toISOString().slice(0, 16) };
   const [, y, m, d, hh, mm] = match;
   const date = `${y}-${m}-${d}T${hh}:${mm}`;
@@ -135,9 +133,7 @@ export function QrScannerDialog({
         type: txType,
         categoryId:
           txCategoryId ||
-          (txType === "income"
-            ? "fin-cat-income-1"
-            : "fin-cat-1"),
+          (txType === "income" ? "fin-cat-income-1" : "fin-cat-1"),
         amount: parsed,
         description: txDescription,
         tags: [],
@@ -154,9 +150,7 @@ export function QrScannerDialog({
   };
 
   const filteredCategories = categories.filter((c) =>
-    txType === "income"
-      ? c.type === "income"
-      : c.type === "expense",
+    txType === "income" ? c.type === "income" : c.type === "expense",
   );
 
   return (

@@ -21,6 +21,7 @@ import type {
   EmergencyFund,
   BudgetPlan,
   Loan,
+  RecurringTransaction,
 } from "@/lib/finance-types";
 import { auth } from "@/lib/firebase";
 import {
@@ -30,6 +31,7 @@ import {
   getBudgetPlansByUser,
   getEmergencyFund,
   getLoansByUser,
+  getRecurringTransactionsByUser,
 } from "@/lib/finance-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -40,6 +42,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { getUSDTtoRUB, convertToRUB } from "@/lib/exchange-rates";
+import { syncRecurringTransactions } from "@/lib/finance-recurring-sync";
+import { CashflowProjection } from "./cashflow-projection";
 
 const CATEGORY_COLORS_HEX: Record<string, string> = {
   red: "#ef4444",
@@ -67,17 +71,62 @@ function formatDate(date: string): string {
   return date.slice(5);
 }
 
+function DeltaBadge({ value, invert }: { value: number; invert: boolean }) {
+  const isGood = invert ? value <= 0 : value >= 0;
+  if (value === 0) return null;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+        isGood
+          ? "text-emerald-600 bg-emerald-500/10"
+          : "text-rose-600 bg-rose-500/10",
+      )}
+    >
+      {isGood ? "↑" : "↓"} {Math.abs(value)}%
+    </span>
+  );
+}
+
+function MiniSparkline({ data, color }: { data: number[]; color: string }) {
+  if (data.length < 2) return null;
+  const max = Math.max(...data, 1);
+  const w = 56;
+  const h = 20;
+  const points = data
+    .map((v, i) => `${(i / (data.length - 1)) * w},${h - (v / max) * h}`)
+    .join(" ");
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="shrink-0">
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function FinanceDashboard() {
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [recurringTransactions, setRecurringTransactions] = useState<
+    RecurringTransaction[]
+  >([]);
   const [usdtRate, setUsdtRate] = useState<number>(90);
   const [budget, setBudget] = useState<BudgetPlan | null>(null);
   const [emergencyFund, setEmergencyFund] = useState<EmergencyFund | null>(
     null,
   );
   const [initialLoading, setInitialLoading] = useState(true);
+  const [dashboardPeriod, setDashboardPeriod] = useState<
+    "week" | "month" | "quarter" | "half-year" | "year"
+  >("month");
   const [catPeriod, setCatPeriod] = useState<
     "week" | "month" | "quarter" | "half-year" | "year"
   >("month");
@@ -112,6 +161,14 @@ export function FinanceDashboard() {
         setEmergencyFund(em);
         setLoans(loansData);
 
+        const generated = await syncRecurringTransactions();
+        if (generated > 0) {
+          const newTxs = await getTransactionsByUser(uid);
+          setTransactions(newTxs);
+        }
+        const recurring = await getRecurringTransactionsByUser(uid);
+        setRecurringTransactions(recurring);
+
         const rate = await getUSDTtoRUB();
         setUsdtRate(rate);
       } catch (e) {
@@ -132,14 +189,75 @@ export function FinanceDashboard() {
     0,
   );
 
-  const periodTxns = useMemo(() => {
+  const dashboardRange = useMemo(() => {
     const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1)
-      .toISOString()
-      .split("T")[0];
-    const end = now.toISOString().split("T")[0];
-    return transactions.filter((t) => t.date >= start && t.date <= end);
-  }, [transactions]);
+    const today = now.toISOString().split("T")[0];
+    let start: Date;
+    switch (dashboardPeriod) {
+      case "week": {
+        const day = now.getDay();
+        const d = new Date(now);
+        d.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+        start = d;
+        break;
+      }
+      case "month":
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case "quarter": {
+        const q = Math.floor(now.getMonth() / 3) * 3;
+        start = new Date(now.getFullYear(), q, 1);
+        break;
+      }
+      case "half-year": {
+        const h = Math.floor(now.getMonth() / 6) * 6;
+        start = new Date(now.getFullYear(), h, 1);
+        break;
+      }
+      case "year":
+        start = new Date(now.getFullYear(), 0, 1);
+        break;
+    }
+    return { start: start!.toISOString().split("T")[0], end: today };
+  }, [dashboardPeriod]);
+
+  const prevDashboardRange = useMemo(() => {
+    const dur =
+      new Date(dashboardRange.end).getTime() -
+      new Date(dashboardRange.start).getTime();
+    const prevEnd = new Date(
+      new Date(dashboardRange.start).getTime() - 86400000,
+    );
+    const prevStart = new Date(prevEnd.getTime() - dur);
+    return {
+      start: prevStart.toISOString().split("T")[0],
+      end: prevEnd.toISOString().split("T")[0],
+    };
+  }, [dashboardRange]);
+
+  const prevPeriodTxns = useMemo(
+    () =>
+      transactions.filter(
+        (t) =>
+          t.date >= prevDashboardRange.start &&
+          t.date <= prevDashboardRange.end,
+      ),
+    [transactions, prevDashboardRange],
+  );
+
+  const prevPeriodIncome = prevPeriodTxns
+    .filter((t) => t.type === "income")
+    .reduce((s, t) => s + t.amount, 0);
+  const prevPeriodExpenses = prevPeriodTxns
+    .filter((t) => t.type === "expense")
+    .reduce((s, t) => s + t.amount, 0);
+
+  const periodTxns = useMemo(() => {
+    if (!dashboardRange) return [];
+    return transactions.filter(
+      (t) => t.date >= dashboardRange.start && t.date <= dashboardRange.end,
+    );
+  }, [transactions, dashboardRange]);
 
   const periodIncome = periodTxns
     .filter((t) => t.type === "income")
@@ -155,6 +273,30 @@ export function FinanceDashboard() {
     )
     .reduce((s, t) => s + t.amount, 0);
   const freeMoney = periodIncome - periodExpenses - periodObligations;
+
+  const incomeDelta =
+    prevPeriodIncome > 0
+      ? Math.round(((periodIncome - prevPeriodIncome) / prevPeriodIncome) * 100)
+      : periodIncome > 0
+        ? 100
+        : 0;
+  const expenseDelta =
+    prevPeriodExpenses > 0
+      ? Math.round(
+          ((periodExpenses - prevPeriodExpenses) / prevPeriodExpenses) * 100,
+        )
+      : periodExpenses > 0
+        ? 100
+        : 0;
+  const freeMoneyPrev = prevPeriodIncome - prevPeriodExpenses;
+  const freeMoneyDelta =
+    freeMoneyPrev !== 0
+      ? Math.round(
+          ((freeMoney - freeMoneyPrev) / Math.abs(freeMoneyPrev)) * 100,
+        )
+      : freeMoney > 0
+        ? 100
+        : 0;
 
   const totalLoanDebt = loans.reduce((s, l) => s + l.remainingAmount, 0);
   const totalLoanMonthly = loans.reduce(
@@ -284,39 +426,72 @@ export function FinanceDashboard() {
     year: "Год",
   };
 
-  const daysInMonth = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth() + 1,
-    0,
-  ).getDate();
-  const dailyAvgExpense = daysInMonth > 0 ? periodExpenses / daysInMonth : 0;
-  const dailyAvgIncome = daysInMonth > 0 ? periodIncome / daysInMonth : 0;
+  const daysInPeriod = dashboardRange
+    ? Math.round(
+        (new Date(dashboardRange.end + "T00:00:00Z").getTime() -
+          new Date(dashboardRange.start + "T00:00:00Z").getTime()) /
+          (1000 * 60 * 60 * 24),
+      ) + 1
+    : 30;
+  const dailyAvgExpense = daysInPeriod > 0 ? periodExpenses / daysInPeriod : 0;
+  const dailyAvgIncome = daysInPeriod > 0 ? periodIncome / daysInPeriod : 0;
   const projectedRemaining = periodIncome - periodExpenses;
 
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
 
   const dailyChartData = useMemo(() => {
-    if (!transactions.length) return null;
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const days = new Date(year, month + 1, 0).getDate();
-    const data: { day: number; income: number; expense: number }[] = [];
+    if (!transactions.length || !dashboardRange) return null;
+    const startDate = new Date(dashboardRange.start + "T00:00:00Z");
+    const endDate = new Date(dashboardRange.end + "T00:00:00Z");
+    const daysDiff =
+      Math.floor(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+      ) + 1;
+    const data: { label: string; income: number; expense: number }[] = [];
     let maxVal = 0;
-    for (let d = 1; d <= days; d++) {
-      const prefix = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      const income = transactions
-        .filter((t) => t.type === "income" && t.date.startsWith(prefix))
-        .reduce((s, t) => s + t.amount, 0);
-      const expense = transactions
-        .filter((t) => t.type === "expense" && t.date.startsWith(prefix))
-        .reduce((s, t) => s + t.amount, 0);
-      data.push({ day: d, income, expense });
-      if (income > maxVal) maxVal = income;
-      if (expense > maxVal) maxVal = expense;
+    const isLongPeriod =
+      dashboardPeriod === "quarter" ||
+      dashboardPeriod === "half-year" ||
+      dashboardPeriod === "year";
+    if (isLongPeriod) {
+      const monthly = new Map<string, { income: number; expense: number }>();
+      for (const tx of transactions) {
+        const monthKey = tx.date.slice(0, 7);
+        const e = monthly.get(monthKey) || { income: 0, expense: 0 };
+        if (tx.type === "income") e.income += tx.amount;
+        else e.expense += tx.amount;
+        monthly.set(monthKey, e);
+      }
+      const sorted = Array.from(monthly.entries()).sort(([a], [b]) =>
+        a < b ? -1 : 1,
+      );
+      for (const [monthKey, vals] of sorted) {
+        data.push({ label: monthKey, ...vals });
+        if (vals.income > maxVal) maxVal = vals.income;
+        if (vals.expense > maxVal) maxVal = vals.expense;
+      }
+    } else {
+      for (let d = 0; d < daysDiff; d++) {
+        const date = new Date(startDate);
+        date.setUTCDate(date.getUTCDate() + d);
+        const prefix = date.toISOString().split("T")[0];
+        const income = transactions
+          .filter((t) => t.type === "income" && t.date.startsWith(prefix))
+          .reduce((s, t) => s + t.amount, 0);
+        const expense = transactions
+          .filter((t) => t.type === "expense" && t.date.startsWith(prefix))
+          .reduce((s, t) => s + t.amount, 0);
+        const label =
+          dashboardPeriod === "week"
+            ? ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"][date.getUTCDay()]
+            : String(date.getUTCDate());
+        data.push({ label, income, expense });
+        if (income > maxVal) maxVal = income;
+        if (expense > maxVal) maxVal = expense;
+      }
     }
-    return { days, data, maxVal: maxVal || 1 };
-  }, [transactions]);
+    return { days: data.length, data, maxVal: maxVal || 1 };
+  }, [transactions, dashboardRange, dashboardPeriod]);
 
   const MONTH_NAMES = [
     "Январь",
@@ -332,10 +507,10 @@ export function FinanceDashboard() {
     "Ноябрь",
     "Декабрь",
   ];
-  const CHART_LEFT = 50;
-  const CHART_RIGHT = 780;
-  const CHART_TOP = 20;
-  const CHART_BOTTOM = 210;
+  const CHART_LEFT = 45;
+  const CHART_RIGHT = 770;
+  const CHART_TOP = 10;
+  const CHART_BOTTOM = 135;
   const CHART_W = CHART_RIGHT - CHART_LEFT;
   const CHART_H = CHART_BOTTOM - CHART_TOP;
 
@@ -382,8 +557,11 @@ export function FinanceDashboard() {
   return (
     <div className="lg:flex lg:gap-6">
       <div className="flex-1 min-w-0 space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Card>
+        <div
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+          style={{ animationDelay: "0ms" }}
+        >
+          <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Wallet className="h-4 w-4" />
@@ -399,7 +577,10 @@ export function FinanceDashboard() {
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card
+            className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+            style={{ animationDelay: "80ms" }}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <TrendingUp className="h-4 w-4" />
@@ -410,9 +591,21 @@ export function FinanceDashboard() {
               <p className="text-2xl font-bold">
                 {periodIncome.toLocaleString()} ₽
               </p>
+              <div className="flex items-center gap-2 mt-1">
+                <DeltaBadge value={incomeDelta} invert={false} />
+                {dailyChartData && dailyChartData.data.length > 1 && (
+                  <MiniSparkline
+                    data={dailyChartData.data.map((d) => d.income)}
+                    color="#22c55e"
+                  />
+                )}
+              </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card
+            className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+            style={{ animationDelay: "160ms" }}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <TrendingDown className="h-4 w-4" />
@@ -423,9 +616,21 @@ export function FinanceDashboard() {
               <p className="text-2xl font-bold">
                 {periodExpenses.toLocaleString()} ₽
               </p>
+              <div className="flex items-center gap-2 mt-1">
+                <DeltaBadge value={expenseDelta} invert={true} />
+                {dailyChartData && dailyChartData.data.length > 1 && (
+                  <MiniSparkline
+                    data={dailyChartData.data.map((d) => d.expense)}
+                    color="#f43f5e"
+                  />
+                )}
+              </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card
+            className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+            style={{ animationDelay: "240ms" }}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <PiggyBank className="h-4 w-4" />
@@ -436,19 +641,60 @@ export function FinanceDashboard() {
               <p className="text-2xl font-bold">
                 {freeMoney.toLocaleString()} ₽
               </p>
+              <div className="flex items-center mt-1">
+                <DeltaBadge value={freeMoneyDelta} invert={false} />
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <BarChart3 className="h-4 w-4 text-emerald-500" />
-              Динамика за {MONTH_NAMES[new Date().getMonth()]}{" "}
-              {new Date().getFullYear()} г.
-            </CardTitle>
+        <Card
+          className="overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+          style={{ animationDelay: "100ms" }}
+        >
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-1.5 text-xs font-medium">
+                <BarChart3 className="h-3.5 w-3.5 text-emerald-500" />
+                Динамика за{" "}
+                {dashboardPeriod === "week"
+                  ? "неделю"
+                  : dashboardPeriod === "month"
+                    ? MONTH_NAMES[new Date().getMonth()] +
+                      " " +
+                      new Date().getFullYear() +
+                      " г."
+                    : dashboardPeriod === "quarter"
+                      ? "квартал"
+                      : dashboardPeriod === "half-year"
+                        ? "полгода"
+                        : "год"}
+              </CardTitle>
+              <div className="flex rounded-lg bg-muted p-0.5 gap-0">
+                {(["week", "month", "quarter", "year"] as const).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setDashboardPeriod(p)}
+                    className={cn(
+                      "px-2.5 py-1 text-[10px] font-medium rounded-md transition-all",
+                      dashboardPeriod === p
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {p === "week"
+                      ? "Нед"
+                      : p === "month"
+                        ? "Мес"
+                        : p === "quarter"
+                          ? "Кв"
+                          : "Год"}
+                  </button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             {!dailyChartData ? (
               <p className="text-sm text-muted-foreground py-4 text-center">
                 Нет данных за период
@@ -456,7 +702,7 @@ export function FinanceDashboard() {
             ) : (
               <div className="relative">
                 <svg
-                  viewBox="0 0 800 230"
+                  viewBox="0 0 800 155"
                   className="w-full h-auto"
                   onMouseMove={(e) => {
                     const svg = e.currentTarget;
@@ -466,7 +712,7 @@ export function FinanceDashboard() {
                       ((x - CHART_LEFT) / CHART_W) * (dailyChartData.days - 1),
                     );
                     setHoveredDay(
-                      Math.max(0, Math.min(dailyChartData.days - 1, idx)) + 1,
+                      Math.max(0, Math.min(dailyChartData.days - 1, idx)),
                     );
                   }}
                   onMouseLeave={() => setHoveredDay(null)}
@@ -489,32 +735,37 @@ export function FinanceDashboard() {
                           y={y + 4}
                           textAnchor="end"
                           className="fill-muted-foreground"
-                          fontSize="11"
+                          fontSize="10"
                         >
                           {val.toLocaleString()}
                         </text>
                       </g>
                     );
                   })}
-                  {Array.from({ length: dailyChartData.days }, (_, i) => i + 1)
+                  {dailyChartData.data
                     .filter(
-                      (d) =>
-                        d === 1 || d === dailyChartData.days || d % 5 === 0,
+                      (_, i) =>
+                        dailyChartData.days <= 10 ||
+                        i === 0 ||
+                        i === dailyChartData.days - 1 ||
+                        i % Math.max(1, Math.floor(dailyChartData.days / 6)) ===
+                          0,
                     )
-                    .map((d) => {
+                    .map((d, i, arr) => {
+                      const idx = dailyChartData.data.indexOf(d);
                       const x =
                         CHART_LEFT +
-                        ((d - 1) / (dailyChartData.days - 1)) * CHART_W;
+                        (idx / (dailyChartData.days - 1)) * CHART_W;
                       return (
                         <text
-                          key={d}
+                          key={idx}
                           x={x}
-                          y={CHART_BOTTOM + 18}
+                          y={CHART_BOTTOM + 13}
                           textAnchor="middle"
                           className="fill-muted-foreground"
-                          fontSize="11"
+                          fontSize="10"
                         >
-                          {d}
+                          {d.label}
                         </text>
                       );
                     })}
@@ -542,19 +793,17 @@ export function FinanceDashboard() {
                     strokeWidth="2"
                     strokeLinejoin="round"
                   />
-                  {hoveredDay && (
+                  {hoveredDay !== null && (
                     <>
                       <line
                         x1={
                           CHART_LEFT +
-                          ((hoveredDay - 1) / (dailyChartData.days - 1)) *
-                            CHART_W
+                          (hoveredDay / (dailyChartData.days - 1)) * CHART_W
                         }
                         y1={CHART_TOP}
                         x2={
                           CHART_LEFT +
-                          ((hoveredDay - 1) / (dailyChartData.days - 1)) *
-                            CHART_W
+                          (hoveredDay / (dailyChartData.days - 1)) * CHART_W
                         }
                         y2={CHART_BOTTOM}
                         stroke="hsl(var(--muted-foreground))"
@@ -562,7 +811,7 @@ export function FinanceDashboard() {
                         strokeDasharray="4"
                       />
                       {(["income", "expense"] as const).map((type) => {
-                        const dayData = dailyChartData.data[hoveredDay - 1];
+                        const dayData = dailyChartData.data[hoveredDay];
                         const val =
                           type === "income" ? dayData.income : dayData.expense;
                         if (!val) return null;
@@ -572,32 +821,31 @@ export function FinanceDashboard() {
                           (val / dailyChartData.maxVal) * CHART_H;
                         const x =
                           CHART_LEFT +
-                          ((hoveredDay - 1) / (dailyChartData.days - 1)) *
-                            CHART_W;
+                          (hoveredDay / (dailyChartData.days - 1)) * CHART_W;
                         return (
                           <g key={type}>
                             <circle
                               cx={x}
                               cy={y}
-                              r="4"
+                              r="3"
                               fill={type === "income" ? "#22c55e" : "#f43f5e"}
                               stroke="white"
-                              strokeWidth="2"
+                              strokeWidth="1.5"
                             />
                             <rect
-                              x={type === "income" ? x + 8 : x - 80}
-                              y={y - 14}
-                              width="72"
-                              height="20"
-                              rx="4"
+                              x={type === "income" ? x + 8 : x - 76}
+                              y={y - 12}
+                              width="68"
+                              height="18"
+                              rx="3"
                               fill={type === "income" ? "#22c55e" : "#f43f5e"}
                             />
                             <text
-                              x={type === "income" ? x + 44 : x - 44}
-                              y={y - 1}
+                              x={type === "income" ? x + 42 : x - 42}
+                              y={y + 1}
                               textAnchor="middle"
                               fill="white"
-                              fontSize="11"
+                              fontSize="10"
                               fontWeight="600"
                             >
                               {type === "income" ? "Доход" : "Расход"}:{" "}
@@ -609,13 +857,13 @@ export function FinanceDashboard() {
                     </>
                   )}
                 </svg>
-                <div className="flex items-center justify-center gap-6 mt-1">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="h-3 w-6 rounded-sm bg-rose-500" />
+                <div className="flex items-center justify-center gap-4">
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <div className="h-2.5 w-5 rounded-sm bg-rose-500" />
                     Расходы
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="h-3 w-6 rounded-sm bg-emerald-500" />
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <div className="h-2.5 w-5 rounded-sm bg-emerald-500" />
                     Доходы
                   </div>
                 </div>
@@ -625,7 +873,10 @@ export function FinanceDashboard() {
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card>
+          <Card
+            className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+            style={{ animationDelay: "180ms" }}
+          >
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <BarChart3 className="h-4 w-4" />
@@ -822,7 +1073,10 @@ export function FinanceDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+            style={{ animationDelay: "260ms" }}
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Clock className="h-4 w-4" />
@@ -897,7 +1151,10 @@ export function FinanceDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <Card>
+          <Card
+            className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+            style={{ animationDelay: "320ms" }}
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Target className="h-4 w-4" />
@@ -954,7 +1211,10 @@ export function FinanceDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+            style={{ animationDelay: "400ms" }}
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <CalendarArrowUp className="h-4 w-4" />
@@ -993,7 +1253,10 @@ export function FinanceDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+            style={{ animationDelay: "480ms" }}
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <PiggyBank className="h-4 w-4" />
@@ -1048,7 +1311,10 @@ export function FinanceDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+            style={{ animationDelay: "560ms" }}
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <Landmark className="h-4 w-4" />
@@ -1100,10 +1366,23 @@ export function FinanceDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        <div
+          className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+          style={{ animationDelay: "400ms" }}
+        >
+          <CashflowProjection
+            accounts={accounts}
+            recurringTransactions={recurringTransactions}
+          />
+        </div>
       </div>
 
       <div className="lg:w-[340px] shrink-0">
-        <Card className="h-full">
+        <Card
+          className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+          style={{ animationDelay: "200ms" }}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Target className="h-4 w-4" />

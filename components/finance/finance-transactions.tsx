@@ -568,7 +568,12 @@ export function FinanceTransactions() {
             title={sortAsc ? "Сначала старые" : "Сначала новые"}
             className={cn(sortAsc && "text-muted-foreground/50")}
           >
-            <ChevronDown className={cn("h-4 w-4 transition-transform", sortAsc && "rotate-180")} />
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 transition-transform",
+                sortAsc && "rotate-180",
+              )}
+            />
           </Button>
           <Button
             variant="outline"
@@ -754,7 +759,8 @@ export function FinanceTransactions() {
                         key={tx.id}
                         className={cn(
                           "group relative flex items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-all duration-200 hover:shadow-sm hover:border-foreground/20 hover:-translate-y-0.5",
-                          selectedIds.has(tx.id) && "border-primary/40 bg-primary/[0.03]",
+                          selectedIds.has(tx.id) &&
+                            "border-primary/40 bg-primary/[0.03]",
                         )}
                         onClick={() => openEdit(tx)}
                       >
@@ -785,15 +791,16 @@ export function FinanceTransactions() {
                             typeBg,
                           )}
                         >
-                          {cat?.icon || <TypeIcon className={cn("h-5 w-5", typeColor)} />}
+                          {cat?.icon || (
+                            <TypeIcon className={cn("h-5 w-5", typeColor)} />
+                          )}
                         </div>
 
                         {/* Info */}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline gap-2">
                             <span className="truncate text-sm font-medium">
-                              {tx.description ||
-                                (cat?.name || "Без категории")}
+                              {tx.description || cat?.name || "Без категории"}
                             </span>
                             {cat && tx.description && (
                               <span className="shrink-0 text-[10px] text-muted-foreground/60">
