@@ -29,6 +29,7 @@ import type {
   EmergencyFund,
   TransactionFilters,
   ShoppingList,
+  RecurringTransaction,
 } from "./finance-types";
 
 const accountsCol = () => collection(db, "FINANCE_ACCOUNTS");
@@ -40,6 +41,7 @@ const loansCol = () => collection(db, "FINANCE_LOANS");
 const projectsCol = () => collection(db, "FINANCE_PROJECTS");
 const emergencyFundCol = () => collection(db, "FINANCE_EMERGENCY_FUND");
 const shoppingListsCol = () => collection(db, "SHOPPING_LISTS");
+const recurringCol = () => collection(db, "FINANCE_RECURRING");
 
 function toPlain<T>(snap: {
   id: string;
@@ -444,4 +446,39 @@ export async function updateShoppingList(
 
 export async function deleteShoppingList(id: string): Promise<void> {
   await deleteDoc(doc(shoppingListsCol(), id));
+}
+
+// --- Recurring Transactions ---
+
+export async function getRecurringTransactionsByUser(
+  uid: string,
+): Promise<RecurringTransaction[]> {
+  const q = query(recurringCol(), where("userId", "==", uid));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => toPlain<RecurringTransaction>(d));
+}
+
+export async function createRecurringTransaction(
+  data: Omit<RecurringTransaction, "createdAt" | "updatedAt">,
+): Promise<RecurringTransaction> {
+  const now = new Date().toISOString();
+  const rt: RecurringTransaction = { ...data, createdAt: now, updatedAt: now };
+  await setDoc(doc(recurringCol(), rt.id), clean(rt));
+  return rt;
+}
+
+export async function updateRecurringTransaction(
+  id: string,
+  data: Partial<
+    Omit<RecurringTransaction, "id" | "userId" | "createdAt" | "updatedAt">
+  >,
+): Promise<RecurringTransaction> {
+  const ref = doc(recurringCol(), id);
+  await updateDoc(ref, clean({ ...data, updatedAt: new Date().toISOString() }));
+  const snap = await getDoc(ref);
+  return toPlain<RecurringTransaction>(snap);
+}
+
+export async function deleteRecurringTransaction(id: string): Promise<void> {
+  await deleteDoc(doc(recurringCol(), id));
 }

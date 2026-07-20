@@ -220,6 +220,27 @@ export interface ShoppingItem {
   transactionId?: string;
 }
 
+export type RecurringInterval = "weekly" | "monthly" | "yearly";
+
+export interface RecurringTransaction {
+  id: string;
+  userId: string;
+  accountId: string;
+  categoryId: string;
+  type: TransactionType;
+  amount: number;
+  description: string;
+  interval: RecurringInterval;
+  dayOfMonth: number;
+  month?: number;
+  startDate: string;
+  endDate?: string;
+  isActive: boolean;
+  lastGeneratedDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ShoppingList {
   id: string;
   userId: string;

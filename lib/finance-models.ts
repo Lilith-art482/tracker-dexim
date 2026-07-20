@@ -9,6 +9,7 @@ import type {
   FinanceProject,
   EmergencyFund,
   TransactionFilters,
+  RecurringTransaction,
 } from "./finance-types";
 
 const COL = (name: string) => name;
@@ -391,4 +392,46 @@ export async function upsertEmergencyFund(
   await existing.docs[0].ref.update(data);
   const snap = await existing.docs[0].ref.get();
   return toPlain(snap) as EmergencyFund;
+}
+
+// --- Recurring Transactions ---
+
+export async function getRecurringTransactionsByUser(
+  uid: string,
+): Promise<RecurringTransaction[]> {
+  const snap = await getAdminDb()
+    .collection(COL("FINANCE_RECURRING"))
+    .where("userId", "==", uid)
+    .get();
+  return snap.docs.map((d) => toPlain(d) as RecurringTransaction);
+}
+
+export async function createRecurringTransaction(
+  data: Omit<RecurringTransaction, "createdAt" | "updatedAt">,
+): Promise<RecurringTransaction> {
+  const now = new Date().toISOString();
+  const rt: RecurringTransaction = { ...data, createdAt: now, updatedAt: now };
+  await getAdminDb().collection(COL("FINANCE_RECURRING")).doc(rt.id).set(rt);
+  return rt;
+}
+
+export async function updateRecurringTransaction(
+  id: string,
+  data: Partial<
+    Omit<RecurringTransaction, "id" | "userId" | "createdAt" | "updatedAt">
+  >,
+): Promise<RecurringTransaction> {
+  await getAdminDb()
+    .collection(COL("FINANCE_RECURRING"))
+    .doc(id)
+    .update({ ...data, updatedAt: new Date().toISOString() });
+  const snap = await getAdminDb()
+    .collection(COL("FINANCE_RECURRING"))
+    .doc(id)
+    .get();
+  return toPlain(snap) as RecurringTransaction;
+}
+
+export async function deleteRecurringTransaction(id: string): Promise<void> {
+  await getAdminDb().collection(COL("FINANCE_RECURRING")).doc(id).delete();
 }
