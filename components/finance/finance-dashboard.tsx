@@ -43,7 +43,6 @@ import {
 import { cn } from "@/lib/utils";
 import { getUSDTtoRUB, convertToRUB } from "@/lib/exchange-rates";
 import { syncRecurringTransactions } from "@/lib/finance-recurring-sync";
-import { CashflowProjection } from "./cashflow-projection";
 
 const CATEGORY_COLORS_HEX: Record<string, string> = {
   red: "#ef4444",
@@ -507,12 +506,6 @@ export function FinanceDashboard() {
     "Ноябрь",
     "Декабрь",
   ];
-  const CHART_LEFT = 45;
-  const CHART_RIGHT = 770;
-  const CHART_TOP = 10;
-  const CHART_BOTTOM = 135;
-  const CHART_W = CHART_RIGHT - CHART_LEFT;
-  const CHART_H = CHART_BOTTOM - CHART_TOP;
 
   const budgetLoad = useMemo(() => {
     if (!budget || !budget.categoryBudgets.length) return null;
@@ -647,230 +640,6 @@ export function FinanceDashboard() {
             </CardContent>
           </Card>
         </div>
-
-        <Card
-          className="overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
-          style={{ animationDelay: "100ms" }}
-        >
-          <CardHeader className="py-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-1.5 text-[10px] font-medium">
-                <BarChart3 className="h-3 w-3 text-emerald-500" />
-                Динамика за{" "}
-                {dashboardPeriod === "week"
-                  ? "неделю"
-                  : dashboardPeriod === "month"
-                    ? MONTH_NAMES[new Date().getMonth()] +
-                      " " +
-                      new Date().getFullYear() +
-                      " г."
-                    : dashboardPeriod === "quarter"
-                      ? "квартал"
-                      : dashboardPeriod === "half-year"
-                        ? "полгода"
-                        : "год"}
-              </CardTitle>
-              <div className="flex rounded-lg bg-muted p-0.5 gap-0">
-                {(["week", "month", "quarter", "year"] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setDashboardPeriod(p)}
-                    className={cn(
-                      "px-2 py-0.5 text-[9px] font-medium rounded-md transition-all",
-                      dashboardPeriod === p
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {p === "week"
-                      ? "Нед"
-                      : p === "month"
-                        ? "Мес"
-                        : p === "quarter"
-                          ? "Кв"
-                          : "Год"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {!dailyChartData ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                Нет данных за период
-              </p>
-            ) : (
-              <div className="relative">
-                <svg
-                  viewBox="0 0 800 155"
-                  className="w-full h-auto"
-                  onMouseMove={(e) => {
-                    const svg = e.currentTarget;
-                    const rect = svg.getBoundingClientRect();
-                    const x = ((e.clientX - rect.left) / rect.width) * 800;
-                    const idx = Math.round(
-                      ((x - CHART_LEFT) / CHART_W) * (dailyChartData.days - 1),
-                    );
-                    setHoveredDay(
-                      Math.max(0, Math.min(dailyChartData.days - 1, idx)),
-                    );
-                  }}
-                  onMouseLeave={() => setHoveredDay(null)}
-                >
-                  {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-                    const y = CHART_TOP + ratio * CHART_H;
-                    const val = Math.round(dailyChartData.maxVal * (1 - ratio));
-                    return (
-                      <g key={ratio}>
-                        <line
-                          x1={CHART_LEFT}
-                          y1={y}
-                          x2={CHART_RIGHT}
-                          y2={y}
-                          stroke="hsl(var(--border))"
-                          strokeWidth="1"
-                        />
-                        <text
-                          x={CHART_LEFT - 8}
-                          y={y + 4}
-                          textAnchor="end"
-                          className="fill-muted-foreground"
-                          fontSize="10"
-                        >
-                          {val.toLocaleString()}
-                        </text>
-                      </g>
-                    );
-                  })}
-                  {dailyChartData.data
-                    .filter(
-                      (_, i) =>
-                        dailyChartData.days <= 10 ||
-                        i === 0 ||
-                        i === dailyChartData.days - 1 ||
-                        i % Math.max(1, Math.floor(dailyChartData.days / 6)) ===
-                          0,
-                    )
-                    .map((d, i, arr) => {
-                      const idx = dailyChartData.data.indexOf(d);
-                      const x =
-                        CHART_LEFT +
-                        (idx / (dailyChartData.days - 1)) * CHART_W;
-                      return (
-                        <text
-                          key={idx}
-                          x={x}
-                          y={CHART_BOTTOM + 13}
-                          textAnchor="middle"
-                          className="fill-muted-foreground"
-                          fontSize="10"
-                        >
-                          {d.label}
-                        </text>
-                      );
-                    })}
-                  <polyline
-                    points={dailyChartData.data
-                      .map(
-                        (d, i) =>
-                          `${CHART_LEFT + (i / (dailyChartData.days - 1)) * CHART_W},${CHART_TOP + CHART_H - (d.expense / dailyChartData.maxVal) * CHART_H}`,
-                      )
-                      .join(" ")}
-                    fill="none"
-                    stroke="#f43f5e"
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                  />
-                  <polyline
-                    points={dailyChartData.data
-                      .map(
-                        (d, i) =>
-                          `${CHART_LEFT + (i / (dailyChartData.days - 1)) * CHART_W},${CHART_TOP + CHART_H - (d.income / dailyChartData.maxVal) * CHART_H}`,
-                      )
-                      .join(" ")}
-                    fill="none"
-                    stroke="#22c55e"
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                  />
-                  {hoveredDay !== null && (
-                    <>
-                      <line
-                        x1={
-                          CHART_LEFT +
-                          (hoveredDay / (dailyChartData.days - 1)) * CHART_W
-                        }
-                        y1={CHART_TOP}
-                        x2={
-                          CHART_LEFT +
-                          (hoveredDay / (dailyChartData.days - 1)) * CHART_W
-                        }
-                        y2={CHART_BOTTOM}
-                        stroke="hsl(var(--muted-foreground))"
-                        strokeWidth="1"
-                        strokeDasharray="4"
-                      />
-                      {(["income", "expense"] as const).map((type) => {
-                        const dayData = dailyChartData.data[hoveredDay];
-                        const val =
-                          type === "income" ? dayData.income : dayData.expense;
-                        if (!val) return null;
-                        const y =
-                          CHART_TOP +
-                          CHART_H -
-                          (val / dailyChartData.maxVal) * CHART_H;
-                        const x =
-                          CHART_LEFT +
-                          (hoveredDay / (dailyChartData.days - 1)) * CHART_W;
-                        return (
-                          <g key={type}>
-                            <circle
-                              cx={x}
-                              cy={y}
-                              r="3"
-                              fill={type === "income" ? "#22c55e" : "#f43f5e"}
-                              stroke="white"
-                              strokeWidth="1.5"
-                            />
-                            <rect
-                              x={type === "income" ? x + 8 : x - 76}
-                              y={y - 12}
-                              width="68"
-                              height="18"
-                              rx="3"
-                              fill={type === "income" ? "#22c55e" : "#f43f5e"}
-                            />
-                            <text
-                              x={type === "income" ? x + 42 : x - 42}
-                              y={y + 1}
-                              textAnchor="middle"
-                              fill="white"
-                              fontSize="10"
-                              fontWeight="600"
-                            >
-                              {type === "income" ? "Доход" : "Расход"}:{" "}
-                              {val.toLocaleString()} ₽
-                            </text>
-                          </g>
-                        );
-                      })}
-                    </>
-                  )}
-                </svg>
-                <div className="flex items-center justify-center gap-4">
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                    <div className="h-2.5 w-5 rounded-sm bg-rose-500" />
-                    Расходы
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                    <div className="h-2.5 w-5 rounded-sm bg-emerald-500" />
-                    Доходы
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card
@@ -1367,15 +1136,6 @@ export function FinanceDashboard() {
           </Card>
         </div>
 
-        <div
-          className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
-          style={{ animationDelay: "400ms" }}
-        >
-          <CashflowProjection
-            accounts={accounts}
-            recurringTransactions={recurringTransactions}
-          />
-        </div>
       </div>
 
       <div className="lg:w-[340px] shrink-0">

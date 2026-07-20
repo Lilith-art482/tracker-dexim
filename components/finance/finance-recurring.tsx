@@ -474,7 +474,19 @@ export function FinanceRecurring() {
                     onValueChange={(v) => v && setFormType(v as TransactionType)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Выберите тип" />
+                      <SelectValue placeholder="Выберите тип">
+                        {formType === "income" ? (
+                          <span className="flex items-center gap-1.5">
+                            <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" />
+                            Доход
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5">
+                            <ArrowDownRight className="h-3.5 w-3.5 text-rose-500" />
+                            Расход
+                          </span>
+                        )}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="income">
@@ -511,7 +523,9 @@ export function FinanceRecurring() {
                     onValueChange={(v) => v && setFormAccountId(v)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Выберите счёт" />
+                      <SelectValue placeholder="Выберите счёт">
+                        {accountMap.get(formAccountId)?.name}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {accounts.map((acc) => (
@@ -529,7 +543,9 @@ export function FinanceRecurring() {
                     onValueChange={(v) => v && setFormCategoryId(v)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Выберите категорию" />
+                      <SelectValue placeholder="Выберите категорию">
+                        {categoryMap.get(formCategoryId)?.name}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {filteredCategories.length === 0 ? (
@@ -561,7 +577,9 @@ export function FinanceRecurring() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Выберите интервал" />
+                      <SelectValue placeholder="Выберите интервал">
+                        {INTERVAL_LABELS[formInterval]}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="weekly">Еженедельно</SelectItem>
@@ -597,7 +615,9 @@ export function FinanceRecurring() {
                     onValueChange={(v) => v && setFormMonth(v)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Выберите месяц" />
+                      <SelectValue placeholder="Выберите месяц">
+                        {MONTH_NAMES[parseInt(formMonth) - 1]}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {MONTH_NAMES.map((name, i) => (
