@@ -52,6 +52,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { CategorySearchSelect } from "./category-search-select";
 
 const INTERVAL_LABELS: Record<RecurringInterval, string> = {
   weekly: "Еженедельно",
@@ -455,120 +456,98 @@ export function FinanceRecurring() {
                 : "Добавить регулярный платёж"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-5">
-            <div className="rounded-xl border bg-muted/30 p-4 space-y-3">
-              <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Основное</h4>
-              <div className="space-y-2">
-                <label className="text-xs font-medium">Описание</label>
-                <Input
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder="Например: Аренда квартиры"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium">Тип</label>
-                  <Select
-                    value={formType}
-                    onValueChange={(v) => v && setFormType(v as TransactionType)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите тип">
-                        {formType === "income" ? (
-                          <span className="flex items-center gap-1.5">
-                            <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" />
-                            Доход
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5">
-                            <ArrowDownRight className="h-3.5 w-3.5 text-rose-500" />
-                            Расход
-                          </span>
-                        )}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="income">
-                        <span className="flex items-center gap-2">
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Тип</label>
+                <Select
+                  value={formType}
+                  onValueChange={(v) => v && setFormType(v as TransactionType)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите тип">
+                      {formType === "income" ? (
+                        <span className="flex items-center gap-1.5">
                           <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" />
                           Доход
                         </span>
-                      </SelectItem>
-                      <SelectItem value="expense">
-                        <span className="flex items-center gap-2">
+                      ) : (
+                        <span className="flex items-center gap-1.5">
                           <ArrowDownRight className="h-3.5 w-3.5 text-rose-500" />
                           Расход
                         </span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium">Сумма</label>
-                  <Input
-                    type="number"
-                    value={formAmount}
-                    onChange={(e) => setFormAmount(e.target.value)}
-                    placeholder="50000"
-                    min={0}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium">Счёт</label>
-                  <Select
-                    value={formAccountId}
-                    onValueChange={(v) => v && setFormAccountId(v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите счёт">
-                        {accountMap.get(formAccountId)?.name}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts.map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id}>
-                          {acc.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium">Категория</label>
-                  <Select
-                    value={formCategoryId}
-                    onValueChange={(v) => v && setFormCategoryId(v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите категорию">
-                        {categoryMap.get(formCategoryId)?.name}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredCategories.length === 0 ? (
-                        <SelectItem value="__noop" disabled>
-                          Нет категорий
-                        </SelectItem>
-                      ) : (
-                        filteredCategories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </SelectItem>
-                        ))
                       )}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="income">
+                      <span className="flex items-center gap-2">
+                        <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" />
+                        Доход
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="expense">
+                      <span className="flex items-center gap-2">
+                        <ArrowDownRight className="h-3.5 w-3.5 text-rose-500" />
+                        Расход
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Сумма</label>
+                <Input
+                  type="number"
+                  value={formAmount}
+                  onChange={(e) => setFormAmount(e.target.value)}
+                  placeholder="50000"
+                  min={0}
+                />
               </div>
             </div>
-
-            <div className="rounded-xl border bg-muted/30 p-4 space-y-3">
-              <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Периодичность</h4>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Описание</label>
+              <Input
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                placeholder="Например: Аренда квартиры"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Счёт</label>
+                <Select
+                  value={formAccountId}
+                  onValueChange={(v) => v && setFormAccountId(v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите счёт">
+                      {accountMap.get(formAccountId)?.name}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Категория</label>
+                <CategorySearchSelect
+                  categories={categories}
+                  type={formType}
+                  value={formCategoryId}
+                  onChange={setFormCategoryId}
+                />
+              </div>
+            </div>
+            <div className="border-t pt-4 space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label className="text-xs font-medium">Интервал</label>
                   <Select
                     value={formInterval}
@@ -588,7 +567,7 @@ export function FinanceRecurring() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label className="text-xs font-medium">
                     {formInterval === "weekly" ? "День недели" : "День месяца"}
                   </label>
@@ -608,7 +587,7 @@ export function FinanceRecurring() {
                 </div>
               </div>
               {formInterval === "yearly" && (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label className="text-xs font-medium">Месяц</label>
                   <Select
                     value={formMonth}
@@ -630,7 +609,6 @@ export function FinanceRecurring() {
                 </div>
               )}
             </div>
-
             <div className="flex items-center justify-between rounded-xl border bg-muted/30 p-3">
               <div className="flex items-center gap-2">
                 {formIsActive ? (
