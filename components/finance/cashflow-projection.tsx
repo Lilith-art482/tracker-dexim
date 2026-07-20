@@ -14,10 +14,10 @@ interface CashflowProjectionProps {
   recurringTransactions: RecurringTransaction[];
 }
 
-const CHART_LEFT = 45;
-const CHART_RIGHT = 770;
-const CHART_TOP = 10;
-const CHART_BOTTOM = 135;
+const CHART_LEFT = 40;
+const CHART_RIGHT = 760;
+const CHART_TOP = 8;
+const CHART_BOTTOM = 100;
 const CHART_W = CHART_RIGHT - CHART_LEFT;
 const CHART_H = CHART_BOTTOM - CHART_TOP;
 
@@ -108,16 +108,16 @@ export function CashflowProjection({
   const xLabels = [1, 5, 10, 15, 20, 25, 30];
 
   return (
-    <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium">
-          <TrendingUp className="h-4 w-4" />
+    <Card>
+      <CardHeader className="pb-1">
+        <CardTitle className="flex items-center gap-1.5 text-xs font-medium">
+          <TrendingUp className="h-3.5 w-3.5" />
           Прогноз движения денег (30 дней)
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         <div className="relative">
-          <svg viewBox="0 0 800 155" className="w-full h-auto">
+          <svg viewBox="0 0 800 115" className="w-full h-auto">
             {gridLines.map(({ y, val }) => (
               <g key={y}>
                 <line
@@ -172,45 +172,29 @@ export function CashflowProjection({
             {xLabels.map((day) => {
               const x = CHART_LEFT + ((day - 1) / 29) * CHART_W;
               return (
-                <text
-                  key={day}
-                  x={x}
-                  y={CHART_BOTTOM + 13}
-                  textAnchor="middle"
-                  className="fill-muted-foreground"
-                  fontSize="10"
-                >
-                  {day}
-                </text>
+                  <text
+                    key={day}
+                    x={x}
+                    y={CHART_BOTTOM + 11}
+                    textAnchor="middle"
+                    className="fill-muted-foreground"
+                    fontSize="9"
+                  >
+                    {day}
+                  </text>
               );
             })}
           </svg>
         </div>
 
-        <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-sm">
-          <span className="text-muted-foreground">
-            Начальный баланс:{" "}
-            <span className="font-semibold text-foreground">
-              {Math.round(startingBalance).toLocaleString()} ₽
-            </span>
-          </span>
-          <span className="text-muted-foreground">
-            Прогноз через 30 дней:{" "}
-            <span
-              className={cn(
-                "font-semibold",
-                endingBalance >= 0 ? "text-emerald-600" : "text-rose-600",
-              )}
-            >
+        <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground mt-1">
+          <span>Старт: <span className="font-medium text-foreground">{Math.round(startingBalance).toLocaleString()} ₽</span></span>
+          <span>Через 30 дн.:{" "}
+            <span className={cn("font-medium", endingBalance >= 0 ? "text-emerald-600" : "text-rose-600")}>
               {Math.round(endingBalance).toLocaleString()} ₽
             </span>
           </span>
-          <span className="text-muted-foreground">
-            Минимальный баланс:{" "}
-            <span className="font-semibold text-foreground">
-              {Math.round(minBalance).toLocaleString()} ₽
-            </span>
-          </span>
+          <span>Мин.: <span className="font-medium text-foreground">{Math.round(minBalance).toLocaleString()} ₽</span></span>
         </div>
       </CardContent>
     </Card>

@@ -652,10 +652,10 @@ export function FinanceDashboard() {
           className="overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
           style={{ animationDelay: "100ms" }}
         >
-          <CardHeader className="pb-2">
+          <CardHeader className="py-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-1.5 text-xs font-medium">
-                <BarChart3 className="h-3.5 w-3.5 text-emerald-500" />
+              <CardTitle className="flex items-center gap-1.5 text-[10px] font-medium">
+                <BarChart3 className="h-3 w-3 text-emerald-500" />
                 Динамика за{" "}
                 {dashboardPeriod === "week"
                   ? "неделю"
@@ -676,7 +676,7 @@ export function FinanceDashboard() {
                     key={p}
                     onClick={() => setDashboardPeriod(p)}
                     className={cn(
-                      "px-2.5 py-1 text-[10px] font-medium rounded-md transition-all",
+                      "px-2 py-0.5 text-[9px] font-medium rounded-md transition-all",
                       dashboardPeriod === p
                         ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground",
