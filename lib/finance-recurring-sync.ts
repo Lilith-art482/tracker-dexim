@@ -2,6 +2,10 @@ import { auth } from "./firebase";
 import { getRecurringTransactionsByUser, updateRecurringTransaction, createTransaction } from "./finance-client";
 import type { RecurringTransaction } from "./finance-types";
 
+function lastDayOfMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
 function computeNextDate(rt: RecurringTransaction): string | null {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
@@ -11,29 +15,39 @@ function computeNextDate(rt: RecurringTransaction): string | null {
   if (today < start) return null;
   if (end && today > end) return null;
 
-  let candidate = new Date(start);
+  const currentYear = today.getUTCFullYear();
+  const currentMonth = today.getUTCMonth();
+  const currentDay = today.getUTCDate();
+
+  let candidate: Date | null = null;
 
   if (rt.interval === "monthly") {
-    const day = Math.min(rt.dayOfMonth, 28);
-    candidate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), day));
+    const maxDay = lastDayOfMonth(currentYear, currentMonth + 1);
+    const day = Math.min(rt.dayOfMonth, maxDay);
+    candidate = new Date(Date.UTC(currentYear, currentMonth, day));
     if (candidate < start) {
-      candidate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, day));
+      const nextMonth = currentMonth + 1;
+      const nextYear = nextMonth > 11 ? currentYear + 1 : currentYear;
+      const nextMaxDay = lastDayOfMonth(nextYear, (nextMonth % 12) + 1);
+      candidate = new Date(Date.UTC(nextYear, nextMonth % 12, Math.min(rt.dayOfMonth, nextMaxDay)));
     }
   } else if (rt.interval === "weekly") {
     const diff = (rt.dayOfMonth - today.getUTCDay() + 7) % 7;
-    candidate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + diff));
+    candidate = new Date(Date.UTC(currentYear, currentMonth, currentDay + diff));
     if (candidate < start) {
       candidate = new Date(candidate.getTime() + 7 * 86400000);
     }
   } else if (rt.interval === "yearly") {
     const month = (rt.month ?? 1) - 1;
-    const day = Math.min(rt.dayOfMonth, 28);
-    candidate = new Date(Date.UTC(today.getUTCFullYear(), month, day));
+    const maxDay = lastDayOfMonth(currentYear, month + 1);
+    const day = Math.min(rt.dayOfMonth, maxDay);
+    candidate = new Date(Date.UTC(currentYear, month, day));
     if (candidate < start) {
-      candidate = new Date(Date.UTC(today.getUTCFullYear() + 1, month, day));
+      candidate = new Date(Date.UTC(currentYear + 1, month, Math.min(rt.dayOfMonth, lastDayOfMonth(currentYear + 1, month + 1))));
     }
   }
 
+  if (!candidate) return null;
   if (end && candidate > end) return null;
   return candidate.toISOString().split("T")[0];
 }
