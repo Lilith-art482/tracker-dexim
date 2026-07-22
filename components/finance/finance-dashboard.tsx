@@ -41,7 +41,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { getUSDTtoRUB, convertToRUB } from "@/lib/exchange-rates";
+import { getUSDTtoRUB, convertToRUB, getDisplayCurrency, getCachedRates, convert } from "@/lib/exchange-rates";
 import { syncRecurringTransactions } from "@/lib/finance-recurring-sync";
 
 const CATEGORY_COLORS_HEX: Record<string, string> = {
@@ -183,10 +183,14 @@ export function FinanceDashboard() {
     fetchAll(true);
   }, [fetchAll]);
 
-  const totalBalance = accounts.reduce(
-    (sum, a) => sum + convertToRUB(a.balance, a.currency, usdtRate),
-    0,
-  );
+  const totalBalance = accounts.reduce((sum, a) => {
+    const rates = getCachedRates();
+    const effectiveBalance =
+      a.type === "crypto" && a.cryptoCoin && a.cryptoAmount != null && rates
+        ? convert(a.cryptoAmount, a.cryptoCoin, a.currency, rates)
+        : a.balance;
+    return sum + convertToRUB(effectiveBalance, a.currency, usdtRate);
+  }, 0);
 
   const dashboardRange = useMemo(() => {
     const now = new Date();
@@ -566,7 +570,7 @@ export function FinanceDashboard() {
                 {Math.round(totalBalance).toLocaleString()} ₽
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5">
-                USDT/RUB: {usdtRate.toFixed(2)} ₽
+                {getDisplayCurrency()} — {usdtRate.toFixed(2)} ₽
               </p>
             </CardContent>
           </Card>

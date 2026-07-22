@@ -26,6 +26,7 @@ import {
   Eye,
   ChartLine,
   Clock,
+  DollarSign,
 } from "lucide-react";
 import type {
   FinanceAccount,
@@ -68,7 +69,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { getUSDTtoRUB, convertToRUB } from "@/lib/exchange-rates";
+import { getUSDTtoRUB, convertToRUB, getDisplayCurrency, getCachedRates, convert, computeCryptoAmount } from "@/lib/exchange-rates";
 import {
   getAccountsByUser,
   createAccount,
@@ -89,24 +90,9 @@ const CARD_TYPES = [
   { value: "credit" as const, label: "Кредитная" },
   { value: "business" as const, label: "Бизнес" },
 ];
-const CRYPTO_COINS = [
-  "BTC",
-  "ETH",
-  "USDT",
-  "USDC",
-  "BNB",
-  "SOL",
-  "XRP",
-  "ADA",
-  "DOT",
-  "AVAX",
-  "DOGE",
-  "MATIC",
-  "TRX",
-  "TON",
-  "LINK",
-  "UNI",
-];
+const CRYPTO_COINS = CURRENCIES
+  .filter((c) => c.type === "crypto")
+  .map((c) => c.code);
 
 const TYPE_CONFIG: Record<
   AccountType,
@@ -168,22 +154,19 @@ function CurrencySelect({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger>
-        <Button
-          variant="outline"
-          role="combobox"
-          className="w-full justify-between text-sm font-normal"
-        >
-          {selected ? (
-            <span className="flex items-center gap-2">
-              <span className="text-base">{selected.symbol}</span>
-              <span>{selected.code}</span>
+      <PopoverTrigger className="flex w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 h-8 data-placeholder:text-muted-foreground dark:bg-input/30 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
+        {selected ? (
+          <span className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded border bg-background text-[10px] font-medium">
+              {selected.symbol}
             </span>
-          ) : (
-            "Выберите валюту"
-          )}
-          <ChevronDown className="h-3.5 w-3.5 ml-auto opacity-50" />
-        </Button>
+            <span className="font-medium">{selected.code}</span>
+            <span className="text-xs text-muted-foreground">{selected.label}</span>
+          </span>
+        ) : (
+          <span className="text-muted-foreground">Выберите валюту</span>
+        )}
+        <ChevronDown className="h-3.5 w-3.5 ml-auto opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-[280px] p-2" align="start">
         <div className="relative mb-2">
@@ -393,6 +376,13 @@ export function FinanceAccounts() {
     setFormName(account.name);
     setFormType(account.type);
     setFormBalance(String(account.balance));
+    if (account.type === "crypto" && account.cryptoAmount != null && account.cryptoCoin) {
+      const rates = getCachedRates();
+      if (rates) {
+        const dynamicBalance = convert(account.cryptoAmount, account.cryptoCoin, account.currency, rates);
+        setFormBalance(String(dynamicBalance));
+      }
+    }
     setFormCurrency(account.currency);
     setFormCardType(account.cardType || "debit");
     setFormCryptoCoin(account.cryptoCoin || "BTC");
@@ -444,6 +434,16 @@ export function FinanceAccounts() {
       body.cryptoCoin = formCryptoCoin;
       if (formWalletName) body.walletName = formWalletName;
       if (formWalletAddress) body.walletAddress = formWalletAddress;
+      const rates = getCachedRates();
+      if (rates) {
+        if (editId) {
+          const existing = accounts.find((a) => a.id === editId);
+          const ca = existing?.cryptoAmount;
+          body.cryptoAmount = ca != null ? ca : computeCryptoAmount(balance, formCryptoCoin, formCurrency, rates);
+        } else {
+          body.cryptoAmount = computeCryptoAmount(balance, formCryptoCoin, formCurrency, rates);
+        }
+      }
     }
     if (formType === "deposit" || formType === "savings") {
       if (formInterestRate) body.interestRate = parseFloat(formInterestRate);
@@ -489,6 +489,30 @@ export function FinanceAccounts() {
     }
   };
 
+  const accountBalance = useCallback((acc: FinanceAccount): number => {
+    if (acc.type === "crypto" && acc.cryptoCoin && acc.cryptoAmount != null) {
+      const rates = getCachedRates();
+      if (rates) return convert(acc.cryptoAmount, acc.cryptoCoin, acc.currency, rates);
+    }
+    return acc.balance;
+  }, []);
+
+  const computeCryptoUpdate = useCallback((
+    acc: FinanceAccount,
+    newBalance: number,
+  ): { balance: number; cryptoAmount?: number } => {
+    if (acc.type === "crypto" && acc.cryptoCoin) {
+      const rates = getCachedRates();
+      if (rates) {
+        const rateToCurrency = convert(1, acc.cryptoCoin, acc.currency, rates);
+        if (rateToCurrency > 0) {
+          return { balance: newBalance, cryptoAmount: newBalance / rateToCurrency };
+        }
+      }
+    }
+    return { balance: newBalance };
+  }, []);
+
   const handleTransfer = async () => {
     if (!transferFrom || !transferTo || !transferAmount.trim()) return;
     if (transferFrom === transferTo) return;
@@ -501,7 +525,10 @@ export function FinanceAccounts() {
 
     const fromAcc = accounts.find((a) => a.id === transferFrom);
     const toAcc = accounts.find((a) => a.id === transferTo);
-    if (!fromAcc || !toAcc || fromAcc.balance < amount) {
+    if (!fromAcc || !toAcc) { setSaving(false); return; }
+
+    const fromDynamicBalance = accountBalance(fromAcc);
+    if (fromDynamicBalance < amount) {
       setSaving(false);
       return;
     }
@@ -519,16 +546,16 @@ export function FinanceAccounts() {
         date: new Date().toISOString().split("T")[0],
       });
 
-      await updateAccountModel(transferFrom, {
-        balance: fromAcc.balance - amount,
-      });
-      await updateAccountModel(transferTo, { balance: toAcc.balance + amount });
+      const fromUpdate = computeCryptoUpdate(fromAcc, fromDynamicBalance - amount);
+      const toUpdate = computeCryptoUpdate(toAcc, accountBalance(toAcc) + amount);
+
+      await updateAccountModel(transferFrom, fromUpdate);
+      await updateAccountModel(transferTo, toUpdate);
 
       setAccounts((prev) =>
         prev.map((a) => {
-          if (a.id === transferFrom)
-            return { ...a, balance: a.balance - amount };
-          if (a.id === transferTo) return { ...a, balance: a.balance + amount };
+          if (a.id === transferFrom) return { ...a, ...fromUpdate };
+          if (a.id === transferTo) return { ...a, ...toUpdate };
           return a;
         }),
       );
@@ -550,7 +577,8 @@ export function FinanceAccounts() {
     if (isNaN(amount) || amount <= 0) return;
 
     const delta = quickType === "add" ? amount : -amount;
-    const newBalance = quickAccount.balance + delta;
+    const currentBalance = accountBalance(quickAccount);
+    const newBalance = currentBalance + delta;
     if (newBalance < 0) return;
 
     const cat = categories.find((c) => c.id === quickCategoryId);
@@ -618,9 +646,12 @@ export function FinanceAccounts() {
         }
       }
 
+      const update = computeCryptoUpdate(quickAccount, newBalance);
+      await updateAccountModel(quickAccount.id, update);
+
       setAccounts((prev) =>
         prev.map((a) =>
-          a.id === quickAccount.id ? { ...a, balance: newBalance } : a,
+          a.id === quickAccount.id ? { ...a, ...update } : a,
         ),
       );
       setQuickAccount(null);
@@ -758,7 +789,7 @@ export function FinanceAccounts() {
             {" · "}
             <span className="text-xs">{accounts.length} счетов</span>
             {" · "}
-            <span className="text-[10px]">USDT/RUB: {usdtRate.toFixed(2)}</span>
+            <span className="text-[10px]">{getDisplayCurrency()} — {usdtRate.toFixed(2)} ₽</span>
           </p>
         </div>
         <div className="flex gap-2">
@@ -833,12 +864,36 @@ export function FinanceAccounts() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-xl font-bold tabular-nums">
-                  {account.balance.toLocaleString()}{" "}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    {account.currency}
-                  </span>
-                </p>
+                <div>
+                  {account.type === "crypto" && account.cryptoCoin && account.cryptoAmount != null ? (
+                    <>
+                      {(() => {
+                        const rates = getCachedRates();
+                        const dynamicBalance = rates
+                          ? convert(account.cryptoAmount, account.cryptoCoin, account.currency, rates)
+                          : account.balance;
+                        return (
+                          <p className="text-xl font-bold tabular-nums">
+                            {dynamicBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                            <span className="text-sm font-normal text-muted-foreground">
+                              {account.currency}
+                            </span>
+                          </p>
+                        );
+                      })()}
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {account.cryptoAmount.toLocaleString(undefined, { maximumFractionDigits: 6 })} {account.cryptoCoin}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xl font-bold tabular-nums">
+                      {account.balance.toLocaleString()}{" "}
+                      <span className="text-sm font-normal text-muted-foreground">
+                        {account.currency}
+                      </span>
+                    </p>
+                  )}
+                </div>
 
                 <div className="min-h-[1.25rem]">
                   {account.type === "card" && account.cardType && (
@@ -1077,91 +1132,120 @@ export function FinanceAccounts() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-3">
               <span
                 className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-md text-xs",
+                  "flex h-8 w-8 items-center justify-center rounded-xl text-sm shadow-sm",
                   TYPE_CONFIG[formType]?.color,
+                  formType === "cash" && "bg-emerald-500/10 text-emerald-600",
+                  formType === "card" && "bg-blue-500/10 text-blue-600",
+                  formType === "crypto" && "bg-amber-500/10 text-amber-600",
+                  formType === "investment" && "bg-violet-500/10 text-violet-600",
+                  formType === "savings" && "bg-cyan-500/10 text-cyan-600",
+                  formType === "deposit" && "bg-rose-500/10 text-rose-600",
                 )}
               >
                 {(() => {
                   const Icon = TYPE_CONFIG[formType]?.icon || Wallet;
-                  return <Icon className="h-3.5 w-3.5" />;
+                  return <Icon className="h-4 w-4" />;
                 })()}
               </span>
-              {dialogTitle}
+              <div>
+                <p className="text-base">{dialogTitle}</p>
+                <p className="text-xs text-muted-foreground font-normal">
+                  {formType === "cash" && "Наличные средства"}
+                  {formType === "card" && "Банковская карта"}
+                  {formType === "crypto" && "Криптовалютный кошелёк"}
+                  {formType === "investment" && "Инвестиционный счёт"}
+                  {formType === "savings" && "Сберегательный счёт"}
+                  {formType === "deposit" && "Депозит / Вклад"}
+                </p>
+              </div>
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
-            <div className="grid grid-cols-[1fr_auto] gap-3">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+            {/* Type selector as horizontal cards */}
+            <div className="flex gap-1.5 flex-wrap">
+              {(Object.entries(TYPE_CONFIG) as [AccountType, (typeof TYPE_CONFIG)[AccountType]][]).map(([key, cfg]) => {
+                const IconEl = cfg.icon;
+                const isActive = formType === key;
+                return (
+                  <button
+                    key={key}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200",
+                      isActive
+                        ? "border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
+                        : "border-input hover:bg-accent hover:border-muted-foreground/20 text-muted-foreground",
+                    )}
+                    onClick={() => setFormType(key)}
+                  >
+                    <IconEl className="h-3.5 w-3.5" />
+                    {cfg.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Основное */}
+            <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3">
+              <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Wallet className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                  Основное
+                </span>
+              </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Название</Label>
+                <Label className="text-xs font-medium">Название счёта</Label>
                 <Input
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="Например: Т-Банк"
+                  className="h-9"
                 />
-              </div>
-              <div className="space-y-1.5 w-[130px]">
-                <Label className="text-xs">Тип</Label>
-                <Select
-                  value={formType}
-                  onValueChange={(v) => v && setFormType(v as AccountType)}
-                >
-                  <SelectTrigger>
-                    <SelectValue>
-                      {TYPE_CONFIG[formType]?.label || formType}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(
-                      Object.entries(TYPE_CONFIG) as [
-                        AccountType,
-                        (typeof TYPE_CONFIG)[AccountType],
-                      ][]
-                    ).map(([key, cfg]) => (
-                      <SelectItem key={key} value={key}>
-                        <cfg.icon className="h-3.5 w-3.5" />
-                        {cfg.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 
             {formType === "card" && (
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Тип карты</Label>
-                  <div className="flex gap-2">
-                    {CARD_TYPES.map((ct) => (
-                      <button
-                        key={ct.value}
-                        className={cn(
-                          "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors",
-                          formCardType === ct.value
-                            ? "border-blue-500 bg-blue-500/10 text-blue-600"
-                            : "border-input hover:bg-muted",
-                        )}
-                        onClick={() => setFormCardType(ct.value)}
-                      >
-                        {ct.label}
-                      </button>
-                    ))}
+              <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-500/10 text-blue-600">
+                    <CreditCard className="h-3.5 w-3.5" />
                   </div>
+                  <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                    Карта
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {CARD_TYPES.map((ct) => (
+                    <button
+                      key={ct.value}
+                      className={cn(
+                        "flex-1 rounded-lg border px-3 py-2.5 text-xs font-medium transition-all duration-200",
+                        formCardType === ct.value
+                          ? "border-blue-500 bg-blue-500/10 text-blue-600 shadow-sm ring-1 ring-blue-500/20"
+                          : "border-input hover:bg-accent hover:border-muted-foreground/20",
+                      )}
+                      onClick={() => setFormCardType(ct.value)}
+                    >
+                      {ct.label}
+                    </button>
+                  ))}
                 </div>
                 {formCardType === "credit" && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Грейс-период (дней)</Label>
+                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <Label className="text-xs font-medium">Грейс-период (дней)</Label>
                     <Input
                       type="number"
                       value={formGracePeriod}
                       onChange={(e) => setFormGracePeriod(e.target.value)}
                       placeholder="120"
+                      className="h-9"
                     />
                   </div>
                 )}
@@ -1169,14 +1253,22 @@ export function FinanceAccounts() {
             )}
 
             {formType === "crypto" && (
-              <>
+              <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500/10 text-amber-600">
+                    <Coins className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                    Кошелёк
+                  </span>
+                </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Монета</Label>
+                  <Label className="text-xs font-medium">Монета</Label>
                   <Select
                     value={formCryptoCoin}
                     onValueChange={(v) => v && setFormCryptoCoin(v)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1188,138 +1280,161 @@ export function FinanceAccounts() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Название кошелька</Label>
-                  <Input
-                    value={formWalletName}
-                    onChange={(e) => setFormWalletName(e.target.value)}
-                    placeholder="MetaMask, Ledger..."
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Название кошелька</Label>
+                    <Input
+                      value={formWalletName}
+                      onChange={(e) => setFormWalletName(e.target.value)}
+                      placeholder="MetaMask..."
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Адрес кошелька</Label>
+                    <Input
+                      value={formWalletAddress}
+                      onChange={(e) => setFormWalletAddress(e.target.value)}
+                      placeholder="0x..."
+                      className="h-9 font-mono text-xs"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Адрес кошелька</Label>
-                  <Input
-                    value={formWalletAddress}
-                    onChange={(e) => setFormWalletAddress(e.target.value)}
-                    placeholder="0x..."
-                    className="font-mono text-xs"
-                  />
-                </div>
-              </>
+              </div>
             )}
 
             {(formType === "deposit" || formType === "savings") && (
-              <>
+              <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-500/10 text-rose-600">
+                    <Percent className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                    Условия
+                  </span>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Ставка % годовых</Label>
+                    <Label className="text-xs font-medium">Ставка % годовых</Label>
                     <Input
                       type="number"
                       value={formInterestRate}
                       onChange={(e) => setFormInterestRate(e.target.value)}
                       placeholder="8"
                       step="0.1"
+                      className="h-9"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Срок (мес.)</Label>
+                    <Label className="text-xs font-medium">Срок (мес.)</Label>
                     <Input
                       type="number"
                       value={formTermMonths}
                       onChange={(e) => setFormTermMonths(e.target.value)}
                       placeholder="12"
+                      className="h-9"
                     />
                   </div>
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formCapitalize}
-                    onChange={(e) => setFormCapitalize(e.target.checked)}
-                    className="rounded border-gray-300"
-                  />
-                  <span className="text-xs font-medium">
-                    Капитализация процентов
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    (сложный процент)
-                  </span>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className={cn(
+                    "flex h-5 w-5 items-center justify-center rounded border border-input transition-colors",
+                    formCapitalize ? "bg-primary border-primary" : "group-hover:border-muted-foreground/40",
+                  )}>
+                    {formCapitalize && <Check className="h-3 w-3 text-primary-foreground" />}
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium">Капитализация процентов</p>
+                    <p className="text-[10px] text-muted-foreground">Сложный процент</p>
+                  </div>
                 </label>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Дата открытия</Label>
+                  <Label className="text-xs font-medium">Дата открытия</Label>
                   <Input
                     type="date"
                     value={formStartDate}
                     onChange={(e) => setFormStartDate(e.target.value)}
+                    className="h-9"
                   />
                 </div>
                 {projectedBalance && (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-500/5 p-3 space-y-1.5">
-                    <p className="text-xs font-medium text-emerald-700 flex items-center gap-1.5">
-                      <Percent className="h-3 w-3" />
+                  <div className="rounded-lg border border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/20 p-4 space-y-2">
+                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                      <TrendingUp className="h-3.5 w-3.5" />
                       Прогноз доходности
                     </p>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Начальная сумма
-                      </span>
-                      <span>{parseFloat(formBalance).toLocaleString()} ₽</span>
+                      <span className="text-muted-foreground">Начальная сумма</span>
+                      <span className="tabular-nums">{parseFloat(formBalance).toLocaleString()} ₽</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Проценты за срок
-                      </span>
-                      <span className="text-emerald-600 font-medium">
+                      <span className="text-muted-foreground">Проценты за срок</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">
                         +{projectedBalance.earned.toLocaleString()} ₽
                       </span>
                     </div>
-                    <div className="flex justify-between text-sm font-semibold pt-1 border-t border-emerald-200">
+                    <Separator className="bg-emerald-200/50 dark:bg-emerald-900/50" />
+                    <div className="flex justify-between text-sm font-semibold tabular-nums">
                       <span>Итоговая сумма</span>
-                      <span>
-                        {projectedBalance.projected.toLocaleString()} ₽
-                      </span>
+                      <span className="text-emerald-700 dark:text-emerald-300">{projectedBalance.projected.toLocaleString()} ₽</span>
                     </div>
                   </div>
                 )}
-              </>
+              </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Баланс</Label>
-                <Input
-                  type="number"
-                  value={formBalance}
-                  onChange={(e) => setFormBalance(e.target.value)}
-                  placeholder="0"
-                />
+            {/* Баланс и валюта */}
+            <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3">
+              <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600">
+                  <DollarSign className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                  Баланс и валюта
+                </span>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Валюта</Label>
-                <CurrencySelect
-                  value={formCurrency}
-                  onChange={setFormCurrency}
-                />
+              <div className="grid grid-cols-5 gap-3">
+                <div className="col-span-3 space-y-1.5">
+                  <Label className="text-xs font-medium">Сумма</Label>
+                  <Input
+                    type="number"
+                    value={formBalance}
+                    onChange={(e) => setFormBalance(e.target.value)}
+                    placeholder="0"
+                    className="h-9 text-base font-semibold tabular-nums"
+                  />
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <Label className="text-xs font-medium">Валюта</Label>
+                  <CurrencySelect
+                    value={formCurrency}
+                    onChange={setFormCurrency}
+                  />
+                </div>
               </div>
             </div>
 
-            {formType !== "deposit" && formType !== "crypto" && (
-              <div className="space-y-1.5">
-                <Label className="text-xs flex items-center gap-1.5">
-                  <FileText className="h-3 w-3" />
-                  Комментарий
-                </Label>
-                <Textarea
-                  value={formNotes}
-                  onChange={(e) => setFormNotes(e.target.value)}
-                  placeholder="Заметки по счёту..."
-                  rows={2}
-                />
+            {/* Заметки (для всех, кроме депозитов) */}
+            <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3">
+              <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted-foreground/10 text-muted-foreground">
+                  <FileText className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                  Заметки
+                </span>
               </div>
-            )}
+              <Textarea
+                value={formNotes}
+                onChange={(e) => setFormNotes(e.target.value)}
+                placeholder="Дополнительная информация по счёту..."
+                rows={2}
+                className="resize-none"
+              />
+            </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -1335,6 +1450,7 @@ export function FinanceAccounts() {
               size="sm"
               onClick={handleSave}
               disabled={saving || !formName.trim() || !formBalance.trim()}
+              className="min-w-[100px]"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               {editId ? "Сохранить" : "Создать"}

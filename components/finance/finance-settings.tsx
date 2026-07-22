@@ -437,116 +437,22 @@ const ICON_OPTIONS = ICON_GROUPS.flatMap((g) => g.items);
 
 
 
-const FIAT_CURRENCIES = CURRENCIES.filter((c) => c.type === "fiat");
+const ALLOWED_CURRENCIES = CURRENCIES.filter((c) =>
+  ["RUB","USD","EUR","CNY","UAH","KZT","BYN","AMD","AED","TRY","PLN",
+   "USDT","USDC","BTC","SOL","TON","ETH","BNB","TRX"].includes(c.code)
+);
 
 const CURRENCY_ORDER = [
-  "RUB",
-  "USD",
-  "EUR",
-  "CNY",
-  "GBP",
-  "JPY",
-  "KZT",
-  "BYN",
-  "UAH",
-  "TRY",
-  "AED",
-  "THB",
-  "CHF",
-  "KRW",
-  "INR",
-  "AUD",
-  "CAD",
-  "SGD",
-  "HKD",
-  "NZD",
-  "PLN",
-  "CZK",
-  "HUF",
-  "RON",
-  "BGN",
-  "RSD",
-  "MDL",
-  "SEK",
-  "NOK",
-  "DKK",
-  "ISK",
-  "AMD",
-  "GEL",
-  "AZN",
-  "KGS",
-  "TJS",
-  "UZS",
-  "TMT",
-  "MNT",
-  "ILS",
-  "SAR",
-  "EGP",
-  "VND",
-  "IDR",
-  "MXN",
-  "BRL",
-  "ZAR",
-  "NGN",
-  "ARS",
-  "CLP",
-  "COP",
-  "PEN",
+  "RUB", "USD", "EUR", "CNY", "UAH", "KZT", "BYN", "AMD", "AED", "TRY", "PLN",
+  "USDT", "USDC", "BTC", "SOL", "TON", "ETH", "BNB", "TRX",
 ];
 
 const COUNTRY_FLAGS: Record<string, string> = {
-  RUB: "🇷🇺",
-  USD: "🇺🇸",
-  EUR: "🇪🇺",
-  CNY: "🇨🇳",
-  GBP: "🇬🇧",
-  JPY: "🇯🇵",
-  KZT: "🇰🇿",
-  BYN: "🇧🇾",
-  UAH: "🇺🇦",
-  AMD: "🇦🇲",
-  GEL: "🇬🇪",
-  AZN: "🇦🇿",
-  KGS: "🇰🇬",
-  TJS: "🇹🇯",
-  TRY: "🇹🇷",
-  AED: "🇦🇪",
-  THB: "🇹🇭",
-  VND: "🇻🇳",
-  IDR: "🇮🇩",
-  KRW: "🇰🇷",
-  INR: "🇮🇳",
-  BRL: "🇧🇷",
-  MXN: "🇲🇽",
-  ZAR: "🇿🇦",
-  CHF: "🇨🇭",
-  SEK: "🇸🇪",
-  NOK: "🇳🇴",
-  DKK: "🇩🇰",
-  PLN: "🇵🇱",
-  CZK: "🇨🇿",
-  HUF: "🇭🇺",
-  RON: "🇷🇴",
-  BGN: "🇧🇬",
-  ISK: "🇮🇸",
-  RSD: "🇷🇸",
-  MDL: "🇲🇩",
-  UZS: "🇺🇿",
-  TMT: "🇹🇲",
-  MNT: "🇲🇳",
-  ILS: "🇮🇱",
-  SAR: "🇸🇦",
-  EGP: "🇪🇬",
-  NGN: "🇳🇬",
-  ARS: "🇦🇷",
-  CLP: "🇨🇱",
-  COP: "🇨🇴",
-  PEN: "🇵🇪",
-  AUD: "🇦🇺",
-  CAD: "🇨🇦",
-  SGD: "🇸🇬",
-  HKD: "🇭🇰",
-  NZD: "🇳🇿",
+  RUB: "🇷🇺", USD: "🇺🇸", EUR: "🇪🇺", CNY: "🇨🇳",
+  UAH: "🇺🇦", KZT: "🇰🇿", BYN: "🇧🇾", AMD: "🇦🇲",
+  AED: "🇦🇪", TRY: "🇹🇷", PLN: "🇵🇱",
+  USDT: "💎", USDC: "💎", BTC: "₿", SOL: "◎",
+  TON: "💎", ETH: "⟠", BNB: "🔶", TRX: "⚡",
 };
 
 function CurrencyPickerDialog({
@@ -563,7 +469,7 @@ function CurrencyPickerDialog({
   const [search, setSearch] = useState("");
   const sorted = useMemo(() => {
     const orderMap = new Map(CURRENCY_ORDER.map((code, i) => [code, i]));
-    return FIAT_CURRENCIES.filter(
+    return ALLOWED_CURRENCIES.filter(
       (c) =>
         !search ||
         c.code.toLowerCase().includes(search.toLowerCase()) ||
@@ -578,7 +484,16 @@ function CurrencyPickerDialog({
     });
   }, [search]);
 
-  const renderCurrency = (c: (typeof FIAT_CURRENCIES)[number]) => {
+  const grouped = useMemo(() => {
+    const groups: { label: string; items: typeof sorted }[] = [];
+    const fiat = sorted.filter((c) => c.type === "fiat");
+    const crypto = sorted.filter((c) => c.type === "crypto");
+    if (fiat.length) groups.push({ label: "Фиат", items: fiat });
+    if (crypto.length) groups.push({ label: "Криптовалюта", items: crypto });
+    return groups;
+  }, [sorted]);
+
+  const renderCurrency = (c: (typeof ALLOWED_CURRENCIES)[number]) => {
     const isSelected = value === c.code;
     return (
       <button
@@ -628,12 +543,22 @@ function CurrencyPickerDialog({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[520px] overflow-y-auto pr-1">
-          {sorted.map(renderCurrency)}
-          {sorted.length === 0 && (
-            <p className="text-sm text-muted-foreground col-span-full text-center py-4">
+        <div className="max-h-[520px] overflow-y-auto pr-1 space-y-4">
+          {grouped.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
               Ничего не найдено
             </p>
+          ) : (
+            grouped.map((group) => (
+              <div key={group.label}>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  {group.label}
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {group.items.map(renderCurrency)}
+                </div>
+              </div>
+            ))
           )}
         </div>
       </DialogContent>
@@ -1111,34 +1036,38 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
     <div className="space-y-4">
       {/* Основные настройки */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Globe className="h-4 w-4" />
-            Основные настройки
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-            <label className="text-sm font-medium sm:w-36">Валюта</label>
-            <button
-              className="flex items-center gap-3 rounded-xl border-2 border-input bg-background px-4 py-2.5 w-full sm:w-auto min-w-[200px] text-left transition-all hover:bg-muted/50 hover:border-muted-foreground/30"
-              onClick={() => setShowCurrencyDialog(true)}
-            >
-              <span className="text-xl leading-none">
-                {COUNTRY_FLAGS[currency] || "🏳️"}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-sm">{currency}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {FIAT_CURRENCIES.find((c) => c.code === currency)?.symbol}
-                  </span>
-                </div>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 shrink-0">
+                <Globe className="h-5 w-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Основные настройки</p>
                 <p className="text-[11px] text-muted-foreground truncate">
-                  {FIAT_CURRENCIES.find((c) => c.code === currency)?.label}
+                  Валюта по умолчанию
                 </p>
               </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+            </div>
+            <button
+              className="flex items-center gap-2.5 rounded-xl border border-input bg-background px-3.5 py-2 text-left transition-all hover:bg-muted/50 hover:border-muted-foreground/30 shrink-0"
+              onClick={() => setShowCurrencyDialog(true)}
+            >
+              <span className="text-lg leading-none">
+                {COUNTRY_FLAGS[currency] || "🏳️"}
+              </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-xs">{currency}</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {ALLOWED_CURRENCIES.find((c) => c.code === currency)?.symbol}
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground/70 truncate max-w-[120px]">
+                  {ALLOWED_CURRENCIES.find((c) => c.code === currency)?.label}
+                </p>
+              </div>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             </button>
           </div>
         </CardContent>
