@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { CATEGORY_GROUPS, getCategoryGroup } from "@/lib/finance-category-groups";
+import {
+  CATEGORY_GROUPS,
+  getCategoryGroup,
+} from "@/lib/finance-category-groups";
 import {
   Settings,
   Palette,
@@ -108,6 +111,10 @@ import {
   Archive,
   BarChart3,
   ChevronRight,
+  Hash,
+  Copy,
+  UserPlus,
+  Users,
 } from "lucide-react";
 import type {
   TransactionCategory,
@@ -434,25 +441,72 @@ const ICON_GROUPS: {
 
 const ICON_OPTIONS = ICON_GROUPS.flatMap((g) => g.items);
 
-
-
-
 const ALLOWED_CURRENCIES = CURRENCIES.filter((c) =>
-  ["RUB","USD","EUR","CNY","UAH","KZT","BYN","AMD","AED","TRY","PLN",
-   "USDT","USDC","BTC","SOL","TON","ETH","BNB","TRX"].includes(c.code)
+  [
+    "RUB",
+    "USD",
+    "EUR",
+    "CNY",
+    "UAH",
+    "KZT",
+    "BYN",
+    "AMD",
+    "AED",
+    "TRY",
+    "PLN",
+    "USDT",
+    "USDC",
+    "BTC",
+    "SOL",
+    "TON",
+    "ETH",
+    "BNB",
+    "TRX",
+  ].includes(c.code),
 );
 
 const CURRENCY_ORDER = [
-  "RUB", "USD", "EUR", "CNY", "UAH", "KZT", "BYN", "AMD", "AED", "TRY", "PLN",
-  "USDT", "USDC", "BTC", "SOL", "TON", "ETH", "BNB", "TRX",
+  "RUB",
+  "USD",
+  "EUR",
+  "CNY",
+  "UAH",
+  "KZT",
+  "BYN",
+  "AMD",
+  "AED",
+  "TRY",
+  "PLN",
+  "USDT",
+  "USDC",
+  "BTC",
+  "SOL",
+  "TON",
+  "ETH",
+  "BNB",
+  "TRX",
 ];
 
 const COUNTRY_FLAGS: Record<string, string> = {
-  RUB: "🇷🇺", USD: "🇺🇸", EUR: "🇪🇺", CNY: "🇨🇳",
-  UAH: "🇺🇦", KZT: "🇰🇿", BYN: "🇧🇾", AMD: "🇦🇲",
-  AED: "🇦🇪", TRY: "🇹🇷", PLN: "🇵🇱",
-  USDT: "💎", USDC: "💎", BTC: "₿", SOL: "◎",
-  TON: "💎", ETH: "⟠", BNB: "🔶", TRX: "⚡",
+  RUB: "🇷🇺",
+  USD: "🇺🇸",
+  EUR: "🇪🇺",
+  CNY: "🇨🇳",
+  UAH: "🇺🇦",
+  KZT: "🇰🇿",
+  BYN: "🇧🇾",
+  AMD: "🇦🇲",
+  AED: "🇦🇪",
+  TRY: "🇹🇷",
+  PLN: "🇵🇱",
+  USDT: "💎",
+  USDC: "💎",
+  BTC: "₿",
+  SOL: "◎",
+  TON: "💎",
+  ETH: "⟠",
+  BNB: "🔶",
+  TRX: "⚡",
 };
 
 function CurrencyPickerDialog({
@@ -708,6 +762,8 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
   const [showDialog, setShowDialog] = useState(false);
   const [showHideDialog, setShowHideDialog] = useState(false);
   const [showCurrencyDialog, setShowCurrencyDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [shareUserId, setShareUserId] = useState("");
   const [editingCat, setEditingCat] = useState<TransactionCategory | null>(
     null,
   );
@@ -1060,7 +1116,10 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-xs">{currency}</span>
                   <span className="text-[10px] text-muted-foreground">
-                    {ALLOWED_CURRENCIES.find((c) => c.code === currency)?.symbol}
+                    {
+                      ALLOWED_CURRENCIES.find((c) => c.code === currency)
+                        ?.symbol
+                    }
                   </span>
                 </div>
                 <p className="text-[10px] text-muted-foreground/70 truncate max-w-[120px]">

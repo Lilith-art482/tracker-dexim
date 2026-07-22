@@ -28,11 +28,15 @@ import {
   BookOpen,
   Newspaper,
   Dumbbell,
+  Hash,
+  Copy,
+  UserPlus,
+  Users,
 } from "lucide-react";
 import { useMode } from "@/lib/mode-context";
 import { cn } from "@/lib/utils";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
@@ -40,6 +44,13 @@ import { useAudio } from "@/lib/audio-context";
 import AudioModal from "@/components/audio-modal";
 import AiChat from "@/components/ai-chat";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Popover,
   PopoverContent,
@@ -144,9 +155,19 @@ export function HeaderActions() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [language, setLanguage] = useState("ru");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [uid, setUid] = useState<string | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareUserId, setShareUserId] = useState("");
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchTab, setSearchTab] = useState<"all" | "pages" | "faq">("all");
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUid(user?.uid || null);
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -407,6 +428,41 @@ export function HeaderActions() {
           </div>
 
           <div className="p-3 space-y-3 max-h-[65vh] overflow-y-auto">
+            {/* Мой ID */}
+            {uid && (
+              <div className="rounded-xl bg-muted/20 border border-border/40 p-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/10">
+                      <Hash className="h-3.5 w-3.5 text-violet-600" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
+                        Мой ID
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/40">
+                        Для совместного доступа
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <code className="text-[11px] font-mono font-medium text-muted-foreground bg-background/60 px-2 py-1 rounded-md border tabular-nums tracking-tight select-all">
+                      {uid.slice(0, 6)}…{uid.slice(-4)}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(uid);
+                        toast.success("ID скопирован");
+                      }}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 transition-all"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Language card */}
             <div className="rounded-xl bg-muted/20 border border-border/40 p-3.5">
               <div className="flex items-center gap-2 mb-3">
@@ -643,6 +699,16 @@ export function HeaderActions() {
                   <span>Контакты</span>
                 </Link>
               </div>
+
+              {uid && (
+                <button
+                  onClick={() => setShareDialogOpen(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border/40 py-2.5 text-xs font-medium text-muted-foreground/60 hover:text-foreground hover:border-border/60 hover:bg-muted/30 transition-all"
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Совместный доступ
+                </button>
+              )}
             </div>
 
             {/* Logout */}
@@ -674,6 +740,64 @@ export function HeaderActions() {
         open={audioModalOpen}
         onClose={() => setAudioModalOpen(false)}
       />
+
+      {/* Совместный доступ */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              Совместный доступ
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-xl bg-muted/30 p-4 space-y-2">
+              <p className="text-sm font-medium">Добавить пользователя</p>
+              <p className="text-xs text-muted-foreground">
+                Введите ID пользователя, которому хотите предоставить доступ к
+                вашим данным.
+              </p>
+              <div className="rounded-lg bg-background border border-border/50 px-3 py-2 text-[11px] text-muted-foreground/60 leading-relaxed">
+                <p>
+                  <strong className="text-foreground/80">Где найти ID?</strong>{" "}
+                  Настройки →{" "}
+                  <Hash className="h-2.5 w-2.5 inline-block align-middle" /> Мой
+                  ID
+                </p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground/80">
+                ID пользователя
+              </label>
+              <Input
+                value={shareUserId}
+                onChange={(e) => setShareUserId(e.target.value)}
+                placeholder="Вставьте ID..."
+                className="h-9 font-mono text-xs"
+              />
+            </div>
+            <Button
+              className="w-full"
+              disabled={shareUserId.trim().length < 10}
+              onClick={() => {
+                toast.success(
+                  "Функция будет доступна в одном из следующих обновлений",
+                );
+                setShareDialogOpen(false);
+                setShareUserId("");
+              }}
+            >
+              <UserPlus className="h-4 w-4 mr-1.5" />
+              Предоставить доступ
+            </Button>
+            <p className="text-[10px] text-muted-foreground/40 text-center">
+              Совместный доступ к бюджету, привычкам и задачам появится в
+              ближайших обновлениях
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

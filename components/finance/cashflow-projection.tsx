@@ -4,10 +4,7 @@ import { useMemo } from "react";
 import { TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type {
-  FinanceAccount,
-  RecurringTransaction,
-} from "@/lib/finance-types";
+import type { FinanceAccount, RecurringTransaction } from "@/lib/finance-types";
 
 interface CashflowProjectionProps {
   accounts: FinanceAccount[];
@@ -91,10 +88,7 @@ export function CashflowProjection({
   const zeroY = yForVal(0);
 
   const pointsStr = dataPoints
-    .map(
-      (d, i) =>
-        `${CHART_LEFT + (i / 29) * CHART_W},${yForVal(d.balance)}`,
-    )
+    .map((d, i) => `${CHART_LEFT + (i / 29) * CHART_W},${yForVal(d.balance)}`)
     .join(" ");
 
   const areaPath = `${pointsStr} L${CHART_LEFT + CHART_W},${zeroY} L${CHART_LEFT},${zeroY}`;
@@ -172,29 +166,45 @@ export function CashflowProjection({
             {xLabels.map((day) => {
               const x = CHART_LEFT + ((day - 1) / 29) * CHART_W;
               return (
-                  <text
-                    key={day}
-                    x={x}
-                    y={CHART_BOTTOM + 11}
-                    textAnchor="middle"
-                    className="fill-muted-foreground"
-                    fontSize="9"
-                  >
-                    {day}
-                  </text>
+                <text
+                  key={day}
+                  x={x}
+                  y={CHART_BOTTOM + 11}
+                  textAnchor="middle"
+                  className="fill-muted-foreground"
+                  fontSize="9"
+                >
+                  {day}
+                </text>
               );
             })}
           </svg>
         </div>
 
         <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground mt-1">
-          <span>Старт: <span className="font-medium text-foreground">{Math.round(startingBalance).toLocaleString()} ₽</span></span>
-          <span>Через 30 дн.:{" "}
-            <span className={cn("font-medium", endingBalance >= 0 ? "text-emerald-600" : "text-rose-600")}>
+          <span>
+            Старт:{" "}
+            <span className="font-medium text-foreground">
+              {Math.round(startingBalance).toLocaleString()} ₽
+            </span>
+          </span>
+          <span>
+            Через 30 дн.:{" "}
+            <span
+              className={cn(
+                "font-medium",
+                endingBalance >= 0 ? "text-emerald-600" : "text-rose-600",
+              )}
+            >
               {Math.round(endingBalance).toLocaleString()} ₽
             </span>
           </span>
-          <span>Мин.: <span className="font-medium text-foreground">{Math.round(minBalance).toLocaleString()} ₽</span></span>
+          <span>
+            Мин.:{" "}
+            <span className="font-medium text-foreground">
+              {Math.round(minBalance).toLocaleString()} ₽
+            </span>
+          </span>
         </div>
       </CardContent>
     </Card>

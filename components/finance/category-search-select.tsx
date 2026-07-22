@@ -2,9 +2,16 @@
 
 import { Search, Check, ChevronsUpDown, type LucideIcon } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
-import { CATEGORY_GROUPS, getCategoryGroup } from "@/lib/finance-category-groups";
+import {
+  CATEGORY_GROUPS,
+  getCategoryGroup,
+} from "@/lib/finance-category-groups";
 import type { TransactionCategory, TransactionType } from "@/lib/finance-types";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { getFinanceIcon } from "@/lib/finance-icons";
 import { cn } from "@/lib/utils";
@@ -21,7 +28,12 @@ type Props = {
   onChange: (value: string) => void;
 };
 
-export function CategorySearchSelect({ categories, type, value, onChange }: Props) {
+export function CategorySearchSelect({
+  categories,
+  type,
+  value,
+  onChange,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -34,13 +46,14 @@ export function CategorySearchSelect({ categories, type, value, onChange }: Prop
     const filteredByType = categories.filter((c) => c.type === type);
     if (!search.trim()) return filteredByType;
     const q = search.toLowerCase();
-    return filteredByType.filter((c) =>
-      c.name.toLowerCase().includes(q),
-    );
+    return filteredByType.filter((c) => c.name.toLowerCase().includes(q));
   }, [categories, type, search]);
 
   const grouped = useMemo(() => {
-    const map = new Map<string, { group: typeof CATEGORY_GROUPS[0]; cats: TransactionCategory[] }>();
+    const map = new Map<
+      string,
+      { group: (typeof CATEGORY_GROUPS)[0]; cats: TransactionCategory[] }
+    >();
     for (const cat of filtered) {
       const g = getCategoryGroup(cat.name, cat.type);
       if (!map.has(g.id)) {
@@ -49,7 +62,8 @@ export function CategorySearchSelect({ categories, type, value, onChange }: Prop
       map.get(g.id)!.cats.push(cat);
     }
     return Array.from(map.values()).sort(
-      (a, b) => CATEGORY_GROUPS.indexOf(a.group) - CATEGORY_GROUPS.indexOf(b.group),
+      (a, b) =>
+        CATEGORY_GROUPS.indexOf(a.group) - CATEGORY_GROUPS.indexOf(b.group),
     );
   }, [filtered]);
 
@@ -99,9 +113,7 @@ export function CategorySearchSelect({ categories, type, value, onChange }: Prop
           ) : (
             grouped.map(({ group, cats }) => (
               <div key={group.id}>
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider"
-                >
+                <div className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                   <div
                     className="h-1.5 w-1.5 rounded-full shrink-0"
                     style={{ backgroundColor: group.accent }}

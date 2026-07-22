@@ -41,7 +41,13 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { getUSDTtoRUB, convertToRUB, getDisplayCurrency, getCachedRates, convert } from "@/lib/exchange-rates";
+import {
+  getUSDTtoRUB,
+  convertToRUB,
+  getDisplayCurrency,
+  getCachedRates,
+  convert,
+} from "@/lib/exchange-rates";
 import { syncRecurringTransactions } from "@/lib/finance-recurring-sync";
 
 const CATEGORY_COLORS_HEX: Record<string, string> = {
@@ -1139,7 +1145,6 @@ export function FinanceDashboard() {
             </CardContent>
           </Card>
         </div>
-
       </div>
 
       <div className="lg:w-[340px] shrink-0">
