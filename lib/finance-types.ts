@@ -15,6 +15,9 @@ export interface FinanceAccount {
   cryptoAmount?: number;
   walletName?: string;
   walletAddress?: string;
+  url?: string;
+  sortOrder?: number;
+  priority?: "high" | "medium" | "low";
   interestRate?: number;
   termMonths?: number;
   startDate?: string;

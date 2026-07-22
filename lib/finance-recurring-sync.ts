@@ -1,5 +1,9 @@
 import { auth } from "./firebase";
-import { getRecurringTransactionsByUser, updateRecurringTransaction, createTransaction } from "./finance-client";
+import {
+  getRecurringTransactionsByUser,
+  updateRecurringTransaction,
+  createTransaction,
+} from "./finance-client";
 import type { RecurringTransaction } from "./finance-types";
 
 function lastDayOfMonth(year: number, month: number): number {
@@ -29,11 +33,15 @@ function computeNextDate(rt: RecurringTransaction): string | null {
       const nextMonth = currentMonth + 1;
       const nextYear = nextMonth > 11 ? currentYear + 1 : currentYear;
       const nextMaxDay = lastDayOfMonth(nextYear, (nextMonth % 12) + 1);
-      candidate = new Date(Date.UTC(nextYear, nextMonth % 12, Math.min(rt.dayOfMonth, nextMaxDay)));
+      candidate = new Date(
+        Date.UTC(nextYear, nextMonth % 12, Math.min(rt.dayOfMonth, nextMaxDay)),
+      );
     }
   } else if (rt.interval === "weekly") {
     const diff = (rt.dayOfMonth - today.getUTCDay() + 7) % 7;
-    candidate = new Date(Date.UTC(currentYear, currentMonth, currentDay + diff));
+    candidate = new Date(
+      Date.UTC(currentYear, currentMonth, currentDay + diff),
+    );
     if (candidate < start) {
       candidate = new Date(candidate.getTime() + 7 * 86400000);
     }
@@ -43,7 +51,13 @@ function computeNextDate(rt: RecurringTransaction): string | null {
     const day = Math.min(rt.dayOfMonth, maxDay);
     candidate = new Date(Date.UTC(currentYear, month, day));
     if (candidate < start) {
-      candidate = new Date(Date.UTC(currentYear + 1, month, Math.min(rt.dayOfMonth, lastDayOfMonth(currentYear + 1, month + 1))));
+      candidate = new Date(
+        Date.UTC(
+          currentYear + 1,
+          month,
+          Math.min(rt.dayOfMonth, lastDayOfMonth(currentYear + 1, month + 1)),
+        ),
+      );
     }
   }
 
@@ -56,7 +70,9 @@ function isDue(rt: RecurringTransaction): boolean {
   const next = computeNextDate(rt);
   if (!next) return false;
   const today = new Date().toISOString().split("T")[0];
-  return next <= today && (!rt.lastGeneratedDate || rt.lastGeneratedDate < next);
+  return (
+    next <= today && (!rt.lastGeneratedDate || rt.lastGeneratedDate < next)
+  );
 }
 
 export async function syncRecurringTransactions(): Promise<number> {

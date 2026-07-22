@@ -19,7 +19,9 @@ async function fetchCBIRates(): Promise<Record<string, number>> {
   });
   const data = await res.json();
   const map: Record<string, number> = {};
-  for (const [code, info] of Object.entries(data.Valute as Record<string, { Value: number }>)) {
+  for (const [code, info] of Object.entries(
+    data.Valute as Record<string, { Value: number }>,
+  )) {
     map[code] = info.Value;
   }
   return map;
@@ -31,7 +33,7 @@ async function fetchCoinGeckoPrices(): Promise<Record<string, number>> {
     `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
     { signal: AbortSignal.timeout(5000) },
   );
-  const data = await res.json() as Record<string, { usd: number }>;
+  const data = (await res.json()) as Record<string, { usd: number }>;
   const map: Record<string, number> = {};
   for (const [symbol, id] of Object.entries(CRYPTO_COINGECKO_IDS)) {
     const price = data[id]?.usd;
@@ -99,11 +101,25 @@ export function getDisplayCurrency(): string {
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
-  RUB: "₽", USD: "$", EUR: "€", CNY: "¥",
-  UAH: "₴", KZT: "₸", BYN: "Br", AMD: "֏",
-  AED: "د.إ", TRY: "₺", PLN: "zł",
-  BTC: "₿", ETH: "⟠", SOL: "SOL", TON: "TON",
-  BNB: "BNB", TRX: "TRX", USDT: "₮", USDC: "₮",
+  RUB: "₽",
+  USD: "$",
+  EUR: "€",
+  CNY: "¥",
+  UAH: "₴",
+  KZT: "₸",
+  BYN: "Br",
+  AMD: "֏",
+  AED: "د.إ",
+  TRY: "₺",
+  PLN: "zł",
+  BTC: "₿",
+  ETH: "⟠",
+  SOL: "SOL",
+  TON: "TON",
+  BNB: "BNB",
+  TRX: "TRX",
+  USDT: "₮",
+  USDC: "₮",
 };
 
 export function getCurrencySymbol(code: string): string {
