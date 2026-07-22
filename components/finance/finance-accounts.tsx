@@ -436,13 +436,7 @@ export function FinanceAccounts() {
       if (formWalletAddress) body.walletAddress = formWalletAddress;
       const rates = getCachedRates();
       if (rates) {
-        if (editId) {
-          const existing = accounts.find((a) => a.id === editId);
-          const ca = existing?.cryptoAmount;
-          body.cryptoAmount = ca != null ? ca : computeCryptoAmount(balance, formCryptoCoin, formCurrency, rates);
-        } else {
-          body.cryptoAmount = computeCryptoAmount(balance, formCryptoCoin, formCurrency, rates);
-        }
+        body.cryptoAmount = computeCryptoAmount(balance, formCryptoCoin, formCurrency, rates);
       }
     }
     if (formType === "deposit" || formType === "savings") {
