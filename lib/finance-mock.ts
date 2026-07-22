@@ -49,6 +49,20 @@ export const mockFinanceAccounts: FinanceAccount[] = [
     createdAt: iso(new Date("2025-01-01")),
     updatedAt: iso(new Date("2025-01-01")),
   },
+  {
+    id: "fin-acc-4",
+    userId: "user-1",
+    name: "Солана кошелёк",
+    type: "crypto",
+    balance: 200,
+    currency: "USD",
+    cryptoCoin: "SOL",
+    cryptoAmount: 0.8,
+    walletName: "Phantom",
+    walletAddress: "0x...",
+    createdAt: iso(new Date("2025-01-01")),
+    updatedAt: iso(new Date("2025-01-01")),
+  },
 ];
 
 export const mockFinanceCategories: TransactionCategory[] = [
