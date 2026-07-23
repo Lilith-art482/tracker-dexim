@@ -41,6 +41,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getFinanceIcon } from "@/lib/finance-icons";
 import {
   getUSDTtoRUB,
   convertToRUB,
@@ -875,6 +876,11 @@ export function FinanceDashboard() {
                     .map((tx, i) => {
                       const cat = categoryMap.get(tx.categoryId);
                       const isIncome = tx.type === "income";
+                      const CatIcon = cat?.icon
+                        ? getFinanceIcon(cat.icon)
+                        : isIncome
+                          ? TrendingUp
+                          : TrendingDown;
                       return (
                         <div
                           key={tx.id}
@@ -886,24 +892,30 @@ export function FinanceDashboard() {
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div
                               className={cn(
-                                "flex h-8 w-8 items-center justify-center rounded-full shrink-0",
+                                "flex h-8 w-8 items-center justify-center rounded-lg shrink-0",
                                 isIncome
                                   ? "bg-emerald-500/10"
                                   : "bg-rose-500/10",
                               )}
                             >
-                              {isIncome ? (
-                                <TrendingUp className="h-4 w-4 text-emerald-500" />
-                              ) : (
-                                <TrendingDown className="h-4 w-4 text-rose-500" />
-                              )}
+                              <CatIcon
+                                className={cn(
+                                  "h-4 w-4",
+                                  isIncome
+                                    ? "text-emerald-500"
+                                    : "text-rose-500",
+                                )}
+                              />
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="font-medium truncate">
-                                {cat?.name || "Без категории"}
+                                {tx.description || cat?.name || "Без категории"}
                               </p>
                               <p className="text-[11px] text-muted-foreground truncate">
-                                {tx.description || formatDate(tx.date)}
+                                {cat?.name && tx.description
+                                  ? `${cat.name} · `
+                                  : ""}
+                                {formatDate(tx.date)}
                               </p>
                             </div>
                           </div>
