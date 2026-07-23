@@ -27,6 +27,7 @@ import {
   Gift,
   Timer,
   CalendarDays,
+  Copy,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -498,6 +499,17 @@ export default function ProfilePage() {
                       <span className="font-mono tracking-tighter">
                         {uid?.slice(0, 8)}…{uid?.slice(-4)}
                       </span>
+                      {uid && (
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(uid);
+                            toast.success("ID скопирован");
+                          }}
+                          className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/40 hover:text-foreground hover:bg-muted/50 transition-all"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <Badge
