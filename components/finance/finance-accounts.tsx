@@ -33,6 +33,7 @@ import {
   Flag,
   SlidersHorizontal,
   X,
+  Star,
 } from "lucide-react";
 import type {
   FinanceAccount,
@@ -41,6 +42,8 @@ import type {
 } from "@/lib/finance-types";
 import { CURRENCIES } from "@/lib/finance-types";
 import { auth } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -308,6 +311,9 @@ export function FinanceAccounts() {
   const [transferTo, setTransferTo] = useState("");
   const [transferAmount, setTransferAmount] = useState("");
   const [transferDescription, setTransferDescription] = useState("");
+
+  const [pinnedTransferFrom, setPinnedTransferFrom] = useState("");
+  const [pinnedTransferTo, setPinnedTransferTo] = useState("");
 
   const [quickAccount, setQuickAccount] = useState<FinanceAccount | null>(null);
   const [quickType, setQuickType] = useState<"add" | "withdraw">("add");
@@ -711,6 +717,29 @@ export function FinanceAccounts() {
     setTransferDescription("");
     setTransferOpen(true);
   }, []);
+
+  useEffect(() => {
+    if (!uid) return;
+    const ref = doc(db, "user_settings", uid);
+    getDoc(ref).then((snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      if (data.transferPinnedFrom)
+        setPinnedTransferFrom(data.transferPinnedFrom);
+      if (data.transferPinnedTo) setPinnedTransferTo(data.transferPinnedTo);
+    });
+  }, [uid]);
+
+  useEffect(() => {
+    if (!transferOpen) return;
+    const validIds = new Set(accounts.map((a) => a.id));
+    if (pinnedTransferFrom && validIds.has(pinnedTransferFrom)) {
+      setTransferFrom(pinnedTransferFrom);
+    }
+    if (pinnedTransferTo && validIds.has(pinnedTransferTo)) {
+      setTransferTo(pinnedTransferTo);
+    }
+  }, [transferOpen, pinnedTransferFrom, pinnedTransferTo, accounts]);
 
   const handleQuickAmount = useCallback(async () => {
     if (!quickAccount || !quickAmount) return;
@@ -1900,7 +1929,7 @@ export function FinanceAccounts() {
       </Dialog>
 
       <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
-        <DialogContent className="sm:max-w-lg overflow-hidden p-0 gap-0">
+        <DialogContent className="sm:max-w-2xl overflow-hidden p-0 gap-0">
           <div className="relative bg-gradient-to-br from-indigo-600/10 via-transparent to-rose-600/5 p-6 pb-5">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.08),transparent_70%)]" />
             <div className="flex items-center gap-3">
@@ -1921,11 +1950,38 @@ export function FinanceAccounts() {
           <div className="p-5 space-y-5">
             {/* Откуда */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                Откуда
-              </Label>
-              <div className="grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto pr-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                  <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                  Откуда
+                </Label>
+                <button
+                  onClick={() => {
+                    const next =
+                      transferFrom === pinnedTransferFrom ? "" : transferFrom;
+                    setPinnedTransferFrom(next);
+                    setPinnedTransferFrom(next);
+                    setDoc(
+                      doc(db, "user_settings", uid),
+                      { transferPinnedFrom: next },
+                      { merge: true },
+                    );
+                  }}
+                  disabled={!transferFrom}
+                  className={cn(
+                    "text-muted-foreground/50 hover:text-amber-500 transition-colors disabled:opacity-20",
+                    pinnedTransferFrom && "text-amber-500",
+                  )}
+                >
+                  <Star
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      pinnedTransferFrom && "fill-amber-500",
+                    )}
+                  />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3 max-h-[260px] overflow-y-auto pr-1">
                 {accounts.map((a) => {
                   const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.cash;
                   const Icon = cfg.icon;
@@ -1935,25 +1991,46 @@ export function FinanceAccounts() {
                       key={a.id}
                       onClick={() => setTransferFrom(a.id)}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-xl border p-3 text-left transition-all",
+                        "flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all",
                         selected
-                          ? "border-rose-300 bg-rose-50/60 dark:bg-rose-950/20 dark:border-rose-700 shadow-sm"
+                          ? "border-rose-300 bg-rose-50/60 dark:bg-rose-950/20 dark:border-rose-700 shadow-sm ring-1 ring-rose-200 dark:ring-rose-800"
                           : "border-border/50 hover:border-muted-foreground/30 hover:bg-muted/30",
                       )}
                     >
                       <div
                         className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
                           cfg.color,
                         )}
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className="h-4.5 w-4.5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium truncate leading-tight">
-                          {a.name}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-medium truncate leading-tight">
+                            {a.name}
+                          </span>
+                          {a.priority && (
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-0.5 rounded-full px-1 py-0.5 text-[8px] font-semibold uppercase tracking-wider",
+                                a.priority === "high" &&
+                                  "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400",
+                                a.priority === "medium" &&
+                                  "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
+                                a.priority === "low" &&
+                                  "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
+                              )}
+                            >
+                              <Flag className="h-2 w-2" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground/60 leading-tight mt-0.5">
+                          #{a.sortOrder != null ? a.sortOrder + 1 : "—"} ·{" "}
+                          {cfg.label}
                         </p>
-                        <p className="text-[11px] text-muted-foreground/60 leading-tight mt-0.5 tabular-nums">
+                        <p className="text-[11px] font-medium text-foreground/80 leading-tight mt-1 tabular-nums">
                           {accountBalance(a).toLocaleString(undefined, {
                             maximumFractionDigits: 2,
                           })}{" "}
@@ -1961,7 +2038,7 @@ export function FinanceAccounts() {
                         </p>
                       </div>
                       {selected && (
-                        <div className="h-5 w-5 rounded-full bg-rose-500 flex items-center justify-center shrink-0">
+                        <div className="h-5 w-5 rounded-full bg-rose-500 flex items-center justify-center shrink-0 mt-0.5">
                           <Check className="h-3 w-3 text-white" />
                         </div>
                       )}
@@ -1980,11 +2057,38 @@ export function FinanceAccounts() {
 
             {/* Куда */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Куда
-              </Label>
-              <div className="grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto pr-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Куда
+                </Label>
+                <button
+                  onClick={() => {
+                    const next =
+                      transferTo === pinnedTransferTo ? "" : transferTo;
+                    setPinnedTransferTo(next);
+                    setPinnedTransferTo(next);
+                    setDoc(
+                      doc(db, "user_settings", uid),
+                      { transferPinnedTo: next },
+                      { merge: true },
+                    );
+                  }}
+                  disabled={!transferTo}
+                  className={cn(
+                    "text-muted-foreground/50 hover:text-amber-500 transition-colors disabled:opacity-20",
+                    pinnedTransferTo && "text-amber-500",
+                  )}
+                >
+                  <Star
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      pinnedTransferTo && "fill-amber-500",
+                    )}
+                  />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3 max-h-[260px] overflow-y-auto pr-1">
                 {accounts
                   .filter((a) => a.id !== transferFrom)
                   .map((a) => {
@@ -1996,25 +2100,46 @@ export function FinanceAccounts() {
                         key={a.id}
                         onClick={() => setTransferTo(a.id)}
                         className={cn(
-                          "flex items-center gap-2.5 rounded-xl border p-3 text-left transition-all",
+                          "flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all",
                           selected
-                            ? "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-700 shadow-sm"
+                            ? "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-700 shadow-sm ring-1 ring-emerald-200 dark:ring-emerald-800"
                             : "border-border/50 hover:border-muted-foreground/30 hover:bg-muted/30",
                         )}
                       >
                         <div
                           className={cn(
-                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
                             cfg.color,
                           )}
                         >
-                          <Icon className="h-4 w-4" />
+                          <Icon className="h-4.5 w-4.5" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium truncate leading-tight">
-                            {a.name}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-medium truncate leading-tight">
+                              {a.name}
+                            </span>
+                            {a.priority && (
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-0.5 rounded-full px-1 py-0.5 text-[8px] font-semibold uppercase tracking-wider",
+                                  a.priority === "high" &&
+                                    "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400",
+                                  a.priority === "medium" &&
+                                    "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
+                                  a.priority === "low" &&
+                                    "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
+                                )}
+                              >
+                                <Flag className="h-2 w-2" />
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground/60 leading-tight mt-0.5">
+                            #{a.sortOrder != null ? a.sortOrder + 1 : "—"} ·{" "}
+                            {cfg.label}
                           </p>
-                          <p className="text-[11px] text-muted-foreground/60 leading-tight mt-0.5 tabular-nums">
+                          <p className="text-[11px] font-medium text-foreground/80 leading-tight mt-1 tabular-nums">
                             {accountBalance(a).toLocaleString(undefined, {
                               maximumFractionDigits: 2,
                             })}{" "}
@@ -2022,7 +2147,7 @@ export function FinanceAccounts() {
                           </p>
                         </div>
                         {selected && (
-                          <div className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                          <div className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
                             <Check className="h-3 w-3 text-white" />
                           </div>
                         )}
