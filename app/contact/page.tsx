@@ -263,13 +263,6 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-                <span className="text-[11px] text-muted-foreground/60 flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  Максимальный срок — до 14 дней, обычно 24–48 ч
-                </span>
-              </div>
-
               <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
                 <a
                   href="mailto:In-motion@info.io"
@@ -342,11 +335,7 @@ export default function ContactPage() {
                 <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mb-2">
                   Связь с разработчиками
                 </h1>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                  Максимальный срок рассмотрения — до 14 дней, но обычно
-                  отвечаем в течение 24–48 часов. Если нужно срочно — напишите в
-                  личные сообщения Telegram или на почту.
-                </p>
+
               </div>
 
               {/* Official / media / blogger notice */}
@@ -374,9 +363,6 @@ export default function ContactPage() {
                         <Mail className="h-3 w-3" />
                         In-motion@info.io
                       </a>
-                      <span className="text-[10px] text-amber-600/60 dark:text-amber-500/50">
-                        Максимальный срок — до 14 дней, обычно 24–48 ч
-                      </span>
                     </div>
                   </div>
                 </div>
