@@ -758,82 +758,92 @@ export function FinanceTransactions() {
                       <div
                         key={tx.id}
                         className={cn(
-                          "group relative flex items-center gap-3 rounded-xl border bg-card px-4 py-2.5 transition-all duration-200 hover:shadow-sm hover:border-foreground/20",
+                          "group relative flex items-stretch rounded-xl border bg-card transition-all duration-200 hover:shadow-sm hover:border-foreground/20 overflow-hidden",
                           selectedIds.has(tx.id) &&
                             "border-primary/40 bg-primary/[0.03]",
                         )}
                         onClick={() => openEdit(tx)}
                       >
-                        {/* Category icon */}
+                        {/* Type accent bar */}
                         <div
                           className={cn(
-                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                            typeBg,
+                            "w-1 shrink-0",
+                            tx.type === "income" && "bg-emerald-500",
+                            tx.type === "expense" && "bg-rose-500",
+                            tx.type === "transfer" && "bg-sky-500",
                           )}
-                        >
-                          {(() => {
-                            const CatIcon = cat?.icon
-                              ? getFinanceIcon(cat.icon)
-                              : TypeIcon;
-                            return (
-                              <CatIcon className={cn("h-4 w-4", typeColor)} />
-                            );
-                          })()}
-                        </div>
+                        />
 
-                        {/* Info */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate text-sm font-medium leading-tight">
-                              {tx.description || cat?.name || "Без категории"}
-                            </span>
-                            {cat && tx.description && (
-                              <span className="shrink-0 text-[10px] text-muted-foreground/50 font-medium">
-                                {cat.name}
+                        <div className="flex items-center gap-3 px-4 py-3 min-w-0 flex-1">
+                          {/* Category icon */}
+                          <div
+                            className={cn(
+                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                              typeBg,
+                            )}
+                          >
+                            {(() => {
+                              const CatIcon = cat?.icon
+                                ? getFinanceIcon(cat.icon)
+                                : TypeIcon;
+                              return (
+                                <CatIcon className={cn("h-4 w-4", typeColor)} />
+                              );
+                            })()}
+                          </div>
+
+                          {/* Info */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate text-sm font-medium leading-tight">
+                                {tx.description || cat?.name || "Без категории"}
                               </span>
-                            )}
-                          </div>
-                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground/60">
-                            <span className="tabular-nums">
-                              {formatTime(tx.date)}
-                            </span>
-                            {acc && (
-                              <>
-                                <span>·</span>
-                                <span className="truncate max-w-[100px]">
-                                  {acc.name}
+                              {cat && tx.description && (
+                                <span className="shrink-0 text-[10px] text-muted-foreground/50 font-medium">
+                                  {cat.name}
                                 </span>
-                              </>
-                            )}
-                            {tx.tags.length > 0 && (
-                              <>
-                                <span>·</span>
-                                <div className="flex gap-1">
-                                  {tx.tags.slice(0, 2).map((tag) => (
-                                    <span
-                                      key={tag}
-                                      className="rounded-md bg-muted/50 px-1.5 py-0.5 text-[9px] font-medium"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                                  {tx.tags.length > 2 && (
-                                    <span className="text-[9px] text-muted-foreground/40">
-                                      +{tx.tags.length - 2}
-                                    </span>
-                                  )}
-                                </div>
-                              </>
-                            )}
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60 mt-0.5">
+                              <span className="tabular-nums">
+                                {formatTime(tx.date)}
+                              </span>
+                              {acc && (
+                                <>
+                                  <span>·</span>
+                                  <span className="truncate max-w-[80px]">
+                                    {acc.name}
+                                  </span>
+                                </>
+                              )}
+                              {tx.tags.length > 0 && (
+                                <>
+                                  <span>·</span>
+                                  <div className="flex gap-1">
+                                    {tx.tags.slice(0, 2).map((tag) => (
+                                      <span
+                                        key={tag}
+                                        className="rounded bg-muted/50 px-1.5 py-0.5 text-[9px] font-medium"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                    {tx.tags.length > 2 && (
+                                      <span className="text-[9px] text-muted-foreground/40">
+                                        +{tx.tags.length - 2}
+                                      </span>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        {/* Amount + actions */}
-                        <div className="shrink-0 flex items-center gap-2">
-                          <div className="text-right">
+                          {/* Amount + actions */}
+                          <div className="shrink-0 flex items-center gap-1.5">
                             <div
                               className={cn(
-                                "text-sm font-bold tabular-nums tracking-tight leading-tight",
+                                "text-sm font-bold tabular-nums tracking-tight",
                                 typeColor,
                               )}
                             >
@@ -844,27 +854,27 @@ export function FinanceTransactions() {
                                   : ""}
                               {tx.amount.toLocaleString()} ₽
                             </div>
-                          </div>
-                          <div
-                            className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => openEdit(tx)}
-                              className="h-7 w-7"
+                            <div
+                              className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => handleDelete(tx.id)}
-                              className="h-7 w-7 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => openEdit(tx)}
+                                className="h-7 w-7"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => handleDelete(tx.id)}
+                                className="h-7 w-7 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
