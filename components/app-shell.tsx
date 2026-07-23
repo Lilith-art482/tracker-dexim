@@ -68,7 +68,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             >
               <BoardSidebar />
             </Suspense>
-            <main className="flex-1 min-w-0 pb-4 sm:pb-0 flex flex-col justify-center">
+            <main className="flex-1 min-w-0 pb-4 sm:pb-0 flex flex-col">
               {children}
             </main>
           </div>

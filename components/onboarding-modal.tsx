@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   ArrowLeft,
@@ -197,12 +197,12 @@ function FeatureRow({
 
 export default function OnboardingModal() {
   const [step, setStep] = useState(0);
-  const [open, setOpen] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("inmotion_onboarding_hidden") !== "true";
-    }
-    return true;
-  });
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const hidden = localStorage.getItem("inmotion_onboarding_hidden") === "true";
+    setOpen(!hidden);
+  }, []);
 
   function handleClose() {
     setOpen(false);
