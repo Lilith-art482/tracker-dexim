@@ -21,6 +21,7 @@ import {
   FileText,
   Search,
   ChevronDown,
+  ArrowDown,
   Check,
   MoreVertical,
   Eye,
@@ -703,6 +704,14 @@ export function FinanceAccounts() {
     }
   };
 
+  const handleCardTransfer = useCallback((account: FinanceAccount) => {
+    setTransferFrom(account.id);
+    setTransferTo("");
+    setTransferAmount("");
+    setTransferDescription("");
+    setTransferOpen(true);
+  }, []);
+
   const handleQuickAmount = useCallback(async () => {
     if (!quickAccount || !quickAmount) return;
     const amount = parseFloat(quickAmount);
@@ -898,7 +907,13 @@ export function FinanceAccounts() {
     };
   }, []);
 
-  function SortableAccountCard({ account: a }: { account: FinanceAccount }) {
+  function SortableAccountCard({
+    account: a,
+    onTransfer,
+  }: {
+    account: FinanceAccount;
+    onTransfer: (account: FinanceAccount) => void;
+  }) {
     const {
       attributes,
       listeners,
@@ -1175,6 +1190,14 @@ export function FinanceAccounts() {
             <TrendingDown className="h-3.5 w-3.5" />
             Снять
           </button>
+          <div className="w-px bg-border" />
+          <button
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-indigo-600 hover:bg-indigo-500/5 transition-colors rounded-br-xl"
+            onClick={() => onTransfer(a)}
+          >
+            <ArrowRightLeft className="h-3.5 w-3.5" />
+            Перевести
+          </button>
         </div>
       </Card>
     );
@@ -1307,7 +1330,11 @@ export function FinanceAccounts() {
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredAccounts.map((account) => (
-              <SortableAccountCard key={account.id} account={account} />
+              <SortableAccountCard
+                key={account.id}
+                account={account}
+                onTransfer={handleCardTransfer}
+              />
             ))}
           </div>
         </SortableContext>
@@ -1738,7 +1765,7 @@ export function FinanceAccounts() {
                 </span>
               </div>
               <div className="grid grid-cols-5 gap-3">
-                <div className="col-span-2 space-y-1.5">
+                <div className="col-span-3 space-y-1.5">
                   <Label className="text-xs font-medium">Сумма</Label>
                   <Input
                     type="number"
@@ -1748,7 +1775,7 @@ export function FinanceAccounts() {
                     className="h-9 text-base font-semibold tabular-nums"
                   />
                 </div>
-                <div className="col-span-3 space-y-1.5">
+                <div className="col-span-2 space-y-1.5">
                   <Label className="text-xs font-medium">Валюта</Label>
                   <CurrencySelect
                     value={formCurrency}
@@ -1873,11 +1900,11 @@ export function FinanceAccounts() {
       </Dialog>
 
       <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
-        <DialogContent className="sm:max-w-md overflow-hidden p-0 gap-0">
-          <div className="relative bg-gradient-to-br from-rose-600/10 via-transparent to-amber-600/5 p-6 pb-4">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(225,29,72,0.08),transparent_70%)]" />
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-amber-500 shadow-md">
+        <DialogContent className="sm:max-w-lg overflow-hidden p-0 gap-0">
+          <div className="relative bg-gradient-to-br from-indigo-600/10 via-transparent to-rose-600/5 p-6 pb-5">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.08),transparent_70%)]" />
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-rose-500 shadow-md shadow-indigo-500/20">
                 <ArrowRightLeft className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -1890,118 +1917,123 @@ export function FinanceAccounts() {
               </div>
             </div>
           </div>
-          <div className="p-5 space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold">
+
+          <div className="p-5 space-y-5">
+            {/* Откуда */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
                 Откуда
               </Label>
-              <div className="relative">
-                <Select
-                  value={transferFrom}
-                  onValueChange={(v) => v && setTransferFrom(v)}
-                >
-                  <SelectTrigger
-                    className={cn(
-                      "h-12 bg-muted/30 border-border/40 text-sm data-[placeholder]:text-muted-foreground/50",
-                      transferFrom && "font-medium",
-                    )}
-                  >
-                    <SelectValue placeholder="Выберите счёт списания" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.map((a) => {
-                      const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.cash;
-                      const Icon = cfg.icon;
-                      return (
-                        <SelectItem key={a.id} value={a.id} className="py-2.5">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div
-                              className={cn(
-                                "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
-                                cfg.color,
-                              )}
-                            >
-                              <Icon className="h-3.5 w-3.5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium truncate leading-tight">
-                                {a.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground/60 leading-tight mt-0.5">
-                                {accountBalance(a).toLocaleString(undefined, {
-                                  maximumFractionDigits: 2,
-                                })}{" "}
-                                {a.currency}
-                              </p>
-                            </div>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto pr-1">
+                {accounts.map((a) => {
+                  const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.cash;
+                  const Icon = cfg.icon;
+                  const selected = transferFrom === a.id;
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => setTransferFrom(a.id)}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-xl border p-3 text-left transition-all",
+                        selected
+                          ? "border-rose-300 bg-rose-50/60 dark:bg-rose-950/20 dark:border-rose-700 shadow-sm"
+                          : "border-border/50 hover:border-muted-foreground/30 hover:bg-muted/30",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                          cfg.color,
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium truncate leading-tight">
+                          {a.name}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground/60 leading-tight mt-0.5 tabular-nums">
+                          {accountBalance(a).toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          {a.currency}
+                        </p>
+                      </div>
+                      {selected && (
+                        <div className="h-5 w-5 rounded-full bg-rose-500 flex items-center justify-center shrink-0">
+                          <Check className="h-3 w-3 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
+            {/* Arrow */}
             <div className="flex justify-center -my-1">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted/50 border border-border/30">
-                <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground/60" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-100 to-rose-100 dark:from-indigo-950/40 dark:to-rose-950/40 border border-border/30">
+                <ArrowDown className="h-4 w-4 text-muted-foreground/60" />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold">
+            {/* Куда */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 Куда
               </Label>
-              <Select
-                value={transferTo}
-                onValueChange={(v) => v && setTransferTo(v)}
-              >
-                <SelectTrigger
-                  className={cn(
-                    "h-12 bg-muted/30 border-border/40 text-sm data-[placeholder]:text-muted-foreground/50",
-                    transferTo && "font-medium",
-                  )}
-                >
-                  <SelectValue placeholder="Выберите счёт зачисления" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts
-                    .filter((a) => a.id !== transferFrom)
-                    .map((a) => {
-                      const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.cash;
-                      const Icon = cfg.icon;
-                      return (
-                        <SelectItem key={a.id} value={a.id} className="py-2.5">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div
-                              className={cn(
-                                "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
-                                cfg.color,
-                              )}
-                            >
-                              <Icon className="h-3.5 w-3.5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium truncate leading-tight">
-                                {a.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground/60 leading-tight mt-0.5">
-                                {accountBalance(a).toLocaleString(undefined, {
-                                  maximumFractionDigits: 2,
-                                })}{" "}
-                                {a.currency}
-                              </p>
-                            </div>
+              <div className="grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto pr-1">
+                {accounts
+                  .filter((a) => a.id !== transferFrom)
+                  .map((a) => {
+                    const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.cash;
+                    const Icon = cfg.icon;
+                    const selected = transferTo === a.id;
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => setTransferTo(a.id)}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-xl border p-3 text-left transition-all",
+                          selected
+                            ? "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-700 shadow-sm"
+                            : "border-border/50 hover:border-muted-foreground/30 hover:bg-muted/30",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                            cfg.color,
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium truncate leading-tight">
+                            {a.name}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground/60 leading-tight mt-0.5 tabular-nums">
+                            {accountBalance(a).toLocaleString(undefined, {
+                              maximumFractionDigits: 2,
+                            })}{" "}
+                            {a.currency}
+                          </p>
+                        </div>
+                        {selected && (
+                          <div className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                            <Check className="h-3 w-3 text-white" />
                           </div>
-                        </SelectItem>
-                      );
-                    })}
-                </SelectContent>
-              </Select>
+                        )}
+                      </button>
+                    );
+                  })}
+              </div>
             </div>
 
-            <div className="space-y-1.5">
+            {/* Сумма */}
+            <div className="space-y-2">
               <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold">
                 Сумма
               </Label>
@@ -2011,9 +2043,9 @@ export function FinanceAccounts() {
                   value={transferAmount}
                   onChange={(e) => setTransferAmount(e.target.value)}
                   placeholder="0"
-                  className="h-12 bg-muted/30 border-border/40 text-lg font-semibold tabular-nums pr-20"
+                  className="h-12 bg-muted/20 border-border/40 text-xl font-bold tabular-nums pr-28"
                 />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                   {(() => {
                     const fromAcc = accounts.find((a) => a.id === transferFrom);
                     if (!fromAcc) return null;
@@ -2030,7 +2062,7 @@ export function FinanceAccounts() {
                       rates,
                     );
                     return (
-                      <span className="text-xs text-muted-foreground/50 tabular-nums">
+                      <span className="text-xs text-muted-foreground/50 tabular-nums font-medium">
                         ≈{" "}
                         {converted.toLocaleString(undefined, {
                           maximumFractionDigits: 2,
@@ -2041,8 +2073,26 @@ export function FinanceAccounts() {
                   })()}
                 </div>
               </div>
+              <div className="flex gap-1.5">
+                {[25, 50, 75, 100].map((pct) => {
+                  const fromAcc = accounts.find((a) => a.id === transferFrom);
+                  const bal = fromAcc ? accountBalance(fromAcc) : 0;
+                  const val = (bal * pct) / 100;
+                  return (
+                    <button
+                      key={pct}
+                      onClick={() => setTransferAmount(val.toFixed(2))}
+                      disabled={!transferFrom || bal <= 0}
+                      className="flex-1 py-1.5 text-[11px] font-medium rounded-lg border border-border/40 text-muted-foreground/70 hover:bg-muted/30 hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      {pct}%
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
+            {/* Описание */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold">
                 Описание
@@ -2051,36 +2101,47 @@ export function FinanceAccounts() {
                 value={transferDescription}
                 onChange={(e) => setTransferDescription(e.target.value)}
                 placeholder="Назначение перевода"
-                className="h-10 bg-muted/30 border-border/40 text-sm"
+                className="h-10 bg-muted/20 border-border/40 text-sm"
               />
             </div>
           </div>
-          <div className="flex items-center justify-end gap-2 border-t border-border/40 px-5 py-3 bg-muted/10">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTransferOpen(false)}
-              disabled={saving}
-              className="h-9"
-            >
-              Отмена
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleTransfer}
-              disabled={
-                saving ||
-                !transferFrom ||
-                !transferTo ||
-                !transferAmount.trim() ||
-                transferFrom === transferTo
-              }
-              className="h-9 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white shadow-sm"
-            >
-              {saving && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-              <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
-              Перевести
-            </Button>
+
+          <div className="flex items-center justify-between gap-3 border-t border-border/40 px-5 py-3 bg-muted/10">
+            <div className="text-xs text-muted-foreground/50">
+              {transferFrom && transferTo && transferFrom !== transferTo && (
+                <>
+                  {accounts.find((a) => a.id === transferFrom)?.name} →{" "}
+                  {accounts.find((a) => a.id === transferTo)?.name}
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setTransferOpen(false)}
+                disabled={saving}
+                className="h-9"
+              >
+                Отмена
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleTransfer}
+                disabled={
+                  saving ||
+                  !transferFrom ||
+                  !transferTo ||
+                  !transferAmount.trim() ||
+                  transferFrom === transferTo
+                }
+                className="h-9 bg-gradient-to-r from-indigo-600 to-rose-600 hover:from-indigo-500 hover:to-rose-500 text-white shadow-sm"
+              >
+                {saving && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+                <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
+                Перевести
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

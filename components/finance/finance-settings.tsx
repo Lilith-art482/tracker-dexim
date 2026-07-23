@@ -112,6 +112,7 @@ import {
   BarChart3,
   ChevronRight,
   Hash,
+  MoreVertical,
   Copy,
   UserPlus,
   Users,
@@ -135,6 +136,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -635,7 +644,6 @@ function SortableCategoryItem({
   onDelete,
   onTogglePin,
   onToggleArchive,
-  onBudgetChange,
 }: {
   cat: TransactionCategory;
   colorInfo?: { value: string; bg: string; label: string };
@@ -644,7 +652,6 @@ function SortableCategoryItem({
   onDelete: (id: string) => void;
   onTogglePin: (cat: TransactionCategory) => void;
   onToggleArchive: (cat: TransactionCategory) => void;
-  onBudgetChange: (id: string, value: number) => void;
 }) {
   const {
     attributes,
@@ -665,7 +672,7 @@ function SortableCategoryItem({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center justify-between rounded-lg px-2.5 py-1.5 hover:bg-muted/40 transition-colors",
+        "flex items-center justify-between rounded-lg px-2.5 py-2 hover:bg-muted/40 transition-colors",
         isDragging && "opacity-50",
       )}
     >
@@ -686,10 +693,13 @@ function SortableCategoryItem({
           {renderIcon(cat.icon, "h-3 w-3")}
         </div>
         <span className="text-sm truncate">{cat.name}</span>
+        {cat.isPinned && (
+          <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0" />
+        )}
         {cat.type === "income" && (
           <Badge
             variant="default"
-            className="text-[9px] px-1 py-0 h-3.5 leading-none"
+            className="text-[9px] px-1 py-0 h-3.5 leading-none bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/10"
           >
             доход
           </Badge>
@@ -701,52 +711,39 @@ function SortableCategoryItem({
           </span>
         )}
       </div>
-      <div className="flex items-center gap-0.5 shrink-0 ml-2">
-        <input
-          type="number"
-          className="w-14 h-6 text-xs rounded border border-input bg-background px-1 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-          value={cat.monthlyBudget ?? ""}
-          placeholder="0"
-          onChange={(e) => onBudgetChange(cat.id, Number(e.target.value))}
-        />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
-          onClick={() => onTogglePin(cat)}
-        >
-          <Star
-            className={cn(
-              "h-3 w-3",
-              cat.isPinned && "fill-amber-400 text-amber-400",
-            )}
-          />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
-          onClick={() => onToggleArchive(cat)}
-        >
-          <Archive className="h-3 w-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
-          onClick={() => onEdit(cat)}
-        >
-          <Pencil className="h-3 w-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-destructive"
-          onClick={() => onDelete(cat.id)}
-        >
-          <Trash2 className="h-3 w-3" />
-        </Button>
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors outline-none shrink-0">
+          <MoreVertical className="h-3.5 w-3.5" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuItem onClick={() => onEdit(cat)}>
+            <Pencil className="h-3.5 w-3.5 mr-2" />
+            Редактировать
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onTogglePin(cat)}>
+            <Star
+              className={cn(
+                "h-3.5 w-3.5 mr-2",
+                cat.isPinned && "fill-amber-400 text-amber-400",
+              )}
+            />
+            {cat.isPinned ? "Открепить" : "Закрепить"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => onToggleArchive(cat)}>
+            <Archive className="h-3.5 w-3.5 mr-2" />
+            {cat.isArchived ? "Восстановить" : "В архив"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onClick={() => onDelete(cat.id)}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-2" />
+            Удалить
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -774,6 +771,7 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
   const [catType, setCatType] = useState<"income" | "expense">("expense");
   const [color, setColor] = useState("blue");
   const [icon, setIcon] = useState("MoreHorizontal");
+  const [showInBudget, setShowInBudget] = useState(true);
   const uid = auth.currentUser?.uid || "user-1";
 
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
@@ -819,7 +817,14 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
       toast.error("Введите название категории");
       return;
     }
-    const body = { userId: uid, name: name.trim(), type: catType, color, icon };
+    const body = {
+      userId: uid,
+      name: name.trim(),
+      type: catType,
+      color,
+      icon,
+      showInBudget,
+    };
     if (editingCat) {
       try {
         const ref = doc(db, "FINANCE_CATEGORIES", editingCat.id);
@@ -1015,12 +1020,32 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
     }
   }, []);
 
+  const handleDeleteAllCategories = useCallback(async () => {
+    toast("Удалить все категории?", {
+      action: {
+        label: "Удалить",
+        onClick: async () => {
+          const loading = toast.loading("Удаляем категории...");
+          try {
+            await Promise.all(categories.map((c) => deleteCategory(c.id)));
+            setCategories([]);
+            toast.success("Все категории удалены", { id: loading });
+          } catch {
+            toast.error("Ошибка при удалении", { id: loading });
+          }
+        },
+      },
+      cancel: { label: "Отмена", onClick: () => {} },
+    });
+  }, [categories]);
+
   const openEdit = useCallback((cat: TransactionCategory) => {
     setEditingCat(cat);
     setName(cat.name);
     setCatType(cat.type as "income" | "expense");
     setColor(cat.color);
     setIcon(cat.icon);
+    setShowInBudget(cat.showInBudget ?? true);
     setShowDialog(true);
   }, []);
 
@@ -1030,6 +1055,7 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
     setCatType("expense");
     setColor("blue");
     setIcon("MoreHorizontal");
+    setShowInBudget(true);
     setShowDialog(true);
   }, []);
 
@@ -1214,7 +1240,6 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
                                   onDelete={handleDeleteCategory}
                                   onTogglePin={handleTogglePin}
                                   onToggleArchive={handleToggleArchive}
-                                  onBudgetChange={handleBudgetChange}
                                 />
                               );
                             })}
@@ -1314,6 +1339,17 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
                   <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
                   Восстановить стандартные
                 </Button>
+                {categories.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={handleDeleteAllCategories}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                    Удалить все категории
+                  </Button>
+                )}
               </div>
             </DndContext>
           )}
@@ -1465,6 +1501,29 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
                 </div>
               </div>
             </div>
+            {editingCat && (
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">
+                  Месячный бюджет
+                </label>
+                <Input
+                  type="number"
+                  value={editingCat.monthlyBudget ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setCategories((prev) =>
+                      prev.map((c) =>
+                        c.id === editingCat.id
+                          ? { ...c, monthlyBudget: v ? Number(v) : undefined }
+                          : c,
+                      ),
+                    );
+                    handleBudgetChange(editingCat.id, v ? Number(v) : 0);
+                  }}
+                  placeholder="0"
+                />
+              </div>
+            )}
 
             <div>
               <label className="text-sm font-medium mb-2 block">Цвет</label>
@@ -1485,6 +1544,17 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
                 ))}
               </div>
             </div>
+
+            <label className="flex items-center gap-2.5 cursor-pointer group">
+              <Checkbox
+                checked={showInBudget}
+                onCheckedChange={(v) => setShowInBudget(!!v)}
+                className="h-4 w-4"
+              />
+              <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                Отображать в планировании бюджета
+              </span>
+            </label>
 
             <div>
               <label className="text-sm font-medium mb-2 block">Иконка</label>
