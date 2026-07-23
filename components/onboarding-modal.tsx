@@ -200,7 +200,8 @@ export default function OnboardingModal() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const hidden = localStorage.getItem("inmotion_onboarding_hidden") === "true";
+    const hidden =
+      localStorage.getItem("inmotion_onboarding_hidden") === "true";
     setOpen(!hidden);
   }, []);
 

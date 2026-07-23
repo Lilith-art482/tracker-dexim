@@ -183,17 +183,14 @@ function CurrencySelect({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger className="flex w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 h-8 data-placeholder:text-muted-foreground dark:bg-input/30 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
         {selected ? (
-          <span className="flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded border bg-background text-[10px] font-medium">
+          <span className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded border bg-background text-[10px] font-medium shrink-0">
               {selected.symbol}
             </span>
-            <span className="font-medium">{selected.code}</span>
-            <span className="text-xs text-muted-foreground">
-              {selected.label}
-            </span>
+            <span className="font-medium text-xs">{selected.code}</span>
           </span>
         ) : (
-          <span className="text-muted-foreground">Выберите валюту</span>
+          <span className="text-muted-foreground text-xs">Выберите валюту</span>
         )}
         <ChevronDown className="h-3.5 w-3.5 ml-auto opacity-50" />
       </PopoverTrigger>
@@ -1741,7 +1738,7 @@ export function FinanceAccounts() {
                 </span>
               </div>
               <div className="grid grid-cols-5 gap-3">
-                <div className="col-span-3 space-y-1.5">
+                <div className="col-span-2 space-y-1.5">
                   <Label className="text-xs font-medium">Сумма</Label>
                   <Input
                     type="number"
@@ -1751,7 +1748,7 @@ export function FinanceAccounts() {
                     className="h-9 text-base font-semibold tabular-nums"
                   />
                 </div>
-                <div className="col-span-2 space-y-1.5">
+                <div className="col-span-3 space-y-1.5">
                   <Label className="text-xs font-medium">Валюта</Label>
                   <CurrencySelect
                     value={formCurrency}
@@ -1799,6 +1796,54 @@ export function FinanceAccounts() {
                 rows={2}
                 className="resize-none"
               />
+            </div>
+            {/* Приоритет */}
+            <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3">
+              <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-orange-500/10 text-orange-600">
+                  <Flag className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                  Приоритет
+                </span>
+              </div>
+              <div className="flex gap-2">
+                {[
+                  {
+                    value: "none",
+                    label: "Нет",
+                    color: "bg-muted-foreground/10 text-muted-foreground",
+                  },
+                  {
+                    value: "low",
+                    label: "Низкий",
+                    color: "bg-green-500/10 text-green-600",
+                  },
+                  {
+                    value: "medium",
+                    label: "Средний",
+                    color: "bg-amber-500/10 text-amber-600",
+                  },
+                  {
+                    value: "high",
+                    label: "Высокий",
+                    color: "bg-red-500/10 text-red-600",
+                  },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    className={cn(
+                      "flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-all duration-200",
+                      formPriority === opt.value
+                        ? "border-current ring-1 ring-current/20 " + opt.color
+                        : "border-input hover:bg-accent hover:border-muted-foreground/20 text-muted-foreground",
+                    )}
+                    onClick={() => setFormPriority(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
