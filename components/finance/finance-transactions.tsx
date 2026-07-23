@@ -36,6 +36,7 @@ import {
   createCategory,
 } from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
+import { getFinanceIcon } from "@/lib/finance-icons";
 import { QrScannerDialog } from "@/components/finance/qr-scanner-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -758,81 +759,66 @@ export function FinanceTransactions() {
                       <div
                         key={tx.id}
                         className={cn(
-                          "group relative flex items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-all duration-200 hover:shadow-sm hover:border-foreground/20 hover:-translate-y-0.5",
+                          "group relative flex items-center gap-3 rounded-xl border bg-card px-4 py-2.5 transition-all duration-200 hover:shadow-sm hover:border-foreground/20",
                           selectedIds.has(tx.id) &&
                             "border-primary/40 bg-primary/[0.03]",
                         )}
                         onClick={() => openEdit(tx)}
                       >
-                        {/* Select */}
-                        <div
-                          className="shrink-0"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            onClick={() => toggleSelect(tx.id)}
-                            className={cn(
-                              "flex h-5 w-5 items-center justify-center rounded border text-muted-foreground transition-colors",
-                              selectedIds.has(tx.id)
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border hover:border-foreground/30",
-                            )}
-                          >
-                            {selectedIds.has(tx.id) && (
-                              <CheckSquare className="h-3.5 w-3.5" />
-                            )}
-                          </button>
-                        </div>
-
                         {/* Category icon */}
                         <div
                           className={cn(
-                            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg",
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
                             typeBg,
                           )}
                         >
-                          {cat?.icon || (
-                            <TypeIcon className={cn("h-5 w-5", typeColor)} />
-                          )}
+                          {(() => {
+                            const CatIcon = cat?.icon
+                              ? getFinanceIcon(cat.icon)
+                              : TypeIcon;
+                            return (
+                              <CatIcon className={cn("h-4 w-4", typeColor)} />
+                            );
+                          })()}
                         </div>
 
                         {/* Info */}
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-baseline gap-2">
-                            <span className="truncate text-sm font-medium">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate text-sm font-medium leading-tight">
                               {tx.description || cat?.name || "Без категории"}
                             </span>
                             {cat && tx.description && (
-                              <span className="shrink-0 text-[10px] text-muted-foreground/60">
+                              <span className="shrink-0 text-[10px] text-muted-foreground/50 font-medium">
                                 {cat.name}
                               </span>
                             )}
                           </div>
-                          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground/60">
                             <span className="tabular-nums">
                               {formatTime(tx.date)}
                             </span>
                             {acc && (
                               <>
                                 <span>·</span>
-                                <span>{acc.name}</span>
+                                <span className="truncate max-w-[100px]">{acc.name}</span>
                               </>
                             )}
                             {tx.tags.length > 0 && (
                               <>
                                 <span>·</span>
                                 <div className="flex gap-1">
-                                  {tx.tags.slice(0, 1).map((tag) => (
+                                  {tx.tags.slice(0, 2).map((tag) => (
                                     <span
                                       key={tag}
-                                      className="rounded-md bg-muted px-1.5 py-0.5 text-[10px]"
+                                      className="rounded-md bg-muted/50 px-1.5 py-0.5 text-[9px] font-medium"
                                     >
                                       {tag}
                                     </span>
                                   ))}
-                                  {tx.tags.length > 1 && (
-                                    <span className="text-[10px] text-muted-foreground/60">
-                                      +{tx.tags.length - 1}
+                                  {tx.tags.length > 2 && (
+                                    <span className="text-[9px] text-muted-foreground/40">
+                                      +{tx.tags.length - 2}
                                     </span>
                                   )}
                                 </div>
@@ -841,44 +827,44 @@ export function FinanceTransactions() {
                           </div>
                         </div>
 
-                        {/* Amount */}
-                        <div className="shrink-0 text-right">
-                          <div
-                            className={cn(
-                              "text-base font-bold tabular-nums tracking-tight",
-                              typeColor,
-                            )}
-                          >
-                            {tx.type === "income"
-                              ? "+"
-                              : tx.type === "expense"
-                                ? "−"
-                                : ""}
-                            {tx.amount.toLocaleString()} ₽
+                        {/* Amount + actions */}
+                        <div className="shrink-0 flex items-center gap-2">
+                          <div className="text-right">
+                            <div
+                              className={cn(
+                                "text-sm font-bold tabular-nums tracking-tight leading-tight",
+                                typeColor,
+                              )}
+                            >
+                              {tx.type === "income"
+                                ? "+"
+                                : tx.type === "expense"
+                                  ? "−"
+                                  : ""}
+                              {tx.amount.toLocaleString()} ₽
+                            </div>
                           </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div
-                          className="absolute right-3 top-3 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => openEdit(tx)}
-                            className="h-7 w-7"
+                          <div
+                            className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => handleDelete(tx.id)}
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => openEdit(tx)}
+                              className="h-7 w-7"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => handleDelete(tx.id)}
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     );

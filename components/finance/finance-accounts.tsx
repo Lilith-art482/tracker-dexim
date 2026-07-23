@@ -33,7 +33,6 @@ import {
   Flag,
   SlidersHorizontal,
   X,
-  Star,
 } from "lucide-react";
 import type {
   FinanceAccount,
@@ -312,10 +311,9 @@ export function FinanceAccounts() {
   const [transferAmount, setTransferAmount] = useState("");
   const [transferDescription, setTransferDescription] = useState("");
 
-  const [pinnedTransferFrom, setPinnedTransferFrom] = useState("");
-  const [pinnedTransferTo, setPinnedTransferTo] = useState("");
-
-  const [percentPresets, setPercentPresets] = useState<number[]>([10, 20, 50]);
+  const [percentPresets, setPercentPresets] = useState<number[]>([
+    25, 50, 75, 100,
+  ]);
   const [amountPresets, setAmountPresets] = useState<
     { value: number; currency: string }[]
   >([]);
@@ -730,24 +728,10 @@ export function FinanceAccounts() {
     getDoc(ref).then((snap) => {
       if (!snap.exists()) return;
       const data = snap.data();
-      if (data.transferPinnedFrom)
-        setPinnedTransferFrom(data.transferPinnedFrom);
-      if (data.transferPinnedTo) setPinnedTransferTo(data.transferPinnedTo);
       if (data.percentPresets) setPercentPresets(data.percentPresets);
       if (data.amountPresets) setAmountPresets(data.amountPresets);
     });
   }, [uid]);
-
-  useEffect(() => {
-    if (!transferOpen) return;
-    const validIds = new Set(accounts.map((a) => a.id));
-    if (pinnedTransferFrom && validIds.has(pinnedTransferFrom)) {
-      setTransferFrom(pinnedTransferFrom);
-    }
-    if (pinnedTransferTo && validIds.has(pinnedTransferTo)) {
-      setTransferTo(pinnedTransferTo);
-    }
-  }, [transferOpen, pinnedTransferFrom, pinnedTransferTo, accounts]);
 
   const handleQuickAmount = useCallback(async () => {
     if (!quickAccount || !quickAmount) return;
@@ -1963,31 +1947,6 @@ export function FinanceAccounts() {
                   <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
                   Откуда
                 </Label>
-                <button
-                  onClick={() => {
-                    const next =
-                      transferFrom === pinnedTransferFrom ? "" : transferFrom;
-                    setPinnedTransferFrom(next);
-                    setPinnedTransferFrom(next);
-                    setDoc(
-                      doc(db, "user_settings", uid),
-                      { transferPinnedFrom: next },
-                      { merge: true },
-                    );
-                  }}
-                  disabled={!transferFrom}
-                  className={cn(
-                    "text-muted-foreground/50 hover:text-amber-500 transition-colors disabled:opacity-20",
-                    pinnedTransferFrom && "text-amber-500",
-                  )}
-                >
-                  <Star
-                    className={cn(
-                      "h-3.5 w-3.5",
-                      pinnedTransferFrom && "fill-amber-500",
-                    )}
-                  />
-                </button>
               </div>
               <div className="grid grid-cols-2 gap-3 max-h-[260px] overflow-y-auto pr-1">
                 {sortedAccounts.map((a) => {
@@ -2073,31 +2032,6 @@ export function FinanceAccounts() {
                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   Куда
                 </Label>
-                <button
-                  onClick={() => {
-                    const next =
-                      transferTo === pinnedTransferTo ? "" : transferTo;
-                    setPinnedTransferTo(next);
-                    setPinnedTransferTo(next);
-                    setDoc(
-                      doc(db, "user_settings", uid),
-                      { transferPinnedTo: next },
-                      { merge: true },
-                    );
-                  }}
-                  disabled={!transferTo}
-                  className={cn(
-                    "text-muted-foreground/50 hover:text-amber-500 transition-colors disabled:opacity-20",
-                    pinnedTransferTo && "text-amber-500",
-                  )}
-                >
-                  <Star
-                    className={cn(
-                      "h-3.5 w-3.5",
-                      pinnedTransferTo && "fill-amber-500",
-                    )}
-                  />
-                </button>
               </div>
               <div className="grid grid-cols-2 gap-3 max-h-[260px] overflow-y-auto pr-1">
                 {sortedAccounts
@@ -2218,17 +2152,17 @@ export function FinanceAccounts() {
                   })()}
                 </div>
               </div>
-              <div className="flex gap-1.5">
-                {[25, 50, 75, 100].map((pct) => {
+              <div className="flex gap-1.5 flex-wrap">
+                {percentPresets.map((pct, i) => {
                   const fromAcc = accounts.find((a) => a.id === transferFrom);
                   const bal = fromAcc ? accountBalance(fromAcc) : 0;
                   const val = (bal * pct) / 100;
                   return (
                     <button
-                      key={pct}
+                      key={i}
                       onClick={() => setTransferAmount(val.toFixed(2))}
                       disabled={!transferFrom || bal <= 0}
-                      className="flex-1 py-1.5 text-[11px] font-medium rounded-lg border border-border/40 text-muted-foreground/70 hover:bg-muted/30 hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="flex-1 min-w-[50px] py-1.5 text-[11px] font-medium rounded-lg border border-border/40 text-muted-foreground/70 hover:bg-muted/30 hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed tabular-nums"
                     >
                       {pct}%
                     </button>
@@ -2236,7 +2170,7 @@ export function FinanceAccounts() {
                 })}
               </div>
 
-              {/* Пресеты */}
+              {/* Пресеты сумм */}
               <div className="space-y-1.5">
                 {presetsEditOpen ? (
                   <div className="space-y-3 p-3 rounded-xl bg-muted/20 border border-border/40">
@@ -2417,66 +2351,41 @@ export function FinanceAccounts() {
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    {percentPresets.length > 0 && (
-                      <div className="flex gap-1.5 flex-wrap">
-                        {percentPresets.map((pct, i) => {
-                          const fromAcc = accounts.find(
-                            (a) => a.id === transferFrom,
+                ) : amountPresets.length > 0 ? (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {amountPresets.map((p, i) => {
+                      const fromAcc = accounts.find(
+                        (a) => a.id === transferFrom,
+                      );
+                      let val = p.value;
+                      if (
+                        p.currency &&
+                        fromAcc &&
+                        p.currency !== fromAcc.currency
+                      ) {
+                        const rates = getCachedRates();
+                        if (rates) {
+                          val = convert(
+                            p.value,
+                            p.currency,
+                            fromAcc.currency,
+                            rates,
                           );
-                          const bal = fromAcc ? accountBalance(fromAcc) : 0;
-                          const val = (bal * pct) / 100;
-                          return (
-                            <button
-                              key={i}
-                              onClick={() => setTransferAmount(val.toFixed(2))}
-                              disabled={!transferFrom || bal <= 0}
-                              className="px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-indigo-200/50 bg-indigo-50/30 text-indigo-600 hover:bg-indigo-100/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed tabular-nums dark:border-indigo-900/50 dark:bg-indigo-950/20 dark:text-indigo-400"
-                            >
-                              {pct}%
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {amountPresets.length > 0 && (
-                      <div className="flex gap-1.5 flex-wrap">
-                        {amountPresets.map((p, i) => {
-                          const fromAcc = accounts.find(
-                            (a) => a.id === transferFrom,
-                          );
-                          let val = p.value;
-                          if (
-                            p.currency &&
-                            fromAcc &&
-                            p.currency !== fromAcc.currency
-                          ) {
-                            const rates = getCachedRates();
-                            if (rates) {
-                              val = convert(
-                                p.value,
-                                p.currency,
-                                fromAcc.currency,
-                                rates,
-                              );
-                            }
-                          }
-                          return (
-                            <button
-                              key={i}
-                              onClick={() => setTransferAmount(val.toFixed(2))}
-                              disabled={!transferFrom || val <= 0}
-                              className="px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-amber-200/50 bg-amber-50/30 text-amber-700 hover:bg-amber-100/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed tabular-nums dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-400"
-                            >
-                              {p.value.toLocaleString()} {p.currency}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
+                        }
+                      }
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setTransferAmount(val.toFixed(2))}
+                          disabled={!transferFrom || val <= 0}
+                          className="flex-1 min-w-[60px] py-1.5 text-[11px] font-medium rounded-lg border border-border/40 text-muted-foreground/70 hover:bg-muted/30 hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed tabular-nums"
+                        >
+                          {p.value.toLocaleString()} {p.currency}
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
 
