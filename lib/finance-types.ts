@@ -66,6 +66,7 @@ export interface TransactionCategory {
   isPinned?: boolean;
   sortOrder?: number;
   monthlyBudget?: number;
+  showInBudget?: boolean;
 }
 
 export interface Transaction {
