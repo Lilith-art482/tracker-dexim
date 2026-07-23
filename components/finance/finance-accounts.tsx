@@ -315,6 +315,12 @@ export function FinanceAccounts() {
   const [pinnedTransferFrom, setPinnedTransferFrom] = useState("");
   const [pinnedTransferTo, setPinnedTransferTo] = useState("");
 
+  const [percentPresets, setPercentPresets] = useState<number[]>([10, 20, 50]);
+  const [amountPresets, setAmountPresets] = useState<
+    { value: number; currency: string }[]
+  >([]);
+  const [presetsEditOpen, setPresetsEditOpen] = useState(false);
+
   const [quickAccount, setQuickAccount] = useState<FinanceAccount | null>(null);
   const [quickType, setQuickType] = useState<"add" | "withdraw">("add");
   const [quickAmount, setQuickAmount] = useState("");
@@ -727,6 +733,8 @@ export function FinanceAccounts() {
       if (data.transferPinnedFrom)
         setPinnedTransferFrom(data.transferPinnedFrom);
       if (data.transferPinnedTo) setPinnedTransferTo(data.transferPinnedTo);
+      if (data.percentPresets) setPercentPresets(data.percentPresets);
+      if (data.amountPresets) setAmountPresets(data.amountPresets);
     });
   }, [uid]);
 
@@ -1929,7 +1937,7 @@ export function FinanceAccounts() {
       </Dialog>
 
       <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
-        <DialogContent className="sm:max-w-2xl overflow-hidden p-0 gap-0">
+        <DialogContent className="sm:max-w-4xl overflow-hidden p-0 gap-0">
           <div className="relative bg-gradient-to-br from-indigo-600/10 via-transparent to-rose-600/5 p-6 pb-5">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.08),transparent_70%)]" />
             <div className="flex items-center gap-3">
@@ -1982,14 +1990,17 @@ export function FinanceAccounts() {
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-3 max-h-[260px] overflow-y-auto pr-1">
-                {accounts.map((a) => {
+                {sortedAccounts.map((a) => {
                   const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.cash;
                   const Icon = cfg.icon;
                   const selected = transferFrom === a.id;
                   return (
                     <button
                       key={a.id}
-                      onClick={() => setTransferFrom(a.id)}
+                      onClick={() => {
+                        setTransferFrom(a.id);
+                        setTransferTo(transferTo === a.id ? "" : transferTo);
+                      }}
                       className={cn(
                         "flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all",
                         selected
@@ -2089,7 +2100,7 @@ export function FinanceAccounts() {
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-3 max-h-[260px] overflow-y-auto pr-1">
-                {accounts
+                {sortedAccounts
                   .filter((a) => a.id !== transferFrom)
                   .map((a) => {
                     const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.cash;
@@ -2159,9 +2170,18 @@ export function FinanceAccounts() {
 
             {/* Сумма */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold">
-                Сумма
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold">
+                  Сумма
+                </Label>
+                <button
+                  onClick={() => setPresetsEditOpen(!presetsEditOpen)}
+                  className="text-[10px] text-muted-foreground/50 hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Пресеты
+                </button>
+              </div>
               <div className="relative">
                 <Input
                   type="number"
@@ -2214,6 +2234,249 @@ export function FinanceAccounts() {
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Пресеты */}
+              <div className="space-y-1.5">
+                {presetsEditOpen ? (
+                  <div className="space-y-3 p-3 rounded-xl bg-muted/20 border border-border/40">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-semibold">
+                        Настройка пресетов
+                      </span>
+                    </div>
+
+                    {/* Проценты */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-semibold text-muted-foreground/60 flex items-center gap-1">
+                          <Percent className="h-3 w-3" /> Проценты
+                        </span>
+                        <button
+                          onClick={() => {
+                            const next = [...percentPresets, 0].slice(0, 4);
+                            setPercentPresets(next);
+                            setDoc(
+                              doc(db, "user_settings", uid),
+                              { percentPresets: next },
+                              { merge: true },
+                            );
+                          }}
+                          disabled={percentPresets.length >= 4}
+                          className="text-[10px] text-emerald-600 hover:text-emerald-500 transition-colors disabled:opacity-30"
+                        >
+                          + Добавить
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {percentPresets.map((p, i) => (
+                          <div key={i} className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              value={p || ""}
+                              onChange={(e) => {
+                                const next = percentPresets.map((pp, j) =>
+                                  j === i
+                                    ? parseFloat(e.target.value) || 0
+                                    : pp,
+                                );
+                                setPercentPresets(next);
+                              }}
+                              className="w-16 h-7 rounded-md border border-border/40 bg-muted/20 px-2 text-xs tabular-nums text-center outline-none focus:border-indigo-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            />
+                            <span className="text-xs text-muted-foreground/50">
+                              %
+                            </span>
+                            <button
+                              onClick={() => {
+                                const next = percentPresets.filter(
+                                  (_, j) => j !== i,
+                                );
+                                setPercentPresets(next);
+                                setDoc(
+                                  doc(db, "user_settings", uid),
+                                  { percentPresets: next },
+                                  { merge: true },
+                                );
+                              }}
+                              className="rounded p-0.5 text-muted-foreground/40 hover:text-rose-500 transition-colors"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Суммы */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-semibold text-muted-foreground/60 flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" /> Суммы
+                        </span>
+                        <button
+                          onClick={() => {
+                            const next = [
+                              ...amountPresets,
+                              { value: 0, currency: "RUB" },
+                            ].slice(0, 4);
+                            setAmountPresets(next);
+                            setDoc(
+                              doc(db, "user_settings", uid),
+                              { amountPresets: next },
+                              { merge: true },
+                            );
+                          }}
+                          disabled={amountPresets.length >= 4}
+                          className="text-[10px] text-emerald-600 hover:text-emerald-500 transition-colors disabled:opacity-30"
+                        >
+                          + Добавить
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {amountPresets.map((p, i) => (
+                          <div key={i} className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              value={p.value || ""}
+                              onChange={(e) => {
+                                const next = amountPresets.map((pp, j) =>
+                                  j === i
+                                    ? {
+                                        ...pp,
+                                        value: parseFloat(e.target.value) || 0,
+                                      }
+                                    : pp,
+                                );
+                                setAmountPresets(next);
+                              }}
+                              className="w-20 h-7 rounded-md border border-border/40 bg-muted/20 px-2 text-xs tabular-nums text-center outline-none focus:border-indigo-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            />
+                            <select
+                              value={p.currency}
+                              onChange={(e) => {
+                                const next = amountPresets.map((pp, j) =>
+                                  j === i
+                                    ? { ...pp, currency: e.target.value }
+                                    : pp,
+                                );
+                                setAmountPresets(next);
+                              }}
+                              className="h-7 rounded-md border border-border/40 bg-muted/20 px-1 text-[10px] outline-none focus:border-indigo-400"
+                            >
+                              {CURRENCIES.filter(
+                                (c) => c.type === "fiat" || c.type === "crypto",
+                              )
+                                .slice(0, 20)
+                                .map((c) => (
+                                  <option key={c.code} value={c.code}>
+                                    {c.code}
+                                  </option>
+                                ))}
+                            </select>
+                            <button
+                              onClick={() => {
+                                const next = amountPresets.filter(
+                                  (_, j) => j !== i,
+                                );
+                                setAmountPresets(next);
+                                setDoc(
+                                  doc(db, "user_settings", uid),
+                                  { amountPresets: next },
+                                  { merge: true },
+                                );
+                              }}
+                              className="rounded p-0.5 text-muted-foreground/40 hover:text-rose-500 transition-colors"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-1 pt-1">
+                      <button
+                        onClick={() => {
+                          setDoc(
+                            doc(db, "user_settings", uid),
+                            { percentPresets, amountPresets },
+                            { merge: true },
+                          );
+                          setPresetsEditOpen(false);
+                        }}
+                        className="flex-1 py-1 text-[10px] font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
+                      >
+                        Сохранить
+                      </button>
+                      <button
+                        onClick={() => setPresetsEditOpen(false)}
+                        className="flex-1 py-1 text-[10px] font-medium rounded-md border border-border/40 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {percentPresets.length > 0 && (
+                      <div className="flex gap-1.5 flex-wrap">
+                        {percentPresets.map((pct, i) => {
+                          const fromAcc = accounts.find(
+                            (a) => a.id === transferFrom,
+                          );
+                          const bal = fromAcc ? accountBalance(fromAcc) : 0;
+                          const val = (bal * pct) / 100;
+                          return (
+                            <button
+                              key={i}
+                              onClick={() => setTransferAmount(val.toFixed(2))}
+                              disabled={!transferFrom || bal <= 0}
+                              className="px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-indigo-200/50 bg-indigo-50/30 text-indigo-600 hover:bg-indigo-100/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed tabular-nums dark:border-indigo-900/50 dark:bg-indigo-950/20 dark:text-indigo-400"
+                            >
+                              {pct}%
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {amountPresets.length > 0 && (
+                      <div className="flex gap-1.5 flex-wrap">
+                        {amountPresets.map((p, i) => {
+                          const fromAcc = accounts.find(
+                            (a) => a.id === transferFrom,
+                          );
+                          let val = p.value;
+                          if (
+                            p.currency &&
+                            fromAcc &&
+                            p.currency !== fromAcc.currency
+                          ) {
+                            const rates = getCachedRates();
+                            if (rates) {
+                              val = convert(
+                                p.value,
+                                p.currency,
+                                fromAcc.currency,
+                                rates,
+                              );
+                            }
+                          }
+                          return (
+                            <button
+                              key={i}
+                              onClick={() => setTransferAmount(val.toFixed(2))}
+                              disabled={!transferFrom || val <= 0}
+                              className="px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-amber-200/50 bg-amber-50/30 text-amber-700 hover:bg-amber-100/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed tabular-nums dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-400"
+                            >
+                              {p.value.toLocaleString()} {p.currency}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
