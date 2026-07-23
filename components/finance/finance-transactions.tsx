@@ -8,7 +8,6 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  CheckSquare,
   TrendingUp,
   TrendingDown,
   ArrowRightLeft,
@@ -801,7 +800,9 @@ export function FinanceTransactions() {
                             {acc && (
                               <>
                                 <span>·</span>
-                                <span className="truncate max-w-[100px]">{acc.name}</span>
+                                <span className="truncate max-w-[100px]">
+                                  {acc.name}
+                                </span>
                               </>
                             )}
                             {tx.tags.length > 0 && (
