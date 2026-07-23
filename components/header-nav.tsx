@@ -428,41 +428,6 @@ export function HeaderActions() {
           </div>
 
           <div className="p-3 space-y-3 max-h-[65vh] overflow-y-auto">
-            {/* Мой ID */}
-            {uid && (
-              <div className="rounded-xl bg-muted/20 border border-border/40 p-3.5">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/10">
-                      <Hash className="h-3.5 w-3.5 text-violet-600" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-semibold tracking-wider text-muted-foreground/50 uppercase">
-                        Мой ID
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/40">
-                        Для совместного доступа
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <code className="text-[11px] font-mono font-medium text-muted-foreground bg-background/60 px-2 py-1 rounded-md border tabular-nums tracking-tight select-all">
-                      {uid.slice(0, 6)}…{uid.slice(-4)}
-                    </code>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(uid);
-                        toast.success("ID скопирован");
-                      }}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 transition-all"
-                    >
-                      <Copy className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Language card */}
             <div className="rounded-xl bg-muted/20 border border-border/40 p-3.5">
               <div className="flex items-center gap-2 mb-3">
@@ -703,10 +668,12 @@ export function HeaderActions() {
               {uid && (
                 <button
                   onClick={() => setShareDialogOpen(true)}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border/40 py-2.5 text-xs font-medium text-muted-foreground/60 hover:text-foreground hover:border-border/60 hover:bg-muted/30 transition-all"
+                  className="flex w-full items-center justify-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all bg-background/40 hover:bg-background/80 border border-border/20 hover:border-border/50 group mt-1.5"
                 >
-                  <UserPlus className="h-3.5 w-3.5" />
-                  Совместный доступ
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 group-hover:bg-indigo-500/20 transition-colors">
+                    <UserPlus className="h-3.5 w-3.5 text-indigo-600" />
+                  </div>
+                  <span>Совместный доступ</span>
                 </button>
               )}
             </div>

@@ -1213,6 +1213,15 @@ export function FinanceAccounts() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setShowFilters((v) => !v)}
+            className={cn(showFilters && "bg-muted")}
+          >
+            <SlidersHorizontal className="h-4 w-4 mr-1.5" />
+            Фильтр
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => {
               resetForm();
               setTransferOpen(true);
@@ -1227,6 +1236,68 @@ export function FinanceAccounts() {
           </Button>
         </div>
       </div>
+
+      {showFilters && (
+        <div className="flex flex-wrap items-end gap-3 p-4 rounded-xl bg-muted/20 border border-border/40">
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-semibold">
+              Мин. сумма
+            </Label>
+            <Input
+              type="number"
+              value={filterMin}
+              onChange={(e) => setFilterMin(e.target.value)}
+              placeholder="0"
+              className="h-9 w-28 text-xs bg-background/60 border-border/40"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-semibold">
+              Макс. сумма
+            </Label>
+            <Input
+              type="number"
+              value={filterMax}
+              onChange={(e) => setFilterMax(e.target.value)}
+              placeholder="∞"
+              className="h-9 w-28 text-xs bg-background/60 border-border/40"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-semibold">
+              Приоритет
+            </Label>
+            <Select
+              value={filterPriority}
+              onValueChange={(v) => v && setFilterPriority(v)}
+            >
+              <SelectTrigger className="h-9 w-32 text-xs bg-background/60 border-border/40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все</SelectItem>
+                <SelectItem value="high">Высокий</SelectItem>
+                <SelectItem value="medium">Средний</SelectItem>
+                <SelectItem value="low">Низкий</SelectItem>
+                <SelectItem value="none">Без приоритета</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {(filterMin || filterMax || filterPriority !== "all") && (
+            <button
+              onClick={() => {
+                setFilterMin("");
+                setFilterMax("");
+                setFilterPriority("all");
+              }}
+              className="flex items-center gap-1 text-[10px] text-muted-foreground/50 hover:text-foreground transition-colors mb-0.5"
+            >
+              <X className="h-3 w-3" />
+              Сбросить
+            </button>
+          )}
+        </div>
+      )}
 
       <DndContext
         sensors={sensors}
