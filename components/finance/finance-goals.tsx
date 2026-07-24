@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  createElement,
+} from "react";
 import {
   PiggyBank,
   Target,
@@ -16,6 +22,7 @@ import {
   ChevronDown,
   ArrowRight,
   Minus,
+  Info,
 } from "lucide-react";
 import type {
   FinanceGoal,
@@ -41,8 +48,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getFinanceIcon } from "@/lib/finance-icons";
 
 const PRIORITY_LABELS: Record<string, string> = {
   high: "Высокий",
@@ -75,6 +90,7 @@ export function FinanceGoals() {
     {},
   );
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
+  const [showCategoryHint, setShowCategoryHint] = useState(false);
 
   const [formName, setFormName] = useState("");
   const [formTarget, setFormTarget] = useState("");
@@ -763,31 +779,50 @@ export function FinanceGoals() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">
+              <label className="flex items-center gap-1.5 text-sm font-medium">
                 Связать с категорией (необязательно)
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryHint(!showCategoryHint)}
+                  className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
               </label>
-              <select
-                value={formCategoryId}
-                onChange={(e) => setFormCategoryId(e.target.value)}
-                className={cn(
-                  "flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                  !formCategoryId && "text-muted-foreground",
-                )}
+              <Select
+                value={formCategoryId || "__none__"}
+                onValueChange={(v) =>
+                  setFormCategoryId(v === "__none__" || !v ? "" : v)
+                }
               >
-                <option value="">Без категории</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Привяжите категорию расходов или доходов из раздела «Настройки»,
-                чтобы транзакции по ней автоматически учитывались в прогрессе
-                цели. Если вам нужно несколько целей с одной и той же категорией
-                (например, «Стройматериалы» для дома и для квартиры), создайте
-                для каждой отдельную категорию в настройках.
-              </p>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Без категории" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Без категории</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <span className="flex items-center gap-2">
+                        {createElement(getFinanceIcon(cat.icon), {
+                          className: "h-4 w-4",
+                          style: cat.color ? { color: cat.color } : undefined,
+                        })}
+                        {cat.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {showCategoryHint && (
+                <p className="text-xs text-muted-foreground leading-relaxed rounded-lg bg-muted/50 px-3 py-2">
+                  Привяжите категорию расходов или доходов из раздела
+                  «Настройки», чтобы транзакции по ней автоматически учитывались
+                  в прогрессе цели. Если вам нужно несколько целей с одной и той
+                  же категорией (например, «Стройматериалы» для дома и для
+                  квартиры), создайте для каждой отдельную категорию в
+                  настройках.
+                </p>
+              )}
             </div>
           </div>
 
