@@ -11,17 +11,13 @@ import {
   Calendar,
   TrendingUp,
   CheckCircle2,
-  Circle,
   Archive,
   RotateCcw,
-  AlertTriangle,
   ChevronDown,
+  ArrowRight,
+  Minus,
 } from "lucide-react";
-import type {
-  FinanceGoal,
-  FinanceAccount,
-  GoalPriority,
-} from "@/lib/finance-types";
+import type { FinanceGoal, GoalPriority } from "@/lib/finance-types";
 import {
   getGoalsByUser,
   createGoal,
@@ -40,13 +36,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -71,20 +60,20 @@ function daysBetween(from: string, to: string): number {
 export function FinanceGoals() {
   const uid = auth.currentUser?.uid || "user-1";
   const [goals, setGoals] = useState<FinanceGoal[]>([]);
-  const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<FinanceGoal | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [adjustAmounts, setAdjustAmounts] = useState<Record<string, string>>(
+    {},
+  );
 
   const [formName, setFormName] = useState("");
   const [formTarget, setFormTarget] = useState("");
   const [formCurrent, setFormCurrent] = useState("0");
   const [formDeadline, setFormDeadline] = useState("");
   const [formPriority, setFormPriority] = useState("medium");
-  const [formAccountId, setFormAccountId] = useState("");
-  const [formAutoDeposit, setFormAutoDeposit] = useState("0");
 
   const resetForm = useCallback(() => {
     setFormName("");
@@ -92,8 +81,6 @@ export function FinanceGoals() {
     setFormCurrent("0");
     setFormDeadline("");
     setFormPriority("medium");
-    setFormAccountId("");
-    setFormAutoDeposit("0");
   }, []);
 
   const fetchGoals = useCallback(async () => {
@@ -139,8 +126,6 @@ export function FinanceGoals() {
     setFormCurrent(String(goal.currentAmount));
     setFormDeadline(goal.deadline);
     setFormPriority(goal.priority);
-    setFormAccountId(goal.accountId || "");
-    setFormAutoDeposit(String(goal.autoDepositPercent ?? 0));
     setDialogOpen(true);
   }, []);
 
@@ -157,10 +142,6 @@ export function FinanceGoals() {
     }
     const targetAmount = Number(formTarget);
     const currentAmount = Number(formCurrent);
-    const autoDepositPercent = Math.max(
-      0,
-      Math.min(100, Number(formAutoDeposit) || 0),
-    );
     if (targetAmount <= 0) {
       toast.error("Целевая сумма должна быть больше 0");
       return;
@@ -177,8 +158,6 @@ export function FinanceGoals() {
           currentAmount,
           deadline: formDeadline,
           priority: formPriority as GoalPriority,
-          ...(formAccountId ? { accountId: formAccountId } : {}),
-          autoDepositPercent,
         });
         setGoals((prev) =>
           prev.map((g) => (g.id === editingGoal.id ? updated : g)),
@@ -195,8 +174,6 @@ export function FinanceGoals() {
           currentAmount,
           deadline: formDeadline,
           priority: formPriority as GoalPriority,
-          ...(formAccountId ? { accountId: formAccountId } : {}),
-          autoDepositPercent,
           completed: false,
         });
         setGoals((prev) => [...prev, created]);
@@ -214,10 +191,9 @@ export function FinanceGoals() {
     formCurrent,
     formDeadline,
     formPriority,
-    formAccountId,
-    formAutoDeposit,
     editingGoal,
     handleCloseDialog,
+    uid,
   ]);
 
   const handleDelete = useCallback(async (goal: FinanceGoal) => {
@@ -253,6 +229,34 @@ export function FinanceGoals() {
     }
   }, []);
 
+  const handleAdjustGoal = useCallback(
+    async (goal: FinanceGoal, delta: number) => {
+      if (delta === 0) return;
+      const newAmount = Math.max(0, goal.currentAmount + delta);
+      setGoals((prev) =>
+        prev.map((g) =>
+          g.id === goal.id ? { ...g, currentAmount: newAmount } : g,
+        ),
+      );
+      setAdjustAmounts((prev) => ({ ...prev, [goal.id]: "" }));
+
+      const label = delta > 0 ? "Пополнено" : "Списано";
+      const toastId = toast.loading(
+        delta > 0 ? "Пополняем..." : "Списываем...",
+      );
+      try {
+        const updated = await updateGoal(goal.id, { currentAmount: newAmount });
+        setGoals((prev) => prev.map((g) => (g.id === goal.id ? updated : g)));
+        toast.success(`${label} ${Math.abs(delta).toLocaleString()} ₽`, {
+          id: toastId,
+        });
+      } catch {
+        toast.error("Ошибка сети", { id: toastId });
+      }
+    },
+    [],
+  );
+
   const today = new Date().toISOString().split("T")[0];
 
   if (loading) {
@@ -266,10 +270,13 @@ export function FinanceGoals() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card>
+        <Card className="relative overflow-hidden">
+          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-violet-500 to-purple-500" />
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Target className="h-4 w-4" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-500/10">
+                <Target className="h-4 w-4 text-violet-600" />
+              </div>
               Всего целей
             </CardTitle>
           </CardHeader>
@@ -277,10 +284,13 @@ export function FinanceGoals() {
             <p className="text-2xl font-bold">{stats.total}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="relative overflow-hidden">
+          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-500 to-green-500" />
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-emerald-600">
-              <CheckCircle2 className="h-4 w-4" />
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-500/10">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              </div>
               Завершено
             </CardTitle>
           </CardHeader>
@@ -290,10 +300,13 @@ export function FinanceGoals() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="relative overflow-hidden">
+          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-amber-500 to-orange-500" />
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <TrendingUp className="h-4 w-4" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-500/10">
+                <TrendingUp className="h-4 w-4 text-amber-600" />
+              </div>
               Общая цель
             </CardTitle>
           </CardHeader>
@@ -303,10 +316,13 @@ export function FinanceGoals() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="relative overflow-hidden">
+          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-sky-500 to-cyan-500" />
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-sky-600">
-              <PiggyBank className="h-4 w-4" />
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-100 dark:bg-sky-500/10">
+                <PiggyBank className="h-4 w-4 text-sky-600" />
+              </div>
               Накоплено
             </CardTitle>
           </CardHeader>
@@ -327,13 +343,18 @@ export function FinanceGoals() {
 
       {activeGoals.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-            <Target className="h-12 w-12 mb-3 opacity-20" />
-            <p className="text-sm">Нет активных целей</p>
+          <CardContent className="flex flex-col items-center justify-center py-14 text-muted-foreground">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 ring-1 ring-violet-500/20">
+              <Target className="h-8 w-8 text-violet-500" />
+            </div>
+            <p className="text-sm font-medium">Нет активных целей</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Поставьте первую финансовую цель
+            </p>
             <Button
               variant="outline"
               size="sm"
-              className="mt-3"
+              className="mt-4"
               onClick={openAddDialog}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -359,13 +380,44 @@ export function FinanceGoals() {
                 : 0;
             const perMonth = perDay * 30;
 
+            const edgeColor =
+              {
+                high: "from-rose-500 to-pink-500",
+                medium: "from-amber-500 to-orange-500",
+                low: "from-emerald-500 to-green-500",
+              }[goal.priority] || "from-violet-500 to-purple-500";
+
             return (
-              <Card key={goal.id}>
-                <CardHeader className="pb-3">
+              <Card
+                key={goal.id}
+                className="relative overflow-hidden transition-all hover:shadow-md group"
+              >
+                <div
+                  className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${edgeColor}`}
+                />
+                <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base font-medium">
-                      {goal.name}
-                    </CardTitle>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={cn(
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                          progressPct >= 100
+                            ? "bg-emerald-100 dark:bg-emerald-500/10"
+                            : "bg-violet-100 dark:bg-violet-500/10",
+                        )}
+                      >
+                        {progressPct >= 100 ? (
+                          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                        ) : (
+                          <Target className="h-5 w-5 text-violet-600" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <CardTitle className="text-base font-medium truncate">
+                          {goal.name}
+                        </CardTitle>
+                      </div>
+                    </div>
                     <Badge
                       variant="outline"
                       className={cn(
@@ -386,40 +438,37 @@ export function FinanceGoals() {
                       {goal.targetAmount.toLocaleString()} ₽
                     </span>
                   </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="h-2.5 rounded-full bg-muted overflow-hidden">
                     <div
                       className={cn(
-                        "h-full rounded-full transition-all",
-                        progressPct >= 100 ? "bg-emerald-500" : "bg-primary",
+                        "h-full rounded-full transition-all duration-500",
+                        progressPct >= 100
+                          ? "bg-gradient-to-r from-emerald-500 to-green-500"
+                          : "bg-gradient-to-r from-violet-500 to-purple-500",
                       )}
                       style={{ width: `${progressPct}%` }}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground text-center">
-                    {progressPct}%
-                  </p>
 
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Calendar className="h-3.5 w-3.5 shrink-0" />
-                    <span>
-                      {daysRemaining > 0
-                        ? `Осталось ${daysRemaining} дн.`
-                        : daysRemaining === 0
-                          ? "Последний день!"
-                          : "Просрочено"}
-                    </span>
-                    <span className="mx-1">·</span>
-                    <span>
-                      до{" "}
-                      {new Date(
-                        goal.deadline + "T00:00:00Z",
-                      ).toLocaleDateString("ru-RU")}
-                    </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-violet-600 dark:text-violet-400">
+                      {progressPct}%
+                    </p>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        {daysRemaining > 0
+                          ? `${daysRemaining} дн.`
+                          : daysRemaining === 0
+                            ? "Последний день!"
+                            : "Просрочено"}
+                      </span>
+                    </div>
                   </div>
 
                   {remaining > 0 && daysRemaining > 0 && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-1.5">
+                      <TrendingUp className="h-3.5 w-3.5 shrink-0 text-amber-500" />
                       <span>
                         {perDay.toLocaleString()} ₽/день ·{" "}
                         {perMonth.toLocaleString()} ₽/мес
@@ -427,11 +476,59 @@ export function FinanceGoals() {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        type="number"
+                        value={adjustAmounts[goal.id] ?? ""}
+                        onChange={(e) =>
+                          setAdjustAmounts((prev) => ({
+                            ...prev,
+                            [goal.id]: e.target.value,
+                          }))
+                        }
+                        placeholder="Сумма"
+                        min={0}
+                        className="h-8 text-xs pr-2"
+                      />
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1"
+                      className="h-8 px-3 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                      disabled={
+                        !adjustAmounts[goal.id] ||
+                        Number(adjustAmounts[goal.id]) <= 0
+                      }
+                      onClick={() =>
+                        handleAdjustGoal(goal, Number(adjustAmounts[goal.id]))
+                      }
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Пополнить
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-3 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                      disabled={
+                        !adjustAmounts[goal.id] ||
+                        Number(adjustAmounts[goal.id]) <= 0
+                      }
+                      onClick={() =>
+                        handleAdjustGoal(goal, -Number(adjustAmounts[goal.id]))
+                      }
+                    >
+                      <Minus className="h-3 w-3 mr-1" />
+                      Снять
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-8"
                       onClick={() => openEditDialog(goal)}
                     >
                       <Pencil className="h-3.5 w-3.5 mr-1.5" />
@@ -440,7 +537,7 @@ export function FinanceGoals() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1"
+                      className="flex-1 h-8"
                       onClick={() => handleToggleComplete(goal)}
                     >
                       <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
@@ -449,6 +546,7 @@ export function FinanceGoals() {
                     <Button
                       variant="outline"
                       size="icon-sm"
+                      className="h-8 w-8 shrink-0"
                       onClick={() => handleDelete(goal)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -462,7 +560,7 @@ export function FinanceGoals() {
       )}
 
       {completedGoals.length > 0 && (
-        <Card>
+        <Card className="overflow-hidden">
           <button
             type="button"
             onClick={() => setArchivedOpen(!archivedOpen)}
@@ -470,7 +568,9 @@ export function FinanceGoals() {
           >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Archive className="h-4 w-4" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-500/10">
+                  <Archive className="h-4 w-4 text-emerald-600" />
+                </div>
                 Завершённые ({completedGoals.length})
                 <ChevronDown
                   className={cn(
@@ -482,18 +582,20 @@ export function FinanceGoals() {
             </CardHeader>
           </button>
           {archivedOpen && (
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-1 pb-4">
               {completedGoals.map((goal) => {
                 const daysRemaining = daysBetween(today, goal.deadline);
                 return (
                   <div
                     key={goal.id}
-                    className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/50 transition-colors group"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-500/10">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      </div>
                       <div className="min-w-0">
-                        <p className="text-sm line-through text-muted-foreground">
+                        <p className="text-sm line-through text-muted-foreground font-medium">
                           {goal.name}
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -506,6 +608,7 @@ export function FinanceGoals() {
                     <Button
                       variant="ghost"
                       size="icon-sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => handleToggleComplete(goal)}
                     >
                       <RotateCcw className="h-3.5 w-3.5" />
@@ -524,23 +627,69 @@ export function FinanceGoals() {
           if (!open) handleCloseDialog();
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingGoal ? "Редактировать цель" : "Новая цель"}
-            </DialogTitle>
+        <DialogContent className="sm:max-w-lg overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500" />
+
+          <DialogHeader className="pt-3">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25">
+                <Target className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg">
+                  {editingGoal ? "Редактировать цель" : "Новая цель"}
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {editingGoal
+                    ? "Измените параметры цели"
+                    : "Поставьте финансовую цель и следите за прогрессом"}
+                </p>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Название</label>
+
+          {Number(formTarget) > 0 && (
+            <div className="mx-6 p-3 rounded-xl bg-gradient-to-r from-violet-500/5 to-purple-500/5 border border-violet-200/50 dark:border-violet-500/20">
+              <div className="flex items-center justify-between text-sm mb-1.5">
+                <span className="text-muted-foreground">Прогресс</span>
+                <span className="font-semibold">
+                  {Math.min(
+                    Math.round(
+                      (Number(formCurrent) / Number(formTarget)) * 100,
+                    ),
+                    100,
+                  )}
+                  %
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-500 transition-all"
+                  style={{
+                    width: `${Math.min(Math.round((Number(formCurrent) / Number(formTarget)) * 100), 100)}%`,
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center mt-1.5">
+                {Number(formCurrent).toLocaleString()} /{" "}
+                {Number(formTarget).toLocaleString()} ₽
+              </p>
+            </div>
+          )}
+
+          <div className="px-6 space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Название цели</label>
               <Input
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="Например: Новый ноутбук"
+                className="h-10"
               />
             </div>
+
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="text-sm font-medium">Целевая сумма</label>
                 <Input
                   type="number"
@@ -548,9 +697,10 @@ export function FinanceGoals() {
                   onChange={(e) => setFormTarget(e.target.value)}
                   placeholder="150000"
                   min={1}
+                  className="h-10"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="text-sm font-medium">Уже накоплено</label>
                 <Input
                   type="number"
@@ -558,85 +708,69 @@ export function FinanceGoals() {
                   onChange={(e) => setFormCurrent(e.target.value)}
                   placeholder="0"
                   min={0}
+                  className="h-10"
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="text-sm font-medium">Дедлайн</label>
                 <Input
                   type="date"
                   value={formDeadline}
                   onChange={(e) => setFormDeadline(e.target.value)}
+                  className="h-10"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="text-sm font-medium">Приоритет</label>
-                <Select
-                  value={formPriority}
-                  onValueChange={(v) => v && setFormPriority(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue>
-                      {formPriority === "high"
-                        ? "Высокий"
-                        : formPriority === "medium"
-                          ? "Средний"
-                          : formPriority === "low"
-                            ? "Низкий"
-                            : formPriority}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="high">Высокий</SelectItem>
-                    <SelectItem value="medium">Средний</SelectItem>
-                    <SelectItem value="low">Низкий</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Счёт (необязательно)
-                </label>
-                <Select
-                  value={formAccountId}
-                  onValueChange={(v) => setFormAccountId(v ?? "")}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Без счёта" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Без счёта</SelectItem>
-                    {accounts.map((acc) => (
-                      <SelectItem key={acc.id} value={acc.id}>
-                        {acc.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Авто-депозит (%)</label>
-                <Input
-                  type="number"
-                  value={formAutoDeposit}
-                  onChange={(e) => setFormAutoDeposit(e.target.value)}
-                  placeholder="10"
-                  min={0}
-                  max={100}
-                />
+                <div className="grid grid-cols-3 gap-1">
+                  {(["high", "medium", "low"] as const).map((p) => {
+                    const colors = {
+                      high: "data-[active=true]:bg-rose-500 data-[active=true]:text-white data-[active=true]:border-rose-500 border-rose-200 text-rose-600 dark:border-rose-500/30",
+                      medium:
+                        "data-[active=true]:bg-amber-500 data-[active=true]:text-white data-[active=true]:border-amber-500 border-amber-200 text-amber-600 dark:border-amber-500/30",
+                      low: "data-[active=true]:bg-emerald-500 data-[active=true]:text-white data-[active=true]:border-emerald-500 border-emerald-200 text-emerald-600 dark:border-emerald-500/30",
+                    };
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        data-active={formPriority === p}
+                        onClick={() => setFormPriority(p)}
+                        className={cn(
+                          "h-9 rounded-lg border text-xs font-medium transition-all hover:opacity-80",
+                          colors[p],
+                          formPriority !== p &&
+                            "bg-transparent text-muted-foreground border-input",
+                        )}
+                      >
+                        {PRIORITY_LABELS[p]}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>
+
+          <DialogFooter className="px-6 pb-6 pt-2 gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCloseDialog}
+              className="h-10"
+            >
               Отмена
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="h-10 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-violet-500/25"
+            >
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editingGoal ? "Сохранить" : "Создать"}
+              {editingGoal ? "Сохранить" : "Создать цель"}
+              {!saving && <ArrowRight className="h-4 w-4 ml-2" />}
             </Button>
           </DialogFooter>
         </DialogContent>
