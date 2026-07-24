@@ -8,7 +8,6 @@ import {
   Target,
   PiggyBank,
   Landmark,
-  Briefcase,
   Shield,
   ShoppingCart,
   Repeat,
@@ -20,7 +19,6 @@ import { FinanceTransactions } from "@/components/finance/finance-transactions";
 import { FinancePlanning } from "@/components/finance/finance-planning";
 import { FinanceGoals } from "@/components/finance/finance-goals";
 import { FinanceLoans } from "@/components/finance/finance-loans";
-import { FinanceProjects } from "@/components/finance/finance-projects";
 import { FinanceEmergencyFund } from "@/components/finance/finance-emergency-fund";
 import { FinanceSettings } from "@/components/finance/finance-settings";
 import { FinanceShopping } from "@/components/finance/finance-shopping";
@@ -35,7 +33,6 @@ const ALL_MODULES = [
   { id: "planning", label: "Планирование", icon: Target },
   { id: "goals", label: "Цели", icon: PiggyBank },
   { id: "loans", label: "Обязательства", icon: Landmark },
-  { id: "projects", label: "Проекты", icon: Briefcase },
   { id: "emergency", label: "Подушка", icon: Shield },
   { id: "shopping", label: "Список покупок", icon: ShoppingCart },
   { id: "recurring", label: "Регулярные", icon: Repeat },
@@ -76,8 +73,6 @@ export default function FinancePage() {
         return <FinanceGoals />;
       case "loans":
         return <FinanceLoans />;
-      case "projects":
-        return <FinanceProjects />;
       case "emergency":
         return <FinanceEmergencyFund />;
       case "shopping":
