@@ -5,7 +5,6 @@ import type {
   BudgetPlan,
   FinanceGoal,
   Loan,
-  FinanceProject,
   EmergencyFund,
   ShoppingList,
 } from "./finance-types";
@@ -2539,39 +2538,6 @@ export const mockFinanceLoans: Loan[] = [
     obligationType: "credit",
     overdueMonths: 0,
     createdAt: iso(new Date("2023-06-01")),
-    updatedAt: iso(now),
-  },
-];
-
-export const mockFinanceProjects: FinanceProject[] = [
-  {
-    id: "fin-proj-1",
-    userId: "user-1",
-    name: "Ремонт",
-    icon: "PaintBucket",
-    targetAmount: 300000,
-    savedAmount: 50000,
-    deadline: "2026-12-31",
-    description: "Косметический ремонт квартиры",
-    linkedCategoryIds: ["cat-rent"],
-    color: "blue",
-    completed: false,
-    createdAt: iso(new Date("2025-06-01")),
-    updatedAt: iso(now),
-  },
-  {
-    id: "fin-proj-2",
-    userId: "user-1",
-    name: "Новый MacBook",
-    icon: "Laptop",
-    targetAmount: 250000,
-    savedAmount: 100000,
-    deadline: "2026-09-01",
-    description: "MacBook Pro M4",
-    linkedCategoryIds: ["cat-training"],
-    color: "purple",
-    completed: false,
-    createdAt: iso(new Date("2025-05-15")),
     updatedAt: iso(now),
   },
 ];

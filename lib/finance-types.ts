@@ -105,6 +105,7 @@ export interface FinanceGoal {
   priority: GoalPriority;
   accountId?: string;
   autoDepositPercent?: number;
+  categoryId?: string;
   completed: boolean;
   createdAt: string;
   updatedAt: string;
@@ -130,22 +131,6 @@ export interface Loan {
   enforcementFee?: number;
   officialIncome?: number;
   fsspPercent?: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface FinanceProject {
-  id: string;
-  userId: string;
-  name: string;
-  icon: string;
-  targetAmount: number;
-  savedAmount: number;
-  deadline?: string;
-  description?: string;
-  linkedCategoryIds: string[];
-  color: string;
-  completed: boolean;
   createdAt: string;
   updatedAt: string;
 }

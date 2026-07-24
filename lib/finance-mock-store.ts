@@ -5,7 +5,6 @@ import {
   mockFinanceBudgetPlans,
   mockFinanceGoals,
   mockFinanceLoans,
-  mockFinanceProjects,
   mockFinanceEmergencyFund,
 } from "./finance-mock";
 import type {
@@ -15,7 +14,6 @@ import type {
   BudgetPlan,
   FinanceGoal,
   Loan,
-  FinanceProject,
   EmergencyFund,
 } from "./finance-types";
 
@@ -30,7 +28,6 @@ class MockStore {
   budgets: BudgetPlan[];
   goals: FinanceGoal[];
   loans: Loan[];
-  projects: FinanceProject[];
   emergencyFund: EmergencyFund;
 
   constructor() {
@@ -40,7 +37,6 @@ class MockStore {
     this.budgets = clone(mockFinanceBudgetPlans);
     this.goals = clone(mockFinanceGoals);
     this.loans = clone(mockFinanceLoans);
-    this.projects = clone(mockFinanceProjects);
     this.emergencyFund = clone(mockFinanceEmergencyFund);
   }
 }

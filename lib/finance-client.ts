@@ -25,7 +25,6 @@ import type {
   BudgetPlan,
   FinanceGoal,
   Loan,
-  FinanceProject,
   EmergencyFund,
   TransactionFilters,
   ShoppingList,
@@ -38,7 +37,6 @@ const transactionsCol = () => collection(db, "FINANCE_TRANSACTIONS");
 const budgetsCol = () => collection(db, "FINANCE_BUDGETS");
 const goalsCol = () => collection(db, "FINANCE_GOALS");
 const loansCol = () => collection(db, "FINANCE_LOANS");
-const projectsCol = () => collection(db, "FINANCE_PROJECTS");
 const emergencyFundCol = () => collection(db, "FINANCE_EMERGENCY_FUND");
 const shoppingListsCol = () => collection(db, "SHOPPING_LISTS");
 const recurringCol = () => collection(db, "FINANCE_RECURRING");
@@ -340,50 +338,6 @@ export async function updateLoan(
 
 export async function deleteLoan(id: string): Promise<void> {
   await deleteDoc(doc(loansCol(), id));
-}
-
-export async function getProjectsByUser(
-  uid: string,
-): Promise<FinanceProject[]> {
-  const q = query(projectsCol(), where("userId", "==", uid));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => toPlain<FinanceProject>(d));
-}
-
-export async function createProject(
-  data: Omit<FinanceProject, "createdAt" | "updatedAt">,
-): Promise<FinanceProject> {
-  const now = new Date().toISOString();
-  const project: FinanceProject = { ...data, createdAt: now, updatedAt: now };
-  await setDoc(doc(projectsCol(), project.id), clean(project));
-  return project;
-}
-
-export async function updateProject(
-  id: string,
-  data: Partial<
-    Pick<
-      FinanceProject,
-      | "name"
-      | "icon"
-      | "targetAmount"
-      | "savedAmount"
-      | "deadline"
-      | "description"
-      | "linkedCategoryIds"
-      | "color"
-      | "completed"
-    >
-  >,
-): Promise<FinanceProject> {
-  const ref = doc(projectsCol(), id);
-  await updateDoc(ref, clean({ ...data, updatedAt: new Date().toISOString() }));
-  const snap = await getDoc(ref);
-  return toPlain<FinanceProject>(snap);
-}
-
-export async function deleteProject(id: string): Promise<void> {
-  await deleteDoc(doc(projectsCol(), id));
 }
 
 export async function getEmergencyFund(
