@@ -271,11 +271,11 @@ export function FinanceGoals() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="relative overflow-hidden">
-          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-violet-500 to-purple-500" />
+          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-500 to-green-500" />
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-500/10">
-                <Target className="h-4 w-4 text-violet-600" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-500/10">
+                <Target className="h-4 w-4 text-emerald-600" />
               </div>
               Всего целей
             </CardTitle>
@@ -344,8 +344,8 @@ export function FinanceGoals() {
       {activeGoals.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 ring-1 ring-violet-500/20">
-              <Target className="h-8 w-8 text-violet-500" />
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/10 to-green-500/10 ring-1 ring-emerald-500/20">
+              <Target className="h-8 w-8 text-emerald-500" />
             </div>
             <p className="text-sm font-medium">Нет активных целей</p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -380,21 +380,11 @@ export function FinanceGoals() {
                 : 0;
             const perMonth = perDay * 30;
 
-            const edgeColor =
-              {
-                high: "from-rose-500 to-pink-500",
-                medium: "from-amber-500 to-orange-500",
-                low: "from-emerald-500 to-green-500",
-              }[goal.priority] || "from-violet-500 to-purple-500";
-
             return (
               <Card
                 key={goal.id}
-                className="relative overflow-hidden transition-all hover:shadow-md group"
+                className="relative overflow-hidden transition-all hover:shadow-md"
               >
-                <div
-                  className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${edgeColor}`}
-                />
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -403,13 +393,13 @@ export function FinanceGoals() {
                           "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
                           progressPct >= 100
                             ? "bg-emerald-100 dark:bg-emerald-500/10"
-                            : "bg-violet-100 dark:bg-violet-500/10",
+                            : "bg-emerald-100 dark:bg-emerald-500/10",
                         )}
                       >
                         {progressPct >= 100 ? (
                           <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                         ) : (
-                          <Target className="h-5 w-5 text-violet-600" />
+                          <Target className="h-5 w-5 text-emerald-600" />
                         )}
                       </div>
                       <div className="min-w-0">
@@ -444,14 +434,14 @@ export function FinanceGoals() {
                         "h-full rounded-full transition-all duration-500",
                         progressPct >= 100
                           ? "bg-gradient-to-r from-emerald-500 to-green-500"
-                          : "bg-gradient-to-r from-violet-500 to-purple-500",
+                          : "bg-gradient-to-r from-emerald-500 to-green-500",
                       )}
                       style={{ width: `${progressPct}%` }}
                     />
                   </div>
 
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold text-violet-600 dark:text-violet-400">
+                    <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                       {progressPct}%
                     </p>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -524,7 +514,7 @@ export function FinanceGoals() {
                     </Button>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-2 pt-1">
                     <Button
                       variant="outline"
                       size="sm"
@@ -628,11 +618,11 @@ export function FinanceGoals() {
         }}
       >
         <DialogContent className="sm:max-w-lg overflow-hidden">
-          <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500" />
+          <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600" />
 
           <DialogHeader className="pt-3">
             <div className="flex items-center gap-3 mb-1">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/25">
                 <Target className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -649,7 +639,7 @@ export function FinanceGoals() {
           </DialogHeader>
 
           {Number(formTarget) > 0 && (
-            <div className="mx-6 p-3 rounded-xl bg-gradient-to-r from-violet-500/5 to-purple-500/5 border border-violet-200/50 dark:border-violet-500/20">
+            <div className="mx-6 p-3 rounded-xl bg-gradient-to-r from-emerald-500/5 to-green-500/5 border border-emerald-200/50 dark:border-emerald-500/20">
               <div className="flex items-center justify-between text-sm mb-1.5">
                 <span className="text-muted-foreground">Прогресс</span>
                 <span className="font-semibold">
@@ -664,7 +654,7 @@ export function FinanceGoals() {
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-500 transition-all"
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-500 transition-all"
                   style={{
                     width: `${Math.min(Math.round((Number(formCurrent) / Number(formTarget)) * 100), 100)}%`,
                   }}
@@ -766,7 +756,7 @@ export function FinanceGoals() {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="h-10 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-violet-500/25"
+              className="h-10 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-lg shadow-emerald-500/25"
             >
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {editingGoal ? "Сохранить" : "Создать цель"}
