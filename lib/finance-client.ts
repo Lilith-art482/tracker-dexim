@@ -48,6 +48,28 @@ function toPlain<T>(snap: {
   return { id: snap.id, ...snap.data()! } as T & { id: string };
 }
 
+async function applyGoalDelta(
+  userId: string,
+  categoryId: string | undefined,
+  delta: number,
+) {
+  if (!categoryId || delta === 0) return;
+  const q = query(
+    goalsCol(),
+    where("userId", "==", userId),
+    where("categoryId", "==", categoryId),
+    limit(1),
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return;
+  const goal = toPlain<FinanceGoal>(snap.docs[0]);
+  const newAmount = Math.max(0, goal.currentAmount + delta);
+  await updateDoc(doc(goalsCol(), goal.id), {
+    currentAmount: newAmount,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
 export async function getAccountsByUser(
   uid: string,
 ): Promise<FinanceAccount[]> {
@@ -149,6 +171,10 @@ export async function createTransaction(
     }
   }
 
+  const goalDelta =
+    tx.type === "income" ? tx.amount : tx.type === "expense" ? -tx.amount : 0;
+  await applyGoalDelta(tx.userId, tx.categoryId, goalDelta);
+
   return tx;
 }
 
@@ -208,6 +234,30 @@ export async function updateTransaction(
       }
     }
 
+    const oldGoalDelta =
+      old.type === "income"
+        ? old.amount
+        : old.type === "expense"
+          ? -old.amount
+          : 0;
+    const newGoalDelta =
+      updated.type === "income"
+        ? updated.amount
+        : updated.type === "expense"
+          ? -updated.amount
+          : 0;
+
+    if (old.categoryId === updated.categoryId) {
+      const netGoal = newGoalDelta - oldGoalDelta;
+      if (netGoal !== 0)
+        await applyGoalDelta(updated.userId, updated.categoryId, netGoal);
+    } else {
+      if (oldGoalDelta !== 0)
+        await applyGoalDelta(updated.userId, old.categoryId, -oldGoalDelta);
+      if (newGoalDelta !== 0)
+        await applyGoalDelta(updated.userId, updated.categoryId, newGoalDelta);
+    }
+
     return updated;
   }
 
@@ -237,6 +287,10 @@ export async function deleteTransaction(id: string): Promise<void> {
         );
       }
     }
+
+    const goalDelta =
+      tx.type === "income" ? -tx.amount : tx.type === "expense" ? tx.amount : 0;
+    await applyGoalDelta(tx.userId, tx.categoryId, goalDelta);
   }
   await deleteDoc(ref);
 }
