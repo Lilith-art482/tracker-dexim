@@ -17,12 +17,17 @@ import {
   ArrowRight,
   Minus,
 } from "lucide-react";
-import type { FinanceGoal, GoalPriority } from "@/lib/finance-types";
+import type {
+  FinanceGoal,
+  GoalPriority,
+  TransactionCategory,
+} from "@/lib/finance-types";
 import {
   getGoalsByUser,
   createGoal,
   updateGoal,
   deleteGoal,
+  getCategoriesByUser,
 } from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -46,9 +51,10 @@ const PRIORITY_LABELS: Record<string, string> = {
 };
 
 const PRIORITY_STYLES: Record<string, string> = {
-  high: "bg-rose-500/10 text-rose-600 border-rose-200",
-  medium: "bg-amber-500/10 text-amber-600 border-amber-200",
-  low: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
+  high: "bg-rose-500/10 text-rose-600 border-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-800",
+  medium:
+    "bg-amber-500/10 text-amber-600 border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-800",
+  low: "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-800",
 };
 
 function daysBetween(from: string, to: string): number {
@@ -68,12 +74,14 @@ export function FinanceGoals() {
   const [adjustAmounts, setAdjustAmounts] = useState<Record<string, string>>(
     {},
   );
+  const [categories, setCategories] = useState<TransactionCategory[]>([]);
 
   const [formName, setFormName] = useState("");
   const [formTarget, setFormTarget] = useState("");
   const [formCurrent, setFormCurrent] = useState("0");
   const [formDeadline, setFormDeadline] = useState("");
   const [formPriority, setFormPriority] = useState("medium");
+  const [formCategoryId, setFormCategoryId] = useState("");
 
   const resetForm = useCallback(() => {
     setFormName("");
@@ -81,6 +89,7 @@ export function FinanceGoals() {
     setFormCurrent("0");
     setFormDeadline("");
     setFormPriority("medium");
+    setFormCategoryId("");
   }, []);
 
   const fetchGoals = useCallback(async () => {
@@ -98,6 +107,17 @@ export function FinanceGoals() {
   useEffect(() => {
     fetchGoals();
   }, [fetchGoals]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getCategoriesByUser(uid);
+        setCategories(data.filter((c) => !c.isArchived));
+      } catch {
+        // categories fetch is secondary
+      }
+    })();
+  }, [uid]);
 
   const activeGoals = useMemo(() => goals.filter((g) => !g.completed), [goals]);
   const completedGoals = useMemo(
@@ -126,6 +146,7 @@ export function FinanceGoals() {
     setFormCurrent(String(goal.currentAmount));
     setFormDeadline(goal.deadline);
     setFormPriority(goal.priority);
+    setFormCategoryId(goal.categoryId || "");
     setDialogOpen(true);
   }, []);
 
@@ -158,6 +179,7 @@ export function FinanceGoals() {
           currentAmount,
           deadline: formDeadline,
           priority: formPriority as GoalPriority,
+          ...(formCategoryId ? { categoryId: formCategoryId } : {}),
         });
         setGoals((prev) =>
           prev.map((g) => (g.id === editingGoal.id ? updated : g)),
@@ -174,6 +196,7 @@ export function FinanceGoals() {
           currentAmount,
           deadline: formDeadline,
           priority: formPriority as GoalPriority,
+          ...(formCategoryId ? { categoryId: formCategoryId } : {}),
           completed: false,
         });
         setGoals((prev) => [...prev, created]);
@@ -191,6 +214,7 @@ export function FinanceGoals() {
     formCurrent,
     formDeadline,
     formPriority,
+    formCategoryId,
     editingGoal,
     handleCloseDialog,
     uid,
@@ -270,8 +294,7 @@ export function FinanceGoals() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="relative overflow-hidden">
-          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-500 to-green-500" />
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-500/10">
@@ -284,8 +307,7 @@ export function FinanceGoals() {
             <p className="text-2xl font-bold">{stats.total}</p>
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden">
-          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-500 to-green-500" />
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-500/10">
@@ -295,13 +317,10 @@ export function FinanceGoals() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-emerald-600">
-              {stats.completed}
-            </p>
+            <p className="text-2xl font-bold">{stats.completed}</p>
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden">
-          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-amber-500 to-orange-500" />
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-500/10">
@@ -316,8 +335,7 @@ export function FinanceGoals() {
             </p>
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden">
-          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-sky-500 to-cyan-500" />
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-100 dark:bg-sky-500/10">
@@ -327,7 +345,7 @@ export function FinanceGoals() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-sky-600">
+            <p className="text-2xl font-bold">
               {stats.totalSaved.toLocaleString()} ₽
             </p>
           </CardContent>
@@ -718,10 +736,10 @@ export function FinanceGoals() {
                 <div className="grid grid-cols-3 gap-1">
                   {(["high", "medium", "low"] as const).map((p) => {
                     const colors = {
-                      high: "data-[active=true]:bg-rose-500 data-[active=true]:text-white data-[active=true]:border-rose-500 border-rose-200 text-rose-600 dark:border-rose-500/30",
+                      high: "data-[active=true]:bg-rose-500 data-[active=true]:text-white data-[active=true]:border-rose-500 border-rose-200 text-rose-600 dark:border-rose-800 dark:text-rose-400 dark:data-[active=true]:bg-rose-600 dark:data-[active=true]:border-rose-600",
                       medium:
-                        "data-[active=true]:bg-amber-500 data-[active=true]:text-white data-[active=true]:border-amber-500 border-amber-200 text-amber-600 dark:border-amber-500/30",
-                      low: "data-[active=true]:bg-emerald-500 data-[active=true]:text-white data-[active=true]:border-emerald-500 border-emerald-200 text-emerald-600 dark:border-emerald-500/30",
+                        "data-[active=true]:bg-amber-500 data-[active=true]:text-white data-[active=true]:border-amber-500 border-amber-200 text-amber-600 dark:border-amber-800 dark:text-amber-400 dark:data-[active=true]:bg-amber-600 dark:data-[active=true]:border-amber-600",
+                      low: "data-[active=true]:bg-emerald-500 data-[active=true]:text-white data-[active=true]:border-emerald-500 border-emerald-200 text-emerald-600 dark:border-emerald-800 dark:text-emerald-400 dark:data-[active=true]:bg-emerald-600 dark:data-[active=true]:border-emerald-600",
                     };
                     return (
                       <button
@@ -742,6 +760,34 @@ export function FinanceGoals() {
                   })}
                 </div>
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Связать с категорией (необязательно)
+              </label>
+              <select
+                value={formCategoryId}
+                onChange={(e) => setFormCategoryId(e.target.value)}
+                className={cn(
+                  "flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                  !formCategoryId && "text-muted-foreground",
+                )}
+              >
+                <option value="">Без категории</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Привяжите категорию расходов или доходов из раздела «Настройки»,
+                чтобы транзакции по ней автоматически учитывались в прогрессе
+                цели. Если вам нужно несколько целей с одной и той же категорией
+                (например, «Стройматериалы» для дома и для квартиры), создайте
+                для каждой отдельную категорию в настройках.
+              </p>
             </div>
           </div>
 
