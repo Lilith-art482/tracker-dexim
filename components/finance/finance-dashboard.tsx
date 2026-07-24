@@ -314,7 +314,7 @@ export function FinanceDashboard() {
     0,
   );
   const overdueLoans = loans.filter(
-    (l) => l.overdueMonths > 0 && l.remainingAmount > 0,
+    (l) => (l.overdueMonths || 0) > 0 && l.remainingAmount > 0,
   ).length;
 
   const hasData = periodIncome > 0 || periodExpenses > 0;

@@ -220,7 +220,7 @@ async function buildUserContext(): Promise<string> {
       const monthlyPayments = loans
         .filter((l) => l.repaymentType === "monthly")
         .reduce((s, l) => s + l.monthlyPayment, 0);
-      const overdue = loans.filter((l) => l.overdueMonths > 0).length;
+      const overdue = loans.filter((l) => (l.overdueMonths || 0) > 0).length;
       parts.push(
         `Обязательства (${loans.length}): общий долг ${totalDebt.toLocaleString()} ₽, ежемесячный платёж ${monthlyPayments.toLocaleString()} ₽, просрочено ${overdue}.`,
       );
