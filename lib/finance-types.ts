@@ -111,7 +111,7 @@ export interface FinanceGoal {
   updatedAt: string;
 }
 
-export type ObligationType = "credit" | "enforcement" | "fine" | "utilities";
+export type ObligationType = "credit" | "enforcement";
 
 export interface Loan {
   id: string;
@@ -126,10 +126,11 @@ export interface Loan {
   dueDate?: string;
   obligationType: ObligationType;
   categoryId?: string;
-  overdueMonths: number;
+  overdueMonths?: number;
   /** For enforcement */
   enforcementFee?: number;
   officialIncome?: number;
+  unofficialIncome?: number;
   fsspPercent?: number;
   createdAt: string;
   updatedAt: string;
