@@ -1250,7 +1250,8 @@ export function FinanceLoans() {
                     <CreditCard className="h-4 w-4 mr-1" />
                     {loan.remainingAmount <= 0
                       ? "Погашен"
-                      : loan.obligationType === "fine"
+                      : loan.obligationType === "enforcement" ||
+                          loan.obligationType === "fine"
                         ? `Погасить полностью ${Math.round(loan.remainingAmount).toLocaleString()} ₽`
                         : `Внести ${loan.monthlyPayment.toLocaleString()} ₽`}
                   </Button>
