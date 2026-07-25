@@ -14,7 +14,6 @@ import {
   ChevronRight,
   ShoppingBag,
   Sparkles,
-  Package,
   CircleCheck,
   Info,
   XCircle,
@@ -98,6 +97,17 @@ export function FinanceShopping() {
 
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [showHint, setShowHint] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("shopping_hint_closed") !== "true";
+    }
+    return true;
+  });
+
+  const closeHint = () => {
+    setShowHint(false);
+    localStorage.setItem("shopping_hint_closed", "true");
+  };
 
   const fetchData = useCallback(async () => {
     if (!uid) return;
@@ -170,7 +180,7 @@ export function FinanceShopping() {
     }
   };
 
-  // Simple check toggle — no modal
+  // Simple check toggle — auto-opens bulk modal when all items checked
   const handleQuickCheck = async (listId: string, itemId: string) => {
     const list = lists.find((l) => l.id === listId);
     if (!list) return;
@@ -181,6 +191,11 @@ export function FinanceShopping() {
     try {
       const updated = await updateShoppingList(listId, { items: updatedItems });
       setLists((prev) => prev.map((l) => (l.id === listId ? updated : l)));
+
+      const allCheckedNow = updatedItems.length > 0 && updatedItems.every((i) => i.checked);
+      if (allCheckedNow) {
+        openBulkPurchase(listId);
+      }
     } catch {
       toast.error("Ошибка");
     }
@@ -268,10 +283,23 @@ export function FinanceShopping() {
 
   // Bulk purchase
   const openBulkPurchase = (listId: string) => {
+    const list = lists.find((l) => l.id === listId);
     setBulkListId(listId);
-    setBulkAmount("");
     setBulkAccountId("");
     setBulkCurrency(getDisplayCurrency());
+
+    if (list) {
+      const itemsWithAmount = list.items.filter((i) => i.amount != null && i.amount > 0);
+      if (itemsWithAmount.length > 0) {
+        const total = itemsWithAmount.reduce((s, i) => s + i.amount!, 0);
+        setBulkAmount(String(Math.round(total * 100) / 100));
+      } else {
+        setBulkAmount("");
+      }
+    } else {
+      setBulkAmount("");
+    }
+
     setBulkOpen(true);
   };
 
@@ -309,6 +337,7 @@ export function FinanceShopping() {
 
       const updated = await updateShoppingList(bulkListId, {
         items: updatedItems,
+        completed: true,
       });
       setLists((prev) =>
         prev.map((l) => (l.id === bulkListId ? updated : l)),
@@ -385,7 +414,11 @@ export function FinanceShopping() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleToggleComplete(list.id);
+              if (list.completed) {
+                handleToggleComplete(list.id);
+              } else {
+                openBulkPurchase(list.id);
+              }
             }}
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-xl border-2 transition-all shrink-0",
@@ -479,130 +512,119 @@ export function FinanceShopping() {
         {/* Expanded content */}
         {expanded && (
           <div className="px-4 pb-4 space-y-3 border-t border-border/30 pt-3">
-            {list.items.length === 0 ? (
-              <div className="flex flex-col items-center py-6 gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/30">
-                  <Package className="h-5 w-5 text-muted-foreground/30" />
-                </div>
-                <p className="text-xs text-muted-foreground/50">
-                  Добавьте товары в список
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Items */}
-                <div className="space-y-0.5">
-                  {list.items.map((item) => {
-                    const itemHasAmount =
-                      item.amount != null && item.amount > 0;
-                    return (
-                      <div
-                        key={item.id}
+            {/* Items */}
+            {list.items.length > 0 && (
+              <div className="space-y-0.5">
+                {list.items.map((item) => {
+                  const itemHasAmount =
+                    item.amount != null && item.amount > 0;
+                  return (
+                    <div
+                      key={item.id}
+                      className={cn(
+                        "group/item flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all",
+                        item.checked ? "bg-muted/20" : "hover:bg-muted/30",
+                      )}
+                    >
+                      {/* Check button — simple toggle */}
+                      <button
+                        onClick={() => handleQuickCheck(list.id, item.id)}
                         className={cn(
-                          "group/item flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all",
-                          item.checked ? "bg-muted/20" : "hover:bg-muted/30",
+                          "flex h-5 w-5 items-center justify-center rounded-lg border-2 shrink-0 transition-all",
+                          item.checked
+                            ? "bg-emerald-500 border-emerald-500 text-white"
+                            : "border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5",
                         )}
                       >
-                        {/* Check button — simple toggle */}
-                        <button
-                          onClick={() => handleQuickCheck(list.id, item.id)}
+                        {item.checked && (
+                          <Check className="h-2.5 w-2.5" />
+                        )}
+                      </button>
+
+                      <div className="flex-1 min-w-0">
+                        <span
                           className={cn(
-                            "flex h-5 w-5 items-center justify-center rounded-lg border-2 shrink-0 transition-all",
-                            item.checked
-                              ? "bg-emerald-500 border-emerald-500 text-white"
-                              : "border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5",
+                            "text-sm",
+                            item.checked &&
+                              "line-through text-muted-foreground/40",
                           )}
                         >
-                          {item.checked && (
-                            <Check className="h-2.5 w-2.5" />
-                          )}
-                        </button>
-
-                        <div className="flex-1 min-w-0">
-                          <span
-                            className={cn(
-                              "text-sm",
-                              item.checked &&
-                                "line-through text-muted-foreground/40",
-                            )}
-                          >
-                            {item.name}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[11px] text-muted-foreground/50 tabular-nums">
-                            {item.quantity} {item.unit}
-                          </span>
-
-                          {/* Optional per-item amount badge */}
-                          {itemHasAmount && (
-                            <Badge
-                              variant="secondary"
-                              className="text-[10px] px-1.5 py-0 h-5 tabular-nums font-medium bg-primary/10 text-primary border-0 cursor-pointer hover:bg-primary/20"
-                              onClick={() =>
-                                openAmountEditor(
-                                  list.id,
-                                  item.id,
-                                  item.amount,
-                                )
-                              }
-                            >
-                              {item.amount!.toLocaleString()} ₽
-                            </Badge>
-                          )}
-
-                          {/* Add/set amount button */}
-                          {!item.checked && !itemHasAmount && (
-                            <button
-                              onClick={() =>
-                                openAmountEditor(list.id, item.id)
-                              }
-                              className="h-6 w-6 flex items-center justify-center rounded-lg text-muted-foreground/0 group-hover/item:text-muted-foreground/40 hover:text-primary hover:bg-primary/5 transition-all shrink-0"
-                              title="Указать сумму"
-                            >
-                              <DollarSign className="h-3 w-3" />
-                            </button>
-                          )}
-
-                          {/* Delete button */}
-                          {!item.checked && (
-                            <button
-                              onClick={() =>
-                                handleDeleteItem(list.id, item.id)
-                              }
-                              className="h-6 w-6 flex items-center justify-center rounded-lg text-muted-foreground/0 group-hover/item:text-muted-foreground/40 hover:text-rose-500 transition-all shrink-0"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Bulk purchase button */}
-                {uncheckedCount > 0 && (
-                  <div className="pt-1">
-                    <Button
-                      onClick={() => openBulkPurchase(list.id)}
-                      className="w-full h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium shadow-sm shadow-emerald-500/20"
-                    >
-                      <Receipt className="h-4 w-4 mr-2" />
-                      Оформить покупку
-                      {uncheckedCount > 0 && (
-                        <span className="ml-1.5 text-emerald-200/80">
-                          · {uncheckedCount} {uncheckedCount === 1 ? "товар" : uncheckedCount < 5 ? "товара" : "товаров"}
+                          {item.name}
                         </span>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[11px] text-muted-foreground/50 tabular-nums">
+                          {item.quantity} {item.unit}
+                        </span>
+
+                        {/* Optional per-item amount badge */}
+                        {itemHasAmount && (
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] px-1.5 py-0 h-5 tabular-nums font-medium bg-primary/10 text-primary border-0 cursor-pointer hover:bg-primary/20"
+                            onClick={() =>
+                              openAmountEditor(
+                                list.id,
+                                item.id,
+                                item.amount,
+                              )
+                            }
+                          >
+                            {item.amount!.toLocaleString()} ₽
+                          </Badge>
+                        )}
+
+                        {/* Add/set amount button */}
+                        {!item.checked && !itemHasAmount && (
+                          <button
+                            onClick={() =>
+                              openAmountEditor(list.id, item.id)
+                            }
+                            className="h-6 w-6 flex items-center justify-center rounded-lg text-muted-foreground/0 group-hover/item:text-muted-foreground/40 hover:text-primary hover:bg-primary/5 transition-all shrink-0"
+                            title="Указать сумму"
+                          >
+                            <DollarSign className="h-3 w-3" />
+                          </button>
+                        )}
+
+                        {/* Delete button */}
+                        {!item.checked && (
+                          <button
+                            onClick={() =>
+                              handleDeleteItem(list.id, item.id)
+                            }
+                            className="h-6 w-6 flex items-center justify-center rounded-lg text-muted-foreground/0 group-hover/item:text-muted-foreground/40 hover:text-rose-500 transition-all shrink-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
 
-            {/* Add item input */}
+            {/* Bulk purchase button */}
+            {uncheckedCount > 0 && (
+              <div className="pt-1">
+                <Button
+                  onClick={() => openBulkPurchase(list.id)}
+                  className="w-full h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium shadow-sm shadow-emerald-500/20"
+                >
+                  <Receipt className="h-4 w-4 mr-2" />
+                  Оформить покупку
+                  {uncheckedCount > 0 && (
+                    <span className="ml-1.5 text-emerald-200/80">
+                      · {uncheckedCount} {uncheckedCount === 1 ? "товар" : uncheckedCount < 5 ? "товара" : "товаров"}
+                    </span>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Add item input — always visible */}
             <div className="flex items-center gap-2 pt-1">
               <Input
                 value={addingToList === list.id ? newItemName : ""}
@@ -674,6 +696,34 @@ export function FinanceShopping() {
           </div>
         </div>
       </div>
+
+      {/* Hint */}
+      {showHint && (
+        <div className="relative rounded-xl bg-gradient-to-r from-primary/5 to-primary/[0.02] border border-primary/10 px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <button
+            onClick={closeHint}
+            className="absolute top-2 right-2 text-muted-foreground/40 hover:text-foreground transition-colors"
+          >
+            <XCircle className="h-3.5 w-3.5" />
+          </button>
+          <div className="flex items-start gap-2.5">
+            <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-primary/10 shrink-0 mt-0.5">
+              <Info className="h-3 w-3 text-primary" />
+            </div>
+            <div className="text-[11px] text-muted-foreground/70 leading-relaxed space-y-1 pr-4">
+              <p>
+                <span className="font-medium text-foreground/80">Галочка</span> — просто отмечает товар как купленный.
+              </p>
+              <p>
+                <span className="font-medium text-foreground/80">Иконка $</span> — указать стоимость отдельного товара (необязательно).
+              </p>
+              <p>
+                <span className="font-medium text-foreground/80">«Оформить покупку»</span> — внести итоговую сумму чека и создать одну транзакцию на весь список.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* New list input */}
       <div className="relative">
@@ -835,23 +885,53 @@ export function FinanceShopping() {
             {bulkListId && (() => {
               const list = lists.find((l) => l.id === bulkListId);
               if (!list) return null;
-              const unchecked = list.items.filter((i) => !i.checked);
+              const itemsWithAmount = list.items.filter((i) => i.amount != null && i.amount > 0);
+              const itemsWithoutAmount = list.items.filter((i) => i.amount == null || i.amount <= 0);
+              const totalFromItems = itemsWithAmount.reduce((s, i) => s + i.amount!, 0);
+              const allHaveAmount = itemsWithoutAmount.length === 0 && itemsWithAmount.length > 0;
+              const someHaveAmount = itemsWithAmount.length > 0 && itemsWithoutAmount.length > 0;
+
               return (
-                <div className="rounded-xl bg-muted/30 border border-border/30 p-3 space-y-1.5">
+                <div className="rounded-xl bg-muted/30 border border-border/30 p-3 space-y-2">
                   <p className="text-xs font-medium text-muted-foreground/70">
                     {list.name}
                   </p>
-                  <div className="flex flex-wrap gap-1">
-                    {unchecked.map((item) => (
-                      <Badge
-                        key={item.id}
-                        variant="secondary"
-                        className="text-[10px] h-5 bg-muted/50 border-0"
-                      >
-                        {item.name}
-                      </Badge>
-                    ))}
-                  </div>
+
+                  {/* Items with amounts */}
+                  {itemsWithAmount.length > 0 && (
+                    <div className="space-y-1">
+                      {itemsWithAmount.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between text-[11px]">
+                          <span className="text-muted-foreground/60 truncate">{item.name}</span>
+                          <span className="font-medium text-muted-foreground/80 tabular-nums ml-2">
+                            {item.amount!.toLocaleString()} ₽
+                          </span>
+                        </div>
+                      ))}
+                      {allHaveAmount && (
+                        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/30">
+                          <span className="font-medium text-foreground/70">Итого по товарам</span>
+                          <span className="font-bold text-foreground tabular-nums">
+                            {totalFromItems.toLocaleString()} ₽
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Hint for partial amounts */}
+                  {someHaveAmount && (
+                    <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
+                      У {itemsWithAmount.length} товаров указана сумма ({totalFromItems.toLocaleString()} ₽).
+                      У {itemsWithoutAmount.length} товаров сумма не указана — отредактируйте итог или укажите стоимость по товарам.
+                    </p>
+                  )}
+
+                  {itemsWithAmount.length === 0 && (
+                    <p className="text-[10px] text-muted-foreground/50">
+                      Суммы по товарам не указаны. Внесите итоговую сумму чека.
+                    </p>
+                  )}
                 </div>
               );
             })()}
