@@ -23,11 +23,23 @@ import {
   ArrowRight,
   Minus,
   Info,
+  Wallet,
+  CreditCard,
+  Coins,
+  Bitcoin,
+  TrendingDown,
+  PiggyBank as PiggyBankIcon,
+  Building2,
+  Flag,
+  Check,
+  ArrowDown,
+  ArrowUp,
 } from "lucide-react";
 import type {
   FinanceGoal,
   GoalPriority,
   TransactionCategory,
+  FinanceAccount,
 } from "@/lib/finance-types";
 import {
   getGoalsByUser,
@@ -35,10 +47,20 @@ import {
   updateGoal,
   deleteGoal,
   getCategoriesByUser,
+  getAccountsByUser,
+  updateAccount as updateAccountModel,
+  createTransaction,
 } from "@/lib/finance-client";
+import {
+  getCurrencySymbol,
+  convert,
+  getCachedRates,
+  getDisplayCurrency,
+} from "@/lib/exchange-rates";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -72,6 +94,28 @@ const PRIORITY_STYLES: Record<string, string> = {
   low: "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-800",
 };
 
+type AccountType = FinanceAccount["type"];
+
+const TYPE_CONFIG: Record<
+  AccountType,
+  { label: string; icon: React.ElementType; color: string }
+> = {
+  cash: { label: "Наличные", icon: Coins, color: "text-emerald-600 bg-emerald-500/10" },
+  card: { label: "Карта", icon: CreditCard, color: "text-blue-600 bg-blue-500/10" },
+  crypto: { label: "Криптовалюта", icon: Bitcoin, color: "text-orange-600 bg-orange-500/10" },
+  investment: { label: "Инвестиции", icon: TrendingUp, color: "text-purple-600 bg-purple-500/10" },
+  savings: { label: "Сбережения", icon: PiggyBankIcon, color: "text-sky-600 bg-sky-500/10" },
+  deposit: { label: "Вклад", icon: Building2, color: "text-rose-600 bg-rose-500/10" },
+};
+
+function accountBalance(acc: FinanceAccount): number {
+  if (acc.type === "crypto" && acc.cryptoCoin && acc.cryptoAmount != null) {
+    const rates = getCachedRates();
+    if (rates) return convert(acc.cryptoAmount, acc.cryptoCoin, acc.currency, rates);
+  }
+  return acc.balance;
+}
+
 function daysBetween(from: string, to: string): number {
   const a = new Date(from + "T00:00:00Z");
   const b = new Date(to + "T00:00:00Z");
@@ -91,6 +135,15 @@ export function FinanceGoals() {
   );
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [showCategoryHint, setShowCategoryHint] = useState(false);
+  const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
+
+  // Adjust modal
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [adjustGoal, setAdjustGoal] = useState<FinanceGoal | null>(null);
+  const [adjustType, setAdjustType] = useState<"deposit" | "withdraw">("deposit");
+  const [adjustAmount, setAdjustAmount] = useState("");
+  const [adjustAccountId, setAdjustAccountId] = useState("");
+  const [adjustSaving, setAdjustSaving] = useState(false);
 
   const [formName, setFormName] = useState("");
   const [formTarget, setFormTarget] = useState("");
@@ -111,8 +164,12 @@ export function FinanceGoals() {
   const fetchGoals = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getGoalsByUser(uid);
+      const [data, accs] = await Promise.all([
+        getGoalsByUser(uid),
+        getAccountsByUser(uid),
+      ]);
       setGoals(data);
+      setAccounts(accs);
     } catch {
       console.error("Failed to load goals");
     } finally {
@@ -296,6 +353,75 @@ export function FinanceGoals() {
     },
     [],
   );
+
+  const openAdjustModal = useCallback(
+    (goal: FinanceGoal, type: "deposit" | "withdraw") => {
+      setAdjustGoal(goal);
+      setAdjustType(type);
+      setAdjustAmount(adjustAmounts[goal.id] || "");
+      setAdjustAccountId("");
+      setAdjustOpen(true);
+    },
+    [adjustAmounts],
+  );
+
+  const handleConfirmAdjust = useCallback(async () => {
+    if (!adjustGoal || !adjustAmount.trim() || !adjustAccountId || adjustSaving) return;
+    const amount = parseFloat(adjustAmount);
+    if (isNaN(amount) || amount <= 0) return;
+
+    setAdjustSaving(true);
+    const toastId = toast.loading(adjustType === "deposit" ? "Пополняем..." : "Снимаем...");
+
+    try {
+      const delta = adjustType === "deposit" ? amount : -amount;
+      const newAmount = Math.max(0, adjustGoal.currentAmount + delta);
+
+      // Update goal
+      const updated = await updateGoal(adjustGoal.id, { currentAmount: newAmount });
+      setGoals((prev) => prev.map((g) => (g.id === adjustGoal.id ? updated : g)));
+
+      // Create transaction
+      const acc = accounts.find((a) => a.id === adjustAccountId);
+      const cur = acc?.currency || getDisplayCurrency();
+
+      await createTransaction({
+        id: crypto.randomUUID(),
+        userId: uid,
+        accountId: adjustAccountId,
+        type: adjustType === "deposit" ? "expense" : "income",
+        categoryId: adjustGoal.categoryId || "",
+        amount,
+        currency: cur,
+        description: adjustType === "deposit"
+          ? `Пополнение цели: ${adjustGoal.name}`
+          : `Снятие с цели: ${adjustGoal.name}`,
+        tags: ["goal", adjustGoal.name],
+        date: new Date().toISOString(),
+      });
+
+      // Update account balance
+      const accBalance = accountBalance(acc!);
+      const newBalance = adjustType === "deposit" ? accBalance - amount : accBalance + amount;
+      await updateAccountModel(adjustAccountId, { balance: newBalance });
+      setAccounts((prev) =>
+        prev.map((a) => (a.id === adjustAccountId ? { ...a, balance: newBalance } : a)),
+      );
+
+      setAdjustAmounts((prev) => ({ ...prev, [adjustGoal.id]: "" }));
+      setAdjustOpen(false);
+      setAdjustGoal(null);
+      setAdjustAmount("");
+      setAdjustAccountId("");
+
+      const label = adjustType === "deposit" ? "Пополнено" : "Снято";
+      toast.success(`${label} ${amount.toLocaleString()} ${getCurrencySymbol(cur)}`, { id: toastId });
+    } catch {
+      toast.error("Ошибка", { id: toastId });
+    } finally {
+      setAdjustSaving(false);
+    }
+  }, [adjustGoal, adjustType, adjustAmount, adjustAccountId, adjustSaving, accounts, uid]);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -524,9 +650,7 @@ export function FinanceGoals() {
                         !adjustAmounts[goal.id] ||
                         Number(adjustAmounts[goal.id]) <= 0
                       }
-                      onClick={() =>
-                        handleAdjustGoal(goal, Number(adjustAmounts[goal.id]))
-                      }
+                      onClick={() => openAdjustModal(goal, "deposit")}
                     >
                       <Plus className="h-3 w-3 mr-1" />
                       Пополнить
@@ -539,9 +663,7 @@ export function FinanceGoals() {
                         !adjustAmounts[goal.id] ||
                         Number(adjustAmounts[goal.id]) <= 0
                       }
-                      onClick={() =>
-                        handleAdjustGoal(goal, -Number(adjustAmounts[goal.id]))
-                      }
+                      onClick={() => openAdjustModal(goal, "withdraw")}
                     >
                       <Minus className="h-3 w-3 mr-1" />
                       Снять
@@ -844,6 +966,169 @@ export function FinanceGoals() {
               {!saving && <ArrowRight className="h-4 w-4 ml-2" />}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Adjust Goal Modal (Deposit/Withdraw) */}
+      <Dialog open={adjustOpen} onOpenChange={(open) => { if (!open) setAdjustOpen(false); }}>
+        <DialogContent className="sm:max-w-md rounded-2xl p-0 gap-0 overflow-hidden">
+          {/* Header */}
+          <div className={cn(
+            "relative p-5 pb-4",
+            adjustType === "deposit"
+              ? "bg-gradient-to-br from-emerald-500/10 via-transparent to-green-500/5"
+              : "bg-gradient-to-br from-rose-500/10 via-transparent to-orange-500/5",
+          )}>
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-xl shadow-md",
+                adjustType === "deposit"
+                  ? "bg-gradient-to-br from-emerald-500 to-green-500 shadow-emerald-500/20"
+                  : "bg-gradient-to-br from-rose-500 to-orange-500 shadow-rose-500/20",
+              )}>
+                {adjustType === "deposit" ? (
+                  <ArrowDown className="h-5 w-5 text-white" />
+                ) : (
+                  <ArrowUp className="h-5 w-5 text-white" />
+                )}
+              </div>
+              <div>
+                <DialogTitle className="text-base font-semibold">
+                  {adjustType === "deposit" ? "Пополнить цель" : "Снять с цели"}
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  {adjustGoal?.name}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-5 space-y-5">
+            {/* Summary */}
+            {adjustGoal && (
+              <div className="rounded-xl bg-muted/30 border border-border/30 p-3 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Текущий баланс</p>
+                  <p className="text-lg font-bold tabular-nums mt-0.5">
+                    {adjustGoal.currentAmount.toLocaleString()} ₽
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Цель</p>
+                  <p className="text-sm font-medium text-muted-foreground/70 tabular-nums mt-0.5">
+                    {adjustGoal.targetAmount.toLocaleString()} ₽
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Amount */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold">
+                Сумма
+              </Label>
+              <div className="relative">
+                <Input
+                  value={adjustAmount}
+                  onChange={(e) => setAdjustAmount(e.target.value)}
+                  placeholder="0"
+                  type="number"
+                  className="h-11 pr-16 rounded-xl text-lg font-bold tabular-nums"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground/50">
+                  ₽
+                </span>
+              </div>
+            </div>
+
+            {/* Account selector */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <div className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  adjustType === "deposit" ? "bg-rose-500" : "bg-emerald-500",
+                )} />
+                {adjustType === "deposit" ? "Списать с" : "Зачислить на"}
+              </Label>
+              <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-1">
+                {accounts.map((a) => {
+                  const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.cash;
+                  const Icon = cfg.icon;
+                  const selected = adjustAccountId === a.id;
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => setAdjustAccountId(a.id)}
+                      className={cn(
+                        "flex items-start gap-2 rounded-xl border p-2.5 text-left transition-all",
+                        selected
+                          ? adjustType === "deposit"
+                            ? "border-rose-300 bg-rose-50/60 dark:bg-rose-950/20 dark:border-rose-700 shadow-sm ring-1 ring-rose-200 dark:ring-rose-800"
+                            : "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-700 shadow-sm ring-1 ring-emerald-200 dark:ring-emerald-800"
+                          : "border-border/50 hover:border-muted-foreground/30 hover:bg-muted/30",
+                      )}
+                    >
+                      <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", cfg.color)}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-medium truncate leading-tight block">
+                          {a.name}
+                        </span>
+                        <p className="text-[10px] text-muted-foreground/50 leading-tight mt-0.5">
+                          {cfg.label} · {a.currency}
+                        </p>
+                        <p className="text-[11px] font-medium text-foreground/80 leading-tight mt-0.5 tabular-nums">
+                          {accountBalance(a).toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          {getCurrencySymbol(a.currency)}
+                        </p>
+                      </div>
+                      {selected && (
+                        <div className={cn(
+                          "h-4 w-4 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                          adjustType === "deposit" ? "bg-rose-500" : "bg-emerald-500",
+                        )}>
+                          <Check className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <DialogFooter className="gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setAdjustOpen(false)}
+              >
+                Отмена
+              </Button>
+              <Button
+                className={cn(
+                  "gap-1.5 rounded-xl text-white",
+                  adjustType === "deposit"
+                    ? "bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-lg shadow-emerald-500/25"
+                    : "bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-700 hover:to-orange-700 shadow-lg shadow-rose-500/25",
+                )}
+                onClick={handleConfirmAdjust}
+                disabled={adjustSaving || !adjustAmount.trim() || !adjustAccountId || parseFloat(adjustAmount) <= 0}
+              >
+                {adjustSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : adjustType === "deposit" ? (
+                  <ArrowDown className="h-4 w-4" />
+                ) : (
+                  <ArrowUp className="h-4 w-4" />
+                )}
+                {adjustType === "deposit" ? "Пополнить" : "Снять"}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
