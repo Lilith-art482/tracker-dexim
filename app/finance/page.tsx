@@ -62,7 +62,7 @@ export default function FinancePage() {
   const renderModule = () => {
     switch (activeModule) {
       case "dashboard":
-        return <FinanceDashboard />;
+        return <FinanceDashboard onNavigateToTransactions={() => setActiveModule("transactions")} />;
       case "accounts":
         return <FinanceAccounts />;
       case "transactions":
