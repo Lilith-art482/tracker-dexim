@@ -200,6 +200,7 @@ export function FinanceLoans() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentLoan, setPaymentLoan] = useState<Loan | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentCurrency, setPaymentCurrency] = useState("");
   const [paymentAccountId, setPaymentAccountId] = useState("");
   const [paymentComment, setPaymentComment] = useState("");
   const [paymentSaving, setPaymentSaving] = useState(false);
@@ -442,6 +443,7 @@ export function FinanceLoans() {
     setPaymentAmount(String(Math.round(defaultAmount)));
     setPaymentAccountId("");
     setPaymentComment("");
+    setPaymentCurrency(getDisplayCurrency());
     setPaymentOpen(true);
   };
 
@@ -474,6 +476,7 @@ export function FinanceLoans() {
     setPaymentAmount(String(extra));
     setPaymentAccountId("");
     setPaymentComment("");
+    setPaymentCurrency(getDisplayCurrency());
     setPaymentOpen(true);
   };
 
@@ -492,6 +495,7 @@ export function FinanceLoans() {
 
     try {
       const expenseCat = paymentLoan.categoryId || "";
+      const cur = paymentCurrency || getDisplayCurrency();
 
       await createTransaction({
         id: crypto.randomUUID(),
@@ -500,18 +504,34 @@ export function FinanceLoans() {
         type: "expense",
         categoryId: expenseCat,
         amount,
+        currency: cur,
         description: paymentComment.trim() || `Оплата: ${paymentLoan.name}`,
         tags: ["obligation-payment", paymentLoan.obligationType],
         date: new Date().toISOString().split("T")[0] + "T" + new Date().toISOString().split("T")[1].slice(0, 8),
       });
 
-      const newRemaining = Math.max(0, paymentLoan.remainingAmount - amount);
+      const rates = getCachedRates();
+      const acc = accounts.find((a) => a.id === paymentAccountId);
+      const accCur = acc?.currency || getDisplayCurrency();
+      const loanCur = getDisplayCurrency();
+      let amountInLoanCur = amount;
+      if (rates && cur !== loanCur) {
+        amountInLoanCur = convert(amount, cur, loanCur, rates);
+      }
+      const newRemaining = Math.max(0, paymentLoan.remainingAmount - amountInLoanCur);
       const updated = await updateLoan(paymentLoan.id, {
         remainingAmount: newRemaining,
       });
       setLoans((prev) => prev.map((l) => (l.id === paymentLoan.id ? updated : l)));
       setAccounts((prev) =>
-        prev.map((a) => (a.id === paymentAccountId ? { ...a, balance: a.balance - amount } : a)),
+        prev.map((a) => {
+          if (a.id !== paymentAccountId) return a;
+          let delta = -amount;
+          if (cur !== accCur && rates) {
+            delta = convert(amount, cur, accCur, rates) * -1;
+          }
+          return { ...a, balance: a.balance + delta };
+        }),
       );
 
       setPaymentOpen(false);
@@ -1806,9 +1826,37 @@ export function FinanceLoans() {
           <div className="p-5 space-y-5">
             {/* Сумма */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold">
-                Сумма оплаты
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold">
+                  Сумма оплаты
+                </Label>
+                <Select
+                  value={paymentCurrency || getDisplayCurrency()}
+                  onValueChange={(v) => v && setPaymentCurrency(v)}
+                >
+                  <SelectTrigger className="h-7 w-[100px] text-[11px] font-medium">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[getDisplayCurrency(), ...new Set(accounts.map((a) => a.currency))].map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {getCurrencySymbol(c)} {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {paymentAccountId && (() => {
+                  const selAcc = accounts.find((a) => a.id === paymentAccountId);
+                  if (!selAcc) return null;
+                  const cur = paymentCurrency || getDisplayCurrency();
+                  if (selAcc.currency === cur) return null;
+                  return (
+                    <span className="text-[10px] text-muted-foreground/60">
+                      → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
+                    </span>
+                  );
+                })()}
+              </div>
               <div className="relative">
                 <Input
                   type="number"
@@ -1818,11 +1866,7 @@ export function FinanceLoans() {
                   className="h-12 bg-muted/20 border-border/40 text-xl font-bold tabular-nums pr-16"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground/60">
-                  {paymentAccountId
-                    ? getCurrencySymbol(
-                        accounts.find((a) => a.id === paymentAccountId)?.currency || "RUB",
-                      )
-                    : "₽"}
+                  {getCurrencySymbol(paymentCurrency || getDisplayCurrency())}
                 </span>
               </div>
               {(() => {
@@ -1832,14 +1876,14 @@ export function FinanceLoans() {
                 if (isNaN(amt) || amt <= 0) return null;
                 const rates = getCachedRates();
                 if (!rates) return null;
-                const dc = getDisplayCurrency();
-                if (selAcc.currency === dc) return null;
-                const converted = convert(amt, selAcc.currency, dc, rates);
+                const cur = paymentCurrency || getDisplayCurrency();
+                if (selAcc.currency === cur) return null;
+                const converted = convert(amt, cur, selAcc.currency, rates);
                 return (
                   <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 mt-1">
                     <span className="tabular-nums font-medium">
-                      ≈ {converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
-                      {getCurrencySymbol(dc)} {dc}
+                      ≈ {converted.toLocaleString(undefined, { maximumFractionDigits: 4 })}{" "}
+                      {getCurrencySymbol(selAcc.currency)} {selAcc.currency}
                     </span>
                   </div>
                 );

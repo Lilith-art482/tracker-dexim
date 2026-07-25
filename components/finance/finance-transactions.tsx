@@ -158,6 +158,7 @@ export function FinanceTransactions() {
   const [txAccountId, setTxAccountId] = useState("");
   const [txCategoryId, setTxCategoryId] = useState("");
   const [txAmount, setTxAmount] = useState("");
+  const [txCurrency, setTxCurrency] = useState("");
   const [txDate, setTxDate] = useState(new Date().toISOString().slice(0, 16));
   const [txDescription, setTxDescription] = useState("");
   const [txTags, setTxTags] = useState("");
@@ -311,6 +312,7 @@ export function FinanceTransactions() {
     setTxAccountId("");
     setTxCategoryId("");
     setTxAmount("");
+    setTxCurrency(getDisplayCurrency());
     setTxDate(new Date().toISOString().slice(0, 16));
     setTxDescription("");
     setTxTags("");
@@ -322,6 +324,7 @@ export function FinanceTransactions() {
     setTxAccountId(tx.accountId);
     setTxCategoryId(tx.categoryId);
     setTxAmount(String(tx.amount));
+    setTxCurrency(tx.currency || getDisplayCurrency());
     setTxDate(tx.date.slice(0, 16));
     setTxDescription(tx.description);
     setTxTags(tx.tags.join(", "));
@@ -367,6 +370,7 @@ export function FinanceTransactions() {
               ? "fin-cat-9"
               : expenseCategories[0]?.id || ""),
           amount,
+          currency: txCurrency || getDisplayCurrency(),
           description: desc,
           tags,
           date: dateValue,
@@ -390,26 +394,23 @@ export function FinanceTransactions() {
               ? "fin-cat-9"
               : expenseCategories[0]?.id || ""),
           amount,
+          currency: txCurrency || getDisplayCurrency(),
           description: desc,
           tags,
           date: dateValue,
         });
         setTransactions((prev) => [saved, ...prev]);
         setAccounts((prev) =>
-          prev.map((a) =>
-            a.id === txAccountId
-              ? {
-                  ...a,
-                  balance:
-                    a.balance +
-                    (txType === "income"
-                      ? amount
-                      : txType === "expense"
-                        ? -amount
-                        : 0),
-                }
-              : a,
-          ),
+          prev.map((a) => {
+            if (a.id !== txAccountId) return a;
+            const cur = txCurrency || getDisplayCurrency();
+            let delta = txType === "income" ? amount : txType === "expense" ? -amount : 0;
+            if (cur !== a.currency) {
+              const rates = getCachedRates();
+              if (rates) delta = convert(amount, cur, a.currency, rates) * (txType === "expense" ? -1 : 1);
+            }
+            return { ...a, balance: a.balance + delta };
+          }),
         );
         setAddOpen(false);
         resetForm();
@@ -430,20 +431,16 @@ export function FinanceTransactions() {
       setTransactions((prev) => prev.filter((t) => t.id !== id));
       if (tx) {
         setAccounts((prev) =>
-          prev.map((a) =>
-            a.id === tx!.accountId
-              ? {
-                  ...a,
-                  balance:
-                    a.balance -
-                    (tx!.type === "income"
-                      ? tx!.amount
-                      : tx!.type === "expense"
-                        ? -tx!.amount
-                        : 0),
-                }
-              : a,
-          ),
+          prev.map((a) => {
+            if (a.id !== tx!.accountId) return a;
+            const txCur = tx!.currency || getDisplayCurrency();
+            let delta = tx!.type === "income" ? tx!.amount : tx!.type === "expense" ? -tx!.amount : 0;
+            if (txCur !== a.currency) {
+              const rates = getCachedRates();
+              if (rates) delta = convert(tx!.amount, txCur, a.currency, rates) * (tx!.type === "expense" ? -1 : 1);
+            }
+            return { ...a, balance: a.balance - delta };
+          }),
         );
       }
       setSelectedIds((prev) => {
@@ -805,7 +802,26 @@ export function FinanceTransactions() {
                                 : tx.type === "expense"
                                   ? "−"
                                   : ""}
-                              {tx.amount.toLocaleString()} ₽
+                              {(() => {
+                                const accCurrency = accountMap[tx.accountId]?.currency || "RUB";
+                                const dc = getDisplayCurrency();
+                                const rates = getCachedRates();
+                                if (rates && accCurrency !== dc) {
+                                  const converted = convert(tx.amount, accCurrency, dc, rates);
+                                  return (
+                                    <>
+                                      {converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                                      {getCurrencySymbol(dc)}
+                                    </>
+                                  );
+                                }
+                                return (
+                                  <>
+                                    {tx.amount.toLocaleString()}{" "}
+                                    {getCurrencySymbol(accCurrency)}
+                                  </>
+                                );
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -1055,20 +1071,35 @@ export function FinanceTransactions() {
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-xs">
-                Сумма
+              <div className="flex items-center gap-2">
+                <Label className="text-xs">Сумма</Label>
+                <Select
+                  value={txCurrency || getDisplayCurrency()}
+                  onValueChange={(v) => v && setTxCurrency(v)}
+                >
+                  <SelectTrigger className="h-7 w-[100px] text-[11px] font-medium">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[getDisplayCurrency(), ...new Set(accounts.map((a) => a.currency))].map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {getCurrencySymbol(c)} {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {txAccountId && (() => {
                   const selAcc = accounts.find((a) => a.id === txAccountId);
-                  if (selAcc) {
-                    return (
-                      <span className="ml-1.5 text-muted-foreground font-normal">
-                        ({selAcc.currency})
-                      </span>
-                    );
-                  }
-                  return null;
+                  if (!selAcc) return null;
+                  const cur = txCurrency || getDisplayCurrency();
+                  if (selAcc.currency === cur) return null;
+                  return (
+                    <span className="text-[10px] text-muted-foreground/60">
+                      → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
+                    </span>
+                  );
                 })()}
-              </Label>
+              </div>
               <div className="relative">
                 <Input
                   type="number"
@@ -1085,13 +1116,13 @@ export function FinanceTransactions() {
                     if (isNaN(amt) || amt <= 0) return null;
                     const rates = getCachedRates();
                     if (!rates) return null;
-                    const dc = getDisplayCurrency();
-                    if (selAcc.currency === dc) return null;
-                    const converted = convert(amt, selAcc.currency, dc, rates);
+                    const cur = txCurrency || getDisplayCurrency();
+                    if (selAcc.currency === cur) return null;
+                    const converted = convert(amt, cur, selAcc.currency, rates);
                     return (
                       <span className="text-[10px] text-muted-foreground/60 tabular-nums font-medium whitespace-nowrap">
-                        ≈ {converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
-                        {getCurrencySymbol(dc)} {dc}
+                        ≈ {converted.toLocaleString(undefined, { maximumFractionDigits: 4 })}{" "}
+                        {getCurrencySymbol(selAcc.currency)} {selAcc.currency}
                       </span>
                     );
                   })()}
@@ -1227,20 +1258,35 @@ export function FinanceTransactions() {
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-xs">
-                Сумма
+              <div className="flex items-center gap-2">
+                <Label className="text-xs">Сумма</Label>
+                <Select
+                  value={txCurrency || getDisplayCurrency()}
+                  onValueChange={(v) => v && setTxCurrency(v)}
+                >
+                  <SelectTrigger className="h-7 w-[100px] text-[11px] font-medium">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[getDisplayCurrency(), ...new Set(accounts.map((a) => a.currency))].map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {getCurrencySymbol(c)} {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {txAccountId && (() => {
                   const selAcc = accounts.find((a) => a.id === txAccountId);
-                  if (selAcc) {
-                    return (
-                      <span className="ml-1.5 text-muted-foreground font-normal">
-                        ({selAcc.currency})
-                      </span>
-                    );
-                  }
-                  return null;
+                  if (!selAcc) return null;
+                  const cur = txCurrency || getDisplayCurrency();
+                  if (selAcc.currency === cur) return null;
+                  return (
+                    <span className="text-[10px] text-muted-foreground/60">
+                      → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
+                    </span>
+                  );
                 })()}
-              </Label>
+              </div>
               <div className="relative">
                 <Input
                   type="number"
@@ -1257,13 +1303,13 @@ export function FinanceTransactions() {
                     if (isNaN(amt) || amt <= 0) return null;
                     const rates = getCachedRates();
                     if (!rates) return null;
-                    const dc = getDisplayCurrency();
-                    if (selAcc.currency === dc) return null;
-                    const converted = convert(amt, selAcc.currency, dc, rates);
+                    const cur = txCurrency || getDisplayCurrency();
+                    if (selAcc.currency === cur) return null;
+                    const converted = convert(amt, cur, selAcc.currency, rates);
                     return (
                       <span className="text-[10px] text-muted-foreground/60 tabular-nums font-medium whitespace-nowrap">
-                        ≈ {converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
-                        {getCurrencySymbol(dc)} {dc}
+                        ≈ {converted.toLocaleString(undefined, { maximumFractionDigits: 4 })}{" "}
+                        {getCurrencySymbol(selAcc.currency)} {selAcc.currency}
                       </span>
                     );
                   })()}

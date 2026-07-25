@@ -33,6 +33,7 @@ import {
   Flag,
   SlidersHorizontal,
   X,
+  ArrowUpDown,
 } from "lucide-react";
 import type {
   FinanceAccount,
@@ -333,6 +334,7 @@ export function FinanceAccounts() {
   const [filterMin, setFilterMin] = useState("");
   const [filterMax, setFilterMax] = useState("");
   const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [sortBalance, setSortBalance] = useState<"none" | "asc" | "desc">("none");
   const [showFilters, setShowFilters] = useState(false);
   const [newCatName, setNewCatName] = useState("");
   const [newCatSaving, setNewCatSaving] = useState(false);
@@ -617,8 +619,23 @@ export function FinanceAccounts() {
         return true;
       });
     }
+
+    if (sortBalance !== "none") {
+      const rates = getCachedRates();
+      const displayCurrency = getDisplayCurrency();
+      list = [...list].sort((a, b) => {
+        const aVal = rates
+          ? convert(accountBalance(a), a.currency, displayCurrency, rates)
+          : accountBalance(a);
+        const bVal = rates
+          ? convert(accountBalance(b), b.currency, displayCurrency, rates)
+          : accountBalance(b);
+        return sortBalance === "asc" ? aVal - bVal : bVal - aVal;
+      });
+    }
+
     return list;
-  }, [sortedAccounts, filterMin, filterMax, filterPriority, accountBalance]);
+  }, [sortedAccounts, filterMin, filterMax, filterPriority, sortBalance, accountBalance]);
 
   const computeCryptoUpdate = useCallback(
     (
@@ -1324,12 +1341,36 @@ export function FinanceAccounts() {
               </SelectContent>
             </Select>
           </div>
-          {(filterMin || filterMax || filterPriority !== "all") && (
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-semibold">
+              Сортировка
+            </Label>
+            <button
+              onClick={() =>
+                setSortBalance((prev) =>
+                  prev === "none" ? "desc" : prev === "desc" ? "asc" : "none",
+                )
+              }
+              className={cn(
+                "h-9 px-3 text-xs rounded-md border bg-background/60 border-border/40 flex items-center gap-1.5 transition-colors",
+                sortBalance !== "none" && "border-primary/40 bg-primary/5",
+              )}
+            >
+              <ArrowUpDown className="h-3 w-3" />
+              {sortBalance === "none"
+                ? "По балансу"
+                : sortBalance === "desc"
+                  ? "Больше → меньше"
+                  : "Меньше → больше"}
+            </button>
+          </div>
+          {(filterMin || filterMax || filterPriority !== "all" || sortBalance !== "none") && (
             <button
               onClick={() => {
                 setFilterMin("");
                 setFilterMax("");
                 setFilterPriority("all");
+                setSortBalance("none");
               }}
               className="flex items-center gap-1 text-[10px] text-muted-foreground/50 hover:text-foreground transition-colors mb-0.5"
             >

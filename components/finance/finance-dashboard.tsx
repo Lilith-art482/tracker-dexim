@@ -43,11 +43,12 @@ import {
 import { cn } from "@/lib/utils";
 import { getFinanceIcon } from "@/lib/finance-icons";
 import {
+  getCurrencySymbol,
+  getDisplayCurrency,
+  convert,
+  getCachedRates,
   getUSDTtoRUB,
   convertToRUB,
-  getDisplayCurrency,
-  getCachedRates,
-  convert,
 } from "@/lib/exchange-rates";
 import { syncRecurringTransactions } from "@/lib/finance-recurring-sync";
 
@@ -145,6 +146,14 @@ export function FinanceDashboard() {
     }
     return map;
   }, [categories]);
+
+  const accountMap = useMemo(() => {
+    const map = new Map<string, FinanceAccount>();
+    for (const acc of accounts) {
+      map.set(acc.id, acc);
+    }
+    return map;
+  }, [accounts]);
 
   const uid = auth.currentUser?.uid || "user-1";
 
@@ -929,7 +938,26 @@ export function FinanceDashboard() {
                               )}
                             >
                               {isIncome ? "+" : "-"}
-                              {tx.amount.toLocaleString()} ₽
+                              {(() => {
+                                const accCurrency = accountMap.get(tx.accountId)?.currency || "RUB";
+                                const dc = getDisplayCurrency();
+                                const rates = getCachedRates();
+                                if (rates && accCurrency !== dc) {
+                                  const converted = convert(tx.amount, accCurrency, dc, rates);
+                                  return (
+                                    <>
+                                      {converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                                      {getCurrencySymbol(dc)}
+                                    </>
+                                  );
+                                }
+                                return (
+                                  <>
+                                    {tx.amount.toLocaleString()}{" "}
+                                    {getCurrencySymbol(accCurrency)}
+                                  </>
+                                );
+                              })()}
                             </span>
                           </div>
                         </div>
