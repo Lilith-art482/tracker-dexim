@@ -26,18 +26,25 @@ import {
   CircleOff,
   Gavel,
   Home,
+  Check,
+  Flag,
+  Banknote,
 } from "lucide-react";
-import type { Loan, ObligationType } from "@/lib/finance-types";
+import type { Loan, ObligationType, FinanceAccount } from "@/lib/finance-types";
 import {
   getLoansByUser,
   createLoan,
   updateLoan,
   deleteLoan,
   createCategory,
+  getAccountsByUser,
+  createTransaction,
 } from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -84,6 +91,18 @@ const CATEGORY_COLORS: Record<ObligationType, string> = {
   enforcement: "#f59e0b",
   utilities: "#10b981",
   fine: "#ef4444",
+};
+
+const ACCOUNT_TYPE_CONFIG: Record<
+  string,
+  { label: string; icon: React.ElementType; color: string }
+> = {
+  cash: { label: "Наличные", icon: Coins, color: "text-emerald-600 bg-emerald-500/10" },
+  card: { label: "Карта", icon: CreditCard, color: "text-blue-600 bg-blue-500/10" },
+  crypto: { label: "Криптовалюта", icon: Wallet, color: "text-orange-600 bg-orange-500/10" },
+  investment: { label: "Инвестиции", icon: TrendingDown, color: "text-purple-600 bg-purple-500/10" },
+  savings: { label: "Сбережения", icon: Wallet, color: "text-sky-600 bg-sky-500/10" },
+  deposit: { label: "Вклад", icon: Landmark, color: "text-rose-600 bg-rose-500/10" },
 };
 
 function calcMonthlyPayment(P: number, annualRate: number, n: number) {
@@ -172,6 +191,14 @@ export function FinanceLoans() {
     {},
   );
 
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [paymentLoan, setPaymentLoan] = useState<Loan | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentAccountId, setPaymentAccountId] = useState("");
+  const [paymentComment, setPaymentComment] = useState("");
+  const [paymentSaving, setPaymentSaving] = useState(false);
+  const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
+
   useEffect(() => {
     if (formObligationType !== "enforcement") return;
     const income = parseFloat(formOfficialIncome);
@@ -208,6 +235,10 @@ export function FinanceLoans() {
   useEffect(() => {
     fetchLoans();
   }, [fetchLoans]);
+
+  useEffect(() => {
+    getAccountsByUser(uid).then(setAccounts).catch(() => {});
+  }, [uid]);
 
   const resetForm = useCallback(() => {
     setFormObligationType("credit");
@@ -396,23 +427,16 @@ export function FinanceLoans() {
     }
   };
 
-  const handleMakePayment = async (loan: Loan) => {
-    const paymentAmount =
+  const handleMakePayment = (loan: Loan) => {
+    const defaultAmount =
       loan.repaymentType === "lumpSum"
         ? loan.remainingAmount
         : loan.monthlyPayment;
-    const toastId = toast.loading("Проводим платёж...");
-
-    try {
-      const newRemaining = Math.max(0, loan.remainingAmount - paymentAmount);
-      const updated = await updateLoan(loan.id, {
-        remainingAmount: newRemaining,
-      });
-      setLoans((prev) => prev.map((l) => (l.id === loan.id ? updated : l)));
-      toast.success("Платёж проведён", { id: toastId });
-    } catch {
-      toast.error("Ошибка сети", { id: toastId });
-    }
+    setPaymentLoan(loan);
+    setPaymentAmount(String(Math.round(defaultAmount)));
+    setPaymentAccountId("");
+    setPaymentComment("");
+    setPaymentOpen(true);
   };
 
   const handleDelete = (loan: Loan) => {
@@ -434,23 +458,66 @@ export function FinanceLoans() {
     });
   };
 
-  const handleEarlyRepayment = async (loan: Loan) => {
+  const handleEarlyRepayment = (loan: Loan) => {
     const extra = parseFloat(extraPayments[loan.id] || "0");
     if (!extra || extra <= 0) {
       toast.error("Укажите сумму досрочного погашения");
       return;
     }
-    const toastId = toast.loading("Погашаем досрочно...");
+    setPaymentLoan(loan);
+    setPaymentAmount(String(extra));
+    setPaymentAccountId("");
+    setPaymentComment("");
+    setPaymentOpen(true);
+  };
+
+  const sortedAccounts = useMemo(
+    () => [...accounts].sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)),
+    [accounts],
+  );
+
+  const handleConfirmPayment = async () => {
+    if (!paymentLoan || !paymentAccountId || !paymentAmount.trim()) return;
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) return;
+
+    setPaymentSaving(true);
+    const toastId = toast.loading("Проводим платёж...");
+
     try {
-      const newRemaining = Math.max(0, loan.remainingAmount - extra);
-      const updated = await updateLoan(loan.id, {
+      const expenseCat = paymentLoan.categoryId || "";
+
+      await createTransaction({
+        id: crypto.randomUUID(),
+        userId: uid,
+        accountId: paymentAccountId,
+        type: "expense",
+        categoryId: expenseCat,
+        amount,
+        description: paymentComment.trim() || `Оплата: ${paymentLoan.name}`,
+        tags: ["obligation-payment", paymentLoan.obligationType],
+        date: new Date().toISOString().split("T")[0] + "T" + new Date().toISOString().split("T")[1].slice(0, 8),
+      });
+
+      const newRemaining = Math.max(0, paymentLoan.remainingAmount - amount);
+      const updated = await updateLoan(paymentLoan.id, {
         remainingAmount: newRemaining,
       });
-      setLoans((prev) => prev.map((l) => (l.id === loan.id ? updated : l)));
-      setExtraPayments((prev) => ({ ...prev, [loan.id]: "" }));
-      toast.success("Досрочное погашение проведено", { id: toastId });
+      setLoans((prev) => prev.map((l) => (l.id === paymentLoan.id ? updated : l)));
+      setAccounts((prev) =>
+        prev.map((a) => (a.id === paymentAccountId ? { ...a, balance: a.balance - amount } : a)),
+      );
+
+      setPaymentOpen(false);
+      setPaymentLoan(null);
+      setPaymentAccountId("");
+      setPaymentComment("");
+      setExtraPayments((prev) => ({ ...prev, [paymentLoan.id]: "" }));
+      toast.success("Платёж проведён", { id: toastId });
     } catch {
       toast.error("Ошибка сети", { id: toastId });
+    } finally {
+      setPaymentSaving(false);
     }
   };
 
@@ -1702,6 +1769,204 @@ export function FinanceLoans() {
               {editingLoan ? "Сохранить" : "Добавить"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Modal */}
+      <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
+        <DialogContent className="sm:max-w-4xl overflow-hidden p-0 gap-0">
+          <div className="relative bg-gradient-to-br from-emerald-600/10 via-transparent to-sky-600/5 p-6 pb-5">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.08),transparent_70%)]" />
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 shadow-md shadow-emerald-500/20">
+                <Banknote className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-semibold">
+                  Оплата по обязательству
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  {paymentLoan?.name || ""}
+                  {paymentLoan?.obligationType && (
+                    <span className="ml-1.5 text-muted-foreground/50">
+                      · {OBLIGATION_LABELS[paymentLoan.obligationType]}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-5 space-y-5">
+            {/* Сумма */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold">
+                Сумма оплаты
+              </Label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="0"
+                  className="h-12 bg-muted/20 border-border/40 text-xl font-bold tabular-nums pr-16"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground/60">
+                  ₽
+                </span>
+              </div>
+              {paymentLoan && (
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
+                  <span>Остаток: {paymentLoan.remainingAmount.toLocaleString()} ₽</span>
+                  {paymentLoan.repaymentType !== "lumpSum" && (
+                    <>
+                      <span>·</span>
+                      <span>Платёж/мес: {paymentLoan.monthlyPayment.toLocaleString()} ₽</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Счёт */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                Счёт списания
+              </Label>
+              <div className="grid grid-cols-2 gap-3 max-h-[260px] overflow-y-auto pr-1">
+                {sortedAccounts.map((a) => {
+                  const cfg = ACCOUNT_TYPE_CONFIG[a.type] || ACCOUNT_TYPE_CONFIG.cash;
+                  const Icon = cfg.icon;
+                  const selected = paymentAccountId === a.id;
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => setPaymentAccountId(a.id)}
+                      className={cn(
+                        "flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all",
+                        selected
+                          ? "border-sky-300 bg-sky-50/60 dark:bg-sky-950/20 dark:border-sky-700 shadow-sm ring-1 ring-sky-200 dark:ring-sky-800"
+                          : "border-border/50 hover:border-muted-foreground/30 hover:bg-muted/30",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                          cfg.color,
+                        )}
+                      >
+                        <Icon className="h-4.5 w-4.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-medium truncate leading-tight">
+                            {a.name}
+                          </span>
+                          {a.priority && (
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-0.5 rounded-full px-1 py-0.5 text-[8px] font-semibold uppercase tracking-wider",
+                                a.priority === "high" &&
+                                  "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400",
+                                a.priority === "medium" &&
+                                  "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
+                                a.priority === "low" &&
+                                  "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
+                              )}
+                            >
+                              <Flag className="h-2 w-2" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground/60 leading-tight mt-0.5">
+                          #{a.sortOrder != null ? a.sortOrder + 1 : "—"} ·{" "}
+                          {cfg.label}
+                        </p>
+                        <p className="text-[11px] font-medium text-foreground/80 leading-tight mt-1 tabular-nums">
+                          {a.balance.toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          {a.currency}
+                        </p>
+                      </div>
+                      {selected && (
+                        <div className="h-5 w-5 rounded-full bg-sky-500 flex items-center justify-center shrink-0 mt-0.5">
+                          <Check className="h-3 w-3 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+                {sortedAccounts.length === 0 && (
+                  <div className="col-span-2 py-6 text-center text-xs text-muted-foreground/60">
+                    Нет доступных счетов
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Комментарий */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold">
+                Комментарий
+              </Label>
+              <Textarea
+                value={paymentComment}
+                onChange={(e) => setPaymentComment(e.target.value)}
+                placeholder={
+                  paymentLoan?.obligationType === "credit"
+                    ? "Номер кредита, сумма и т.д."
+                    : paymentLoan?.obligationType === "utilities"
+                      ? "Номер квитанции ЖКУ"
+                      : paymentLoan?.obligationType === "fine"
+                        ? "Номер постановления о штрафе"
+                        : "Номер исполнительного производства"
+                }
+                rows={2}
+                className="bg-muted/20 border-border/40 text-sm resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 border-t border-border/40 px-5 py-3 bg-muted/10">
+            <div className="text-xs text-muted-foreground/50">
+              {paymentAccountId &&
+                paymentAmount.trim() &&
+                parseFloat(paymentAmount) > 0 && (
+                  <>
+                    {accounts.find((a) => a.id === paymentAccountId)?.name} →{" "}
+                    {paymentLoan?.name}
+                  </>
+                )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPaymentOpen(false)}
+                disabled={paymentSaving}
+                className="h-9"
+              >
+                Отмена
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleConfirmPayment}
+                disabled={
+                  paymentSaving ||
+                  !paymentAccountId ||
+                  !paymentAmount.trim() ||
+                  parseFloat(paymentAmount) <= 0
+                }
+                className="h-9 bg-gradient-to-r from-emerald-600 to-sky-600 hover:from-emerald-500 hover:to-sky-500 text-white shadow-sm"
+              >
+                {paymentSaving && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+                <Banknote className="h-3.5 w-3.5 mr-1.5" />
+                Оплатить
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
