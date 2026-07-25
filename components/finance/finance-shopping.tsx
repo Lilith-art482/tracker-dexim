@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   ShoppingCart,
   Plus,
@@ -9,22 +9,49 @@ import {
   Loader2,
   DollarSign,
   X,
-  Calendar,
   Archive,
   ChevronDown,
   ChevronRight,
+  ShoppingBag,
+  Sparkles,
+  Package,
+  CircleCheck,
+  Info,
+  XCircle,
+  Receipt,
 } from "lucide-react";
+import type {
+  ShoppingList,
+  ShoppingItem,
+  FinanceAccount,
+} from "@/lib/finance-types";
+import {
+  getShoppingListsByUser,
+  createShoppingList,
+  updateShoppingList,
+  deleteShoppingList,
+  getAccountsByUser,
+  createTransaction,
+} from "@/lib/finance-client";
+import {
+  getCurrencySymbol,
+  convert,
+  getCachedRates,
+  getDisplayCurrency,
+} from "@/lib/exchange-rates";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -33,37 +60,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
-interface ShoppingItem {
-  id: string;
-  name: string;
-  quantity: number;
-  unit: string;
-  checked: boolean;
-  amount?: number;
-  accountId?: string;
-  transactionId?: string;
-}
-
-interface ShoppingList {
-  id: string;
-  userId: string;
-  name: string;
-  date: string;
-  items: ShoppingItem[];
-  completed: boolean;
-  archived: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+function genId(): string {
+  return typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 const UNITS = ["шт", "кг", "г", "л", "мл", "уп", "пачка", "банка", "бутылка"];
 
 export function FinanceShopping() {
+  const uid = auth.currentUser?.uid || "";
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [newListName, setNewListName] = useState("");
@@ -72,188 +80,277 @@ export function FinanceShopping() {
   const [newItemName, setNewItemName] = useState("");
   const [newItemQty, setNewItemQty] = useState("1");
   const [newItemUnit, setNewItemUnit] = useState("шт");
+  const [saving, setSaving] = useState(false);
 
-  // Complete item dialog
-  const [completeItem, setCompleteItem] = useState<{
+  // Per-item amount editor
+  const [editingAmount, setEditingAmount] = useState<{
     listId: string;
     itemId: string;
   } | null>(null);
-  const [itemAmount, setItemAmount] = useState("");
-  const [itemAccountId, setItemAccountId] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [editAmountValue, setEditAmountValue] = useState("");
 
-  const [accounts, setAccounts] = useState<
-    { id: string; name: string; currency: string }[]
-  >([]);
+  // Bulk purchase
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkListId, setBulkListId] = useState("");
+  const [bulkAmount, setBulkAmount] = useState("");
+  const [bulkAccountId, setBulkAccountId] = useState("");
+  const [bulkCurrency, setBulkCurrency] = useState("");
+
+  const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!uid) return;
+    setInitialLoading(true);
+    try {
+      const [shoppingLists, accs] = await Promise.all([
+        getShoppingListsByUser(uid),
+        getAccountsByUser(uid),
+      ]);
+      setLists(shoppingLists);
+      setAccounts(accs);
+    } catch (e) {
+      console.error("Failed to load shopping lists:", e);
+    } finally {
+      setInitialLoading(false);
+    }
+  }, [uid]);
 
   useEffect(() => {
-    const uid = auth.currentUser?.uid || "user-1";
+    fetchData();
+  }, [fetchData]);
 
-    const loadMock = () => {
-      const {
-        mockShoppingLists,
-        mockFinanceAccounts,
-      } = require("@/lib/finance-mock");
-      setLists(mockShoppingLists);
-      setAccounts(
-        mockFinanceAccounts.map(
-          (a: { id: string; name: string; currency: string }) => ({
-            id: a.id,
-            name: a.name,
-            currency: a.currency,
-          }),
-        ),
-      );
-      setInitialLoading(false);
-    };
-    loadMock();
-  }, []);
-
-  const handleCreateList = () => {
-    if (!newListName.trim()) return;
-    const uid = auth.currentUser?.uid || "user-1";
-    const now = new Date().toISOString();
-    const list: ShoppingList = {
-      id: genId(),
-      userId: uid,
-      name: newListName.trim(),
-      date: now.split("T")[0],
-      items: [],
-      completed: false,
-      archived: false,
-      createdAt: now,
-      updatedAt: now,
-    };
-    setLists((prev) => [list, ...prev]);
-    setNewListName("");
-    setExpandedId(list.id);
-    toast.success("Список создан");
-  };
-
-  const handleAddItem = (listId: string) => {
-    if (!newItemName.trim()) return;
-    setLists((prev) =>
-      prev.map((list) =>
-        list.id === listId
-          ? {
-              ...list,
-              items: [
-                ...list.items,
-                {
-                  id: genId(),
-                  name: newItemName.trim(),
-                  quantity: parseFloat(newItemQty) || 1,
-                  unit: newItemUnit,
-                  checked: false,
-                },
-              ],
-              updatedAt: new Date().toISOString(),
-            }
-          : list,
-      ),
-    );
-    setNewItemName("");
-    setNewItemQty("1");
-    setNewItemUnit("шт");
-  };
-
-  const handleCheckItem = (listId: string, itemId: string) => {
-    setCompleteItem({ listId, itemId });
-    setItemAmount("");
-    setItemAccountId("");
-  };
-
-  const handleConfirmComplete = () => {
-    if (!completeItem) return;
-    const { listId, itemId } = completeItem;
-    const amount = parseFloat(itemAmount);
-
-    setLists((prev) =>
-      prev.map((list) =>
-        list.id === listId
-          ? {
-              ...list,
-              items: list.items.map((item) =>
-                item.id === itemId
-                  ? {
-                      ...item,
-                      checked: true,
-                      amount: amount || undefined,
-                      accountId: itemAccountId || undefined,
-                      transactionId: amount ? `tx-${genId()}` : undefined,
-                    }
-                  : item,
-              ),
-              updatedAt: new Date().toISOString(),
-            }
-          : list,
-      ),
-    );
-
-    if (amount > 0 && itemAccountId) {
-      toast.success(`Транзакция на ${amount} ₽ создана`);
+  const handleCreateList = async () => {
+    if (!newListName.trim() || saving) return;
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const list = await createShoppingList({
+        id: genId(),
+        userId: uid,
+        name: newListName.trim(),
+        date: now.split("T")[0],
+        items: [],
+        completed: false,
+        archived: false,
+      });
+      setLists((prev) => [list, ...prev]);
+      setNewListName("");
+      setExpandedId(list.id);
+      toast.success("Список создан");
+    } catch {
+      toast.error("Ошибка создания списка");
+    } finally {
+      setSaving(false);
     }
-
-    setCompleteItem(null);
-    setItemAmount("");
-    setItemAccountId("");
   };
 
-  const handleDeleteItem = (listId: string, itemId: string) => {
-    setLists((prev) =>
-      prev.map((list) =>
-        list.id === listId
-          ? {
-              ...list,
-              items: list.items.filter((item) => item.id !== itemId),
-              updatedAt: new Date().toISOString(),
-            }
-          : list,
-      ),
+  const handleAddItem = async (listId: string) => {
+    if (!newItemName.trim()) return;
+    const list = lists.find((l) => l.id === listId);
+    if (!list) return;
+
+    const newItem: ShoppingItem = {
+      id: genId(),
+      name: newItemName.trim(),
+      quantity: parseFloat(newItemQty) || 1,
+      unit: newItemUnit,
+      checked: false,
+    };
+
+    const updatedItems = [...list.items, newItem];
+    try {
+      const updated = await updateShoppingList(listId, { items: updatedItems });
+      setLists((prev) => prev.map((l) => (l.id === listId ? updated : l)));
+      setNewItemName("");
+      setNewItemQty("1");
+      setNewItemUnit("шт");
+    } catch {
+      toast.error("Ошибка добавления товара");
+    }
+  };
+
+  // Simple check toggle — no modal
+  const handleQuickCheck = async (listId: string, itemId: string) => {
+    const list = lists.find((l) => l.id === listId);
+    if (!list) return;
+
+    const updatedItems = list.items.map((item) =>
+      item.id === itemId ? { ...item, checked: !item.checked } : item,
     );
+    try {
+      const updated = await updateShoppingList(listId, { items: updatedItems });
+      setLists((prev) => prev.map((l) => (l.id === listId ? updated : l)));
+    } catch {
+      toast.error("Ошибка");
+    }
   };
 
-  const handleDeleteList = (listId: string) => {
-    setLists((prev) => prev.filter((l) => l.id !== listId));
-    toast.success("Список удалён");
+  // Per-item amount editor
+  const openAmountEditor = (listId: string, itemId: string, current?: number) => {
+    setEditingAmount({ listId, itemId });
+    setEditAmountValue(current ? String(current) : "");
   };
 
-  const handleToggleComplete = (listId: string) => {
-    setLists((prev) =>
-      prev.map((list) =>
-        list.id === listId
-          ? {
-              ...list,
-              completed: !list.completed,
-              updatedAt: new Date().toISOString(),
-            }
-          : list,
-      ),
+  const saveItemAmount = async () => {
+    if (!editingAmount) return;
+    const { listId, itemId } = editingAmount;
+    const list = lists.find((l) => l.id === listId);
+    if (!list) return;
+
+    const amount = parseFloat(editAmountValue);
+    const updatedItems = list.items.map((item) =>
+      item.id === itemId
+        ? { ...item, amount: amount > 0 ? amount : undefined }
+        : item,
     );
+    try {
+      const updated = await updateShoppingList(listId, { items: updatedItems });
+      setLists((prev) => prev.map((l) => (l.id === listId ? updated : l)));
+    } catch {
+      toast.error("Ошибка");
+    }
+    setEditingAmount(null);
+    setEditAmountValue("");
   };
 
-  const handleToggleArchive = (listId: string) => {
-    setLists((prev) =>
-      prev.map((list) =>
-        list.id === listId
-          ? {
-              ...list,
-              archived: !list.archived,
-              updatedAt: new Date().toISOString(),
-            }
-          : list,
-      ),
-    );
+  const handleDeleteItem = async (listId: string, itemId: string) => {
+    const list = lists.find((l) => l.id === listId);
+    if (!list) return;
+
+    const updatedItems = list.items.filter((item) => item.id !== itemId);
+    try {
+      const updated = await updateShoppingList(listId, { items: updatedItems });
+      setLists((prev) => prev.map((l) => (l.id === listId ? updated : l)));
+    } catch {
+      toast.error("Ошибка удаления товара");
+    }
+  };
+
+  const handleDeleteList = async (listId: string) => {
+    try {
+      await deleteShoppingList(listId);
+      setLists((prev) => prev.filter((l) => l.id !== listId));
+      setDeleteConfirmId(null);
+      toast.success("Список удалён");
+    } catch {
+      toast.error("Ошибка удаления списка");
+    }
+  };
+
+  const handleToggleComplete = async (listId: string) => {
+    const list = lists.find((l) => l.id === listId);
+    if (!list) return;
+
+    try {
+      const updated = await updateShoppingList(listId, {
+        completed: !list.completed,
+      });
+      setLists((prev) => prev.map((l) => (l.id === listId ? updated : l)));
+    } catch {
+      toast.error("Ошибка");
+    }
+  };
+
+  const handleToggleArchive = async (listId: string) => {
+    const list = lists.find((l) => l.id === listId);
+    if (!list) return;
+
+    try {
+      const updated = await updateShoppingList(listId, {
+        archived: !list.archived,
+      });
+      setLists((prev) => prev.map((l) => (l.id === listId ? updated : l)));
+    } catch {
+      toast.error("Ошибка");
+    }
+  };
+
+  // Bulk purchase
+  const openBulkPurchase = (listId: string) => {
+    setBulkListId(listId);
+    setBulkAmount("");
+    setBulkAccountId("");
+    setBulkCurrency(getDisplayCurrency());
+    setBulkOpen(true);
+  };
+
+  const handleBulkPurchase = async () => {
+    if (!bulkListId || !bulkAmount.trim() || !bulkAccountId || saving) return;
+    const list = lists.find((l) => l.id === bulkListId);
+    if (!list) return;
+
+    const amount = parseFloat(bulkAmount);
+    if (isNaN(amount) || amount <= 0) return;
+
+    setSaving(true);
+    const cur = bulkCurrency || getDisplayCurrency();
+
+    try {
+      const tx = await createTransaction({
+        id: genId(),
+        userId: uid,
+        accountId: bulkAccountId,
+        type: "expense",
+        categoryId: "",
+        amount,
+        currency: cur,
+        description: `Покупки: ${list.name}`,
+        tags: ["shopping", list.name],
+        date: new Date().toISOString(),
+      });
+
+      // Mark all unchecked items as checked and attach transactionId
+      const updatedItems = list.items.map((item) =>
+        !item.checked
+          ? { ...item, checked: true, transactionId: tx.id }
+          : item,
+      );
+
+      const updated = await updateShoppingList(bulkListId, {
+        items: updatedItems,
+      });
+      setLists((prev) =>
+        prev.map((l) => (l.id === bulkListId ? updated : l)),
+      );
+
+      toast.success(`Транзакция на ${amount} ${getCurrencySymbol(cur)} создана`);
+      setBulkOpen(false);
+      setBulkListId("");
+      setBulkAmount("");
+      setBulkAccountId("");
+    } catch {
+      toast.error("Ошибка создания транзакции");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const activeLists = lists.filter((l) => !l.archived && !l.completed);
   const completedLists = lists.filter((l) => l.completed && !l.archived);
   const archivedLists = lists.filter((l) => l.archived);
 
+  const totalSpent = lists.reduce(
+    (sum, l) =>
+      sum + l.items.reduce((s, i) => s + (i.amount || 0), 0),
+    0,
+  );
+  const totalItems = lists.reduce((sum, l) => sum + l.items.length, 0);
+  const checkedItems = lists.reduce(
+    (sum, l) => sum + l.items.filter((i) => i.checked).length,
+    0,
+  );
+
   if (initialLoading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <div className="relative">
+          <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" />
+          <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground/60">Загрузка списков...</p>
       </div>
     );
   }
@@ -261,138 +358,257 @@ export function FinanceShopping() {
   const renderList = (list: ShoppingList) => {
     const expanded = expandedId === list.id;
     const checkedCount = list.items.filter((i) => i.checked).length;
+    const totalItemsCount = list.items.length;
+    const progress =
+      totalItemsCount > 0 ? (checkedCount / totalItemsCount) * 100 : 0;
+    const listTotal = list.items.reduce(
+      (s, i) => s + (i.amount || 0),
+      0,
+    );
+    const uncheckedCount = totalItemsCount - checkedCount;
 
     return (
-      <Card key={list.id}>
-        <CardHeader
-          className={cn(
-            "flex flex-row items-center justify-between cursor-pointer",
-            list.completed && "opacity-60",
-          )}
+      <div
+        key={list.id}
+        className={cn(
+          "group relative rounded-2xl border transition-all duration-300",
+          list.completed
+            ? "border-emerald-200/50 dark:border-emerald-800/30 bg-emerald-50/30 dark:bg-emerald-950/10"
+            : "border-border/40 bg-card hover:border-border/70 hover:shadow-sm",
+        )}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center gap-3 p-4 cursor-pointer"
           onClick={() => setExpandedId(expanded ? null : list.id)}
         >
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleComplete(list.id);
-              }}
-              className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all shrink-0",
-                list.completed
-                  ? "bg-emerald-500 border-emerald-500 text-white"
-                  : "border-muted-foreground/30 hover:border-primary/50",
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleComplete(list.id);
+            }}
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-xl border-2 transition-all shrink-0",
+              list.completed
+                ? "bg-emerald-500 border-emerald-500 text-white"
+                : "border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5",
+            )}
+          >
+            {list.completed && <Check className="h-3.5 w-3.5" />}
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3
+                className={cn(
+                  "text-sm font-semibold truncate",
+                  list.completed &&
+                    "text-emerald-600 dark:text-emerald-400",
+                )}
+              >
+                {list.name}
+              </h3>
+              {list.completed && (
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0 h-5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0"
+                >
+                  Готово
+                </Badge>
               )}
-            >
-              {list.completed && <Check className="h-3 w-3" />}
-            </button>
-            <div className="min-w-0 flex-1">
-              <CardTitle className="text-sm truncate">{list.name}</CardTitle>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[11px] text-muted-foreground/60">
-                  {list.date}
+            </div>
+            <div className="flex items-center gap-3 mt-1">
+              <span className="text-[11px] text-muted-foreground/50">
+                {new Date(list.date).toLocaleDateString("ru-RU", {
+                  day: "numeric",
+                  month: "short",
+                })}
+              </span>
+              {totalItemsCount > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <div className="h-1 w-16 rounded-full bg-muted/60 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary transition-all duration-500"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground/50 tabular-nums">
+                    {checkedCount}/{totalItemsCount}
+                  </span>
+                </div>
+              )}
+              {listTotal > 0 && (
+                <span className="text-[10px] font-medium text-muted-foreground/60 tabular-nums">
+                  {listTotal.toLocaleString()} ₽
                 </span>
-                <span className="text-[11px] text-muted-foreground/40">
-                  {checkedCount}/{list.items.length}
-                </span>
-              </div>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+
+          <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleToggleArchive(list.id);
               }}
               className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-muted/50 transition-all"
-              title="Архивировать"
+              title={list.archived ? "Разархивировать" : "Архивировать"}
             >
               <Archive className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleDeleteList(list.id);
+                setDeleteConfirmId(list.id);
               }}
               className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground/40 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
               title="Удалить список"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
-            {expanded ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground/40" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
-            )}
+            <div className="ml-1">
+              {expanded ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground/30" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground/30" />
+              )}
+            </div>
           </div>
-        </CardHeader>
+        </div>
 
+        {/* Expanded content */}
         {expanded && (
-          <CardContent className="border-t pt-3 space-y-3">
+          <div className="px-4 pb-4 space-y-3 border-t border-border/30 pt-3">
             {list.items.length === 0 ? (
-              <p className="text-sm text-muted-foreground/60 text-center py-4">
-                Список пуст. Добавьте товары.
-              </p>
-            ) : (
-              <div className="space-y-1">
-                {list.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
-                      item.checked
-                        ? "bg-muted/30 opacity-60"
-                        : "hover:bg-muted/20",
-                    )}
-                  >
-                    <button
-                      onClick={() => {
-                        if (!item.checked) handleCheckItem(list.id, item.id);
-                      }}
-                      className={cn(
-                        "flex h-5 w-5 items-center justify-center rounded-full border-2 shrink-0 transition-all",
-                        item.checked
-                          ? "bg-emerald-500 border-emerald-500 text-white"
-                          : "border-muted-foreground/30 hover:border-primary/50",
-                      )}
-                    >
-                      {item.checked && <Check className="h-2.5 w-2.5" />}
-                    </button>
-                    <span
-                      className={cn(
-                        "flex-1 text-sm",
-                        item.checked && "line-through text-muted-foreground/50",
-                      )}
-                    >
-                      {item.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground/60 shrink-0">
-                      {item.quantity} {item.unit}
-                    </span>
-                    {item.amount && (
-                      <span className="text-xs font-medium text-muted-foreground/70 shrink-0">
-                        {item.amount} ₽
-                      </span>
-                    )}
-                    {!item.checked && (
-                      <button
-                        onClick={() => handleDeleteItem(list.id, item.id)}
-                        className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground/30 hover:text-rose-500 transition-all shrink-0"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+              <div className="flex flex-col items-center py-6 gap-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/30">
+                  <Package className="h-5 w-5 text-muted-foreground/30" />
+                </div>
+                <p className="text-xs text-muted-foreground/50">
+                  Добавьте товары в список
+                </p>
               </div>
+            ) : (
+              <>
+                {/* Items */}
+                <div className="space-y-0.5">
+                  {list.items.map((item) => {
+                    const itemHasAmount =
+                      item.amount != null && item.amount > 0;
+                    return (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          "group/item flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all",
+                          item.checked ? "bg-muted/20" : "hover:bg-muted/30",
+                        )}
+                      >
+                        {/* Check button — simple toggle */}
+                        <button
+                          onClick={() => handleQuickCheck(list.id, item.id)}
+                          className={cn(
+                            "flex h-5 w-5 items-center justify-center rounded-lg border-2 shrink-0 transition-all",
+                            item.checked
+                              ? "bg-emerald-500 border-emerald-500 text-white"
+                              : "border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5",
+                          )}
+                        >
+                          {item.checked && (
+                            <Check className="h-2.5 w-2.5" />
+                          )}
+                        </button>
+
+                        <div className="flex-1 min-w-0">
+                          <span
+                            className={cn(
+                              "text-sm",
+                              item.checked &&
+                                "line-through text-muted-foreground/40",
+                            )}
+                          >
+                            {item.name}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[11px] text-muted-foreground/50 tabular-nums">
+                            {item.quantity} {item.unit}
+                          </span>
+
+                          {/* Optional per-item amount badge */}
+                          {itemHasAmount && (
+                            <Badge
+                              variant="secondary"
+                              className="text-[10px] px-1.5 py-0 h-5 tabular-nums font-medium bg-primary/10 text-primary border-0 cursor-pointer hover:bg-primary/20"
+                              onClick={() =>
+                                openAmountEditor(
+                                  list.id,
+                                  item.id,
+                                  item.amount,
+                                )
+                              }
+                            >
+                              {item.amount!.toLocaleString()} ₽
+                            </Badge>
+                          )}
+
+                          {/* Add/set amount button */}
+                          {!item.checked && !itemHasAmount && (
+                            <button
+                              onClick={() =>
+                                openAmountEditor(list.id, item.id)
+                              }
+                              className="h-6 w-6 flex items-center justify-center rounded-lg text-muted-foreground/0 group-hover/item:text-muted-foreground/40 hover:text-primary hover:bg-primary/5 transition-all shrink-0"
+                              title="Указать сумму"
+                            >
+                              <DollarSign className="h-3 w-3" />
+                            </button>
+                          )}
+
+                          {/* Delete button */}
+                          {!item.checked && (
+                            <button
+                              onClick={() =>
+                                handleDeleteItem(list.id, item.id)
+                              }
+                              className="h-6 w-6 flex items-center justify-center rounded-lg text-muted-foreground/0 group-hover/item:text-muted-foreground/40 hover:text-rose-500 transition-all shrink-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Bulk purchase button */}
+                {uncheckedCount > 0 && (
+                  <div className="pt-1">
+                    <Button
+                      onClick={() => openBulkPurchase(list.id)}
+                      className="w-full h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium shadow-sm shadow-emerald-500/20"
+                    >
+                      <Receipt className="h-4 w-4 mr-2" />
+                      Оформить покупку
+                      {uncheckedCount > 0 && (
+                        <span className="ml-1.5 text-emerald-200/80">
+                          · {uncheckedCount} {uncheckedCount === 1 ? "товар" : uncheckedCount < 5 ? "товара" : "товаров"}
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
 
-            <div className="flex items-center gap-2">
+            {/* Add item input */}
+            <div className="flex items-center gap-2 pt-1">
               <Input
                 value={addingToList === list.id ? newItemName : ""}
                 onChange={(e) => setNewItemName(e.target.value)}
-                placeholder="Название товара"
-                className="flex-1 h-8 text-sm"
+                placeholder="Товар..."
+                className="flex-1 h-9 text-sm rounded-xl"
                 onFocus={() => setAddingToList(list.id)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && addingToList === list.id) {
@@ -404,14 +620,14 @@ export function FinanceShopping() {
                 value={addingToList === list.id ? newItemQty : "1"}
                 onChange={(e) => setNewItemQty(e.target.value)}
                 placeholder="1"
-                className="w-14 h-8 text-sm text-center"
+                className="w-14 h-9 text-sm text-center rounded-xl"
                 onFocus={() => setAddingToList(list.id)}
               />
               <Select
                 value={newItemUnit}
                 onValueChange={(v) => v && setNewItemUnit(v)}
               >
-                <SelectTrigger className="w-20 h-8 text-xs">
+                <SelectTrigger className="w-20 h-9 text-xs rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -424,161 +640,374 @@ export function FinanceShopping() {
               </Select>
               <Button
                 size="sm"
-                variant="ghost"
-                className="h-8 w-8 p-0"
+                className="h-9 w-9 p-0 rounded-xl bg-primary/10 text-primary hover:bg-primary/20"
                 onClick={() => handleAddItem(list.id)}
                 disabled={!newItemName.trim()}
               >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
-          </CardContent>
+          </div>
         )}
-      </Card>
+      </div>
     );
   };
 
   return (
-    <div className="space-y-6">
-      {/* Create new list */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <ShoppingCart className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
-              <Input
-                value={newListName}
-                onChange={(e) => setNewListName(e.target.value)}
-                placeholder="Новый список покупок..."
-                className="pl-9 h-9 text-sm"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCreateList();
-                }}
-              />
-            </div>
-            <Button
-              onClick={handleCreateList}
-              disabled={!newListName.trim()}
-              size="sm"
-              className="gap-1"
-            >
-              <Plus className="h-4 w-4" />
-              Создать
-            </Button>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5">
+            <ShoppingBag className="h-4 w-4 text-primary" />
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <h2 className="text-sm font-semibold">Списки покупок</h2>
+            {lists.length > 0 && (
+              <p className="text-[11px] text-muted-foreground/50">
+                {lists.length} списков · {checkedItems}/{totalItems} товаров
+                {totalSpent > 0 && (
+                  <> · {totalSpent.toLocaleString()} ₽</>
+                )}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
 
-      {/* Active lists */}
+      {/* New list input */}
+      <div className="relative">
+        <ShoppingCart className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+        <Input
+          value={newListName}
+          onChange={(e) => setNewListName(e.target.value)}
+          placeholder="Новый список покупок..."
+          className="pl-10 h-11 rounded-xl bg-muted/30 border-border/40"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleCreateList();
+          }}
+        />
+      </div>
+
+      {/* Lists */}
       {activeLists.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold text-muted-foreground/50 uppercase tracking-wider px-1">
-            Активные — {activeLists.length}
+        <div className="space-y-2.5">
+          <h3 className="text-[11px] font-semibold text-muted-foreground/40 uppercase tracking-wider px-1 flex items-center gap-2">
+            <CircleCheck className="h-3 w-3" />
+            Активные
+            <span className="text-muted-foreground/30">
+              · {activeLists.length}
+            </span>
           </h3>
           {activeLists.map(renderList)}
         </div>
       )}
 
-      {/* Completed lists */}
       {completedLists.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold text-muted-foreground/50 uppercase tracking-wider px-1">
-            Завершённые — {completedLists.length}
+        <div className="space-y-2.5">
+          <h3 className="text-[11px] font-semibold text-muted-foreground/40 uppercase tracking-wider px-1 flex items-center gap-2">
+            <Sparkles className="h-3 w-3" />
+            Завершённые
+            <span className="text-muted-foreground/30">
+              · {completedLists.length}
+            </span>
           </h3>
           {completedLists.map(renderList)}
         </div>
       )}
 
+      {archivedLists.length > 0 && (
+        <div className="space-y-2.5">
+          <h3 className="text-[11px] font-semibold text-muted-foreground/40 uppercase tracking-wider px-1 flex items-center gap-2">
+            <Archive className="h-3 w-3" />
+            Архив
+            <span className="text-muted-foreground/30">
+              · {archivedLists.length}
+            </span>
+          </h3>
+          {archivedLists.map(renderList)}
+        </div>
+      )}
+
       {/* Empty state */}
       {lists.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/40 mb-4">
-            <ShoppingCart className="h-8 w-8 text-muted-foreground/30" />
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="relative mb-4">
+            <div className="absolute inset-0 rounded-3xl bg-primary/5 blur-xl" />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-muted/60 to-muted/30 border border-border/30">
+              <ShoppingCart className="h-7 w-7 text-muted-foreground/30" />
+            </div>
           </div>
           <p className="text-sm font-medium text-muted-foreground">
-            Списков покупок нет
+            Списков покупок пока нет
           </p>
-          <p className="text-xs text-muted-foreground/60 mt-1">
-            Создайте список продуктов или необходимых вещей
+          <p className="text-xs text-muted-foreground/50 mt-1.5 max-w-[240px]">
+            Создайте список продуктов или вещей — отмечайте купленные товары и
+            создавайте транзакции
           </p>
         </div>
       )}
 
-      {/* Complete item dialog */}
+      {/* Per-item amount editor dialog */}
       <Dialog
-        open={!!completeItem}
+        open={!!editingAmount}
         onOpenChange={(open) => {
-          if (!open) setCompleteItem(null);
+          if (!open) {
+            setEditingAmount(null);
+            setEditAmountValue("");
+          }
         }}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-emerald-500" />
-              Завершить товар
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                <DollarSign className="h-4 w-4 text-primary" />
+              </div>
+              Сумма товара
             </DialogTitle>
+            <DialogDescription>
+              Укажите стоимость товара (необязательно).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div className="relative">
+              <Input
+                value={editAmountValue}
+                onChange={(e) => setEditAmountValue(e.target.value)}
+                placeholder="0"
+                type="number"
+                className="h-11 rounded-xl text-lg font-bold tabular-nums"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveItemAmount();
+                }}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground/50">
+                {getDisplayCurrency()}
+              </span>
+            </div>
+            <DialogFooter className="gap-2 pt-1">
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => {
+                  setEditingAmount(null);
+                  setEditAmountValue("");
+                }}
+              >
+                Отмена
+              </Button>
+              <Button
+                className="rounded-xl"
+                onClick={saveItemAmount}
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Сохранить
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk purchase dialog */}
+      <Dialog
+        open={bulkOpen}
+        onOpenChange={(open) => {
+          if (!open) setBulkOpen(false);
+        }}
+      >
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10">
+                <Receipt className="h-4 w-4 text-emerald-600" />
+              </div>
+              Оформить покупку
+            </DialogTitle>
+            <DialogDescription>
+              Внесите итоговую сумму чека — создастся одна транзакция на весь
+              список.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <p className="text-sm text-muted-foreground">
-              Укажите сумму и счёт для автоматического создания транзакции.
-              Можно пропустить — товар просто отметится как купленный.
-            </p>
+            {/* Summary */}
+            {bulkListId && (() => {
+              const list = lists.find((l) => l.id === bulkListId);
+              if (!list) return null;
+              const unchecked = list.items.filter((i) => !i.checked);
+              return (
+                <div className="rounded-xl bg-muted/30 border border-border/30 p-3 space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground/70">
+                    {list.name}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {unchecked.map((item) => (
+                      <Badge
+                        key={item.id}
+                        variant="secondary"
+                        className="text-[10px] h-5 bg-muted/50 border-0"
+                      >
+                        {item.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
+            {/* Amount */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground/80">
-                Сумма (₽)
-              </label>
-              <Input
-                value={itemAmount}
-                onChange={(e) =>
-                  setItemAmount(e.target.value.replace(/\D/g, ""))
-                }
-                placeholder="0"
-                type="text"
-                inputMode="numeric"
-              />
+              <Label className="text-xs text-muted-foreground/70">
+                Сумма чека
+              </Label>
+              <div className="relative">
+                <Input
+                  value={bulkAmount}
+                  onChange={(e) => setBulkAmount(e.target.value)}
+                  placeholder="0"
+                  type="number"
+                  className="h-11 pr-24 rounded-xl text-lg font-bold tabular-nums"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <Select
+                    value={bulkCurrency || getDisplayCurrency()}
+                    onValueChange={(v) => v && setBulkCurrency(v)}
+                  >
+                    <SelectTrigger className="h-7 w-[80px] text-[11px] font-medium rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        getDisplayCurrency(),
+                        ...new Set(accounts.map((a) => a.currency)),
+                      ].map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {getCurrencySymbol(c)} {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {bulkAccountId &&
+                (() => {
+                  const selAcc = accounts.find(
+                    (a) => a.id === bulkAccountId,
+                  );
+                  if (!selAcc) return null;
+                  const cur = bulkCurrency || getDisplayCurrency();
+                  if (selAcc.currency === cur) return null;
+                  const amt = parseFloat(bulkAmount);
+                  if (isNaN(amt) || amt <= 0) return null;
+                  const rates = getCachedRates();
+                  if (!rates) return null;
+                  const converted = convert(amt, cur, selAcc.currency, rates);
+                  return (
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 mt-1">
+                      <span className="tabular-nums font-medium">
+                        ≈{" "}
+                        {converted.toLocaleString(undefined, {
+                          maximumFractionDigits: 4,
+                        })}{" "}
+                        {getCurrencySymbol(selAcc.currency)}{" "}
+                        {selAcc.currency}
+                      </span>
+                    </div>
+                  );
+                })()}
             </div>
 
+            {/* Account */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground/80">
+              <Label className="text-xs text-muted-foreground/70">
                 Счёт списания
-              </label>
+              </Label>
               <Select
-                value={itemAccountId}
-                onValueChange={(v) => v && setItemAccountId(v)}
+                value={bulkAccountId}
+                onValueChange={(v) => {
+                  if (v) setBulkAccountId(v);
+                  const acc = accounts.find((a) => a.id === v);
+                  if (acc) setBulkCurrency(acc.currency);
+                }}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Не выбран" />
+                <SelectTrigger className="h-11 rounded-xl">
+                  <SelectValue placeholder="Выберите счёт" />
                 </SelectTrigger>
                 <SelectContent>
                   {accounts.map((acc) => (
                     <SelectItem key={acc.id} value={acc.id}>
-                      {acc.name} ({acc.currency})
+                      {acc.name} ({getCurrencySymbol(acc.currency)}{" "}
+                      {acc.currency})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <DialogFooter className="gap-2 pt-2">
               <Button
                 variant="outline"
-                className="flex-1"
-                onClick={() => setCompleteItem(null)}
+                className="rounded-xl"
+                onClick={() => setBulkOpen(false)}
               >
-                Пропустить
+                Отмена
               </Button>
               <Button
-                className="flex-1 gap-1.5"
-                onClick={handleConfirmComplete}
+                className="gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700"
+                onClick={handleBulkPurchase}
+                disabled={
+                  saving ||
+                  !bulkAmount.trim() ||
+                  !bulkAccountId ||
+                  parseFloat(bulkAmount) <= 0
+                }
               >
-                <Check className="h-4 w-4" />
-                {itemAmount && itemAccountId
-                  ? "Создать транзакцию"
-                  : "Отметить"}
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Receipt className="h-4 w-4" />
+                )}
+                Создать транзакцию
               </Button>
-            </div>
+            </DialogFooter>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={!!deleteConfirmId}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirmId(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Удалить список?</DialogTitle>
+            <DialogDescription>
+              Это действие нельзя отменить. Список и все его товары будут
+              удалены.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 pt-2">
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => setDeleteConfirmId(null)}
+            >
+              Отмена
+            </Button>
+            <Button
+              variant="destructive"
+              className="rounded-xl"
+              onClick={() =>
+                deleteConfirmId && handleDeleteList(deleteConfirmId)
+              }
+            >
+              Удалить
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
