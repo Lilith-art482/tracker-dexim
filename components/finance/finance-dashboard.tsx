@@ -117,7 +117,11 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
   );
 }
 
-export function FinanceDashboard() {
+export function FinanceDashboard({
+  onNavigateToTransactions,
+}: {
+  onNavigateToTransactions?: () => void;
+}) {
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
@@ -895,8 +899,10 @@ export function FinanceDashboard() {
                           key={tx.id}
                           className={cn(
                             "flex items-center justify-between px-6 py-3 text-sm transition-colors hover:bg-muted/20",
+                            onNavigateToTransactions && "cursor-pointer",
                             i !== 0 && "border-t",
                           )}
+                          onClick={onNavigateToTransactions}
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div

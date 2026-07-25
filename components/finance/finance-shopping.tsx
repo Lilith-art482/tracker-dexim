@@ -18,11 +18,20 @@ import {
   Info,
   XCircle,
   Receipt,
+  Wallet,
+  CreditCard,
+  Coins,
+  Bitcoin,
+  TrendingUp,
+  PiggyBank,
+  Building2,
+  Flag,
 } from "lucide-react";
 import type {
   ShoppingList,
   ShoppingItem,
   FinanceAccount,
+  TransactionCategory,
 } from "@/lib/finance-types";
 import {
   getShoppingListsByUser,
@@ -30,6 +39,7 @@ import {
   updateShoppingList,
   deleteShoppingList,
   getAccountsByUser,
+  getCategoriesByUser,
   createTransaction,
 } from "@/lib/finance-client";
 import {
@@ -41,6 +51,7 @@ import {
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getFinanceIcon } from "@/lib/finance-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +80,71 @@ function genId(): string {
 
 const UNITS = ["шт", "кг", "г", "л", "мл", "уп", "пачка", "банка", "бутылка"];
 
+type AccountType = FinanceAccount["type"];
+
+const TYPE_CONFIG: Record<
+  AccountType,
+  { label: string; icon: React.ElementType; color: string }
+> = {
+  cash: {
+    label: "Наличные",
+    icon: Coins,
+    color: "text-emerald-600 bg-emerald-500/10",
+  },
+  card: {
+    label: "Карта",
+    icon: CreditCard,
+    color: "text-blue-600 bg-blue-500/10",
+  },
+  crypto: {
+    label: "Криптовалюта",
+    icon: Bitcoin,
+    color: "text-orange-600 bg-orange-500/10",
+  },
+  investment: {
+    label: "Инвестиции",
+    icon: TrendingUp,
+    color: "text-purple-600 bg-purple-500/10",
+  },
+  savings: {
+    label: "Сбережения",
+    icon: PiggyBank,
+    color: "text-sky-600 bg-sky-500/10",
+  },
+  deposit: {
+    label: "Вклад",
+    icon: Building2,
+    color: "text-rose-600 bg-rose-500/10",
+  },
+};
+
+function accountBalance(acc: FinanceAccount): number {
+  if (acc.type === "crypto" && acc.cryptoCoin && acc.cryptoAmount != null) {
+    const rates = getCachedRates();
+    if (rates) return convert(acc.cryptoAmount, acc.cryptoCoin, acc.currency, rates);
+  }
+  return acc.balance;
+}
+
+const CATEGORY_COLORS_HEX: Record<string, string> = {
+  red: "#ef4444",
+  orange: "#f97316",
+  yellow: "#eab308",
+  green: "#22c55e",
+  blue: "#3b82f6",
+  pink: "#ec4899",
+  purple: "#8b5cf6",
+  teal: "#14b8a6",
+  indigo: "#6366f1",
+  cyan: "#06b6d4",
+  lime: "#84cc16",
+  amber: "#f59e0b",
+  violet: "#8b5cf6",
+  rose: "#f43f5e",
+  fuchsia: "#d946ef",
+  slate: "#6b7280",
+};
+
 export function FinanceShopping() {
   const uid = auth.currentUser?.uid || "";
   const [lists, setLists] = useState<ShoppingList[]>([]);
@@ -94,8 +170,10 @@ export function FinanceShopping() {
   const [bulkAmount, setBulkAmount] = useState("");
   const [bulkAccountId, setBulkAccountId] = useState("");
   const [bulkCurrency, setBulkCurrency] = useState("");
+  const [bulkCategoryId, setBulkCategoryId] = useState("");
 
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
+  const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(() => {
     if (typeof window !== "undefined") {
@@ -109,16 +187,20 @@ export function FinanceShopping() {
     localStorage.setItem("shopping_hint_closed", "true");
   };
 
+  const expenseCategories = categories.filter((c) => c.type === "expense");
+
   const fetchData = useCallback(async () => {
     if (!uid) return;
     setInitialLoading(true);
     try {
-      const [shoppingLists, accs] = await Promise.all([
+      const [shoppingLists, accs, cats] = await Promise.all([
         getShoppingListsByUser(uid),
         getAccountsByUser(uid),
+        getCategoriesByUser(uid),
       ]);
       setLists(shoppingLists);
       setAccounts(accs);
+      setCategories(cats);
     } catch (e) {
       console.error("Failed to load shopping lists:", e);
     } finally {
@@ -287,6 +369,7 @@ export function FinanceShopping() {
     setBulkListId(listId);
     setBulkAccountId("");
     setBulkCurrency(getDisplayCurrency());
+    setBulkCategoryId("");
 
     if (list) {
       const itemsWithAmount = list.items.filter((i) => i.amount != null && i.amount > 0);
@@ -320,7 +403,7 @@ export function FinanceShopping() {
         userId: uid,
         accountId: bulkAccountId,
         type: "expense",
-        categoryId: "",
+        categoryId: bulkCategoryId || expenseCategories[0]?.id || "",
         amount,
         currency: cur,
         description: `Покупки: ${list.name}`,
@@ -999,30 +1082,118 @@ export function FinanceShopping() {
             </div>
 
             {/* Account */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground/70">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 Счёт списания
               </Label>
-              <Select
-                value={bulkAccountId}
-                onValueChange={(v) => {
-                  if (v) setBulkAccountId(v);
-                  const acc = accounts.find((a) => a.id === v);
-                  if (acc) setBulkCurrency(acc.currency);
-                }}
-              >
-                <SelectTrigger className="h-11 rounded-xl">
-                  <SelectValue placeholder="Выберите счёт" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((acc) => (
-                    <SelectItem key={acc.id} value={acc.id}>
-                      {acc.name} ({getCurrencySymbol(acc.currency)}{" "}
-                      {acc.currency})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-1">
+                {accounts.map((a) => {
+                  const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.cash;
+                  const Icon = cfg.icon;
+                  const selected = bulkAccountId === a.id;
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => {
+                        setBulkAccountId(a.id);
+                        setBulkCurrency(a.currency);
+                      }}
+                      className={cn(
+                        "flex items-start gap-2 rounded-xl border p-2.5 text-left transition-all",
+                        selected
+                          ? "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-700 shadow-sm ring-1 ring-emerald-200 dark:ring-emerald-800"
+                          : "border-border/50 hover:border-muted-foreground/30 hover:bg-muted/30",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                          cfg.color,
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-medium truncate leading-tight block">
+                          {a.name}
+                        </span>
+                        <p className="text-[10px] text-muted-foreground/50 leading-tight mt-0.5">
+                          {cfg.label} · {a.currency}
+                        </p>
+                        <p className="text-[11px] font-medium text-foreground/80 leading-tight mt-0.5 tabular-nums">
+                          {accountBalance(a).toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          {getCurrencySymbol(a.currency)}
+                        </p>
+                      </div>
+                      {selected && (
+                        <div className="h-4 w-4 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
+                          <Check className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Category */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                Категория
+              </Label>
+              <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
+                {expenseCategories.map((cat) => {
+                  const CatIcon = cat.icon ? getFinanceIcon(cat.icon) : Receipt;
+                  const selected = bulkCategoryId === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setBulkCategoryId(cat.id)}
+                      className={cn(
+                        "flex items-center gap-2 rounded-xl border p-2.5 text-left transition-all",
+                        selected
+                          ? "border-blue-300 bg-blue-50/60 dark:bg-blue-950/20 dark:border-blue-700 shadow-sm ring-1 ring-blue-200 dark:ring-blue-800"
+                          : "border-border/50 hover:border-muted-foreground/30 hover:bg-muted/30",
+                      )}
+                    >
+                      <div
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                        style={{
+                          backgroundColor: cat.color
+                            ? `${CATEGORY_COLORS_HEX[cat.color] || cat.color}15`
+                            : undefined,
+                        }}
+                      >
+                        <CatIcon
+                          className="h-4 w-4"
+                          style={{
+                            color: cat.color
+                              ? CATEGORY_COLORS_HEX[cat.color] || cat.color
+                              : undefined,
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium truncate">
+                        {cat.name}
+                      </span>
+                      {selected && (
+                        <div className="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center shrink-0 ml-auto">
+                          <Check className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+                {expenseCategories.length === 0 && (
+                  <p className="text-xs text-muted-foreground/50 col-span-2 text-center py-3">
+                    Нет категорий расходов
+                  </p>
+                )}
+              </div>
             </div>
 
             <DialogFooter className="gap-2 pt-2">

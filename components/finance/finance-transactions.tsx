@@ -843,14 +843,22 @@ export function FinanceTransactions() {
                             <>
                               <span>·</span>
                               <div className="flex gap-1">
-                                {tx.tags.slice(0, 2).map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="rounded bg-muted/50 px-1.5 py-0.5 text-[9px] font-medium"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
+                                {tx.tags.slice(0, 2).map((tag) => {
+                                  const isShopping = tag === "shopping";
+                                  return (
+                                    <span
+                                      key={tag}
+                                      className={cn(
+                                        "rounded px-1.5 py-0.5 text-[9px] font-medium",
+                                        isShopping
+                                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                          : "bg-muted/50",
+                                      )}
+                                    >
+                                      {isShopping ? "🛒 Покупки" : tag}
+                                    </span>
+                                  );
+                                })}
                                 {tx.tags.length > 2 && (
                                   <span className="text-[9px] text-muted-foreground/40">
                                     +{tx.tags.length - 2}
