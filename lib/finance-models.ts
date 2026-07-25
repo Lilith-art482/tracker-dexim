@@ -8,6 +8,7 @@ import type {
   Loan,
   EmergencyFund,
   TransactionFilters,
+  ShoppingList,
   RecurringTransaction,
 } from "./finance-types";
 
@@ -377,4 +378,46 @@ export async function updateRecurringTransaction(
 
 export async function deleteRecurringTransaction(id: string): Promise<void> {
   await getAdminDb().collection(COL("FINANCE_RECURRING")).doc(id).delete();
+}
+
+// --- Shopping Lists ---
+
+export async function getShoppingListsByUser(
+  uid: string,
+): Promise<ShoppingList[]> {
+  const snap = await getAdminDb()
+    .collection(COL("SHOPPING_LISTS"))
+    .where("userId", "==", uid)
+    .get();
+  return snap.docs.map((d) => toPlain(d) as ShoppingList);
+}
+
+export async function createShoppingList(
+  data: Omit<ShoppingList, "createdAt" | "updatedAt">,
+): Promise<ShoppingList> {
+  const now = new Date().toISOString();
+  const list: ShoppingList = { ...data, createdAt: now, updatedAt: now };
+  await getAdminDb().collection(COL("SHOPPING_LISTS")).doc(list.id).set(list);
+  return list;
+}
+
+export async function updateShoppingList(
+  id: string,
+  data: Partial<
+    Omit<ShoppingList, "id" | "userId" | "createdAt" | "updatedAt">
+  >,
+): Promise<ShoppingList> {
+  await getAdminDb()
+    .collection(COL("SHOPPING_LISTS"))
+    .doc(id)
+    .update({ ...data, updatedAt: new Date().toISOString() });
+  const snap = await getAdminDb()
+    .collection(COL("SHOPPING_LISTS"))
+    .doc(id)
+    .get();
+  return toPlain(snap) as ShoppingList;
+}
+
+export async function deleteShoppingList(id: string): Promise<void> {
+  await getAdminDb().collection(COL("SHOPPING_LISTS")).doc(id).delete();
 }
