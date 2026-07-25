@@ -12,6 +12,11 @@ import {
   where,
   limit,
 } from "firebase/firestore";
+import {
+  convert,
+  getCachedRates,
+  getAllRates,
+} from "./exchange-rates";
 
 function clean<T>(data: T): T {
   return JSON.parse(JSON.stringify(data)) as T;
@@ -40,6 +45,38 @@ const loansCol = () => collection(db, "FINANCE_LOANS");
 const emergencyFundCol = () => collection(db, "FINANCE_EMERGENCY_FUND");
 const shoppingListsCol = () => collection(db, "SHOPPING_LISTS");
 const recurringCol = () => collection(db, "FINANCE_RECURRING");
+
+async function resolveRates() {
+  return getCachedRates() || (await getAllRates());
+}
+
+function convertAmount(
+  amount: number,
+  fromCurrency: string,
+  toCurrency: string,
+  rates: Record<string, number>,
+): number {
+  if (fromCurrency === toCurrency) return amount;
+  return convert(amount, fromCurrency, toCurrency, rates);
+}
+
+function computeAccountUpdate(
+  acc: FinanceAccount,
+  newBalance: number,
+  rates: Record<string, number>,
+): Record<string, unknown> {
+  const update: Record<string, unknown> = {
+    balance: newBalance,
+    updatedAt: new Date().toISOString(),
+  };
+  if (acc.type === "crypto" && acc.cryptoCoin) {
+    const rateToCurrency = convert(1, acc.cryptoCoin, acc.currency, rates);
+    if (rateToCurrency > 0) {
+      update.cryptoAmount = newBalance / rateToCurrency;
+    }
+  }
+  return update;
+}
 
 function toPlain<T>(snap: {
   id: string;
@@ -158,15 +195,20 @@ export async function createTransaction(
   const accSnap = await getDoc(accRef);
   if (accSnap.exists()) {
     const acc = toPlain<FinanceAccount>(accSnap);
-    const delta =
-      tx.type === "income" ? tx.amount : tx.type === "expense" ? -tx.amount : 0;
+    const txCurrency = tx.currency || acc.currency;
+    const rates = await resolveRates();
+
+    let delta = 0;
+    if (tx.type === "income" || tx.type === "expense") {
+      const converted = convertAmount(tx.amount, txCurrency, acc.currency, rates);
+      delta = tx.type === "income" ? converted : -converted;
+    }
+
     if (delta !== 0) {
+      const newBalance = acc.balance + delta;
       await updateDoc(
         accRef,
-        clean({
-          balance: acc.balance + delta,
-          updatedAt: new Date().toISOString(),
-        }),
+        clean(computeAccountUpdate(acc, newBalance, rates)),
       );
     }
   }
@@ -190,6 +232,7 @@ export async function updateTransaction(
       | "categoryId"
       | "accountId"
       | "type"
+      | "currency"
     >
   >,
 ): Promise<Transaction> {
@@ -197,12 +240,19 @@ export async function updateTransaction(
   const oldSnap = await getDoc(ref);
   if (oldSnap.exists()) {
     const old = toPlain<Transaction>(oldSnap);
-    const oldDelta =
-      old.type === "income"
-        ? old.amount
-        : old.type === "expense"
-          ? -old.amount
-          : 0;
+    const rates = await resolveRates();
+
+    const oldAccSnap = await getDoc(doc(accountsCol(), old.accountId));
+    const oldAcc = oldAccSnap.exists()
+      ? toPlain<FinanceAccount>(oldAccSnap)
+      : null;
+    const oldAccCurrency = oldAcc?.currency || "RUB";
+    const oldTxCurrency = old.currency || oldAccCurrency;
+    const oldConverted =
+      old.type === "income" || old.type === "expense"
+        ? convertAmount(old.amount, oldTxCurrency, oldAccCurrency, rates)
+        : 0;
+    const oldDelta = old.type === "income" ? oldConverted : -oldConverted;
 
     await updateDoc(
       ref,
@@ -211,25 +261,43 @@ export async function updateTransaction(
     const newSnap = await getDoc(ref);
     const updated = toPlain<Transaction>(newSnap);
 
-    const newDelta =
-      updated.type === "income"
-        ? updated.amount
-        : updated.type === "expense"
-          ? -updated.amount
-          : 0;
-    const netDelta = newDelta - oldDelta;
+    const newAccSnap = await getDoc(doc(accountsCol(), updated.accountId));
+    const newAcc = newAccSnap.exists()
+      ? toPlain<FinanceAccount>(newAccSnap)
+      : null;
+    const newAccCurrency = newAcc?.currency || "RUB";
+    const newTxCurrency = updated.currency || newAccCurrency;
+    const newConverted =
+      updated.type === "income" || updated.type === "expense"
+        ? convertAmount(updated.amount, newTxCurrency, newAccCurrency, rates)
+        : 0;
+    const newDelta = updated.type === "income" ? newConverted : -newConverted;
 
-    if (netDelta !== 0) {
-      const accRef = doc(accountsCol(), updated.accountId);
-      const accSnap = await getDoc(accRef);
-      if (accSnap.exists()) {
-        const acc = toPlain<FinanceAccount>(accSnap);
+    if (updated.accountId === old.accountId) {
+      const netDelta = newDelta - oldDelta;
+      if (netDelta !== 0 && newAcc) {
         await updateDoc(
-          accRef,
-          clean({
-            balance: acc.balance + netDelta,
-            updatedAt: new Date().toISOString(),
-          }),
+          doc(accountsCol(), updated.accountId),
+          clean(
+            computeAccountUpdate(newAcc, newAcc.balance + netDelta, rates),
+          ),
+        );
+      }
+    } else {
+      if (oldDelta !== 0 && oldAcc) {
+        await updateDoc(
+          doc(accountsCol(), old.accountId),
+          clean(
+            computeAccountUpdate(oldAcc, oldAcc.balance - oldDelta, rates),
+          ),
+        );
+      }
+      if (newDelta !== 0 && newAcc) {
+        await updateDoc(
+          doc(accountsCol(), updated.accountId),
+          clean(
+            computeAccountUpdate(newAcc, newAcc.balance + newDelta, rates),
+          ),
         );
       }
     }
@@ -271,21 +339,25 @@ export async function deleteTransaction(id: string): Promise<void> {
   const snap = await getDoc(ref);
   if (snap.exists()) {
     const tx = toPlain<Transaction>(snap);
-    const delta =
-      tx.type === "income" ? -tx.amount : tx.type === "expense" ? tx.amount : 0;
-    if (delta !== 0) {
-      const accRef = doc(accountsCol(), tx.accountId);
-      const accSnap = await getDoc(accRef);
-      if (accSnap.exists()) {
-        const acc = toPlain<FinanceAccount>(accSnap);
-        await updateDoc(
-          accRef,
-          clean({
-            balance: acc.balance + delta,
-            updatedAt: new Date().toISOString(),
-          }),
-        );
-      }
+    const rates = await resolveRates();
+
+    const accSnap = await getDoc(doc(accountsCol(), tx.accountId));
+    const acc = accSnap.exists()
+      ? toPlain<FinanceAccount>(accSnap)
+      : null;
+    const accCurrency = acc?.currency || "RUB";
+    const txCurrency = tx.currency || accCurrency;
+    const converted =
+      tx.type === "income" || tx.type === "expense"
+        ? convertAmount(tx.amount, txCurrency, accCurrency, rates)
+        : 0;
+    const delta = tx.type === "income" ? -converted : converted;
+
+    if (delta !== 0 && acc) {
+      await updateDoc(
+        doc(accountsCol(), tx.accountId),
+        clean(computeAccountUpdate(acc, acc.balance + delta, rates)),
+      );
     }
 
     const goalDelta =

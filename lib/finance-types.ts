@@ -76,6 +76,7 @@ export interface Transaction {
   type: TransactionType;
   categoryId: string;
   amount: number;
+  currency?: string;
   description: string;
   tags: string[];
   date: string;
