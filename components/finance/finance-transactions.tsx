@@ -1049,7 +1049,20 @@ export function FinanceTransactions() {
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Сумма</Label>
+              <Label className="text-xs">
+                Сумма
+                {txAccountId && (() => {
+                  const selAcc = accounts.find((a) => a.id === txAccountId);
+                  if (selAcc) {
+                    return (
+                      <span className="ml-1.5 text-muted-foreground font-normal">
+                        ({selAcc.currency})
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
+              </Label>
               <Input
                 type="number"
                 value={txAmount}
@@ -1187,7 +1200,20 @@ export function FinanceTransactions() {
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Сумма</Label>
+              <Label className="text-xs">
+                Сумма
+                {txAccountId && (() => {
+                  const selAcc = accounts.find((a) => a.id === txAccountId);
+                  if (selAcc) {
+                    return (
+                      <span className="ml-1.5 text-muted-foreground font-normal">
+                        ({selAcc.currency})
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
+              </Label>
               <Input
                 type="number"
                 value={txAmount}

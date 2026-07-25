@@ -40,6 +40,7 @@ import {
   getAccountsByUser,
   createTransaction,
 } from "@/lib/finance-client";
+import { getCurrencySymbol } from "@/lib/exchange-rates";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1812,7 +1813,11 @@ export function FinanceLoans() {
                   className="h-12 bg-muted/20 border-border/40 text-xl font-bold tabular-nums pr-16"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground/60">
-                  ₽
+                  {paymentAccountId
+                    ? getCurrencySymbol(
+                        accounts.find((a) => a.id === paymentAccountId)?.currency || "RUB",
+                      )
+                    : "₽"}
                 </span>
               </div>
               {paymentLoan && (
