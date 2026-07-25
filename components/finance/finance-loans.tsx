@@ -40,7 +40,12 @@ import {
   getAccountsByUser,
   createTransaction,
 } from "@/lib/finance-client";
-import { getCurrencySymbol } from "@/lib/exchange-rates";
+import {
+  getCurrencySymbol,
+  convert,
+  getCachedRates,
+  getDisplayCurrency,
+} from "@/lib/exchange-rates";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1820,6 +1825,25 @@ export function FinanceLoans() {
                     : "₽"}
                 </span>
               </div>
+              {(() => {
+                const selAcc = accounts.find((a) => a.id === paymentAccountId);
+                if (!selAcc) return null;
+                const amt = parseFloat(paymentAmount);
+                if (isNaN(amt) || amt <= 0) return null;
+                const rates = getCachedRates();
+                if (!rates) return null;
+                const dc = getDisplayCurrency();
+                if (selAcc.currency === dc) return null;
+                const converted = convert(amt, selAcc.currency, dc, rates);
+                return (
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 mt-1">
+                    <span className="tabular-nums font-medium">
+                      ≈ {converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                      {getCurrencySymbol(dc)} {dc}
+                    </span>
+                  </div>
+                );
+              })()}
               {paymentLoan && (
                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
                   <span>Остаток: {paymentLoan.remainingAmount.toLocaleString()} ₽</span>

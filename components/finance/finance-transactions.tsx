@@ -36,6 +36,12 @@ import {
 } from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { getFinanceIcon } from "@/lib/finance-icons";
+import {
+  getDisplayCurrency,
+  convert,
+  getCachedRates,
+  getCurrencySymbol,
+} from "@/lib/exchange-rates";
 import { QrScannerDialog } from "@/components/finance/qr-scanner-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1063,13 +1069,34 @@ export function FinanceTransactions() {
                   return null;
                 })()}
               </Label>
-              <Input
-                type="number"
-                value={txAmount}
-                onChange={(e) => setTxAmount(e.target.value)}
-                placeholder="0"
-                className="h-9"
-              />
+              <div className="relative">
+                <Input
+                  type="number"
+                  value={txAmount}
+                  onChange={(e) => setTxAmount(e.target.value)}
+                  placeholder="0"
+                  className="h-9 pr-24"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {(() => {
+                    const selAcc = accounts.find((a) => a.id === txAccountId);
+                    if (!selAcc) return null;
+                    const amt = parseFloat(txAmount);
+                    if (isNaN(amt) || amt <= 0) return null;
+                    const rates = getCachedRates();
+                    if (!rates) return null;
+                    const dc = getDisplayCurrency();
+                    if (selAcc.currency === dc) return null;
+                    const converted = convert(amt, selAcc.currency, dc, rates);
+                    return (
+                      <span className="text-[10px] text-muted-foreground/60 tabular-nums font-medium whitespace-nowrap">
+                        ≈ {converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                        {getCurrencySymbol(dc)} {dc}
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -1214,13 +1241,34 @@ export function FinanceTransactions() {
                   return null;
                 })()}
               </Label>
-              <Input
-                type="number"
-                value={txAmount}
-                onChange={(e) => setTxAmount(e.target.value)}
-                placeholder="0"
-                className="h-9"
-              />
+              <div className="relative">
+                <Input
+                  type="number"
+                  value={txAmount}
+                  onChange={(e) => setTxAmount(e.target.value)}
+                  placeholder="0"
+                  className="h-9 pr-24"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {(() => {
+                    const selAcc = accounts.find((a) => a.id === txAccountId);
+                    if (!selAcc) return null;
+                    const amt = parseFloat(txAmount);
+                    if (isNaN(amt) || amt <= 0) return null;
+                    const rates = getCachedRates();
+                    if (!rates) return null;
+                    const dc = getDisplayCurrency();
+                    if (selAcc.currency === dc) return null;
+                    const converted = convert(amt, selAcc.currency, dc, rates);
+                    return (
+                      <span className="text-[10px] text-muted-foreground/60 tabular-nums font-medium whitespace-nowrap">
+                        ≈ {converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                        {getCurrencySymbol(dc)} {dc}
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
             </div>
 
             <div className="space-y-1.5">
