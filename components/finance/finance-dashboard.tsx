@@ -182,8 +182,12 @@ export function FinanceDashboard({
 
         const generated = await syncRecurringTransactions();
         if (generated > 0) {
-          const newTxs = await getTransactionsByUser(uid);
+          const [newTxs, refreshedAccs] = await Promise.all([
+            getTransactionsByUser(uid),
+            getAccountsByUser(uid),
+          ]);
           setTransactions(newTxs);
+          setAccounts(refreshedAccs);
         }
         const recurring = await getRecurringTransactionsByUser(uid);
         setRecurringTransactions(recurring);
@@ -203,14 +207,16 @@ export function FinanceDashboard({
     fetchAll(true);
   }, [fetchAll]);
 
-  const totalBalance = accounts.reduce((sum, a) => {
-    const rates = getCachedRates();
-    const effectiveBalance =
-      a.type === "crypto" && a.cryptoCoin && a.cryptoAmount != null && rates
-        ? convert(a.cryptoAmount, a.cryptoCoin, a.currency, rates)
-        : a.balance;
-    return sum + convertToRUB(effectiveBalance, a.currency, usdtRate);
-  }, 0);
+  const totalBalance = useMemo(() => {
+    return accounts.reduce((sum, a) => {
+      const rates = getCachedRates();
+      const effectiveBalance =
+        a.type === "crypto" && a.cryptoCoin && a.cryptoAmount != null && rates
+          ? convert(a.cryptoAmount, a.cryptoCoin, a.currency, rates)
+          : a.balance;
+      return sum + convertToRUB(effectiveBalance, a.currency, usdtRate);
+    }, 0);
+  }, [accounts, usdtRate]);
 
   const dashboardRange = useMemo(() => {
     const now = new Date();

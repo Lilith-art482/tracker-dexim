@@ -234,7 +234,7 @@ export function FinancePlanning() {
   const periodDays = getDaysInRange(periodStart, periodEnd);
   const elapsedDays = getDaysElapsed(periodStart);
   const dailyAvg = elapsedDays > 0 ? totalSpent / elapsedDays : 0;
-  const projectedTotal = dailyAvg * periodDays;
+  const projectedTotal = Math.max(dailyAvg * periodDays, totalPlanned);
   const totalBalance = accounts.reduce(
     (s, a) => s + convertToRUB(a.balance, a.currency, usdtRate),
     0,
