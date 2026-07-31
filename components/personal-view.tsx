@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Columns3,
   LayoutList,
+  Settings2,
   Table2,
   Loader2,
   Plus,
@@ -18,6 +19,10 @@ import { PersonalTaskList } from "@/components/personal-task-list";
 import { PersonalDashboard } from "@/components/personal-dashboard";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
 import { PersonalKanban } from "@/components/personal-kanban";
+import {
+  PersonalSettingsDialog,
+  getPersonalSettings,
+} from "@/components/personal-settings-dialog";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -76,6 +81,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const weekDates = getWeekDates(weekOffset);
   const weekDateStrings = weekDates.map((d) => {
@@ -180,6 +186,33 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
     };
   }, [activeBoard?.id]);
 
+  // Auto-delete completed tasks based on user settings
+  useEffect(() => {
+    if (loading || !tasks.length) return;
+    const settings = getPersonalSettings();
+    if (!settings.autoDeleteCompletedDays) return;
+    const days = settings.autoDeleteCompletedDays;
+    const now = Date.now();
+    const cutoff = now - days * 24 * 60 * 60 * 1000;
+    const toDelete = tasks.filter(
+      (t) =>
+        t.completed &&
+        t.completedAt &&
+        new Date(t.completedAt).getTime() < cutoff,
+    );
+    if (toDelete.length > 0) {
+      setTasks((prev) => prev.filter((t) => !toDelete.find((d) => d.id === t.id)));
+      for (const t of toDelete) {
+        fetch("/api/personal-tasks", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: t.id }),
+        }).catch(() => {});
+      }
+      toast.success(`Удалено ${toDelete.length} задач`);
+    }
+  }, [loading, tasks]);
+
   const handleTaskSaved = useCallback((task: PersonalTask) => {
     setTasks((prev) => {
       const idx = prev.findIndex((t) => t.id === task.id);
@@ -194,14 +227,20 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
 
   const handleToggleComplete = useCallback(
     async (task: PersonalTask) => {
-      const toggled = { ...task, completed: !task.completed };
+      const newCompleted = !task.completed;
+      const completedAt = newCompleted ? new Date().toISOString() : null;
+      const toggled = { ...task, completed: newCompleted, completedAt };
       setTasks((prev) => prev.map((t) => (t.id === task.id ? toggled : t)));
 
       try {
         const res = await fetch("/api/personal-tasks", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: task.id, completed: !task.completed }),
+          body: JSON.stringify({
+            id: task.id,
+            completed: newCompleted,
+            completedAt,
+          }),
         });
 
         if (!res.ok) {
@@ -221,7 +260,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
         setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
       }
     },
-    [toast],
+    [],
   );
 
   const handleDeleteTask = useCallback(
@@ -325,6 +364,13 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
                 <Columns3 className="h-3.5 w-3.5" />
               </button>
             </div>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              title="Настройки"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+            </button>
             {viewMode !== "kanban" && (
               <Button
                 variant="default"
@@ -387,6 +433,13 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               Канбан
             </button>
           </div>
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            title="Настройки"
+          >
+            <Settings2 className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -494,6 +547,11 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
         onDelete={handleDeleteTask}
         onToggleComplete={handleToggleComplete}
         activeBoard={activeBoard}
+      />
+
+      <PersonalSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
       />
     </div>
   );

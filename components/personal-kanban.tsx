@@ -12,6 +12,9 @@ import {
   Circle,
   Clock,
   GripVertical,
+  Settings2,
+  Palette,
+  Smile,
 } from "lucide-react";
 import {
   DndContext,
@@ -27,6 +30,7 @@ import {
 } from "@dnd-kit/core";
 import type { Column, PersonalKanbanTask, Priority, Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
+import { getBoardIcon, BOARD_ICONS } from "@/lib/board-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,6 +49,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  getPersonalSettings,
+  PersonalSettingsDialog,
+} from "@/components/personal-settings-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +74,26 @@ const PRIORITY_LABELS: Record<Priority, string> = {
   medium: "Средний",
   low: "Низкий",
 };
+
+const COLUMN_COLORS = [
+  { name: "slate", dot: "bg-slate-400", bg: "bg-slate-500/8", border: "border-slate-300 dark:border-slate-700" },
+  { name: "blue", dot: "bg-blue-500", bg: "bg-blue-500/8", border: "border-blue-300 dark:border-blue-700" },
+  { name: "emerald", dot: "bg-emerald-500", bg: "bg-emerald-500/8", border: "border-emerald-300 dark:border-emerald-700" },
+  { name: "violet", dot: "bg-violet-500", bg: "bg-violet-500/8", border: "border-violet-300 dark:border-violet-700" },
+  { name: "amber", dot: "bg-amber-500", bg: "bg-amber-500/8", border: "border-amber-300 dark:border-amber-700" },
+  { name: "rose", dot: "bg-rose-500", bg: "bg-rose-500/8", border: "border-rose-300 dark:border-rose-700" },
+  { name: "cyan", dot: "bg-cyan-500", bg: "bg-cyan-500/8", border: "border-cyan-300 dark:border-cyan-700" },
+  { name: "pink", dot: "bg-pink-500", bg: "bg-pink-500/8", border: "border-pink-300 dark:border-pink-700" },
+  { name: "indigo", dot: "bg-indigo-500", bg: "bg-indigo-500/8", border: "border-indigo-300 dark:border-indigo-700" },
+  { name: "teal", dot: "bg-teal-500", bg: "bg-teal-500/8", border: "border-teal-300 dark:border-teal-700" },
+];
+
+const COLOR_MAP = new Map(COLUMN_COLORS.map((c) => [c.name, c]));
+
+function getColumnColor(color?: string) {
+  if (color && COLOR_MAP.has(color)) return COLOR_MAP.get(color)!;
+  return COLUMN_COLORS[0];
+}
 
 function DraggableTaskCard({
   task,
@@ -170,9 +198,11 @@ function TaskCardOverlay({ task }: { task: PersonalKanbanTask }) {
 
 function DroppableColumn({
   columnId,
+  className,
   children,
 }: {
   columnId: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({
@@ -184,8 +214,9 @@ function DroppableColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex flex-col gap-2 min-h-[100px] rounded-lg transition-colors p-1",
-        isOver && "bg-emerald-500/5 ring-2 ring-emerald-500/30",
+        "flex flex-col gap-2 min-h-[120px] rounded-xl transition-colors p-2",
+        isOver && "ring-2 ring-emerald-500/40 bg-emerald-500/5",
+        className,
       )}
     >
       {children}
@@ -214,6 +245,9 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
   const [deleteColumn, setDeleteColumn] = useState<Column | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [columnSettings, setColumnSettings] = useState<Column | null>(null);
+  const [colSettingsTab, setColSettingsTab] = useState<"icon" | "color">("icon");
+
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [taskDialogColumnId, setTaskDialogColumnId] = useState("");
   const [editingTask, setEditingTask] = useState<PersonalKanbanTask | null>(null);
@@ -226,6 +260,8 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
   });
   const [savingTask, setSavingTask] = useState(false);
 
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
@@ -233,7 +269,6 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const uid = auth.currentUser?.uid;
       const [colsRes, tasksRes] = await Promise.all([
         fetch(`/api/columns?boardId=${boardId}`),
         fetch(`/api/personal-kanban-tasks?boardId=${boardId}`),
@@ -334,6 +369,25 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
     }
   };
 
+  const handleUpdateColumnField = async (
+    col: Column,
+    data: Partial<Pick<Column, "icon" | "color">>,
+  ) => {
+    try {
+      const res = await fetch("/api/columns", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: col.id, boardId, ...data }),
+      });
+      if (!res.ok) throw new Error();
+      const updated: Column = await res.json();
+      setColumns((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      if (columnSettings?.id === updated.id) setColumnSettings(updated);
+    } catch {
+      toast.error("Ошибка обновления колонки");
+    }
+  };
+
   const openTaskDialog = (columnId: string, task?: PersonalKanbanTask) => {
     setTaskDialogColumnId(columnId);
     if (task) {
@@ -425,13 +479,19 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
   };
 
   const handleToggleComplete = async (task: PersonalKanbanTask) => {
-    const toggled = { ...task, completed: !task.completed };
+    const newCompleted = !task.completed;
+    const completedAt = newCompleted ? new Date().toISOString() : null;
+    const toggled = { ...task, completed: newCompleted, completedAt };
     setTasks((prev) => prev.map((t) => (t.id === task.id ? toggled : t)));
     try {
       await fetch("/api/personal-kanban-tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: task.id, completed: !task.completed }),
+        body: JSON.stringify({
+          id: task.id,
+          completed: newCompleted,
+          completedAt,
+        }),
       });
     } catch {
       setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
@@ -495,89 +555,131 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
+      <div className="flex items-center justify-between mb-3">
+        <div />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 text-muted-foreground"
+          onClick={() => setSettingsOpen(true)}
+        >
+          <Settings2 className="h-4 w-4" />
+          Настройки
+        </Button>
+      </div>
+
       <div className="flex gap-4 overflow-x-auto pb-4 px-1">
         {columns
           .sort((a, b) => a.order - b.order)
-          .map((col) => (
-            <div
-              key={col.id}
-              className="flex-shrink-0 w-72 flex flex-col gap-2"
-            >
-              <div className="flex items-center justify-between gap-2 px-1">
-                <div className="flex items-center gap-2 min-w-0">
-                  <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                  {editingColumn?.id === col.id ? (
-                    <Input
-                      value={editColumnName}
-                      onChange={(e) => setEditColumnName(e.target.value)}
-                      onBlur={handleRenameColumn}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleRenameColumn();
-                        if (e.key === "Escape") setEditingColumn(null);
-                      }}
-                      className="h-7 text-sm font-medium"
-                      autoFocus
-                    />
-                  ) : (
-                    <h3
-                      className="text-sm font-semibold truncate cursor-pointer hover:text-primary"
-                      onDoubleClick={() => {
-                        setEditingColumn(col);
-                        setEditColumnName(col.name);
-                      }}
-                    >
-                      {col.name}
-                    </h3>
-                  )}
-                  <Badge variant="secondary" className="text-[10px] px-1.5 shrink-0">
-                    {tasksByColumn(col.id).length}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => {
-                      setEditingColumn(col);
-                      setEditColumnName(col.name);
-                    }}
-                    className="p-1 rounded hover:bg-muted transition-colors"
-                  >
-                    <PencilLine className="h-3 w-3 text-muted-foreground" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteColumn(col)}
-                    className="p-1 rounded hover:bg-destructive/10 transition-colors"
-                  >
-                    <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                  </button>
-                </div>
-              </div>
-
-              <DroppableColumn columnId={col.id}>
-                {tasksByColumn(col.id).map((task) => (
-                  <DraggableTaskCard
-                    key={task.id}
-                    task={task}
-                    onEdit={(t) => openTaskDialog(col.id, t)}
-                    onToggleComplete={handleToggleComplete}
-                  />
-                ))}
-              </DroppableColumn>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start gap-1.5 text-muted-foreground"
-                onClick={() => openTaskDialog(col.id)}
+          .map((col) => {
+            const colColor = getColumnColor(col.color);
+            const ColIcon = col.icon ? getBoardIcon(col.icon) : null;
+            return (
+              <div
+                key={col.id}
+                className="flex-shrink-0 w-72 flex flex-col"
               >
-                <Plus className="h-4 w-4" />
-                Задача
-              </Button>
-            </div>
-          ))}
+                <div
+                  className={cn(
+                    "rounded-t-xl border border-b-0 px-3 py-2.5",
+                    colColor.bg,
+                    colColor.border,
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {ColIcon ? (
+                        <ColIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      ) : (
+                        <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                      )}
+                      {editingColumn?.id === col.id ? (
+                        <Input
+                          value={editColumnName}
+                          onChange={(e) => setEditColumnName(e.target.value)}
+                          onBlur={handleRenameColumn}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleRenameColumn();
+                            if (e.key === "Escape") setEditingColumn(null);
+                          }}
+                          className="h-7 text-sm font-medium"
+                          autoFocus
+                        />
+                      ) : (
+                        <h3
+                          className="text-sm font-semibold truncate cursor-pointer hover:text-primary"
+                          onDoubleClick={() => {
+                            setEditingColumn(col);
+                            setEditColumnName(col.name);
+                          }}
+                        >
+                          {col.name}
+                        </h3>
+                      )}
+                      <Badge variant="secondary" className="text-[10px] px-1.5 shrink-0">
+                        {tasksByColumn(col.id).length}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button
+                        onClick={() => {
+                          setColumnSettings(col);
+                          setColSettingsTab("icon");
+                        }}
+                        className="p-1 rounded hover:bg-background/60 transition-colors"
+                        title="Настройки колонки"
+                      >
+                        <Smile className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingColumn(col);
+                          setEditColumnName(col.name);
+                        }}
+                        className="p-1 rounded hover:bg-background/60 transition-colors"
+                      >
+                        <PencilLine className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteColumn(col)}
+                        className="p-1 rounded hover:bg-destructive/10 transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <DroppableColumn
+                  columnId={col.id}
+                  className={cn(colColor.bg, "border border-t-0 rounded-t-none", colColor.border)}
+                >
+                  {tasksByColumn(col.id).map((task) => (
+                    <DraggableTaskCard
+                      key={task.id}
+                      task={task}
+                      onEdit={(t) => openTaskDialog(col.id, t)}
+                      onToggleComplete={handleToggleComplete}
+                    />
+                  ))}
+                </DroppableColumn>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start gap-1.5 text-muted-foreground mt-1"
+                  onClick={() => openTaskDialog(col.id)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Задача
+                </Button>
+              </div>
+            );
+          })}
 
         <div className="flex-shrink-0 w-72">
           {addingColumn ? (
-            <div className="flex items-center gap-2 px-1">
+            <div className="flex items-center gap-1.5">
               <Input
                 ref={addColumnRef}
                 value={newColumnName}
@@ -590,10 +692,11 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
                   }
                 }}
                 placeholder="Название колонки"
-                className="h-8 text-sm"
+                className="h-8 text-sm flex-1 min-w-0"
               />
               <Button
                 size="sm"
+                className="h-8 w-8 shrink-0 p-0"
                 onClick={handleCreateColumn}
                 disabled={!newColumnName.trim() || creatingColumn}
               >
@@ -606,6 +709,7 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
               <Button
                 size="sm"
                 variant="ghost"
+                className="h-8 w-8 shrink-0 p-0"
                 onClick={() => {
                   setAddingColumn(false);
                   setNewColumnName("");
@@ -631,6 +735,7 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
         {activeTask ? <TaskCardOverlay task={activeTask} /> : null}
       </DragOverlay>
 
+      {/* Task dialog */}
       <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -745,6 +850,7 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
         </DialogContent>
       </Dialog>
 
+      {/* Delete column confirm */}
       <Dialog
         open={!!deleteColumn}
         onOpenChange={(open) => {
@@ -773,6 +879,137 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Column settings dialog */}
+      <Dialog
+        open={!!columnSettings}
+        onOpenChange={(o) => {
+          if (!o) setColumnSettings(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Настройки колонки</DialogTitle>
+          </DialogHeader>
+          {columnSettings && (
+            <div className="space-y-4">
+              <div className="flex gap-1 p-0.5 bg-muted/60 rounded-lg">
+                <button
+                  onClick={() => setColSettingsTab("icon")}
+                  className={cn(
+                    "flex-1 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
+                    colSettingsTab === "icon"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Smile className="h-3.5 w-3.5" />
+                  Иконка
+                </button>
+                <button
+                  onClick={() => setColSettingsTab("color")}
+                  className={cn(
+                    "flex-1 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
+                    colSettingsTab === "color"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Palette className="h-3.5 w-3.5" />
+                  Цвет
+                </button>
+              </div>
+
+              {colSettingsTab === "icon" && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Выберите иконку для колонки
+                  </p>
+                  <div className="grid grid-cols-7 gap-1.5 max-h-48 overflow-y-auto">
+                    {BOARD_ICONS.map((ic) => {
+                      const Icon = ic.icon;
+                      return (
+                        <button
+                          key={ic.name}
+                          onClick={() =>
+                            handleUpdateColumnField(columnSettings, {
+                              icon: ic.name,
+                            })
+                          }
+                          className={cn(
+                            "flex items-center justify-center h-8 w-8 rounded-lg transition-all",
+                            columnSettings.icon === ic.name
+                              ? "bg-primary/10 text-primary ring-1 ring-primary/20"
+                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                          )}
+                          title={ic.name}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {columnSettings.icon && (
+                    <button
+                      onClick={() =>
+                        handleUpdateColumnField(columnSettings, { icon: "" })
+                      }
+                      className="mt-2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Сбросить иконку
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {colSettingsTab === "color" && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Выберите цвет колонки
+                  </p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {COLUMN_COLORS.map((c) => (
+                      <button
+                        key={c.name}
+                        onClick={() =>
+                          handleUpdateColumnField(columnSettings, {
+                            color: c.name,
+                          })
+                        }
+                        className={cn(
+                          "flex items-center justify-center h-10 rounded-xl transition-all",
+                          c.bg,
+                          columnSettings.color === c.name
+                            ? "ring-2 ring-offset-2 ring-offset-background ring-foreground/20"
+                            : "hover:scale-105",
+                        )}
+                      >
+                        <div className={cn("h-5 w-5 rounded-full", c.dot)} />
+                      </button>
+                    ))}
+                  </div>
+                  {columnSettings.color && (
+                    <button
+                      onClick={() =>
+                        handleUpdateColumnField(columnSettings, { color: "" })
+                      }
+                      className="mt-2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Сбросить цвет
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Auto-delete settings */}
+      <PersonalSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+      />
     </DndContext>
   );
 }
