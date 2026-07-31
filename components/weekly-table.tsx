@@ -230,6 +230,9 @@ export function WeeklyTable({
       if (!map[key]) map[key] = [];
       map[key].push(t);
     }
+    for (const key of Object.keys(map)) {
+      map[key].sort((a, b) => a.startTime.localeCompare(b.startTime));
+    }
     return map;
   }, [tasks]);
 
@@ -284,21 +287,43 @@ export function WeeklyTable({
     if (!newDate || isNaN(newRow)) return;
 
     const targetSlots = daySlots[newDate];
-    if (!targetSlots || targetSlots[newRow]) return;
+    if (!targetSlots) return;
+
+    const targetTask = targetSlots[newRow];
+    if (targetTask && targetTask.id === task.id) return;
+
+    const findRow = (dateKey: string, taskId: string): number => {
+      const slots = daySlots[dateKey];
+      if (!slots) return -1;
+      for (let i = 0; i < slots.length; i++) {
+        if (slots[i]?.id === taskId) return i;
+      }
+      return -1;
+    };
+
+    const oldRow = findRow(task.date, task.id);
 
     if (newDate === task.date) {
-      const slots = daySlots[newDate];
-      let oldRow = -1;
-      for (let i = 0; i < slots.length; i++) {
-        if (slots[i]?.id === task.id) {
-          oldRow = i;
-          break;
-        }
-      }
       if (oldRow === newRow) return;
-      setPositionMap((prev) => ({ ...prev, [task.id]: newRow }));
+      if (targetTask) {
+        setPositionMap((prev) => ({
+          ...prev,
+          [task.id]: newRow,
+          [targetTask.id]: oldRow,
+        }));
+      } else {
+        setPositionMap((prev) => ({ ...prev, [task.id]: newRow }));
+      }
     } else {
-      setPositionMap((prev) => ({ ...prev, [task.id]: newRow }));
+      if (targetTask && oldRow !== -1) {
+        setPositionMap((prev) => ({
+          ...prev,
+          [task.id]: newRow,
+          [targetTask.id]: oldRow,
+        }));
+      } else {
+        setPositionMap((prev) => ({ ...prev, [task.id]: newRow }));
+      }
 
       const updated = { ...task, date: newDate };
       onSaved(updated);
