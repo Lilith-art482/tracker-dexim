@@ -951,14 +951,23 @@ export function FinanceDashboard({
                             >
                               {isIncome ? "+" : "-"}
                               {(() => {
-                                const accCurrency = accountMap.get(tx.accountId)?.currency || "RUB";
+                                const accCurrency =
+                                  accountMap.get(tx.accountId)?.currency ||
+                                  "RUB";
                                 const dc = getDisplayCurrency();
                                 const rates = getCachedRates();
                                 if (rates && accCurrency !== dc) {
-                                  const converted = convert(tx.amount, accCurrency, dc, rates);
+                                  const converted = convert(
+                                    tx.amount,
+                                    accCurrency,
+                                    dc,
+                                    rates,
+                                  );
                                   return (
                                     <>
-                                      {converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                                      {converted.toLocaleString(undefined, {
+                                        maximumFractionDigits: 2,
+                                      })}{" "}
                                       {getCurrencySymbol(dc)}
                                     </>
                                   );

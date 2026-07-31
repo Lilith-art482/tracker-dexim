@@ -334,7 +334,9 @@ export function FinanceAccounts() {
   const [filterMin, setFilterMin] = useState("");
   const [filterMax, setFilterMax] = useState("");
   const [filterPriority, setFilterPriority] = useState<string>("all");
-  const [sortBalance, setSortBalance] = useState<"none" | "asc" | "desc">("none");
+  const [sortBalance, setSortBalance] = useState<"none" | "asc" | "desc">(
+    "none",
+  );
   const [showFilters, setShowFilters] = useState(false);
   const [newCatName, setNewCatName] = useState("");
   const [newCatSaving, setNewCatSaving] = useState(false);
@@ -635,7 +637,14 @@ export function FinanceAccounts() {
     }
 
     return list;
-  }, [sortedAccounts, filterMin, filterMax, filterPriority, sortBalance, accountBalance]);
+  }, [
+    sortedAccounts,
+    filterMin,
+    filterMax,
+    filterPriority,
+    sortBalance,
+    accountBalance,
+  ]);
 
   const computeCryptoUpdate = useCallback(
     (
@@ -1364,7 +1373,10 @@ export function FinanceAccounts() {
                   : "Меньше → больше"}
             </button>
           </div>
-          {(filterMin || filterMax || filterPriority !== "all" || sortBalance !== "none") && (
+          {(filterMin ||
+            filterMax ||
+            filterPriority !== "all" ||
+            sortBalance !== "none") && (
             <button
               onClick={() => {
                 setFilterMin("");

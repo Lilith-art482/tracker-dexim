@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, CalendarDays, Columns3, Table2, Clock, ShieldCheck } from "lucide-react";
+import {
+  Trash2,
+  CalendarDays,
+  Columns3,
+  Table2,
+  Clock,
+  ShieldCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -78,7 +85,9 @@ function SettingRow({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold leading-tight">{label}</p>
-          <p className="text-xs text-muted-foreground/70 mt-0.5">{description}</p>
+          <p className="text-xs text-muted-foreground/70 mt-0.5">
+            {description}
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-2.5">

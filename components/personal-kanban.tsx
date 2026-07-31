@@ -76,22 +76,102 @@ const PRIORITY_LABELS: Record<Priority, string> = {
 };
 
 const COLUMN_COLORS = [
-  { name: "slate", dot: "bg-slate-400", bg: "bg-slate-500/8", border: "border-slate-300 dark:border-slate-700" },
-  { name: "blue", dot: "bg-blue-500", bg: "bg-blue-500/8", border: "border-blue-300 dark:border-blue-700" },
-  { name: "emerald", dot: "bg-emerald-500", bg: "bg-emerald-500/8", border: "border-emerald-300 dark:border-emerald-700" },
-  { name: "violet", dot: "bg-violet-500", bg: "bg-violet-500/8", border: "border-violet-300 dark:border-violet-700" },
-  { name: "amber", dot: "bg-amber-500", bg: "bg-amber-500/8", border: "border-amber-300 dark:border-amber-700" },
-  { name: "rose", dot: "bg-rose-500", bg: "bg-rose-500/8", border: "border-rose-300 dark:border-rose-700" },
-  { name: "cyan", dot: "bg-cyan-500", bg: "bg-cyan-500/8", border: "border-cyan-300 dark:border-cyan-700" },
-  { name: "pink", dot: "bg-pink-500", bg: "bg-pink-500/8", border: "border-pink-300 dark:border-pink-700" },
-  { name: "indigo", dot: "bg-indigo-500", bg: "bg-indigo-500/8", border: "border-indigo-300 dark:border-indigo-700" },
-  { name: "teal", dot: "bg-teal-500", bg: "bg-teal-500/8", border: "border-teal-300 dark:border-teal-700" },
-  { name: "orange", dot: "bg-orange-500", bg: "bg-orange-500/8", border: "border-orange-300 dark:border-orange-700" },
-  { name: "lime", dot: "bg-lime-500", bg: "bg-lime-500/8", border: "border-lime-300 dark:border-lime-700" },
-  { name: "fuchsia", dot: "bg-fuchsia-500", bg: "bg-fuchsia-500/8", border: "border-fuchsia-300 dark:border-fuchsia-700" },
-  { name: "sky", dot: "bg-sky-500", bg: "bg-sky-500/8", border: "border-sky-300 dark:border-sky-700" },
-  { name: "zinc", dot: "bg-zinc-500", bg: "bg-zinc-500/8", border: "border-zinc-300 dark:border-zinc-700" },
-  { name: "stone", dot: "bg-stone-500", bg: "bg-stone-500/8", border: "border-stone-300 dark:border-stone-700" },
+  {
+    name: "slate",
+    dot: "bg-slate-400",
+    bg: "bg-slate-500/8",
+    border: "border-slate-300 dark:border-slate-700",
+  },
+  {
+    name: "blue",
+    dot: "bg-blue-500",
+    bg: "bg-blue-500/8",
+    border: "border-blue-300 dark:border-blue-700",
+  },
+  {
+    name: "emerald",
+    dot: "bg-emerald-500",
+    bg: "bg-emerald-500/8",
+    border: "border-emerald-300 dark:border-emerald-700",
+  },
+  {
+    name: "violet",
+    dot: "bg-violet-500",
+    bg: "bg-violet-500/8",
+    border: "border-violet-300 dark:border-violet-700",
+  },
+  {
+    name: "amber",
+    dot: "bg-amber-500",
+    bg: "bg-amber-500/8",
+    border: "border-amber-300 dark:border-amber-700",
+  },
+  {
+    name: "rose",
+    dot: "bg-rose-500",
+    bg: "bg-rose-500/8",
+    border: "border-rose-300 dark:border-rose-700",
+  },
+  {
+    name: "cyan",
+    dot: "bg-cyan-500",
+    bg: "bg-cyan-500/8",
+    border: "border-cyan-300 dark:border-cyan-700",
+  },
+  {
+    name: "pink",
+    dot: "bg-pink-500",
+    bg: "bg-pink-500/8",
+    border: "border-pink-300 dark:border-pink-700",
+  },
+  {
+    name: "indigo",
+    dot: "bg-indigo-500",
+    bg: "bg-indigo-500/8",
+    border: "border-indigo-300 dark:border-indigo-700",
+  },
+  {
+    name: "teal",
+    dot: "bg-teal-500",
+    bg: "bg-teal-500/8",
+    border: "border-teal-300 dark:border-teal-700",
+  },
+  {
+    name: "orange",
+    dot: "bg-orange-500",
+    bg: "bg-orange-500/8",
+    border: "border-orange-300 dark:border-orange-700",
+  },
+  {
+    name: "lime",
+    dot: "bg-lime-500",
+    bg: "bg-lime-500/8",
+    border: "border-lime-300 dark:border-lime-700",
+  },
+  {
+    name: "fuchsia",
+    dot: "bg-fuchsia-500",
+    bg: "bg-fuchsia-500/8",
+    border: "border-fuchsia-300 dark:border-fuchsia-700",
+  },
+  {
+    name: "sky",
+    dot: "bg-sky-500",
+    bg: "bg-sky-500/8",
+    border: "border-sky-300 dark:border-sky-700",
+  },
+  {
+    name: "zinc",
+    dot: "bg-zinc-500",
+    bg: "bg-zinc-500/8",
+    border: "border-zinc-300 dark:border-zinc-700",
+  },
+  {
+    name: "stone",
+    dot: "bg-stone-500",
+    bg: "bg-stone-500/8",
+    border: "border-stone-300 dark:border-stone-700",
+  },
 ];
 
 const COLOR_MAP = new Map(COLUMN_COLORS.map((c) => [c.name, c]));
@@ -110,16 +190,11 @@ function DraggableTaskCard({
   onEdit: (task: PersonalKanbanTask) => void;
   onToggleComplete: (task: PersonalKanbanTask) => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    isDragging,
-  } = useDraggable({
-    id: task.id,
-    data: { type: "personalKanbanTask", task },
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: task.id,
+      data: { type: "personalKanbanTask", task },
+    });
 
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
@@ -169,7 +244,10 @@ function DraggableTaskCard({
         </span>
         <Badge
           variant="secondary"
-          className={cn("text-[10px] px-1.5 py-0", PRIORITY_BADGE[task.priority])}
+          className={cn(
+            "text-[10px] px-1.5 py-0",
+            PRIORITY_BADGE[task.priority],
+          )}
         >
           {PRIORITY_LABELS[task.priority]}
         </Badge>
@@ -252,11 +330,15 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
   const [deleting, setDeleting] = useState(false);
 
   const [columnSettings, setColumnSettings] = useState<Column | null>(null);
-  const [colSettingsTab, setColSettingsTab] = useState<"icon" | "color">("icon");
+  const [colSettingsTab, setColSettingsTab] = useState<"icon" | "color">(
+    "icon",
+  );
 
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [taskDialogColumnId, setTaskDialogColumnId] = useState("");
-  const [editingTask, setEditingTask] = useState<PersonalKanbanTask | null>(null);
+  const [editingTask, setEditingTask] = useState<PersonalKanbanTask | null>(
+    null,
+  );
   const [taskForm, setTaskForm] = useState({
     title: "",
     startTime: "09:00",
@@ -306,7 +388,9 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
         new Date(t.completedAt).getTime() < cutoff,
     );
     if (toDelete.length > 0) {
-      setTasks((prev) => prev.filter((t) => !toDelete.find((d) => d.id === t.id)));
+      setTasks((prev) =>
+        prev.filter((t) => !toDelete.find((d) => d.id === t.id)),
+      );
       for (const t of toDelete) {
         fetch("/api/personal-kanban-tasks", {
           method: "DELETE",
@@ -373,7 +457,9 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
       });
       if (!res.ok) throw new Error();
       const updated: Column = await res.json();
-      setColumns((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      setColumns((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c)),
+      );
       setEditingColumn(null);
     } catch {
       toast.error("Ошибка переименования");
@@ -413,7 +499,9 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
       });
       if (!res.ok) throw new Error();
       const updated: Column = await res.json();
-      setColumns((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      setColumns((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c)),
+      );
       if (columnSettings?.id === updated.id) setColumnSettings(updated);
     } catch {
       toast.error("Ошибка обновления колонки");
@@ -531,8 +619,9 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
   };
 
   const handleDragStart = (event: DragStartEvent) => {
-    const task = event.active.data.current
-      ?.task as PersonalKanbanTask | undefined;
+    const task = event.active.data.current?.task as
+      | PersonalKanbanTask
+      | undefined;
     if (task) setActiveTask(task);
   };
 
@@ -541,9 +630,7 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
     const { active, over } = event;
     if (!over) return;
 
-    const task = active.data.current?.task as
-      | PersonalKanbanTask
-      | undefined;
+    const task = active.data.current?.task as PersonalKanbanTask | undefined;
     if (!task) return;
 
     const overData = over.data.current;
@@ -554,9 +641,7 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
 
     const prevTasks = tasks;
     setTasks((prev) =>
-      prev.map((t) =>
-        t.id === task.id ? { ...t, columnId: newColumnId } : t,
-      ),
+      prev.map((t) => (t.id === task.id ? { ...t, columnId: newColumnId } : t)),
     );
 
     try {
@@ -607,10 +692,7 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
             const colColor = getColumnColor(col.color);
             const ColIcon = col.icon ? getBoardIcon(col.icon) : null;
             return (
-              <div
-                key={col.id}
-                className="flex-shrink-0 w-72 flex flex-col"
-              >
+              <div key={col.id} className="flex-shrink-0 w-72 flex flex-col">
                 <div
                   className={cn(
                     "rounded-t-xl border border-b-0 px-3 py-2.5",
@@ -648,7 +730,10 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
                           {col.name}
                         </h3>
                       )}
-                      <Badge variant="secondary" className="text-[10px] px-1.5 shrink-0">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] px-1.5 shrink-0"
+                      >
                         {tasksByColumn(col.id).length}
                       </Badge>
                     </div>
@@ -684,7 +769,11 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
 
                 <DroppableColumn
                   columnId={col.id}
-                  className={cn(colColor.bg, "border border-t-0 rounded-t-none", colColor.border)}
+                  className={cn(
+                    colColor.bg,
+                    "border border-t-0 rounded-t-none",
+                    colColor.border,
+                  )}
                 >
                   {tasksByColumn(col.id).map((task) => (
                     <DraggableTaskCard

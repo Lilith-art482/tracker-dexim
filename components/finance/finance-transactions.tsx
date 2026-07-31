@@ -404,10 +404,14 @@ export function FinanceTransactions() {
           prev.map((a) => {
             if (a.id !== txAccountId) return a;
             const cur = txCurrency || getDisplayCurrency();
-            let delta = txType === "income" ? amount : txType === "expense" ? -amount : 0;
+            let delta =
+              txType === "income" ? amount : txType === "expense" ? -amount : 0;
             if (cur !== a.currency) {
               const rates = getCachedRates();
-              if (rates) delta = convert(amount, cur, a.currency, rates) * (txType === "expense" ? -1 : 1);
+              if (rates)
+                delta =
+                  convert(amount, cur, a.currency, rates) *
+                  (txType === "expense" ? -1 : 1);
             }
             return { ...a, balance: a.balance + delta };
           }),
@@ -434,10 +438,18 @@ export function FinanceTransactions() {
           prev.map((a) => {
             if (a.id !== tx!.accountId) return a;
             const txCur = tx!.currency || getDisplayCurrency();
-            let delta = tx!.type === "income" ? tx!.amount : tx!.type === "expense" ? -tx!.amount : 0;
+            let delta =
+              tx!.type === "income"
+                ? tx!.amount
+                : tx!.type === "expense"
+                  ? -tx!.amount
+                  : 0;
             if (txCur !== a.currency) {
               const rates = getCachedRates();
-              if (rates) delta = convert(tx!.amount, txCur, a.currency, rates) * (tx!.type === "expense" ? -1 : 1);
+              if (rates)
+                delta =
+                  convert(tx!.amount, txCur, a.currency, rates) *
+                  (tx!.type === "expense" ? -1 : 1);
             }
             return { ...a, balance: a.balance - delta };
           }),
@@ -803,14 +815,22 @@ export function FinanceTransactions() {
                                   ? "−"
                                   : ""}
                               {(() => {
-                                const accCurrency = accountMap[tx.accountId]?.currency || "RUB";
+                                const accCurrency =
+                                  accountMap[tx.accountId]?.currency || "RUB";
                                 const dc = getDisplayCurrency();
                                 const rates = getCachedRates();
                                 if (rates && accCurrency !== dc) {
-                                  const converted = convert(tx.amount, accCurrency, dc, rates);
+                                  const converted = convert(
+                                    tx.amount,
+                                    accCurrency,
+                                    dc,
+                                    rates,
+                                  );
                                   return (
                                     <>
-                                      {converted.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                                      {converted.toLocaleString(undefined, {
+                                        maximumFractionDigits: 2,
+                                      })}{" "}
                                       {getCurrencySymbol(dc)}
                                     </>
                                   );
@@ -1089,24 +1109,28 @@ export function FinanceTransactions() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[getDisplayCurrency(), ...new Set(accounts.map((a) => a.currency))].map((c) => (
+                    {[
+                      getDisplayCurrency(),
+                      ...new Set(accounts.map((a) => a.currency)),
+                    ].map((c) => (
                       <SelectItem key={c} value={c}>
                         {getCurrencySymbol(c)} {c}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {txAccountId && (() => {
-                  const selAcc = accounts.find((a) => a.id === txAccountId);
-                  if (!selAcc) return null;
-                  const cur = txCurrency || getDisplayCurrency();
-                  if (selAcc.currency === cur) return null;
-                  return (
-                    <span className="text-[10px] text-muted-foreground/60">
-                      → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
-                    </span>
-                  );
-                })()}
+                {txAccountId &&
+                  (() => {
+                    const selAcc = accounts.find((a) => a.id === txAccountId);
+                    if (!selAcc) return null;
+                    const cur = txCurrency || getDisplayCurrency();
+                    if (selAcc.currency === cur) return null;
+                    return (
+                      <span className="text-[10px] text-muted-foreground/60">
+                        → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
+                      </span>
+                    );
+                  })()}
               </div>
               <div className="relative">
                 <Input
@@ -1129,7 +1153,10 @@ export function FinanceTransactions() {
                     const converted = convert(amt, cur, selAcc.currency, rates);
                     return (
                       <span className="text-[10px] text-muted-foreground/60 tabular-nums font-medium whitespace-nowrap">
-                        ≈ {converted.toLocaleString(undefined, { maximumFractionDigits: 4 })}{" "}
+                        ≈{" "}
+                        {converted.toLocaleString(undefined, {
+                          maximumFractionDigits: 4,
+                        })}{" "}
                         {getCurrencySymbol(selAcc.currency)} {selAcc.currency}
                       </span>
                     );
@@ -1276,24 +1303,28 @@ export function FinanceTransactions() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[getDisplayCurrency(), ...new Set(accounts.map((a) => a.currency))].map((c) => (
+                    {[
+                      getDisplayCurrency(),
+                      ...new Set(accounts.map((a) => a.currency)),
+                    ].map((c) => (
                       <SelectItem key={c} value={c}>
                         {getCurrencySymbol(c)} {c}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {txAccountId && (() => {
-                  const selAcc = accounts.find((a) => a.id === txAccountId);
-                  if (!selAcc) return null;
-                  const cur = txCurrency || getDisplayCurrency();
-                  if (selAcc.currency === cur) return null;
-                  return (
-                    <span className="text-[10px] text-muted-foreground/60">
-                      → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
-                    </span>
-                  );
-                })()}
+                {txAccountId &&
+                  (() => {
+                    const selAcc = accounts.find((a) => a.id === txAccountId);
+                    if (!selAcc) return null;
+                    const cur = txCurrency || getDisplayCurrency();
+                    if (selAcc.currency === cur) return null;
+                    return (
+                      <span className="text-[10px] text-muted-foreground/60">
+                        → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
+                      </span>
+                    );
+                  })()}
               </div>
               <div className="relative">
                 <Input
@@ -1316,7 +1347,10 @@ export function FinanceTransactions() {
                     const converted = convert(amt, cur, selAcc.currency, rates);
                     return (
                       <span className="text-[10px] text-muted-foreground/60 tabular-nums font-medium whitespace-nowrap">
-                        ≈ {converted.toLocaleString(undefined, { maximumFractionDigits: 4 })}{" "}
+                        ≈{" "}
+                        {converted.toLocaleString(undefined, {
+                          maximumFractionDigits: 4,
+                        })}{" "}
                         {getCurrencySymbol(selAcc.currency)} {selAcc.currency}
                       </span>
                     );

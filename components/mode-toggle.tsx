@@ -42,8 +42,10 @@ export function ModeToggle() {
             }}
             className={cn(
               "inline-flex items-center gap-1 rounded-md px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors",
-              mode === value && !dashboardOpen
-                ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+              mode === value
+                ? dashboardOpen
+                  ? "bg-violet-500/10 text-violet-600 shadow-sm"
+                  : "bg-emerald-500/10 text-emerald-600 shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >

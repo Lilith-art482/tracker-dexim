@@ -100,18 +100,43 @@ const TYPE_CONFIG: Record<
   AccountType,
   { label: string; icon: React.ElementType; color: string }
 > = {
-  cash: { label: "Наличные", icon: Coins, color: "text-emerald-600 bg-emerald-500/10" },
-  card: { label: "Карта", icon: CreditCard, color: "text-blue-600 bg-blue-500/10" },
-  crypto: { label: "Криптовалюта", icon: Bitcoin, color: "text-orange-600 bg-orange-500/10" },
-  investment: { label: "Инвестиции", icon: TrendingUp, color: "text-purple-600 bg-purple-500/10" },
-  savings: { label: "Сбережения", icon: PiggyBankIcon, color: "text-sky-600 bg-sky-500/10" },
-  deposit: { label: "Вклад", icon: Building2, color: "text-rose-600 bg-rose-500/10" },
+  cash: {
+    label: "Наличные",
+    icon: Coins,
+    color: "text-emerald-600 bg-emerald-500/10",
+  },
+  card: {
+    label: "Карта",
+    icon: CreditCard,
+    color: "text-blue-600 bg-blue-500/10",
+  },
+  crypto: {
+    label: "Криптовалюта",
+    icon: Bitcoin,
+    color: "text-orange-600 bg-orange-500/10",
+  },
+  investment: {
+    label: "Инвестиции",
+    icon: TrendingUp,
+    color: "text-purple-600 bg-purple-500/10",
+  },
+  savings: {
+    label: "Сбережения",
+    icon: PiggyBankIcon,
+    color: "text-sky-600 bg-sky-500/10",
+  },
+  deposit: {
+    label: "Вклад",
+    icon: Building2,
+    color: "text-rose-600 bg-rose-500/10",
+  },
 };
 
 function accountBalance(acc: FinanceAccount): number {
   if (acc.type === "crypto" && acc.cryptoCoin && acc.cryptoAmount != null) {
     const rates = getCachedRates();
-    if (rates) return convert(acc.cryptoAmount, acc.cryptoCoin, acc.currency, rates);
+    if (rates)
+      return convert(acc.cryptoAmount, acc.cryptoCoin, acc.currency, rates);
   }
   return acc.balance;
 }
@@ -140,7 +165,9 @@ export function FinanceGoals() {
   // Adjust modal
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustGoal, setAdjustGoal] = useState<FinanceGoal | null>(null);
-  const [adjustType, setAdjustType] = useState<"deposit" | "withdraw">("deposit");
+  const [adjustType, setAdjustType] = useState<"deposit" | "withdraw">(
+    "deposit",
+  );
   const [adjustAmount, setAdjustAmount] = useState("");
   const [adjustAccountId, setAdjustAccountId] = useState("");
   const [adjustSaving, setAdjustSaving] = useState(false);
@@ -366,20 +393,27 @@ export function FinanceGoals() {
   );
 
   const handleConfirmAdjust = useCallback(async () => {
-    if (!adjustGoal || !adjustAmount.trim() || !adjustAccountId || adjustSaving) return;
+    if (!adjustGoal || !adjustAmount.trim() || !adjustAccountId || adjustSaving)
+      return;
     const amount = parseFloat(adjustAmount);
     if (isNaN(amount) || amount <= 0) return;
 
     setAdjustSaving(true);
-    const toastId = toast.loading(adjustType === "deposit" ? "Пополняем..." : "Снимаем...");
+    const toastId = toast.loading(
+      adjustType === "deposit" ? "Пополняем..." : "Снимаем...",
+    );
 
     try {
       const delta = adjustType === "deposit" ? amount : -amount;
       const newAmount = Math.max(0, adjustGoal.currentAmount + delta);
 
       // Update goal
-      const updated = await updateGoal(adjustGoal.id, { currentAmount: newAmount });
-      setGoals((prev) => prev.map((g) => (g.id === adjustGoal.id ? updated : g)));
+      const updated = await updateGoal(adjustGoal.id, {
+        currentAmount: newAmount,
+      });
+      setGoals((prev) =>
+        prev.map((g) => (g.id === adjustGoal.id ? updated : g)),
+      );
 
       // Create transaction
       const acc = accounts.find((a) => a.id === adjustAccountId);
@@ -393,19 +427,23 @@ export function FinanceGoals() {
         categoryId: adjustGoal.categoryId || "",
         amount,
         currency: cur,
-        description: adjustType === "deposit"
-          ? `Пополнение цели: ${adjustGoal.name}`
-          : `Снятие с цели: ${adjustGoal.name}`,
+        description:
+          adjustType === "deposit"
+            ? `Пополнение цели: ${adjustGoal.name}`
+            : `Снятие с цели: ${adjustGoal.name}`,
         tags: ["goal", adjustGoal.name],
         date: new Date().toISOString(),
       });
 
       // Update account balance
       const accBalance = accountBalance(acc!);
-      const newBalance = adjustType === "deposit" ? accBalance - amount : accBalance + amount;
+      const newBalance =
+        adjustType === "deposit" ? accBalance - amount : accBalance + amount;
       await updateAccountModel(adjustAccountId, { balance: newBalance });
       setAccounts((prev) =>
-        prev.map((a) => (a.id === adjustAccountId ? { ...a, balance: newBalance } : a)),
+        prev.map((a) =>
+          a.id === adjustAccountId ? { ...a, balance: newBalance } : a,
+        ),
       );
 
       setAdjustAmounts((prev) => ({ ...prev, [adjustGoal.id]: "" }));
@@ -415,13 +453,24 @@ export function FinanceGoals() {
       setAdjustAccountId("");
 
       const label = adjustType === "deposit" ? "Пополнено" : "Снято";
-      toast.success(`${label} ${amount.toLocaleString()} ${getCurrencySymbol(cur)}`, { id: toastId });
+      toast.success(
+        `${label} ${amount.toLocaleString()} ${getCurrencySymbol(cur)}`,
+        { id: toastId },
+      );
     } catch {
       toast.error("Ошибка", { id: toastId });
     } finally {
       setAdjustSaving(false);
     }
-  }, [adjustGoal, adjustType, adjustAmount, adjustAccountId, adjustSaving, accounts, uid]);
+  }, [
+    adjustGoal,
+    adjustType,
+    adjustAmount,
+    adjustAccountId,
+    adjustSaving,
+    accounts,
+    uid,
+  ]);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -970,22 +1019,31 @@ export function FinanceGoals() {
       </Dialog>
 
       {/* Adjust Goal Modal (Deposit/Withdraw) */}
-      <Dialog open={adjustOpen} onOpenChange={(open) => { if (!open) setAdjustOpen(false); }}>
+      <Dialog
+        open={adjustOpen}
+        onOpenChange={(open) => {
+          if (!open) setAdjustOpen(false);
+        }}
+      >
         <DialogContent className="sm:max-w-md rounded-2xl p-0 gap-0 overflow-hidden">
           {/* Header */}
-          <div className={cn(
-            "relative p-5 pb-4",
-            adjustType === "deposit"
-              ? "bg-gradient-to-br from-emerald-500/10 via-transparent to-green-500/5"
-              : "bg-gradient-to-br from-rose-500/10 via-transparent to-orange-500/5",
-          )}>
+          <div
+            className={cn(
+              "relative p-5 pb-4",
+              adjustType === "deposit"
+                ? "bg-gradient-to-br from-emerald-500/10 via-transparent to-green-500/5"
+                : "bg-gradient-to-br from-rose-500/10 via-transparent to-orange-500/5",
+            )}
+          >
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-xl shadow-md",
-                adjustType === "deposit"
-                  ? "bg-gradient-to-br from-emerald-500 to-green-500 shadow-emerald-500/20"
-                  : "bg-gradient-to-br from-rose-500 to-orange-500 shadow-rose-500/20",
-              )}>
+              <div
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-xl shadow-md",
+                  adjustType === "deposit"
+                    ? "bg-gradient-to-br from-emerald-500 to-green-500 shadow-emerald-500/20"
+                    : "bg-gradient-to-br from-rose-500 to-orange-500 shadow-rose-500/20",
+                )}
+              >
                 {adjustType === "deposit" ? (
                   <ArrowDown className="h-5 w-5 text-white" />
                 ) : (
@@ -1008,13 +1066,17 @@ export function FinanceGoals() {
             {adjustGoal && (
               <div className="rounded-xl bg-muted/30 border border-border/30 p-3 flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Текущий баланс</p>
+                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
+                    Текущий баланс
+                  </p>
                   <p className="text-lg font-bold tabular-nums mt-0.5">
                     {adjustGoal.currentAmount.toLocaleString()} ₽
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Цель</p>
+                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
+                    Цель
+                  </p>
                   <p className="text-sm font-medium text-muted-foreground/70 tabular-nums mt-0.5">
                     {adjustGoal.targetAmount.toLocaleString()} ₽
                   </p>
@@ -1044,10 +1106,12 @@ export function FinanceGoals() {
             {/* Account selector */}
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground/70 uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                <div className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  adjustType === "deposit" ? "bg-rose-500" : "bg-emerald-500",
-                )} />
+                <div
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    adjustType === "deposit" ? "bg-rose-500" : "bg-emerald-500",
+                  )}
+                />
                 {adjustType === "deposit" ? "Списать с" : "Зачислить на"}
               </Label>
               <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-1">
@@ -1068,7 +1132,12 @@ export function FinanceGoals() {
                           : "border-border/50 hover:border-muted-foreground/30 hover:bg-muted/30",
                       )}
                     >
-                      <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", cfg.color)}>
+                      <div
+                        className={cn(
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                          cfg.color,
+                        )}
+                      >
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -1086,10 +1155,14 @@ export function FinanceGoals() {
                         </p>
                       </div>
                       {selected && (
-                        <div className={cn(
-                          "h-4 w-4 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                          adjustType === "deposit" ? "bg-rose-500" : "bg-emerald-500",
-                        )}>
+                        <div
+                          className={cn(
+                            "h-4 w-4 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                            adjustType === "deposit"
+                              ? "bg-rose-500"
+                              : "bg-emerald-500",
+                          )}
+                        >
                           <Check className="h-2.5 w-2.5 text-white" />
                         </div>
                       )}
@@ -1116,7 +1189,12 @@ export function FinanceGoals() {
                     : "bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-700 hover:to-orange-700 shadow-lg shadow-rose-500/25",
                 )}
                 onClick={handleConfirmAdjust}
-                disabled={adjustSaving || !adjustAmount.trim() || !adjustAccountId || parseFloat(adjustAmount) <= 0}
+                disabled={
+                  adjustSaving ||
+                  !adjustAmount.trim() ||
+                  !adjustAccountId ||
+                  parseFloat(adjustAmount) <= 0
+                }
               >
                 {adjustSaving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

@@ -103,12 +103,36 @@ const ACCOUNT_TYPE_CONFIG: Record<
   string,
   { label: string; icon: React.ElementType; color: string }
 > = {
-  cash: { label: "Наличные", icon: Coins, color: "text-emerald-600 bg-emerald-500/10" },
-  card: { label: "Карта", icon: CreditCard, color: "text-blue-600 bg-blue-500/10" },
-  crypto: { label: "Криптовалюта", icon: Wallet, color: "text-orange-600 bg-orange-500/10" },
-  investment: { label: "Инвестиции", icon: TrendingDown, color: "text-purple-600 bg-purple-500/10" },
-  savings: { label: "Сбережения", icon: Wallet, color: "text-sky-600 bg-sky-500/10" },
-  deposit: { label: "Вклад", icon: Landmark, color: "text-rose-600 bg-rose-500/10" },
+  cash: {
+    label: "Наличные",
+    icon: Coins,
+    color: "text-emerald-600 bg-emerald-500/10",
+  },
+  card: {
+    label: "Карта",
+    icon: CreditCard,
+    color: "text-blue-600 bg-blue-500/10",
+  },
+  crypto: {
+    label: "Криптовалюта",
+    icon: Wallet,
+    color: "text-orange-600 bg-orange-500/10",
+  },
+  investment: {
+    label: "Инвестиции",
+    icon: TrendingDown,
+    color: "text-purple-600 bg-purple-500/10",
+  },
+  savings: {
+    label: "Сбережения",
+    icon: Wallet,
+    color: "text-sky-600 bg-sky-500/10",
+  },
+  deposit: {
+    label: "Вклад",
+    icon: Landmark,
+    color: "text-rose-600 bg-rose-500/10",
+  },
 };
 
 function calcMonthlyPayment(P: number, annualRate: number, n: number) {
@@ -244,7 +268,9 @@ export function FinanceLoans() {
   }, [fetchLoans]);
 
   useEffect(() => {
-    getAccountsByUser(uid).then(setAccounts).catch(() => {});
+    getAccountsByUser(uid)
+      .then(setAccounts)
+      .catch(() => {});
   }, [uid]);
 
   const resetForm = useCallback(() => {
@@ -481,7 +507,8 @@ export function FinanceLoans() {
   };
 
   const sortedAccounts = useMemo(
-    () => [...accounts].sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)),
+    () =>
+      [...accounts].sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)),
     [accounts],
   );
 
@@ -507,7 +534,10 @@ export function FinanceLoans() {
         currency: cur,
         description: paymentComment.trim() || `Оплата: ${paymentLoan.name}`,
         tags: ["obligation-payment", paymentLoan.obligationType],
-        date: new Date().toISOString().split("T")[0] + "T" + new Date().toISOString().split("T")[1].slice(0, 8),
+        date:
+          new Date().toISOString().split("T")[0] +
+          "T" +
+          new Date().toISOString().split("T")[1].slice(0, 8),
       });
 
       const rates = getCachedRates();
@@ -518,11 +548,16 @@ export function FinanceLoans() {
       if (rates && cur !== loanCur) {
         amountInLoanCur = convert(amount, cur, loanCur, rates);
       }
-      const newRemaining = Math.max(0, paymentLoan.remainingAmount - amountInLoanCur);
+      const newRemaining = Math.max(
+        0,
+        paymentLoan.remainingAmount - amountInLoanCur,
+      );
       const updated = await updateLoan(paymentLoan.id, {
         remainingAmount: newRemaining,
       });
-      setLoans((prev) => prev.map((l) => (l.id === paymentLoan.id ? updated : l)));
+      setLoans((prev) =>
+        prev.map((l) => (l.id === paymentLoan.id ? updated : l)),
+      );
       setAccounts((prev) =>
         prev.map((a) => {
           if (a.id !== paymentAccountId) return a;
@@ -1311,9 +1346,7 @@ export function FinanceLoans() {
                       onClick={() => handleEarlyRepayment(loan)}
                     >
                       <Coins className="h-3.5 w-3.5 mr-1" />
-                      {loan.obligationType === "fine"
-                        ? "Оплатить"
-                        : "Досрочно"}
+                      {loan.obligationType === "fine" ? "Оплатить" : "Досрочно"}
                     </Button>
                   </div>
                 )}
@@ -1838,24 +1871,30 @@ export function FinanceLoans() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[getDisplayCurrency(), ...new Set(accounts.map((a) => a.currency))].map((c) => (
+                    {[
+                      getDisplayCurrency(),
+                      ...new Set(accounts.map((a) => a.currency)),
+                    ].map((c) => (
                       <SelectItem key={c} value={c}>
                         {getCurrencySymbol(c)} {c}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {paymentAccountId && (() => {
-                  const selAcc = accounts.find((a) => a.id === paymentAccountId);
-                  if (!selAcc) return null;
-                  const cur = paymentCurrency || getDisplayCurrency();
-                  if (selAcc.currency === cur) return null;
-                  return (
-                    <span className="text-[10px] text-muted-foreground/60">
-                      → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
-                    </span>
-                  );
-                })()}
+                {paymentAccountId &&
+                  (() => {
+                    const selAcc = accounts.find(
+                      (a) => a.id === paymentAccountId,
+                    );
+                    if (!selAcc) return null;
+                    const cur = paymentCurrency || getDisplayCurrency();
+                    if (selAcc.currency === cur) return null;
+                    return (
+                      <span className="text-[10px] text-muted-foreground/60">
+                        → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
+                      </span>
+                    );
+                  })()}
               </div>
               <div className="relative">
                 <Input
@@ -1882,7 +1921,10 @@ export function FinanceLoans() {
                 return (
                   <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 mt-1">
                     <span className="tabular-nums font-medium">
-                      ≈ {converted.toLocaleString(undefined, { maximumFractionDigits: 4 })}{" "}
+                      ≈{" "}
+                      {converted.toLocaleString(undefined, {
+                        maximumFractionDigits: 4,
+                      })}{" "}
                       {getCurrencySymbol(selAcc.currency)} {selAcc.currency}
                     </span>
                   </div>
@@ -1890,11 +1932,16 @@ export function FinanceLoans() {
               })()}
               {paymentLoan && (
                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
-                  <span>Остаток: {paymentLoan.remainingAmount.toLocaleString()} ₽</span>
+                  <span>
+                    Остаток: {paymentLoan.remainingAmount.toLocaleString()} ₽
+                  </span>
                   {paymentLoan.repaymentType !== "lumpSum" && (
                     <>
                       <span>·</span>
-                      <span>Платёж/мес: {paymentLoan.monthlyPayment.toLocaleString()} ₽</span>
+                      <span>
+                        Платёж/мес:{" "}
+                        {paymentLoan.monthlyPayment.toLocaleString()} ₽
+                      </span>
                     </>
                   )}
                 </div>
@@ -1909,7 +1956,8 @@ export function FinanceLoans() {
               </Label>
               <div className="grid grid-cols-2 gap-3 max-h-[260px] overflow-y-auto pr-1">
                 {sortedAccounts.map((a) => {
-                  const cfg = ACCOUNT_TYPE_CONFIG[a.type] || ACCOUNT_TYPE_CONFIG.cash;
+                  const cfg =
+                    ACCOUNT_TYPE_CONFIG[a.type] || ACCOUNT_TYPE_CONFIG.cash;
                   const Icon = cfg.icon;
                   const selected = paymentAccountId === a.id;
                   return (
@@ -2034,7 +2082,9 @@ export function FinanceLoans() {
                 }
                 className="h-9 bg-gradient-to-r from-emerald-600 to-sky-600 hover:from-emerald-500 hover:to-sky-500 text-white shadow-sm"
               >
-                {paymentSaving && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+                {paymentSaving && (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                )}
                 <Banknote className="h-3.5 w-3.5 mr-1.5" />
                 Оплатить
               </Button>

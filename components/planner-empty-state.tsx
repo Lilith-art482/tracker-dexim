@@ -182,9 +182,7 @@ export function PlannerEmptyState() {
           Планируйте задачи
           <br />
           <span className="bg-gradient-to-r from-primary via-primary/70 to-primary bg-[length:200%_auto] bg-clip-text text-transparent">
-            {mode === "personal"
-              ? "удобно и наглядно"
-              : "вместе с командой"}
+            {mode === "personal" ? "удобно и наглядно" : "вместе с командой"}
           </span>
         </h1>
         <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed">

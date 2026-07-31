@@ -12,8 +12,12 @@ export function TeamDashboardPlaceholder() {
             <LayoutDashboard className="h-5 w-5 text-violet-600" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Дашборд команды</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Обзор задач команды</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+              Дашборд команды
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Обзор задач команды
+            </p>
           </div>
         </div>
       </div>
@@ -32,8 +36,8 @@ export function TeamDashboardPlaceholder() {
             В разработке
           </h2>
           <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-            Дашборд для командных задач находится в стадии разработки.
-            Скоро здесь будут доступны детальная аналитика по задачам команды,
+            Дашборд для командных задач находится в стадии разработки. Скоро
+            здесь будут доступны детальная аналитика по задачам команды,
             прогресс по проектам и статистика участников.
           </p>
 
@@ -54,7 +58,9 @@ export function TeamDashboardPlaceholder() {
                 className="rounded-xl border border-border/30 bg-muted/20 p-3"
               >
                 <p className="text-lg font-bold">{item.value}</p>
-                <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {item.label}
+                </p>
               </div>
             ))}
           </div>

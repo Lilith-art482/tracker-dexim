@@ -69,7 +69,9 @@ function getWeekDates(weekOffset: number): Date[] {
 
 export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<"table" | "list" | "kanban">("table");
+  const [viewMode, setViewMode] = useState<"table" | "list" | "kanban">(
+    "table",
+  );
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const today = new Date().getDay();
     return today === 0 ? 6 : today - 1;
@@ -201,7 +203,9 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
         new Date(t.completedAt).getTime() < cutoff,
     );
     if (toDelete.length > 0) {
-      setTasks((prev) => prev.filter((t) => !toDelete.find((d) => d.id === t.id)));
+      setTasks((prev) =>
+        prev.filter((t) => !toDelete.find((d) => d.id === t.id)),
+      );
       for (const t of toDelete) {
         fetch("/api/personal-tasks", {
           method: "DELETE",
@@ -225,43 +229,40 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
     });
   }, []);
 
-  const handleToggleComplete = useCallback(
-    async (task: PersonalTask) => {
-      const newCompleted = !task.completed;
-      const completedAt = newCompleted ? new Date().toISOString() : null;
-      const toggled = { ...task, completed: newCompleted, completedAt };
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? toggled : t)));
+  const handleToggleComplete = useCallback(async (task: PersonalTask) => {
+    const newCompleted = !task.completed;
+    const completedAt = newCompleted ? new Date().toISOString() : null;
+    const toggled = { ...task, completed: newCompleted, completedAt };
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? toggled : t)));
 
-      try {
-        const res = await fetch("/api/personal-tasks", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: task.id,
-            completed: newCompleted,
-            completedAt,
-          }),
-        });
+    try {
+      const res = await fetch("/api/personal-tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: task.id,
+          completed: newCompleted,
+          completedAt,
+        }),
+      });
 
-        if (!res.ok) {
-          const err = await res.json();
-          toast.error(err.error || "Ошибка обновления задачи");
-          setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-          return;
-        }
-
-        const updated: PersonalTask = await res.json();
-        setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
-        toast.success(
-          updated.completed ? "Задача выполнена" : "Задача возобновлена",
-        );
-      } catch {
-        toast.error("Ошибка обновления задачи");
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Ошибка обновления задачи");
         setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+        return;
       }
-    },
-    [],
-  );
+
+      const updated: PersonalTask = await res.json();
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+      toast.success(
+        updated.completed ? "Задача выполнена" : "Задача возобновлена",
+      );
+    } catch {
+      toast.error("Ошибка обновления задачи");
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+    }
+  }, []);
 
   const handleDeleteTask = useCallback(
     async (task: PersonalTask) => {
@@ -507,7 +508,10 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
 
       {/* Content */}
       {viewMode === "kanban" ? (
-        <PersonalKanban boardId={activeBoard?.id || ""} activeBoard={activeBoard} />
+        <PersonalKanban
+          boardId={activeBoard?.id || ""}
+          activeBoard={activeBoard}
+        />
       ) : viewMode === "table" ? (
         <WeeklyTable
           tasks={tasksForWeek}

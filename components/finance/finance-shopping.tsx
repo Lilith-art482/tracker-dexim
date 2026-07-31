@@ -121,7 +121,8 @@ const TYPE_CONFIG: Record<
 function accountBalance(acc: FinanceAccount): number {
   if (acc.type === "crypto" && acc.cryptoCoin && acc.cryptoAmount != null) {
     const rates = getCachedRates();
-    if (rates) return convert(acc.cryptoAmount, acc.cryptoCoin, acc.currency, rates);
+    if (rates)
+      return convert(acc.cryptoAmount, acc.cryptoCoin, acc.currency, rates);
   }
   return acc.balance;
 }
@@ -274,7 +275,8 @@ export function FinanceShopping() {
       const updated = await updateShoppingList(listId, { items: updatedItems });
       setLists((prev) => prev.map((l) => (l.id === listId ? updated : l)));
 
-      const allCheckedNow = updatedItems.length > 0 && updatedItems.every((i) => i.checked);
+      const allCheckedNow =
+        updatedItems.length > 0 && updatedItems.every((i) => i.checked);
       if (allCheckedNow) {
         openBulkPurchase(listId);
       }
@@ -284,7 +286,11 @@ export function FinanceShopping() {
   };
 
   // Per-item amount editor
-  const openAmountEditor = (listId: string, itemId: string, current?: number) => {
+  const openAmountEditor = (
+    listId: string,
+    itemId: string,
+    current?: number,
+  ) => {
     setEditingAmount({ listId, itemId });
     setEditAmountValue(current ? String(current) : "");
   };
@@ -372,7 +378,9 @@ export function FinanceShopping() {
     setBulkCategoryId("");
 
     if (list) {
-      const itemsWithAmount = list.items.filter((i) => i.amount != null && i.amount > 0);
+      const itemsWithAmount = list.items.filter(
+        (i) => i.amount != null && i.amount > 0,
+      );
       if (itemsWithAmount.length > 0) {
         const total = itemsWithAmount.reduce((s, i) => s + i.amount!, 0);
         setBulkAmount(String(Math.round(total * 100) / 100));
@@ -413,20 +421,18 @@ export function FinanceShopping() {
 
       // Mark all unchecked items as checked and attach transactionId
       const updatedItems = list.items.map((item) =>
-        !item.checked
-          ? { ...item, checked: true, transactionId: tx.id }
-          : item,
+        !item.checked ? { ...item, checked: true, transactionId: tx.id } : item,
       );
 
       const updated = await updateShoppingList(bulkListId, {
         items: updatedItems,
         completed: true,
       });
-      setLists((prev) =>
-        prev.map((l) => (l.id === bulkListId ? updated : l)),
-      );
+      setLists((prev) => prev.map((l) => (l.id === bulkListId ? updated : l)));
 
-      toast.success(`Транзакция на ${amount} ${getCurrencySymbol(cur)} создана`);
+      toast.success(
+        `Транзакция на ${amount} ${getCurrencySymbol(cur)} создана`,
+      );
       setBulkOpen(false);
       setBulkListId("");
       setBulkAmount("");
@@ -443,8 +449,7 @@ export function FinanceShopping() {
   const archivedLists = lists.filter((l) => l.archived);
 
   const totalSpent = lists.reduce(
-    (sum, l) =>
-      sum + l.items.reduce((s, i) => s + (i.amount || 0), 0),
+    (sum, l) => sum + l.items.reduce((s, i) => s + (i.amount || 0), 0),
     0,
   );
   const totalItems = lists.reduce((sum, l) => sum + l.items.length, 0);
@@ -473,10 +478,7 @@ export function FinanceShopping() {
     const totalItemsCount = list.items.length;
     const progress =
       totalItemsCount > 0 ? (checkedCount / totalItemsCount) * 100 : 0;
-    const listTotal = list.items.reduce(
-      (s, i) => s + (i.amount || 0),
-      0,
-    );
+    const listTotal = list.items.reduce((s, i) => s + (i.amount || 0), 0);
     const uncheckedCount = totalItemsCount - checkedCount;
 
     return (
@@ -518,8 +520,7 @@ export function FinanceShopping() {
               <h3
                 className={cn(
                   "text-sm font-semibold truncate",
-                  list.completed &&
-                    "text-emerald-600 dark:text-emerald-400",
+                  list.completed && "text-emerald-600 dark:text-emerald-400",
                 )}
               >
                 {list.name}
@@ -599,8 +600,7 @@ export function FinanceShopping() {
             {list.items.length > 0 && (
               <div className="space-y-0.5">
                 {list.items.map((item) => {
-                  const itemHasAmount =
-                    item.amount != null && item.amount > 0;
+                  const itemHasAmount = item.amount != null && item.amount > 0;
                   return (
                     <div
                       key={item.id}
@@ -619,9 +619,7 @@ export function FinanceShopping() {
                             : "border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5",
                         )}
                       >
-                        {item.checked && (
-                          <Check className="h-2.5 w-2.5" />
-                        )}
+                        {item.checked && <Check className="h-2.5 w-2.5" />}
                       </button>
 
                       <div className="flex-1 min-w-0">
@@ -647,11 +645,7 @@ export function FinanceShopping() {
                             variant="secondary"
                             className="text-[10px] px-1.5 py-0 h-5 tabular-nums font-medium bg-primary/10 text-primary border-0 cursor-pointer hover:bg-primary/20"
                             onClick={() =>
-                              openAmountEditor(
-                                list.id,
-                                item.id,
-                                item.amount,
-                              )
+                              openAmountEditor(list.id, item.id, item.amount)
                             }
                           >
                             {item.amount!.toLocaleString()} ₽
@@ -661,9 +655,7 @@ export function FinanceShopping() {
                         {/* Add/set amount button */}
                         {!item.checked && !itemHasAmount && (
                           <button
-                            onClick={() =>
-                              openAmountEditor(list.id, item.id)
-                            }
+                            onClick={() => openAmountEditor(list.id, item.id)}
                             className="h-6 w-6 flex items-center justify-center rounded-lg text-muted-foreground/0 group-hover/item:text-muted-foreground/40 hover:text-primary hover:bg-primary/5 transition-all shrink-0"
                             title="Указать сумму"
                           >
@@ -674,9 +666,7 @@ export function FinanceShopping() {
                         {/* Delete button */}
                         {!item.checked && (
                           <button
-                            onClick={() =>
-                              handleDeleteItem(list.id, item.id)
-                            }
+                            onClick={() => handleDeleteItem(list.id, item.id)}
                             className="h-6 w-6 flex items-center justify-center rounded-lg text-muted-foreground/0 group-hover/item:text-muted-foreground/40 hover:text-rose-500 transition-all shrink-0"
                           >
                             <X className="h-3 w-3" />
@@ -700,7 +690,12 @@ export function FinanceShopping() {
                   Оформить покупку
                   {uncheckedCount > 0 && (
                     <span className="ml-1.5 text-emerald-200/80">
-                      · {uncheckedCount} {uncheckedCount === 1 ? "товар" : uncheckedCount < 5 ? "товара" : "товаров"}
+                      · {uncheckedCount}{" "}
+                      {uncheckedCount === 1
+                        ? "товар"
+                        : uncheckedCount < 5
+                          ? "товара"
+                          : "товаров"}
                     </span>
                   )}
                 </Button>
@@ -771,9 +766,7 @@ export function FinanceShopping() {
             {lists.length > 0 && (
               <p className="text-[11px] text-muted-foreground/50">
                 {lists.length} списков · {checkedItems}/{totalItems} товаров
-                {totalSpent > 0 && (
-                  <> · {totalSpent.toLocaleString()} ₽</>
-                )}
+                {totalSpent > 0 && <> · {totalSpent.toLocaleString()} ₽</>}
               </p>
             )}
           </div>
@@ -795,13 +788,19 @@ export function FinanceShopping() {
             </div>
             <div className="text-[11px] text-muted-foreground/70 leading-relaxed space-y-1 pr-4">
               <p>
-                <span className="font-medium text-foreground/80">Галочка</span> — просто отмечает товар как купленный.
+                <span className="font-medium text-foreground/80">Галочка</span>{" "}
+                — просто отмечает товар как купленный.
               </p>
               <p>
-                <span className="font-medium text-foreground/80">Иконка $</span> — указать стоимость отдельного товара (необязательно).
+                <span className="font-medium text-foreground/80">Иконка $</span>{" "}
+                — указать стоимость отдельного товара (необязательно).
               </p>
               <p>
-                <span className="font-medium text-foreground/80">«Оформить покупку»</span> — внести итоговую сумму чека и создать одну транзакцию на весь список.
+                <span className="font-medium text-foreground/80">
+                  «Оформить покупку»
+                </span>{" "}
+                — внести итоговую сумму чека и создать одну транзакцию на весь
+                список.
               </p>
             </div>
           </div>
@@ -931,10 +930,7 @@ export function FinanceShopping() {
               >
                 Отмена
               </Button>
-              <Button
-                className="rounded-xl"
-                onClick={saveItemAmount}
-              >
+              <Button className="rounded-xl" onClick={saveItemAmount}>
                 <Check className="h-4 w-4 mr-1" />
                 Сохранить
               </Button>
@@ -965,59 +961,79 @@ export function FinanceShopping() {
           </DialogHeader>
           <div className="space-y-4 pt-2">
             {/* Summary */}
-            {bulkListId && (() => {
-              const list = lists.find((l) => l.id === bulkListId);
-              if (!list) return null;
-              const itemsWithAmount = list.items.filter((i) => i.amount != null && i.amount > 0);
-              const itemsWithoutAmount = list.items.filter((i) => i.amount == null || i.amount <= 0);
-              const totalFromItems = itemsWithAmount.reduce((s, i) => s + i.amount!, 0);
-              const allHaveAmount = itemsWithoutAmount.length === 0 && itemsWithAmount.length > 0;
-              const someHaveAmount = itemsWithAmount.length > 0 && itemsWithoutAmount.length > 0;
+            {bulkListId &&
+              (() => {
+                const list = lists.find((l) => l.id === bulkListId);
+                if (!list) return null;
+                const itemsWithAmount = list.items.filter(
+                  (i) => i.amount != null && i.amount > 0,
+                );
+                const itemsWithoutAmount = list.items.filter(
+                  (i) => i.amount == null || i.amount <= 0,
+                );
+                const totalFromItems = itemsWithAmount.reduce(
+                  (s, i) => s + i.amount!,
+                  0,
+                );
+                const allHaveAmount =
+                  itemsWithoutAmount.length === 0 && itemsWithAmount.length > 0;
+                const someHaveAmount =
+                  itemsWithAmount.length > 0 && itemsWithoutAmount.length > 0;
 
-              return (
-                <div className="rounded-xl bg-muted/30 border border-border/30 p-3 space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground/70">
-                    {list.name}
-                  </p>
-
-                  {/* Items with amounts */}
-                  {itemsWithAmount.length > 0 && (
-                    <div className="space-y-1">
-                      {itemsWithAmount.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between text-[11px]">
-                          <span className="text-muted-foreground/60 truncate">{item.name}</span>
-                          <span className="font-medium text-muted-foreground/80 tabular-nums ml-2">
-                            {item.amount!.toLocaleString()} ₽
-                          </span>
-                        </div>
-                      ))}
-                      {allHaveAmount && (
-                        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/30">
-                          <span className="font-medium text-foreground/70">Итого по товарам</span>
-                          <span className="font-bold text-foreground tabular-nums">
-                            {totalFromItems.toLocaleString()} ₽
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Hint for partial amounts */}
-                  {someHaveAmount && (
-                    <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
-                      У {itemsWithAmount.length} товаров указана сумма ({totalFromItems.toLocaleString()} ₽).
-                      У {itemsWithoutAmount.length} товаров сумма не указана — отредактируйте итог или укажите стоимость по товарам.
+                return (
+                  <div className="rounded-xl bg-muted/30 border border-border/30 p-3 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground/70">
+                      {list.name}
                     </p>
-                  )}
 
-                  {itemsWithAmount.length === 0 && (
-                    <p className="text-[10px] text-muted-foreground/50">
-                      Суммы по товарам не указаны. Внесите итоговую сумму чека.
-                    </p>
-                  )}
-                </div>
-              );
-            })()}
+                    {/* Items with amounts */}
+                    {itemsWithAmount.length > 0 && (
+                      <div className="space-y-1">
+                        {itemsWithAmount.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between text-[11px]"
+                          >
+                            <span className="text-muted-foreground/60 truncate">
+                              {item.name}
+                            </span>
+                            <span className="font-medium text-muted-foreground/80 tabular-nums ml-2">
+                              {item.amount!.toLocaleString()} ₽
+                            </span>
+                          </div>
+                        ))}
+                        {allHaveAmount && (
+                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/30">
+                            <span className="font-medium text-foreground/70">
+                              Итого по товарам
+                            </span>
+                            <span className="font-bold text-foreground tabular-nums">
+                              {totalFromItems.toLocaleString()} ₽
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Hint for partial amounts */}
+                    {someHaveAmount && (
+                      <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
+                        У {itemsWithAmount.length} товаров указана сумма (
+                        {totalFromItems.toLocaleString()} ₽). У{" "}
+                        {itemsWithoutAmount.length} товаров сумма не указана —
+                        отредактируйте итог или укажите стоимость по товарам.
+                      </p>
+                    )}
+
+                    {itemsWithAmount.length === 0 && (
+                      <p className="text-[10px] text-muted-foreground/50">
+                        Суммы по товарам не указаны. Внесите итоговую сумму
+                        чека.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
             {/* Amount */}
             <div className="space-y-1.5">
@@ -1055,9 +1071,7 @@ export function FinanceShopping() {
               </div>
               {bulkAccountId &&
                 (() => {
-                  const selAcc = accounts.find(
-                    (a) => a.id === bulkAccountId,
-                  );
+                  const selAcc = accounts.find((a) => a.id === bulkAccountId);
                   if (!selAcc) return null;
                   const cur = bulkCurrency || getDisplayCurrency();
                   if (selAcc.currency === cur) return null;
@@ -1073,8 +1087,7 @@ export function FinanceShopping() {
                         {converted.toLocaleString(undefined, {
                           maximumFractionDigits: 4,
                         })}{" "}
-                        {getCurrencySymbol(selAcc.currency)}{" "}
-                        {selAcc.currency}
+                        {getCurrencySymbol(selAcc.currency)} {selAcc.currency}
                       </span>
                     </div>
                   );
