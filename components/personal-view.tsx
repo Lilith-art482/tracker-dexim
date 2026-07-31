@@ -55,7 +55,7 @@ function getMonday(d: Date): Date {
 }
 
 function formatDate(date: Date): string {
-  return `${date.getDate()} ${MONTH_NAMES[date.getMonth()].toLowerCase().slice(0, 4)}`;
+  return `${date.getDate()} ${MONTH_NAMES[date.getMonth()].toLowerCase().slice(0, 4)} ${date.getFullYear()}`;
 }
 
 function getWeekDates(weekOffset: number): Date[] {
@@ -97,11 +97,13 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
 
   const currentMonthLabel = (() => {
     const months = new Set(weekDates.map((d) => d.getMonth()));
+    const years = new Set(weekDates.map((d) => d.getFullYear()));
+    const yearStr = years.size === 1 ? ` ${[...years][0]}` : "";
     if (months.size === 1) {
-      return MONTH_NAMES[[...months][0]];
+      return `${MONTH_NAMES[[...months][0]]}${yearStr}`;
     }
     const [a, b] = [...months].sort();
-    return `${MONTH_NAMES[a]} / ${MONTH_NAMES[b]}`;
+    return `${MONTH_NAMES[a]} / ${MONTH_NAMES[b]}${yearStr}`;
   })();
 
   useEffect(() => {
@@ -190,8 +192,8 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   useEffect(() => {
     if (loading || !tasks.length) return;
     const settings = getPersonalSettings();
-    if (!settings.autoDeleteCompletedDays) return;
-    const days = settings.autoDeleteCompletedDays;
+    const days = settings.autoDeleteTableDays;
+    if (!days) return;
     const now = Date.now();
     const cutoff = now - days * 24 * 60 * 60 * 1000;
     const toDelete = tasks.filter(
@@ -521,6 +523,9 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
         />
       ) : (
         <div className="flex flex-col lg:flex-row gap-6">
+          <div className="w-full lg:w-72 shrink-0">
+            <PersonalDashboard tasks={tasksForWeek} />
+          </div>
           <div className="flex-1 min-w-0">
             <PersonalTaskList
               tasks={tasksForWeek}
@@ -529,9 +534,6 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               onToggleComplete={handleToggleComplete}
               onDelete={handleDeleteTask}
             />
-          </div>
-          <div className="w-full lg:w-72 shrink-0">
-            <PersonalDashboard tasks={tasksForWeek} />
           </div>
         </div>
       )}

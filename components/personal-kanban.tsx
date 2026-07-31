@@ -86,6 +86,12 @@ const COLUMN_COLORS = [
   { name: "pink", dot: "bg-pink-500", bg: "bg-pink-500/8", border: "border-pink-300 dark:border-pink-700" },
   { name: "indigo", dot: "bg-indigo-500", bg: "bg-indigo-500/8", border: "border-indigo-300 dark:border-indigo-700" },
   { name: "teal", dot: "bg-teal-500", bg: "bg-teal-500/8", border: "border-teal-300 dark:border-teal-700" },
+  { name: "orange", dot: "bg-orange-500", bg: "bg-orange-500/8", border: "border-orange-300 dark:border-orange-700" },
+  { name: "lime", dot: "bg-lime-500", bg: "bg-lime-500/8", border: "border-lime-300 dark:border-lime-700" },
+  { name: "fuchsia", dot: "bg-fuchsia-500", bg: "bg-fuchsia-500/8", border: "border-fuchsia-300 dark:border-fuchsia-700" },
+  { name: "sky", dot: "bg-sky-500", bg: "bg-sky-500/8", border: "border-sky-300 dark:border-sky-700" },
+  { name: "zinc", dot: "bg-zinc-500", bg: "bg-zinc-500/8", border: "border-zinc-300 dark:border-zinc-700" },
+  { name: "stone", dot: "bg-stone-500", bg: "bg-stone-500/8", border: "border-stone-300 dark:border-stone-700" },
 ];
 
 const COLOR_MAP = new Map(COLUMN_COLORS.map((c) => [c.name, c]));
@@ -285,6 +291,33 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Auto-delete completed kanban tasks based on user settings
+  useEffect(() => {
+    if (loading || !tasks.length) return;
+    const settings = getPersonalSettings();
+    const days = settings.autoDeleteKanbanDays;
+    if (!days) return;
+    const now = Date.now();
+    const cutoff = now - days * 24 * 60 * 60 * 1000;
+    const toDelete = tasks.filter(
+      (t) =>
+        t.completed &&
+        t.completedAt &&
+        new Date(t.completedAt).getTime() < cutoff,
+    );
+    if (toDelete.length > 0) {
+      setTasks((prev) => prev.filter((t) => !toDelete.find((d) => d.id === t.id)));
+      for (const t of toDelete) {
+        fetch("/api/personal-kanban-tasks", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: t.id }),
+        }).catch(() => {});
+      }
+      toast.success(`Удалено ${toDelete.length} задач`);
+    }
+  }, [loading, tasks]);
 
   useEffect(() => {
     if (addingColumn && addColumnRef.current) {
@@ -967,7 +1000,7 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
                   <p className="text-xs text-muted-foreground mb-3">
                     Выберите цвет колонки
                   </p>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     {COLUMN_COLORS.map((c) => (
                       <button
                         key={c.name}
