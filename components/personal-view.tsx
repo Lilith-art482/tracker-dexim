@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
+  Columns3,
   LayoutList,
   Table2,
   Loader2,
@@ -16,7 +17,7 @@ import { WeeklyTable } from "@/components/weekly-table";
 import { PersonalTaskList } from "@/components/personal-task-list";
 import { PersonalDashboard } from "@/components/personal-dashboard";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
-import { CompactModeToggle } from "@/components/compact-mode-toggle";
+import { PersonalKanban } from "@/components/personal-kanban";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -64,7 +65,7 @@ function getWeekDates(weekOffset: number): Date[] {
 
 export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<"table" | "list">("table");
+  const [viewMode, setViewMode] = useState<"table" | "list" | "kanban">("table");
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const today = new Date().getDay();
     return today === 0 ? 6 : today - 1;
@@ -312,27 +313,42 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               >
                 <LayoutList className="h-3.5 w-3.5" />
               </button>
+              <button
+                onClick={() => setViewMode("kanban")}
+                className={cn(
+                  "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                  viewMode === "kanban"
+                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Columns3 className="h-3.5 w-3.5" />
+              </button>
             </div>
-            <Button
-              variant="default"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={handleAddTask}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            {viewMode !== "kanban" && (
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={handleAddTask}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
         <div className="hidden sm:flex items-center gap-2">
-          <Button
-            variant="default"
-            size="sm"
-            className="gap-1.5"
-            onClick={handleAddTask}
-          >
-            <Plus className="h-4 w-4" />
-            Добавить задачу
-          </Button>
+          {viewMode !== "kanban" && (
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleAddTask}
+            >
+              <Plus className="h-4 w-4" />
+              Добавить задачу
+            </Button>
+          )}
           <div className="flex items-center gap-1 rounded-lg border p-0.5">
             <button
               onClick={() => setViewMode("table")}
@@ -358,70 +374,88 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               <LayoutList className="h-4 w-4" />
               Список
             </button>
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                viewMode === "kanban"
+                  ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Columns3 className="h-4 w-4" />
+              Канбан
+            </button>
           </div>
         </div>
       </div>
 
       {/* Month navigation */}
-      <div className="mb-4 flex items-center justify-between">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setWeekOffset((p) => p - 1)}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <span className="text-sm font-semibold tracking-tight">
-          {currentMonthLabel}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setWeekOffset((p) => p + 1)}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+      {viewMode !== "kanban" && (
+        <div className="mb-4 flex items-center justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setWeekOffset((p) => p - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm font-semibold tracking-tight">
+            {currentMonthLabel}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setWeekOffset((p) => p + 1)}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Day selector */}
-      <div className="mb-4 flex gap-1 overflow-x-auto lg:overflow-visible -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory scrollbar-none">
-        {weekDates.map((date, idx) => {
-          const isToday = (() => {
-            const now = new Date();
-            return (
-              date.getDate() === now.getDate() &&
-              date.getMonth() === now.getMonth() &&
-              date.getFullYear() === now.getFullYear()
-            );
-          })();
-          const isSelected = idx === selectedDay;
+      {viewMode !== "kanban" && (
+        <div className="mb-4 flex gap-1 overflow-x-auto lg:overflow-visible -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory scrollbar-none">
+          {weekDates.map((date, idx) => {
+            const isToday = (() => {
+              const now = new Date();
+              return (
+                date.getDate() === now.getDate() &&
+                date.getMonth() === now.getMonth() &&
+                date.getFullYear() === now.getFullYear()
+              );
+            })();
+            const isSelected = idx === selectedDay;
 
-          return (
-            <button
-              key={idx}
-              onClick={() => setSelectedDay(idx)}
-              className={cn(
-                "flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-xs transition-colors min-w-[64px] shrink-0 snap-start lg:flex-1 lg:shrink lg:min-w-0",
-                isSelected
-                  ? "bg-emerald-500/10 text-emerald-600 font-semibold"
-                  : "text-muted-foreground hover:bg-accent",
-                isToday && !isSelected && "ring-1 ring-emerald-500/30",
-              )}
-            >
-              <span className="text-[11px] uppercase tracking-wider">
-                {DAY_NAMES[idx]}
-              </span>
-              <span className="text-sm font-medium">{date.getDate()}</span>
-              <span className="text-[10px] text-muted-foreground/60">
-                {formatDate(date)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={idx}
+                onClick={() => setSelectedDay(idx)}
+                className={cn(
+                  "flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-xs transition-colors min-w-[64px] shrink-0 snap-start lg:flex-1 lg:shrink lg:min-w-0",
+                  isSelected
+                    ? "bg-emerald-500/10 text-emerald-600 font-semibold"
+                    : "text-muted-foreground hover:bg-accent",
+                  isToday && !isSelected && "ring-1 ring-emerald-500/30",
+                )}
+              >
+                <span className="text-[11px] uppercase tracking-wider">
+                  {DAY_NAMES[idx]}
+                </span>
+                <span className="text-sm font-medium">{date.getDate()}</span>
+                <span className="text-[10px] text-muted-foreground/60">
+                  {formatDate(date)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Content */}
-      {viewMode === "table" ? (
+      {viewMode === "kanban" ? (
+        <PersonalKanban boardId={activeBoard?.id || ""} activeBoard={activeBoard} />
+      ) : viewMode === "table" ? (
         <WeeklyTable
           tasks={tasksForWeek}
           weekDates={weekDates}

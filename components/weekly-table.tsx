@@ -278,12 +278,11 @@ export function WeeklyTable({
     const task = active.data.current?.task as PersonalTask | undefined;
     if (!task) return;
 
-    const overId = over.id.toString();
-    if (!overId.startsWith("slot-")) return;
+    const overData = over.data.current;
+    if (!overData || overData.type !== "slot") return;
 
-    const parts = overId.split("-");
-    const newDate = parts[1];
-    const newRow = parseInt(parts[2], 10);
+    const newDate = overData.date as string;
+    const newRow = overData.rowIndex as number;
     if (!newDate || isNaN(newRow)) return;
 
     const targetSlots = daySlots[newDate];

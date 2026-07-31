@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useMode } from "@/lib/mode-context";
+import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   LayoutGrid,
@@ -16,8 +18,19 @@ import {
   FolderKanban,
   UserCheck,
   ListTodo,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { auth } from "@/lib/firebase";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const personalFeatures = [
   {
@@ -114,8 +127,48 @@ const commonFeatures = [
 
 export function PlannerEmptyState() {
   const { mode } = useMode();
+  const router = useRouter();
   const features = mode === "personal" ? personalFeatures : teamFeatures;
-  const modeLabel = mode === "personal" ? "личного" : "командного";
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [boardName, setBoardName] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  const handleCreate = async () => {
+    const name = boardName.trim();
+    if (!name) return;
+
+    setCreating(true);
+    try {
+      const ownerId = auth.currentUser?.uid || null;
+      const res = await fetch("/api/boards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, ownerId, type: mode }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Ошибка создания доски");
+        return;
+      }
+
+      const newBoard = await res.json();
+      toast.success("Доска создана");
+      setDialogOpen(false);
+      setBoardName("");
+
+      const uid = auth.currentUser?.uid;
+      const params = new URLSearchParams();
+      params.set("boardId", newBoard.id);
+      if (uid) params.set("uid", uid);
+      router.push(`/?${params.toString()}`);
+    } catch {
+      toast.error("Ошибка создания доски");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   return (
     <div className="max-w-[2000px] mx-auto w-full px-4 py-12 space-y-16 animate-in fade-in duration-500">
@@ -144,7 +197,9 @@ export function PlannerEmptyState() {
       <section className="space-y-6">
         <div className="text-center space-y-2">
           <h2 className="text-xl font-semibold tracking-tight">
-            {mode === "personal" ? "Возможности планировщика" : "Возможности для команды"}
+            {mode === "personal"
+              ? "Возможности планировщика"
+              : "Возможности для команды"}
           </h2>
           <p className="text-sm text-muted-foreground">
             {mode === "personal"
@@ -210,13 +265,42 @@ export function PlannerEmptyState() {
               ? "Создайте первую доску и начните планировать уже сегодня"
               : "Создайте доску, добавьте команду и распределите задачи"}
           </p>
-          <p className="text-xs text-muted-foreground">
-            Нажмите <span className="font-medium text-foreground">+</span> в боковом меню, чтобы создать доску
-          </p>
-          <div className="flex items-center justify-center gap-2 text-sm text-primary font-medium">
-            <span>Создать доску</span>
-            <ArrowRight className="h-4 w-4" />
-          </div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <Button
+              size="lg"
+              className="gap-2"
+              onClick={() => setDialogOpen(true)}
+            >
+              Создать доску
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Новая доска</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <Input
+                  value={boardName}
+                  onChange={(e) => setBoardName(e.target.value)}
+                  placeholder="Название доски"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCreate();
+                  }}
+                />
+                <Button
+                  onClick={handleCreate}
+                  disabled={!boardName.trim() || creating}
+                  className="w-full"
+                >
+                  {creating && (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  )}
+                  Создать
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </section>
     </div>
