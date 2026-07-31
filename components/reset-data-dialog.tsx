@@ -33,11 +33,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { getAllBoards, type Board } from "@/lib/models";
 
 interface ResetDataDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface SimpleBoard {
+  id: string;
+  name: string;
 }
 
 interface PlannerOptions {
@@ -62,7 +66,7 @@ interface FinanceOptions {
 
 export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
   const [step, setStep] = useState<"select" | "confirm" | "loading">("select");
-  const [boards, setBoards] = useState<Board[]>([]);
+  const [boards, setBoards] = useState<SimpleBoard[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState<string>("all");
 
   const [plannerExpanded, setPlannerExpanded] = useState(false);
@@ -115,9 +119,13 @@ export function ResetDataDialog({ open, onOpenChange }: ResetDataDialogProps) {
       setPlannerExpanded(false);
       setFinanceExpanded(false);
 
-      getAllBoards()
-        .then((b) => setBoards(b))
-        .catch(() => {});
+      const uid = auth.currentUser?.uid;
+      if (uid) {
+        fetch(`/api/boards?uid=${uid}`)
+          .then((r) => r.json())
+          .then((b) => setBoards(Array.isArray(b) ? b : []))
+          .catch(() => {});
+      }
     }
   }, [open]);
 
