@@ -22,7 +22,7 @@ import {
   MoreHorizontal,
   Pencil,
 } from "lucide-react";
-import type { PersonalTask, Board, Priority } from "@/lib/models";
+import type { PersonalTask, PersonalKanbanTask, PersonalPlanEntry, Board, Priority } from "@/lib/models";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -140,7 +140,15 @@ const STATUS_OPTIONS = [
   { value: "completed", label: "Выполнено" },
 ] as const;
 
+const PRIORITY_FILTER_OPTIONS = [
+  { value: "all", label: "Все" },
+  { value: "high", label: "Высокий" },
+  { value: "medium", label: "Средний" },
+  { value: "low", label: "Низкий" },
+] as const;
+
 const PERIOD_OPTIONS = [
+  { value: "week", label: "Неделя" },
   { value: "month", label: "Месяц" },
   { value: "quarter", label: "Квартал" },
   { value: "all", label: "Всё время" },
@@ -472,9 +480,13 @@ interface PersonalDashboardFullProps {
 export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
   const { setDashboardOpen, setMode } = useMode();
   const [tasks, setTasks] = useState<PersonalTask[]>([]);
+  const [kanbanTaskIds, setKanbanTaskIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "completed"
+  >("all");
+  const [priorityFilter, setPriorityFilter] = useState<
+    "all" | "high" | "medium" | "low"
   >("all");
   const [periodFilter, setPeriodFilter] = useState<string>("month");
   const [boardFilter, setBoardFilter] = useState<string>("all");
@@ -499,6 +511,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
         }
 
         const allTasks: PersonalTask[] = [];
+        const kanbanIds = new Set<string>();
 
         for (const board of personalBoards) {
           try {
@@ -512,6 +525,66 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
           } catch {
             // skip failed board
           }
+
+          try {
+            const kanbanRes = await fetch(
+              `/api/personal-kanban-tasks?boardId=${board.id}`,
+            );
+            if (kanbanRes.ok) {
+              const kanbanTasks: PersonalKanbanTask[] = await kanbanRes.json();
+              for (const kt of kanbanTasks) {
+                kanbanIds.add(kt.id);
+                allTasks.push({
+                  id: kt.id,
+                  date: kt.createdAt ? kt.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
+                  startTime: kt.startTime,
+                  endTime: kt.endTime,
+                  title: kt.title,
+                  priority: kt.priority,
+                  completed: kt.completed,
+                  completedAt: kt.completedAt,
+                  comment: kt.comment,
+                  createdAt: kt.createdAt,
+                  updatedAt: kt.updatedAt,
+                  ownerId: kt.ownerId,
+                  boardId: kt.boardId,
+                });
+              }
+            }
+          } catch {
+            // skip failed board kanban
+          }
+        }
+
+        try {
+          const planRes = await fetch(
+            `/api/personal-plan-entries?uid=${uid}`,
+          );
+          if (planRes.ok) {
+            const planEntries: PersonalPlanEntry[] = await planRes.json();
+            const existingIds = new Set(allTasks.map((t) => t.id));
+            for (const pe of planEntries) {
+              if (!existingIds.has(pe.id)) {
+                allTasks.push({
+                  id: pe.id,
+                  date: pe.date,
+                  startTime: pe.startTime,
+                  endTime: pe.endTime,
+                  title: pe.title,
+                  priority: pe.priority,
+                  completed: pe.completed,
+                  completedAt: pe.completedAt,
+                  comment: pe.comment,
+                  createdAt: pe.createdAt,
+                  updatedAt: pe.updatedAt,
+                  ownerId: pe.ownerId,
+                  boardId: pe.boardId,
+                });
+              }
+            }
+          }
+        } catch {
+          // skip plan entries
         }
 
         try {
@@ -529,7 +602,10 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
           // skip
         }
 
-        if (!cancelled) setTasks(allTasks);
+        if (!cancelled) {
+          setTasks(allTasks);
+          setKanbanTaskIds(kanbanIds);
+        }
       } catch {
         // silent
       } finally {
@@ -548,11 +624,12 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
     return tasks.filter((t) => {
       if (statusFilter === "completed" && !t.completed) return false;
       if (statusFilter === "pending" && t.completed) return false;
+      if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
       if (boardFilter !== "all" && t.boardId !== boardFilter) return false;
       if (t.date < start || t.date > end) return false;
       return true;
     });
-  }, [tasks, statusFilter, periodFilter, boardFilter]);
+  }, [tasks, statusFilter, priorityFilter, periodFilter, boardFilter]);
 
   const stats = useMemo(() => {
     const total = filteredTasks.length;
@@ -619,8 +696,9 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
 
   const handleToggleComplete = useCallback(async (task: PersonalTask) => {
     const newCompleted = !task.completed;
+    const isKanban = kanbanTaskIds.has(task.id);
     try {
-      const res = await fetch("/api/personal-tasks", {
+      const res = await fetch(isKanban ? "/api/personal-kanban-tasks" : "/api/personal-tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -641,12 +719,13 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
     } catch {
       toast.error("Ошибка сети");
     }
-  }, []);
+  }, [kanbanTaskIds]);
 
   const handleChangeBoard = useCallback(
     async (task: PersonalTask, newBoardId: string) => {
+      const isKanban = kanbanTaskIds.has(task.id);
       try {
-        const res = await fetch("/api/personal-tasks", {
+        const res = await fetch(isKanban ? "/api/personal-kanban-tasks" : "/api/personal-tasks", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: task.id, boardId: newBoardId }),
@@ -662,7 +741,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
         toast.error("Ошибка сети");
       }
     },
-    [],
+    [kanbanTaskIds],
   );
 
   const handleEditTask = useCallback((task: PersonalTask) => {
@@ -909,6 +988,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
                 <h3 className="text-sm font-semibold">Фильтры</h3>
               </div>
               {(statusFilter !== "all" ||
+                priorityFilter !== "all" ||
                 periodFilter !== "month" ||
                 boardFilter !== "all") && (
                 <Button
@@ -916,6 +996,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
                   size="sm"
                   onClick={() => {
                     setStatusFilter("all");
+                    setPriorityFilter("all");
                     setPeriodFilter("month");
                     setBoardFilter("all");
                   }}
@@ -964,6 +1045,29 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
                       className={cn(
                         "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-all",
                         statusFilter === opt.value
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Priority Selector */}
+              <div>
+                <label className="text-[10px] text-muted-foreground/60 font-medium uppercase tracking-wider mb-1.5 block">
+                  Приоритет
+                </label>
+                <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-background/80 p-1">
+                  {PRIORITY_FILTER_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setPriorityFilter(opt.value)}
+                      className={cn(
+                        "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-all",
+                        priorityFilter === opt.value
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
                       )}

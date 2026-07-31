@@ -6,21 +6,22 @@ import { PersonalView } from "@/components/personal-view";
 import { TeamView } from "@/components/team-view";
 import { PersonalDashboardFull } from "@/components/personal-dashboard-full";
 import { TeamDashboardPlaceholder } from "@/components/team-dashboard-placeholder";
+import { PlannerEmptyState } from "@/components/planner-empty-state";
 
 interface TeamOrPersonalViewProps {
   _boards: Board[];
-  activeBoard: Board;
-  columns: Column[];
-  boardMembers: BoardMember[];
-  isArchiveView: boolean;
+  activeBoard?: Board;
+  columns?: Column[];
+  boardMembers?: BoardMember[];
+  isArchiveView?: boolean;
 }
 
 export function TeamOrPersonalView({
   _boards,
   activeBoard,
-  columns,
-  boardMembers,
-  isArchiveView,
+  columns = [],
+  boardMembers = [],
+  isArchiveView = false,
 }: TeamOrPersonalViewProps) {
   const { mode, dashboardOpen } = useMode();
 
@@ -29,6 +30,10 @@ export function TeamOrPersonalView({
       return <PersonalDashboardFull boards={_boards} />;
     }
     return <TeamDashboardPlaceholder />;
+  }
+
+  if (!activeBoard) {
+    return <PlannerEmptyState />;
   }
 
   if (mode === "personal") {

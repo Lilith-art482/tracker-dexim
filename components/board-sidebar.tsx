@@ -112,7 +112,7 @@ interface BoardSidebarProps {
 
 export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   const { collapsed, toggle } = useSidebar();
-  const { mode, setMode } = useMode();
+  const { mode, setMode, setDashboardOpen } = useMode();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -176,6 +176,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
     if (board) {
       setMode(board.type);
     }
+    setDashboardOpen(false);
     const params = new URLSearchParams(searchParams.toString());
     params.set("boardId", boardId);
     const uid = auth.currentUser?.uid;
