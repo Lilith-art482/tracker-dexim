@@ -1,4 +1,3 @@
-import { ClipboardList } from "lucide-react";
 import { isDatabaseAvailable } from "@/lib/db";
 import {
   getBoardsByUser,
@@ -8,6 +7,7 @@ import {
 import { mockBoards, mockColumns, mockBoardMembers } from "@/lib/mock-data";
 import type { Board, Column, BoardMember } from "@/lib/models";
 import { TeamOrPersonalView } from "@/components/team-or-personal-view";
+import { PlannerEmptyState } from "@/components/planner-empty-state";
 import HomeContent from "@/components/home-content";
 
 async function getColumnsForBoard(boardId: string): Promise<Column[]> {
@@ -69,18 +69,7 @@ export default async function HomePage({
   if (!activeBoard) {
     return (
       <HomeContent>
-        <div className="max-w-[2000px] mx-auto w-full flex flex-col gap-4 px-4 py-16">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-            <ClipboardList className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h2 className="text-xl font-semibold tracking-tight">
-            Выберите доску
-          </h2>
-          <p className="text-sm text-muted-foreground max-w-md text-center">
-            Чтобы увидеть задачи, выберите доску в боковом меню или создайте
-            новую.
-          </p>
-        </div>
+        <PlannerEmptyState />
       </HomeContent>
     );
   }
