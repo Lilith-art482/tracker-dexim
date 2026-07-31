@@ -75,6 +75,21 @@ export interface PersonalTask {
   sourceNoteId?: string | null;
 }
 
+export interface PersonalKanbanTask {
+  id: string;
+  boardId: string;
+  columnId: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  priority: Priority;
+  completed: boolean;
+  comment?: string;
+  createdAt: string;
+  updatedAt: string;
+  ownerId?: string;
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -571,6 +586,63 @@ export async function cleanupExpiredPersonalTasks(): Promise<number> {
     }
   }
   return deleted;
+}
+
+const PERSONAL_KANBAN_TASKS = COL("PERSONAL_KANBAN_TASKS");
+
+export async function getPersonalKanbanTasksByBoard(
+  boardId: string,
+): Promise<PersonalKanbanTask[]> {
+  const snap = await getAdminDb()
+    .collection(PERSONAL_KANBAN_TASKS)
+    .where("boardId", "==", boardId)
+    .get();
+  return snap.docs.map((d) => toPlain(d) as PersonalKanbanTask);
+}
+
+export async function createPersonalKanbanTask(
+  data: Omit<PersonalKanbanTask, "createdAt" | "updatedAt">,
+): Promise<PersonalKanbanTask> {
+  const now = new Date().toISOString();
+  const task: PersonalKanbanTask = { ...data, createdAt: now, updatedAt: now };
+  await getAdminDb()
+    .collection(PERSONAL_KANBAN_TASKS)
+    .doc(task.id)
+    .set(task);
+  return task;
+}
+
+export async function updatePersonalKanbanTask(
+  id: string,
+  data: Partial<
+    Pick<
+      PersonalKanbanTask,
+      | "columnId"
+      | "title"
+      | "startTime"
+      | "endTime"
+      | "priority"
+      | "completed"
+      | "comment"
+    >
+  >,
+): Promise<PersonalKanbanTask> {
+  await getAdminDb()
+    .collection(PERSONAL_KANBAN_TASKS)
+    .doc(id)
+    .update({
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
+  const snap = await getAdminDb()
+    .collection(PERSONAL_KANBAN_TASKS)
+    .doc(id)
+    .get();
+  return toPlain(snap) as PersonalKanbanTask;
+}
+
+export async function deletePersonalKanbanTask(id: string): Promise<void> {
+  await getAdminDb().collection(PERSONAL_KANBAN_TASKS).doc(id).delete();
 }
 
 export interface CanvasConnection {
