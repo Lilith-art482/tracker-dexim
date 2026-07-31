@@ -222,6 +222,7 @@ function StatCard({
 interface BoardColumnProps {
   board: Board;
   tasks: PersonalTask[];
+  taskSourceMap: Map<string, "list" | "kanban" | "plan">;
   onToggleComplete: (task: PersonalTask) => void;
   onEditTask: (task: PersonalTask) => void;
   onChangeBoard: (task: PersonalTask, newBoardId: string) => void;
@@ -231,6 +232,7 @@ interface BoardColumnProps {
 function BoardColumn({
   board,
   tasks,
+  taskSourceMap,
   onToggleComplete,
   onEditTask,
   onChangeBoard,
@@ -304,6 +306,7 @@ function BoardColumn({
               <DashboardTaskRow
                 key={task.id}
                 task={task}
+                source={taskSourceMap.get(task.id) || "list"}
                 priorityConfig={priorityConfig}
                 onToggleComplete={onToggleComplete}
                 onEdit={onEditTask}
@@ -325,6 +328,7 @@ function BoardColumn({
 
 interface DashboardTaskRowProps {
   task: PersonalTask;
+  source: "list" | "kanban" | "plan";
   priorityConfig: {
     label: string;
     color: string;
@@ -339,6 +343,7 @@ interface DashboardTaskRowProps {
 
 function DashboardTaskRow({
   task,
+  source,
   priorityConfig,
   onToggleComplete,
   onEdit,
@@ -393,6 +398,21 @@ function DashboardTaskRow({
           >
             {priorityConfig.label}
           </span>
+          {source === "kanban" && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-sky-500/10 text-sky-600">
+              Канбан
+            </span>
+          )}
+          {source === "plan" && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600">
+              План
+            </span>
+          )}
+          {source === "list" && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-600">
+              Таблица/Список
+            </span>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover/task:opacity-100 transition-opacity shrink-0">
@@ -480,7 +500,7 @@ interface PersonalDashboardFullProps {
 export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
   const { setDashboardOpen, setMode } = useMode();
   const [tasks, setTasks] = useState<PersonalTask[]>([]);
-  const [kanbanTaskIds, setKanbanTaskIds] = useState<Set<string>>(new Set());
+  const [taskSourceMap, setTaskSourceMap] = useState<Map<string, "list" | "kanban" | "plan">>(new Map());
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "completed"
@@ -490,6 +510,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
   >("all");
   const [periodFilter, setPeriodFilter] = useState<string>("month");
   const [boardFilter, setBoardFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [boardSelectorOpen, setBoardSelectorOpen] = useState(false);
   const [editTask, setEditTask] = useState<PersonalTask | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -511,7 +532,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
         }
 
         const allTasks: PersonalTask[] = [];
-        const kanbanIds = new Set<string>();
+        const sourceMap = new Map<string, "list" | "kanban" | "plan">();
 
         for (const board of personalBoards) {
           try {
@@ -520,6 +541,9 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
             );
             if (res.ok) {
               const boardTasks: PersonalTask[] = await res.json();
+              for (const bt of boardTasks) {
+                sourceMap.set(bt.id, "list");
+              }
               allTasks.push(...boardTasks);
             }
           } catch {
@@ -533,7 +557,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
             if (kanbanRes.ok) {
               const kanbanTasks: PersonalKanbanTask[] = await kanbanRes.json();
               for (const kt of kanbanTasks) {
-                kanbanIds.add(kt.id);
+                sourceMap.set(kt.id, "kanban");
                 allTasks.push({
                   id: kt.id,
                   date: kt.createdAt ? kt.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
@@ -565,6 +589,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
             const existingIds = new Set(allTasks.map((t) => t.id));
             for (const pe of planEntries) {
               if (!existingIds.has(pe.id)) {
+                sourceMap.set(pe.id, "plan");
                 allTasks.push({
                   id: pe.id,
                   date: pe.date,
@@ -594,6 +619,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
             const existingIds = new Set(allTasks.map((t) => t.id));
             for (const t of allUserTasks) {
               if (!existingIds.has(t.id)) {
+                sourceMap.set(t.id, "list");
                 allTasks.push(t);
               }
             }
@@ -604,7 +630,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
 
         if (!cancelled) {
           setTasks(allTasks);
-          setKanbanTaskIds(kanbanIds);
+          setTaskSourceMap(sourceMap);
         }
       } catch {
         // silent
@@ -626,10 +652,11 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
       if (statusFilter === "pending" && t.completed) return false;
       if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
       if (boardFilter !== "all" && t.boardId !== boardFilter) return false;
+      if (sourceFilter !== "all" && taskSourceMap.get(t.id) !== sourceFilter) return false;
       if (t.date < start || t.date > end) return false;
       return true;
     });
-  }, [tasks, statusFilter, priorityFilter, periodFilter, boardFilter]);
+  }, [tasks, statusFilter, priorityFilter, periodFilter, boardFilter, sourceFilter, taskSourceMap]);
 
   const stats = useMemo(() => {
     const total = filteredTasks.length;
@@ -696,9 +723,15 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
 
   const handleToggleComplete = useCallback(async (task: PersonalTask) => {
     const newCompleted = !task.completed;
-    const isKanban = kanbanTaskIds.has(task.id);
+    const source = taskSourceMap.get(task.id);
+    const apiPath =
+      source === "kanban"
+        ? "/api/personal-kanban-tasks"
+        : source === "plan"
+          ? "/api/personal-plan-entries"
+          : "/api/personal-tasks";
     try {
-      const res = await fetch(isKanban ? "/api/personal-kanban-tasks" : "/api/personal-tasks", {
+      const res = await fetch(apiPath, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -719,13 +752,19 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
     } catch {
       toast.error("Ошибка сети");
     }
-  }, [kanbanTaskIds]);
+  }, [taskSourceMap]);
 
   const handleChangeBoard = useCallback(
     async (task: PersonalTask, newBoardId: string) => {
-      const isKanban = kanbanTaskIds.has(task.id);
+      const source = taskSourceMap.get(task.id);
+      const apiPath =
+        source === "kanban"
+          ? "/api/personal-kanban-tasks"
+          : source === "plan"
+            ? "/api/personal-plan-entries"
+            : "/api/personal-tasks";
       try {
-        const res = await fetch(isKanban ? "/api/personal-kanban-tasks" : "/api/personal-tasks", {
+        const res = await fetch(apiPath, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: task.id, boardId: newBoardId }),
@@ -741,7 +780,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
         toast.error("Ошибка сети");
       }
     },
-    [kanbanTaskIds],
+    [taskSourceMap],
   );
 
   const handleEditTask = useCallback((task: PersonalTask) => {
@@ -967,6 +1006,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
                     key={group.boardId}
                     board={group.board}
                     tasks={group.tasks}
+                    taskSourceMap={taskSourceMap}
                     onToggleComplete={handleToggleComplete}
                     onEditTask={handleEditTask}
                     onChangeBoard={handleChangeBoard}
@@ -990,7 +1030,8 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
               {(statusFilter !== "all" ||
                 priorityFilter !== "all" ||
                 periodFilter !== "month" ||
-                boardFilter !== "all") && (
+                boardFilter !== "all" ||
+                sourceFilter !== "all") && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -999,6 +1040,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
                     setPriorityFilter("all");
                     setPeriodFilter("month");
                     setBoardFilter("all");
+                    setSourceFilter("all");
                   }}
                   className="gap-1.5 text-xs h-7 px-2"
                 >
@@ -1200,9 +1242,35 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Recent Tasks Card */}
+            {/* Source/Format Filter */}
+            <div>
+              <label className="text-[10px] text-muted-foreground/60 font-medium uppercase tracking-wider mb-1.5 block">
+                Формат
+              </label>
+              <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-background/80 p-1">
+                {[
+                  { value: "all", label: "Все" },
+                  { value: "list", label: "Список" },
+                  { value: "kanban", label: "Канбан" },
+                  { value: "plan", label: "План" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setSourceFilter(opt.value)}
+                    className={cn(
+                      "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-all",
+                      sourceFilter === opt.value
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
           <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-muted/20 p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">

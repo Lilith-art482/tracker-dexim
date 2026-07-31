@@ -104,6 +104,7 @@ interface PlanEntryDialogProps {
   onOpenChange: (open: boolean) => void;
   entry?: PersonalPlanEntry | null;
   date: string;
+  activeBoard?: Board;
   onSaved: (entry: PersonalPlanEntry) => void;
   onDelete?: (entry: PersonalPlanEntry) => void;
 }
@@ -113,6 +114,7 @@ function PlanEntryDialog({
   onOpenChange,
   entry,
   date,
+  activeBoard,
   onSaved,
   onDelete,
 }: PlanEntryDialogProps) {
@@ -194,6 +196,7 @@ function PlanEntryDialog({
             priority,
             comment: comment.trim() || undefined,
             ownerId: ownerId || undefined,
+            boardId: activeBoard?.id || undefined,
           }),
         });
 
@@ -400,8 +403,10 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
         setLoading(false);
         return;
       }
+      const params = new URLSearchParams({ uid, date: selectedDate });
+      if (activeBoard?.id) params.set("boardId", activeBoard.id);
       const res = await fetch(
-        `/api/personal-plan-entries?uid=${uid}&date=${selectedDate}`,
+        `/api/personal-plan-entries?${params.toString()}`,
       );
       if (res.ok) {
         const data: PersonalPlanEntry[] = await res.json();
@@ -415,7 +420,7 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [selectedDate]);
+  }, [selectedDate, activeBoard?.id]);
 
   useEffect(() => {
     loadEntries();
@@ -687,6 +692,7 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
         }}
         entry={editingEntry}
         date={selectedDate}
+        activeBoard={activeBoard}
         onSaved={handleSaved}
         onDelete={handleDelete}
       />
