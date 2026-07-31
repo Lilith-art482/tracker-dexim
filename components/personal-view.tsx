@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Columns3,
   LayoutList,
+  LayoutDashboard,
   Settings2,
   Table2,
   Loader2,
@@ -70,7 +71,7 @@ function getWeekDates(weekOffset: number): Date[] {
 
 export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<"table" | "list" | "kanban">("table");
+  const [viewMode, setViewMode] = useState<"table" | "list" | "kanban" | "dashboard">("table");
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const today = new Date().getDay();
     return today === 0 ? 6 : today - 1;
@@ -192,8 +193,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   useEffect(() => {
     if (loading || !tasks.length) return;
     const settings = getPersonalSettings();
-    const days = settings.autoDeleteTableDays;
-    if (!days) return;
+    const days = settings.autoDeleteTableDays ?? 30;
     const now = Date.now();
     const cutoff = now - days * 24 * 60 * 60 * 1000;
     const toDelete = tasks.filter(
@@ -365,6 +365,17 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               >
                 <Columns3 className="h-3.5 w-3.5" />
               </button>
+              <button
+                onClick={() => setViewMode("dashboard")}
+                className={cn(
+                  "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                  viewMode === "dashboard"
+                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <LayoutDashboard className="h-3.5 w-3.5" />
+              </button>
             </div>
             <button
               onClick={() => setSettingsOpen(true)}
@@ -373,7 +384,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
             >
               <Settings2 className="h-3.5 w-3.5" />
             </button>
-            {viewMode !== "kanban" && (
+            {viewMode !== "kanban" && viewMode !== "dashboard" && (
               <Button
                 variant="default"
                 size="sm"
@@ -386,7 +397,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
           </div>
         </div>
         <div className="hidden sm:flex items-center gap-2">
-          {viewMode !== "kanban" && (
+          {viewMode !== "kanban" && viewMode !== "dashboard" && (
             <Button
               variant="default"
               size="sm"
@@ -434,6 +445,18 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               <Columns3 className="h-4 w-4" />
               Канбан
             </button>
+            <button
+              onClick={() => setViewMode("dashboard")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                viewMode === "dashboard"
+                  ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Дашборд
+            </button>
           </div>
           <button
             onClick={() => setSettingsOpen(true)}
@@ -446,7 +469,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
       </div>
 
       {/* Month navigation */}
-      {viewMode !== "kanban" && (
+      {viewMode !== "kanban" && viewMode !== "dashboard" && (
         <div className="mb-4 flex items-center justify-between">
           <Button
             variant="outline"
@@ -469,7 +492,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
       )}
 
       {/* Day selector */}
-      {viewMode !== "kanban" && (
+      {viewMode !== "kanban" && viewMode !== "dashboard" && (
         <div className="mb-4 flex gap-1 overflow-x-auto lg:overflow-visible -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory scrollbar-none">
           {weekDates.map((date, idx) => {
             const isToday = (() => {
@@ -510,6 +533,10 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
       {/* Content */}
       {viewMode === "kanban" ? (
         <PersonalKanban boardId={activeBoard?.id || ""} activeBoard={activeBoard} />
+      ) : viewMode === "dashboard" ? (
+        <div className="max-w-2xl mx-auto">
+          <PersonalDashboard tasks={tasksForWeek} />
+        </div>
       ) : viewMode === "table" ? (
         <WeeklyTable
           tasks={tasksForWeek}
@@ -522,20 +549,13 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
           activeBoard={activeBoard}
         />
       ) : (
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="w-full lg:w-72 shrink-0">
-            <PersonalDashboard tasks={tasksForWeek} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <PersonalTaskList
-              tasks={tasksForWeek}
-              selectedDate={selectedDate}
-              onEdit={handleEditTask}
-              onToggleComplete={handleToggleComplete}
-              onDelete={handleDeleteTask}
-            />
-          </div>
-        </div>
+        <PersonalTaskList
+          tasks={tasksForWeek}
+          selectedDate={selectedDate}
+          onEdit={handleEditTask}
+          onToggleComplete={handleToggleComplete}
+          onDelete={handleDeleteTask}
+        />
       )}
 
       <PersonalTaskDialog

@@ -296,8 +296,7 @@ export function PersonalKanban({ boardId, activeBoard }: PersonalKanbanProps) {
   useEffect(() => {
     if (loading || !tasks.length) return;
     const settings = getPersonalSettings();
-    const days = settings.autoDeleteKanbanDays;
-    if (!days) return;
+    const days = settings.autoDeleteKanbanDays ?? 30;
     const now = Date.now();
     const cutoff = now - days * 24 * 60 * 60 * 1000;
     const toDelete = tasks.filter(
