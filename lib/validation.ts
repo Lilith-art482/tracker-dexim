@@ -67,6 +67,7 @@ export const updatePersonalTaskSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   priority: z.enum(["low", "medium", "high"]).optional(),
   completed: z.boolean().optional(),
+  completedAt: z.string().nullable().optional(),
   comment: z.string().max(2000).optional(),
   boardId: z.string().min(1).optional(),
   sourceNoteId: z.string().nullable().optional(),

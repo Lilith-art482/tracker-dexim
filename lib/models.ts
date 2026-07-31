@@ -19,6 +19,8 @@ export interface Column {
   boardId: string;
   name: string;
   order: number;
+  icon?: string;
+  color?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -67,6 +69,7 @@ export interface PersonalTask {
   title: string;
   priority: Priority;
   completed: boolean;
+  completedAt?: string | null;
   comment?: string;
   createdAt: string;
   updatedAt: string;
@@ -84,6 +87,7 @@ export interface PersonalKanbanTask {
   endTime: string;
   priority: Priority;
   completed: boolean;
+  completedAt?: string | null;
   comment?: string;
   createdAt: string;
   updatedAt: string;
@@ -295,7 +299,7 @@ export async function createColumn(
 
 export async function updateColumn(
   id: string,
-  data: Partial<Pick<Column, "name" | "order">>,
+  data: Partial<Pick<Column, "name" | "order" | "icon" | "color">>,
   boardId: string,
 ): Promise<Column> {
   await getAdminDb()
@@ -545,6 +549,7 @@ export async function updatePersonalTask(
       | "endTime"
       | "priority"
       | "completed"
+      | "completedAt"
       | "comment"
       | "boardId"
       | "sourceNoteId"
@@ -623,6 +628,7 @@ export async function updatePersonalKanbanTask(
       | "endTime"
       | "priority"
       | "completed"
+      | "completedAt"
       | "comment"
     >
   >,
