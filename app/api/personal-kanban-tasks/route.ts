@@ -30,6 +30,7 @@ const updateTaskSchema = z.object({
   endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   priority: z.enum(["low", "medium", "high"]).optional(),
   completed: z.boolean().optional(),
+  completedAt: z.string().nullable().optional(),
   comment: z.string().max(2000).optional(),
 });
 

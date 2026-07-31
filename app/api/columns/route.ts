@@ -16,11 +16,15 @@ const createColumnSchema = z.object({
   boardId: z.string().min(1),
   name: z.string().min(1).max(200),
   order: z.number().int().min(0),
+  icon: z.string().optional(),
+  color: z.string().optional(),
 });
 
 const updateColumnSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   order: z.number().int().min(0).optional(),
+  icon: z.string().optional(),
+  color: z.string().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -77,6 +81,8 @@ export async function POST(request: NextRequest) {
       boardId: parsed.data.boardId,
       name: parsed.data.name.trim(),
       order: parsed.data.order,
+      icon: parsed.data.icon,
+      color: parsed.data.color,
     });
 
     return NextResponse.json(column, { status: 201 });
