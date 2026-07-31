@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const uid = url.searchParams.get("uid");
   const date = url.searchParams.get("date");
+  const boardId = url.searchParams.get("boardId");
 
   if (!uid) return NextResponse.json([]);
 
@@ -26,6 +27,9 @@ export async function GET(request: NextRequest) {
   if (dbAvailable) {
     try {
       let entries = await getPersonalPlanEntriesByOwner(uid);
+      if (boardId) {
+        entries = entries.filter((e) => e.boardId === boardId);
+      }
       if (date) {
         entries = entries.filter((e) => e.date === date);
       }
@@ -38,6 +42,9 @@ export async function GET(request: NextRequest) {
   let filtered = mockPersonalPlanEntries.filter(
     (e) => e.ownerId === uid || !e.ownerId,
   );
+  if (boardId) {
+    filtered = filtered.filter((e) => e.boardId === boardId);
+  }
   if (date) {
     filtered = filtered.filter((e) => e.date === date);
   }
