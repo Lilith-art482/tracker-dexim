@@ -4,6 +4,8 @@ import { useMode } from "@/lib/mode-context";
 import type { Board, Column, BoardMember } from "@/lib/models";
 import { PersonalView } from "@/components/personal-view";
 import { TeamView } from "@/components/team-view";
+import { PersonalDashboardFull } from "@/components/personal-dashboard-full";
+import { TeamDashboardPlaceholder } from "@/components/team-dashboard-placeholder";
 
 interface TeamOrPersonalViewProps {
   _boards: Board[];
@@ -20,7 +22,14 @@ export function TeamOrPersonalView({
   boardMembers,
   isArchiveView,
 }: TeamOrPersonalViewProps) {
-  const { mode } = useMode();
+  const { mode, dashboardOpen } = useMode();
+
+  if (dashboardOpen) {
+    if (mode === "personal") {
+      return <PersonalDashboardFull boards={_boards} />;
+    }
+    return <TeamDashboardPlaceholder />;
+  }
 
   if (mode === "personal") {
     return <PersonalView activeBoard={activeBoard} />;
