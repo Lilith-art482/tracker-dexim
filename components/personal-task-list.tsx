@@ -37,6 +37,7 @@ interface PersonalTaskListProps {
   onEdit: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
   onDelete: (task: PersonalTask) => void;
+  highlightTaskId?: string | null;
 }
 
 export function PersonalTaskList({
@@ -45,6 +46,7 @@ export function PersonalTaskList({
   onEdit,
   onToggleComplete,
   onDelete,
+  highlightTaskId,
 }: PersonalTaskListProps) {
   const dayTasks = tasks.filter((t) => t.date === selectedDate);
 
@@ -68,6 +70,8 @@ export function PersonalTaskList({
               "flex items-start gap-3 rounded-lg border-l-4 p-3 transition-colors hover:bg-accent/50",
               PRIORITY_STYLES[task.priority],
               task.completed && "opacity-60",
+              highlightTaskId === task.id &&
+                "animate-pulse bg-primary/10 ring-2 ring-primary/40",
             )}
           >
             <button

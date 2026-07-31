@@ -21,6 +21,7 @@ import {
   Calendar,
   MoreHorizontal,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import type { PersonalTask, PersonalKanbanTask, PersonalPlanEntry, Board, Priority } from "@/lib/models";
 import { auth } from "@/lib/firebase";
@@ -226,6 +227,7 @@ interface BoardColumnProps {
   onToggleComplete: (task: PersonalTask) => void;
   onEditTask: (task: PersonalTask) => void;
   onChangeBoard: (task: PersonalTask, newBoardId: string) => void;
+  onDeleteTask: (task: PersonalTask) => void;
   allPersonalBoards: Board[];
 }
 
@@ -236,6 +238,7 @@ function BoardColumn({
   onToggleComplete,
   onEditTask,
   onChangeBoard,
+  onDeleteTask,
   allPersonalBoards,
 }: BoardColumnProps) {
   const completed = tasks.filter((t) => t.completed).length;
@@ -311,6 +314,7 @@ function BoardColumn({
                 onToggleComplete={onToggleComplete}
                 onEdit={onEditTask}
                 onChangeBoard={onChangeBoard}
+                onDelete={onDeleteTask}
                 allPersonalBoards={allPersonalBoards}
               />
             );
@@ -338,6 +342,7 @@ interface DashboardTaskRowProps {
   onToggleComplete: (task: PersonalTask) => void;
   onEdit: (task: PersonalTask) => void;
   onChangeBoard: (task: PersonalTask, newBoardId: string) => void;
+  onDelete: (task: PersonalTask) => void;
   allPersonalBoards: Board[];
 }
 
@@ -348,6 +353,7 @@ function DashboardTaskRow({
   onToggleComplete,
   onEdit,
   onChangeBoard,
+  onDelete,
   allPersonalBoards,
 }: DashboardTaskRowProps) {
   const [boardMenuOpen, setBoardMenuOpen] = useState(false);
@@ -416,6 +422,16 @@ function DashboardTaskRow({
         </div>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover/task:opacity-100 transition-opacity shrink-0">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(task);
+          }}
+          className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-rose-500/10 transition-colors"
+          title="Удалить задачу"
+        >
+          <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-rose-500 transition-colors" />
+        </button>
         <Popover open={boardMenuOpen} onOpenChange={setBoardMenuOpen}>
           <PopoverTrigger
             className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors"
@@ -793,6 +809,34 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
     setEditTask(null);
   }, []);
 
+  const handleDeleteTask = useCallback(
+    async (task: PersonalTask) => {
+      const source = taskSourceMap.get(task.id);
+      const apiPath =
+        source === "kanban"
+          ? "/api/personal-kanban-tasks"
+          : source === "plan"
+            ? "/api/personal-plan-entries"
+            : "/api/personal-tasks";
+      try {
+        const res = await fetch(apiPath, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: task.id }),
+        });
+        if (res.ok) {
+          setTasks((prev) => prev.filter((t) => t.id !== task.id));
+          toast.success("Задача удалена");
+        } else {
+          toast.error("Не удалось удалить задачу");
+        }
+      } catch {
+        toast.error("Ошибка сети");
+      }
+    },
+    [taskSourceMap],
+  );
+
   const handleNavigateToTask = useCallback(
     (task: PersonalTask) => {
       if (task.boardId) {
@@ -801,6 +845,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
         setTimeout(() => {
           const url = new URL(window.location.href);
           url.searchParams.set("boardId", task.boardId!);
+          url.searchParams.set("highlightTaskId", task.id);
           window.location.href = url.toString();
         }, 50);
       }
@@ -1010,6 +1055,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
                     onToggleComplete={handleToggleComplete}
                     onEditTask={handleEditTask}
                     onChangeBoard={handleChangeBoard}
+                    onDeleteTask={handleDeleteTask}
                     allPersonalBoards={personalBoards}
                   />
                 ))}

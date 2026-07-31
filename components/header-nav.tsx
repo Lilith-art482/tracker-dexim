@@ -32,6 +32,7 @@ import {
   Copy,
   UserPlus,
   Users,
+  Trash2,
 } from "lucide-react";
 import { useMode } from "@/lib/mode-context";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ import { useTheme } from "next-themes";
 import { useAudio } from "@/lib/audio-context";
 import AudioModal from "@/components/audio-modal";
 import AiChat from "@/components/ai-chat";
+import { ResetDataDialog } from "@/components/reset-data-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -158,6 +160,7 @@ export function HeaderActions() {
   const [uid, setUid] = useState<string | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareUserId, setShareUserId] = useState("");
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchTab, setSearchTab] = useState<"all" | "pages" | "faq">("all");
@@ -678,6 +681,19 @@ export function HeaderActions() {
               )}
             </div>
 
+            {/* Reset Data */}
+            <div>
+              <button
+                onClick={() => setResetDialogOpen(true)}
+                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-amber-200/60 dark:border-amber-900/30 px-4 py-2.5 text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20 hover:border-amber-300 dark:hover:border-amber-800/40 transition-all bg-amber-50/30 dark:bg-amber-950/10"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </div>
+                <span>Сбросить данные</span>
+              </button>
+            </div>
+
             {/* Logout */}
             <div className="pt-1">
               <button
@@ -706,6 +722,10 @@ export function HeaderActions() {
       <AudioModal
         open={audioModalOpen}
         onClose={() => setAudioModalOpen(false)}
+      />
+      <ResetDataDialog
+        open={resetDialogOpen}
+        onOpenChange={setResetDialogOpen}
       />
 
       {/* Совместный доступ */}

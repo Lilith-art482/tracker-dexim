@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -71,6 +71,10 @@ function getWeekDates(weekOffset: number): Date[] {
 
 export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [highlightTaskId, setHighlightTaskId] = useState<string | null>(
+    searchParams.get("highlightTaskId"),
+  );
   const [viewMode, setViewMode] = useState<
     "table" | "list" | "kanban" | "plan"
   >("table");
@@ -95,6 +99,18 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   });
 
   const selectedDate = weekDateStrings[selectedDay] ?? weekDateStrings[0];
+
+  useEffect(() => {
+    if (highlightTaskId) {
+      const timer = setTimeout(() => {
+        setHighlightTaskId(null);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("highlightTaskId");
+        window.history.replaceState({}, "", url.toString());
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightTaskId]);
 
   const tasksForWeek = tasks.filter((t) => weekDateStrings.includes(t.date));
 
@@ -557,6 +573,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
           onEdit={handleEditTask}
           onToggleComplete={handleToggleComplete}
           onDelete={handleDeleteTask}
+          highlightTaskId={highlightTaskId}
         />
       )}
 
