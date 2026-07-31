@@ -821,7 +821,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="px-4 py-8">
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Загружаем дашборд...</p>
@@ -831,7 +831,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
   }
 
   return (
-    <div className="container mx-auto px-3 sm:px-6 py-4 sm:py-8 max-w-7xl">
+    <div className="px-3 sm:px-6 py-4 sm:py-8">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
         <div className="flex items-center gap-3 mb-2">

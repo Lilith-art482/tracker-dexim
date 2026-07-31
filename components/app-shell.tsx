@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { Suspense } from "react";
 import { BoardSidebar } from "@/components/board-sidebar";
+import { BottomInfoBar } from "@/components/bottom-info-bar";
 import OnboardingModal from "@/components/onboarding-modal";
 import { SidebarToggle } from "@/components/sidebar-toggle";
 import { HeaderNav, HeaderActions } from "@/components/header-nav";
@@ -72,6 +73,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               {children}
             </main>
           </div>
+
+          <BottomInfoBar />
 
           <Toaster richColors position="top-right" />
           <OnboardingModal />
