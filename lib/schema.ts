@@ -5,6 +5,8 @@ export const TableName = {
   COMMENTS: "comments",
   BOARD_MEMBERS: "board_members",
   PERSONAL_TASKS: "personal_tasks",
+  PERSONAL_KANBAN_TASKS: "personal_kanban_tasks",
+  PERSONAL_PLAN_ENTRIES: "personal_plan_entries",
   FINANCE_ACCOUNTS: "finance_accounts",
   FINANCE_TRANSACTIONS: "finance_transactions",
   FINANCE_CATEGORIES: "finance_categories",

@@ -49,7 +49,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ModeContext.Provider value={{ mode, setMode, dashboardOpen, setDashboardOpen }}>
+    <ModeContext.Provider
+      value={{ mode, setMode, dashboardOpen, setDashboardOpen }}
+    >
       {children}
     </ModeContext.Provider>
   );

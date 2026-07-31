@@ -75,3 +75,39 @@ export const updatePersonalTaskSchema = z.object({
 
 export type CreatePersonalTaskInput = z.infer<typeof createPersonalTaskSchema>;
 export type UpdatePersonalTaskInput = z.infer<typeof updatePersonalTaskSchema>;
+
+export const createPersonalPlanEntrySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Формат ГГГГ-ММ-ДД"),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ"),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ"),
+  title: z.string().min(1).max(200),
+  priority: z.enum(["low", "medium", "high"]).default("medium"),
+  comment: z.string().max(2000).optional(),
+  ownerId: z.string().min(1).optional(),
+  boardId: z.string().min(1).optional(),
+});
+
+export const updatePersonalPlanEntrySchema = z.object({
+  id: z.string().min(1),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Формат ГГГГ-ММ-ДД")
+    .optional(),
+  startTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ")
+    .optional(),
+  endTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ")
+    .optional(),
+  title: z.string().min(1).max(200).optional(),
+  priority: z.enum(["low", "medium", "high"]).optional(),
+  completed: z.boolean().optional(),
+  completedAt: z.string().nullable().optional(),
+  comment: z.string().max(2000).optional(),
+  boardId: z.string().min(1).optional(),
+});
+
+export type CreatePersonalPlanEntryInput = z.infer<typeof createPersonalPlanEntrySchema>;
+export type UpdatePersonalPlanEntryInput = z.infer<typeof updatePersonalPlanEntrySchema>;

@@ -12,11 +12,7 @@ import {
   where,
   limit,
 } from "firebase/firestore";
-import {
-  convert,
-  getCachedRates,
-  getAllRates,
-} from "./exchange-rates";
+import { convert, getCachedRates, getAllRates } from "./exchange-rates";
 
 function clean<T>(data: T): T {
   return JSON.parse(JSON.stringify(data)) as T;
@@ -200,7 +196,12 @@ export async function createTransaction(
 
     let delta = 0;
     if (tx.type === "income" || tx.type === "expense") {
-      const converted = convertAmount(tx.amount, txCurrency, acc.currency, rates);
+      const converted = convertAmount(
+        tx.amount,
+        txCurrency,
+        acc.currency,
+        rates,
+      );
       delta = tx.type === "income" ? converted : -converted;
     }
 
@@ -278,26 +279,20 @@ export async function updateTransaction(
       if (netDelta !== 0 && newAcc) {
         await updateDoc(
           doc(accountsCol(), updated.accountId),
-          clean(
-            computeAccountUpdate(newAcc, newAcc.balance + netDelta, rates),
-          ),
+          clean(computeAccountUpdate(newAcc, newAcc.balance + netDelta, rates)),
         );
       }
     } else {
       if (oldDelta !== 0 && oldAcc) {
         await updateDoc(
           doc(accountsCol(), old.accountId),
-          clean(
-            computeAccountUpdate(oldAcc, oldAcc.balance - oldDelta, rates),
-          ),
+          clean(computeAccountUpdate(oldAcc, oldAcc.balance - oldDelta, rates)),
         );
       }
       if (newDelta !== 0 && newAcc) {
         await updateDoc(
           doc(accountsCol(), updated.accountId),
-          clean(
-            computeAccountUpdate(newAcc, newAcc.balance + newDelta, rates),
-          ),
+          clean(computeAccountUpdate(newAcc, newAcc.balance + newDelta, rates)),
         );
       }
     }
@@ -342,9 +337,7 @@ export async function deleteTransaction(id: string): Promise<void> {
     const rates = await resolveRates();
 
     const accSnap = await getDoc(doc(accountsCol(), tx.accountId));
-    const acc = accSnap.exists()
-      ? toPlain<FinanceAccount>(accSnap)
-      : null;
+    const acc = accSnap.exists() ? toPlain<FinanceAccount>(accSnap) : null;
     const accCurrency = acc?.currency || "RUB";
     const txCurrency = tx.currency || accCurrency;
     const converted =

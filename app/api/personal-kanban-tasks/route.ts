@@ -24,10 +24,17 @@ const createTaskSchema = z.object({
 
 const updateTaskSchema = z.object({
   id: z.string().min(1),
+  boardId: z.string().min(1).optional(),
   columnId: z.string().min(1).optional(),
   title: z.string().min(1).max(200).optional(),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  startTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
+  endTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
   priority: z.enum(["low", "medium", "high"]).optional(),
   completed: z.boolean().optional(),
   completedAt: z.string().nullable().optional(),

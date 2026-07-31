@@ -7,7 +7,6 @@ import {
 import { mockBoards, mockColumns, mockBoardMembers } from "@/lib/mock-data";
 import type { Board, Column, BoardMember } from "@/lib/models";
 import { TeamOrPersonalView } from "@/components/team-or-personal-view";
-import { PlannerEmptyState } from "@/components/planner-empty-state";
 import HomeContent from "@/components/home-content";
 
 async function getColumnsForBoard(boardId: string): Promise<Column[]> {
@@ -53,12 +52,10 @@ export default async function HomePage({
       );
     }
   } else if (uid) {
-    // Static mode with uid - filter mock boards
     boards = mockBoards.filter(
       (b) => b.ownerId === uid || b.members?.includes(uid),
     );
   } else {
-    // No uid - show empty state
     boards = [];
   }
 
@@ -66,17 +63,8 @@ export default async function HomePage({
     ? boards.find((b) => b.id === boardId)
     : undefined;
 
-  if (!activeBoard) {
-    return (
-      <HomeContent>
-        <PlannerEmptyState />
-      </HomeContent>
-    );
-  }
-
-  const columns = await getColumnsForBoard(activeBoard.id);
-  const boardMembers = await getBoardMembers(activeBoard.id);
-
+  const columns = activeBoard ? await getColumnsForBoard(activeBoard.id) : [];
+  const boardMembers = activeBoard ? await getBoardMembers(activeBoard.id) : [];
   const isArchiveView = view === "archive";
 
   return (

@@ -335,7 +335,6 @@ export default function ContactPage() {
                 <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mb-2">
                   Связь с разработчиками
                 </h1>
-
               </div>
 
               {/* Official / media / blogger notice */}

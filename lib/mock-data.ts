@@ -8,6 +8,7 @@ import {
   Comment,
   Note,
   PersonalTask,
+  PersonalPlanEntry,
   Service,
   Task,
 } from "./models";
@@ -549,5 +550,31 @@ export const mockBoardMembers: BoardMember[] = [
     boardId: "board-2",
     name: "Елена",
     createdAt: new Date("2024-01-01").toISOString(),
+  },
+];
+
+export const mockPersonalPlanEntries: PersonalPlanEntry[] = [
+  {
+    id: "plan-1",
+    date: new Date().toISOString().split("T")[0],
+    startTime: "08:00",
+    endTime: "08:15",
+    title: "Подъём",
+    priority: "medium",
+    completed: true,
+    comment: "Застелить кровать, умыться",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "plan-2",
+    date: new Date().toISOString().split("T")[0],
+    startTime: "09:00",
+    endTime: "09:30",
+    title: "Зарядка",
+    priority: "low",
+    completed: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ];

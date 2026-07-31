@@ -94,6 +94,22 @@ export interface PersonalKanbanTask {
   ownerId?: string;
 }
 
+export interface PersonalPlanEntry {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  title: string;
+  priority: Priority;
+  completed: boolean;
+  completedAt?: string | null;
+  comment?: string;
+  createdAt: string;
+  updatedAt: string;
+  ownerId?: string;
+  boardId?: string;
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -610,10 +626,7 @@ export async function createPersonalKanbanTask(
 ): Promise<PersonalKanbanTask> {
   const now = new Date().toISOString();
   const task: PersonalKanbanTask = { ...data, createdAt: now, updatedAt: now };
-  await getAdminDb()
-    .collection(PERSONAL_KANBAN_TASKS)
-    .doc(task.id)
-    .set(task);
+  await getAdminDb().collection(PERSONAL_KANBAN_TASKS).doc(task.id).set(task);
   return task;
 }
 
@@ -622,6 +635,7 @@ export async function updatePersonalKanbanTask(
   data: Partial<
     Pick<
       PersonalKanbanTask,
+      | "boardId"
       | "columnId"
       | "title"
       | "startTime"
@@ -649,6 +663,65 @@ export async function updatePersonalKanbanTask(
 
 export async function deletePersonalKanbanTask(id: string): Promise<void> {
   await getAdminDb().collection(PERSONAL_KANBAN_TASKS).doc(id).delete();
+}
+
+const PERSONAL_PLAN_ENTRIES = COL("PERSONAL_PLAN_ENTRIES");
+
+export async function getPersonalPlanEntriesByOwner(
+  ownerId: string,
+): Promise<PersonalPlanEntry[]> {
+  const snap = await getAdminDb()
+    .collection(PERSONAL_PLAN_ENTRIES)
+    .where("ownerId", "==", ownerId)
+    .get();
+  return snap.docs.map((d) => toPlain(d) as PersonalPlanEntry);
+}
+
+export async function createPersonalPlanEntry(
+  data: Omit<PersonalPlanEntry, "createdAt" | "updatedAt">,
+): Promise<PersonalPlanEntry> {
+  const now = new Date().toISOString();
+  const entry: PersonalPlanEntry = { ...data, createdAt: now, updatedAt: now };
+  await getAdminDb()
+    .collection(PERSONAL_PLAN_ENTRIES)
+    .doc(entry.id)
+    .set(entry);
+  return entry;
+}
+
+export async function updatePersonalPlanEntry(
+  id: string,
+  data: Partial<
+    Pick<
+      PersonalPlanEntry,
+      | "date"
+      | "startTime"
+      | "endTime"
+      | "title"
+      | "priority"
+      | "completed"
+      | "completedAt"
+      | "comment"
+      | "boardId"
+    >
+  >,
+): Promise<PersonalPlanEntry> {
+  await getAdminDb()
+    .collection(PERSONAL_PLAN_ENTRIES)
+    .doc(id)
+    .update({
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
+  const snap = await getAdminDb()
+    .collection(PERSONAL_PLAN_ENTRIES)
+    .doc(id)
+    .get();
+  return toPlain(snap) as PersonalPlanEntry;
+}
+
+export async function deletePersonalPlanEntry(id: string): Promise<void> {
+  await getAdminDb().collection(PERSONAL_PLAN_ENTRIES).doc(id).delete();
 }
 
 export interface CanvasConnection {
