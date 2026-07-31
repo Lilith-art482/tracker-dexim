@@ -5,6 +5,7 @@ import {
   useContext,
   useCallback,
   useSyncExternalStore,
+  useState,
   type ReactNode,
 } from "react";
 
@@ -13,6 +14,8 @@ export type ViewMode = "team" | "personal";
 interface ModeContextValue {
   mode: ViewMode;
   setMode: (mode: ViewMode) => void;
+  dashboardOpen: boolean;
+  setDashboardOpen: (open: boolean) => void;
 }
 
 const ModeContext = createContext<ModeContextValue | null>(null);
@@ -38,6 +41,7 @@ function getServerSnapshot(): ViewMode {
 
 export function ModeProvider({ children }: { children: ReactNode }) {
   const mode = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
 
   const setMode = useCallback((newMode: ViewMode) => {
     localStorage.setItem(STORAGE_KEY, newMode);
@@ -45,7 +49,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ModeContext.Provider value={{ mode, setMode }}>
+    <ModeContext.Provider value={{ mode, setMode, dashboardOpen, setDashboardOpen }}>
       {children}
     </ModeContext.Provider>
   );
