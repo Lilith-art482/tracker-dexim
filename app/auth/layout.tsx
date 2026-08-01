@@ -13,7 +13,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="antialiased min-h-screen dark bg-[#0a0f0d]">
+    <div className="antialiased min-h-screen bg-background">
       <NoChromeClient />
       {children}
     </div>
