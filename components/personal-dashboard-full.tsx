@@ -228,6 +228,7 @@ interface BoardColumnProps {
   onEditTask: (task: PersonalTask) => void;
   onChangeBoard: (task: PersonalTask, newBoardId: string) => void;
   onDeleteTask: (task: PersonalTask) => void;
+  onNavigateTask: (task: PersonalTask) => void;
   allPersonalBoards: Board[];
 }
 
@@ -239,6 +240,7 @@ function BoardColumn({
   onEditTask,
   onChangeBoard,
   onDeleteTask,
+  onNavigateTask,
   allPersonalBoards,
 }: BoardColumnProps) {
   const completed = tasks.filter((t) => t.completed).length;
@@ -315,6 +317,7 @@ function BoardColumn({
                 onEdit={onEditTask}
                 onChangeBoard={onChangeBoard}
                 onDelete={onDeleteTask}
+                onNavigate={onNavigateTask}
                 allPersonalBoards={allPersonalBoards}
               />
             );
@@ -343,6 +346,7 @@ interface DashboardTaskRowProps {
   onEdit: (task: PersonalTask) => void;
   onChangeBoard: (task: PersonalTask, newBoardId: string) => void;
   onDelete: (task: PersonalTask) => void;
+  onNavigate: (task: PersonalTask) => void;
   allPersonalBoards: Board[];
 }
 
@@ -354,6 +358,7 @@ function DashboardTaskRow({
   onEdit,
   onChangeBoard,
   onDelete,
+  onNavigate,
   allPersonalBoards,
 }: DashboardTaskRowProps) {
   const [boardMenuOpen, setBoardMenuOpen] = useState(false);
@@ -422,6 +427,16 @@ function DashboardTaskRow({
         </div>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover/task:opacity-100 transition-opacity shrink-0">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onNavigate(task);
+          }}
+          className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors"
+          title="Перейти к задаче"
+        >
+          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -1056,6 +1071,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
                     onEditTask={handleEditTask}
                     onChangeBoard={handleChangeBoard}
                     onDeleteTask={handleDeleteTask}
+                    onNavigateTask={handleNavigateToTask}
                     allPersonalBoards={personalBoards}
                   />
                 ))}

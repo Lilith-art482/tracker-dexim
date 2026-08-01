@@ -171,7 +171,7 @@ export function PlannerEmptyState() {
   };
 
   return (
-    <div className="max-w-[2000px] mx-auto w-full px-4 py-12 space-y-16 animate-in fade-in duration-500">
+    <div className="max-w-[1600px] mx-auto w-full px-4 py-12 space-y-16 animate-in fade-in duration-500">
       <section className="relative text-center space-y-6 pt-8 pb-4">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,var(--color-primary)/8,transparent)]" />
         <div className="inline-flex items-center gap-2 rounded-full border bg-background/80 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur">

@@ -100,6 +100,44 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
 
   const selectedDate = weekDateStrings[selectedDay] ?? weekDateStrings[0];
 
+  // When navigating from dashboard with highlightTaskId, switch to list view
+  useEffect(() => {
+    if (highlightTaskId && viewMode !== "list") {
+      setViewMode("list");
+    }
+  }, [highlightTaskId]);
+
+  // When tasks load with a highlightTaskId, find the task, set correct day + week
+  useEffect(() => {
+    if (highlightTaskId && tasks.length > 0) {
+      const task = tasks.find((t) => t.id === highlightTaskId);
+      if (task) {
+        const taskDate = new Date(task.date + "T00:00:00Z");
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const mondayOffset = today.getDay() === 0 ? -6 : 1 - today.getDay();
+        const todayMonday = new Date(today);
+        todayMonday.setDate(todayMonday.getDate() + mondayOffset);
+        const taskMonday = new Date(taskDate);
+        taskMonday.setDate(taskMonday.getDate() - ((taskDate.getDay() + 6) % 7));
+        const weekDiff = Math.round(
+          (taskMonday.getTime() - todayMonday.getTime()) / (7 * 86400000),
+        );
+        if (weekDiff !== 0) setWeekOffset(weekDiff);
+        const targetWeekDates = getWeekDates(weekDiff);
+        const targetWeekDateStrings = targetWeekDates.map((d) => {
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          return `${y}-${m}-${day}`;
+        });
+        const idx = targetWeekDateStrings.findIndex((d) => d === task.date);
+        if (idx !== -1) setSelectedDay(idx);
+      }
+    }
+  }, [highlightTaskId, tasks]);
+
+  // Auto-clear highlight after 5 seconds
   useEffect(() => {
     if (highlightTaskId) {
       const timer = setTimeout(() => {
