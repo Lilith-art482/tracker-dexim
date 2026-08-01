@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import {
   Wind,
@@ -85,29 +85,29 @@ const CRYPTOS = [
 ];
 
 const FIATS = [
-  { code: "RUB", symbol: "\u20BD", name: "Рубль" },
+  { code: "RUB", symbol: "₽", name: "Рубль" },
   { code: "USD", symbol: "$", name: "Доллар" },
-  { code: "EUR", symbol: "\u20AC", name: "Евро" },
+  { code: "EUR", symbol: "€", name: "Евро" },
 ];
 
 const WMO_ICONS: Record<number, { icon: string; label: string }> = {
-  0: { icon: "\u2600\uFE0F", label: "Ясно" },
-  1: { icon: "\uD83C\uDF24\uFE0F", label: "Малооблачно" },
+  0: { icon: "☀️", label: "Ясно" },
+  1: { icon: "🌤️", label: "Малооблачно" },
   2: { icon: "⛅", label: "Облачно" },
   3: { icon: "☁️", label: "Пасмурно" },
   45: { icon: "🌫️", label: "Туман" },
   48: { icon: "🌫️", label: "Инейный туман" },
-  51: { icon: "\uD83C\uDF26\uFE0F", label: "Морось" },
-  53: { icon: "\uD83C\uDF26\uFE0F", label: "Морось" },
-  55: { icon: "\uD83C\uDF27\uFE0F", label: "Сильная морось" },
-  61: { icon: "\uD83C\uDF27\uFE0F", label: "Дождь" },
-  63: { icon: "\uD83C\uDF27\uFE0F", label: "Дождь" },
-  65: { icon: "\uD83C\uDF27\uFE0F", label: "Сильный дождь" },
+  51: { icon: "🌦️", label: "Морось" },
+  53: { icon: "🌦️", label: "Морось" },
+  55: { icon: "🌧️", label: "Сильная морось" },
+  61: { icon: "🌧️", label: "Дождь" },
+  63: { icon: "🌧️", label: "Дождь" },
+  65: { icon: "🌧️", label: "Сильный дождь" },
   71: { icon: "❄️", label: "Снег" },
   73: { icon: "❄️", label: "Снег" },
   75: { icon: "❄️", label: "Сильный снег" },
-  80: { icon: "\uD83C\uDF26\uFE0F", label: "Ливень" },
-  81: { icon: "\uD83C\uDF27\uFE0F", label: "Ливень" },
+  80: { icon: "🌦️", label: "Ливень" },
+  81: { icon: "🌧️", label: "Ливень" },
   82: { icon: "⛈️", label: "Сильный ливень" },
   95: { icon: "⛈️", label: "Гроза" },
   96: { icon: "⛈️", label: "Гроза с градом" },
@@ -117,7 +117,7 @@ const WMO_ICONS: Record<number, { icon: string; label: string }> = {
 /* ─────────── Helpers ─────────── */
 
 function getWeatherIcon(code: number) {
-  return WMO_ICONS[code] || { icon: "\uD83C\uDF21\uFE0F", label: "Неизвестно" };
+  return WMO_ICONS[code] || { icon: "🌡️", label: "Неизвестно" };
 }
 
 function getUserTimezone(): string {
@@ -206,19 +206,31 @@ function CryptoIcon({
   symbol: string;
   size?: number;
 }) {
+  const isSvg = icon.endsWith(".svg");
   return (
     <div
       className="flex items-center justify-center rounded-lg bg-muted/50 overflow-hidden shrink-0"
       style={{ width: size, height: size }}
     >
-      <Image
-        src={icon}
-        alt={symbol}
-        width={size}
-        height={size}
-        className="object-cover"
-        unoptimized
-      />
+      {isSvg ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={icon}
+          alt={symbol}
+          width={size}
+          height={size}
+          className="object-contain"
+        />
+      ) : (
+        <Image
+          src={icon}
+          alt={symbol}
+          width={size}
+          height={size}
+          className="object-cover"
+          unoptimized
+        />
+      )}
     </div>
   );
 }
@@ -376,7 +388,7 @@ function WeatherWidget() {
             <span className="text-base leading-none">{weather?.icon}</span>
           )}
           <span className="text-xs font-medium truncate">
-            {loading ? "\u2014" : `${weather?.tempC}\u00B0`}
+            {loading ? "—" : `${weather?.tempC}°`}
           </span>
           <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
         </PopoverTrigger>
@@ -384,104 +396,134 @@ function WeatherWidget() {
           align="start"
           side="top"
           sideOffset={8}
-          className="w-[340px] p-0 overflow-hidden"
+          className="w-[360px] p-0 overflow-hidden border-border/50 shadow-2xl"
         >
           {weather && (
-            <div className="bg-gradient-to-b from-sky-500/10 via-background to-background">
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 pt-4 pb-2">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-sm font-semibold">
-                      {weather.city}
-                    </span>
+            <div className="relative">
+              {/* Premium gradient bg */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background to-primary/5" />
+              <div className="absolute inset-0 backdrop-blur-xl" />
+
+              <div className="relative">
+                {/* Hero section */}
+                <div className="px-5 pt-5 pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        <span className="text-xs font-medium tracking-wide uppercase">
+                          {weather.city}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground/70">
+                        {weather.condition}
+                      </p>
+                    </div>
+                    <span className="text-5xl drop-shadow-sm">{weather.icon}</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {weather.condition}
-                  </p>
-                </div>
-                <span className="text-3xl">{weather.icon}</span>
-              </div>
 
-              {/* Temp */}
-              <div className="px-4 pb-3">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold tracking-tight">
-                    {weather.tempC}\u00B0
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    ощущ. {weather.feelsLikeC}\u00B0
-                  </span>
+                  <div className="mt-3 flex items-end gap-3">
+                    <span className="text-6xl font-extralight tracking-tighter leading-none text-foreground">
+                      {weather.tempC}°
+                    </span>
+                    <div className="pb-1.5 space-y-0.5">
+                      <p className="text-xs text-muted-foreground">
+                        ощущ. {weather.feelsLikeC}°
+                      </p>
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground/70">
+                        <span>↑ {weather.tempHigh}°</span>
+                        <span>↓ {weather.tempLow}°</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                  <span>\u2191 {weather.tempHigh}\u00B0</span>
-                  <span>\u2193 {weather.tempLow}\u00B0</span>
-                </div>
-              </div>
 
-              {/* Hourly */}
-              <div className="px-4 pb-3">
-                <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
-                  {weather.hourly.map((h, i) => (
+                {/* Hourly */}
+                <div className="px-5 pb-4">
+                  <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+                    {weather.hourly.map((h, i) => (
+                      <div
+                        key={i}
+                        className="flex flex-col items-center gap-1.5 shrink-0 px-2.5 py-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors min-w-[52px]"
+                      >
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          {h.time}
+                        </span>
+                        <span className="text-base">{h.icon}</span>
+                        <span className="text-xs font-semibold">{h.tempC}°</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 7-day */}
+                <div className="mx-5 mb-4 rounded-xl bg-muted/20 border border-border/30 overflow-y-auto max-h-[240px] scrollbar-none">
+                  {weather.daily.map((d, i) => (
                     <div
                       key={i}
-                      className="flex flex-col items-center gap-1 shrink-0"
+                      className={`flex items-center justify-between px-3.5 py-2.5 ${
+                        i !== weather.daily.length - 1 ? "border-b border-border/20" : ""
+                      }`}
                     >
-                      <span className="text-[10px] text-muted-foreground">
-                        {h.time}
+                      <span className="text-xs font-medium w-16">
+                        {i === 0 ? "Сегодня" : d.day}
                       </span>
-                      <span className="text-sm">{h.icon}</span>
-                      <span className="text-xs font-medium">{h.tempC}\u00B0</span>
+                      <span className="text-sm">{d.icon}</span>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span className="font-semibold w-8 text-right">{d.high}°</span>
+                        <div className="w-16 h-1 rounded-full bg-muted/40 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary"
+                            style={{
+                              width: `${Math.min(100, Math.max(20, ((d.high - d.low) / 30) * 100))}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="text-muted-foreground w-8 text-right">{d.low}°</span>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
 
-              {/* 7-day */}
-              <div className="border-t border-border/40 px-4 py-3">
-                {weather.daily.map((d, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between py-1"
-                  >
-                    <span className="text-xs w-20 truncate">{d.day}</span>
-                    <span className="text-sm">{d.icon}</span>
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="font-medium">{d.high}\u00B0</span>
-                      <span className="text-muted-foreground">{d.low}\u00B0</span>
+                {/* Details */}
+                <div className="mx-5 mb-5 grid grid-cols-3 gap-2">
+                  {[
+                    {
+                      icon: Wind,
+                      label: "Ветер",
+                      value: `${weather.windKph}`,
+                      unit: "км/ч",
+                    },
+                    {
+                      icon: Droplets,
+                      label: "Влажность",
+                      value: `${weather.humidity}`,
+                      unit: "%",
+                    },
+                    {
+                      icon: Thermometer,
+                      label: "Давление",
+                      value: `${Math.round(weather.pressure * 0.75)}`,
+                      unit: "мм",
+                    },
+                  ].map((item, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl bg-muted/20 border border-border/30 p-3 text-center space-y-1.5"
+                    >
+                      <item.icon className="h-4 w-4 mx-auto text-primary/70" />
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                        {item.label}
+                      </p>
+                      <p className="text-sm font-semibold">
+                        {item.value}
+                        <span className="text-[10px] font-normal text-muted-foreground ml-0.5">
+                          {item.unit}
+                        </span>
+                      </p>
                     </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Details */}
-              <div className="border-t border-border/40 grid grid-cols-3 gap-px bg-border/20">
-                {[
-                  {
-                    icon: Wind,
-                    label: "Ветер",
-                    value: `${weather.windKph} км/ч`,
-                  },
-                  {
-                    icon: Droplets,
-                    label: "Влажность",
-                    value: `${weather.humidity}%`,
-                  },
-                  {
-                    icon: Thermometer,
-                    label: "Давление",
-                    value: `${weather.pressure} гПа`,
-                  },
-                ].map((item, i) => (
-                  <div key={i} className="bg-background p-3 text-center">
-                    <item.icon className="h-3.5 w-3.5 mx-auto text-muted-foreground mb-1" />
-                    <p className="text-[10px] text-muted-foreground">
-                      {item.label}
-                    </p>
-                    <p className="text-xs font-semibold mt-0.5">{item.value}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -591,10 +633,54 @@ function WeatherWidget() {
 
 /* ─────────── Time Widget ─────────── */
 
+const TIMEZONES = [
+  { value: "Pacific/Auckland", label: "UTC+12/+13" },
+  { value: "Asia/Kamchatka", label: "UTC+12" },
+  { value: "Asia/Magadan", label: "UTC+11" },
+  { value: "Asia/Vladivostok", label: "UTC+10" },
+  { value: "Asia/Yakutsk", label: "UTC+9" },
+  { value: "Asia/Tokyo", label: "UTC+9" },
+  { value: "Asia/Seoul", label: "UTC+9" },
+  { value: "Asia/Shanghai", label: "UTC+8" },
+  { value: "Asia/Irkutsk", label: "UTC+8" },
+  { value: "Asia/Singapore", label: "UTC+8" },
+  { value: "Asia/Kolkata", label: "UTC+5:30" },
+  { value: "Asia/Yekaterinburg", label: "UTC+5" },
+  { value: "Asia/Tashkent", label: "UTC+5" },
+  { value: "Asia/Almaty", label: "UTC+6" },
+  { value: "Asia/Omsk", label: "UTC+6" },
+  { value: "Asia/Krasnoyarsk", label: "UTC+7" },
+  { value: "Asia/Dubai", label: "UTC+4" },
+  { value: "Europe/Samara", label: "UTC+4" },
+  { value: "Asia/Baku", label: "UTC+4" },
+  { value: "Asia/Tbilisi", label: "UTC+4" },
+  { value: "Europe/Moscow", label: "UTC+3" },
+  { value: "Europe/Kiev", label: "UTC+2/+3" },
+  { value: "Europe/Istanbul", label: "UTC+3" },
+  { value: "Europe/Athens", label: "UTC+2/+3" },
+  { value: "Europe/Berlin", label: "UTC+1/+2" },
+  { value: "Europe/Paris", label: "UTC+1/+2" },
+  { value: "Europe/Minsk", label: "UTC+3" },
+  { value: "Europe/London", label: "UTC+0/+1" },
+  { value: "Atlantic/Reykjavik", label: "UTC+0" },
+  { value: "America/Sao_Paulo", label: "UTC-3" },
+  { value: "America/New_York", label: "UTC-5/-4" },
+  { value: "America/Chicago", label: "UTC-6/-5" },
+  { value: "America/Denver", label: "UTC-7/-6" },
+  { value: "America/Los_Angeles", label: "UTC-8/-7" },
+  { value: "Pacific/Honolulu", label: "UTC-10" },
+];
+
 function TimeWidget() {
   const [time, setTime] = useState("");
   const [date, setDate] = useState("");
-  const tz = useMemo(() => getUserTimezone(), []);
+  const [tzOpen, setTzOpen] = useState(false);
+  const [tz, setTz] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("user_timezone") || getUserTimezone();
+    }
+    return getUserTimezone();
+  });
 
   useEffect(() => {
     const tick = () => {
@@ -606,7 +692,13 @@ function TimeWidget() {
     return () => clearInterval(interval);
   }, [tz]);
 
-  const tzShort = tz.split("/").pop()?.replace("_", " ") || tz;
+  const handleTzChange = (newTz: string) => {
+    setTz(newTz);
+    localStorage.setItem("user_timezone", newTz);
+    setTzOpen(false);
+  };
+
+  const tzLabel = TIMEZONES.find((t) => t.value === tz)?.label || tz.split("/").pop()?.replace("_", " ") || tz;
 
   return (
     <div className="flex items-center gap-2">
@@ -614,9 +706,43 @@ function TimeWidget() {
       <div className="flex items-baseline gap-1.5 min-w-0">
         <span className="text-xs font-semibold tabular-nums">{time}</span>
         <span className="text-[10px] text-muted-foreground truncate">
-          {date} \u00B7 {tzShort}
+          {date}
         </span>
       </div>
+
+      <Popover open={tzOpen} onOpenChange={setTzOpen}>
+        <PopoverTrigger className="text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0">
+          {tzLabel}
+        </PopoverTrigger>
+        <PopoverContent
+          align="center"
+          side="top"
+          sideOffset={8}
+          className="w-44 p-0"
+        >
+          <div className="p-2 border-b border-border/40">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-2">
+              Часовой пояс
+            </p>
+          </div>
+          <div className="max-h-64 overflow-y-auto p-1">
+            {TIMEZONES.map((item) => (
+              <button
+                key={item.value}
+                onClick={() => handleTzChange(item.value)}
+                className={cn(
+                  "flex items-center w-full px-2.5 py-1.5 rounded-md text-xs transition-colors",
+                  tz === item.value
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "hover:bg-muted/50 text-foreground",
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
@@ -674,9 +800,9 @@ function MarketsWidget() {
       const usdRub = data?.tether?.rub ?? 85;
       const usdEur = data?.tether?.eur ? 1 / data.tether.eur : 0.92;
       return [
-        { code: "RUB", symbol: "\u20BD", rate: usdRub, change24h: data?.tether?.rub_24h_change ?? 0 },
+        { code: "RUB", symbol: "₽", rate: usdRub, change24h: data?.tether?.rub_24h_change ?? 0 },
         { code: "USD", symbol: "$", rate: 1, change24h: 0 },
-        { code: "EUR", symbol: "\u20AC", rate: usdEur, change24h: data?.tether?.eur_24h_change ?? 0 },
+        { code: "EUR", symbol: "€", rate: usdEur, change24h: data?.tether?.eur_24h_change ?? 0 },
       ];
     } catch {
       return FIATS.map((f) => ({
@@ -721,16 +847,22 @@ function MarketsWidget() {
             </>
           ) : (
             <>
-              {cryptoRates.map((r) => (
-                <div key={r.id} className="flex items-center gap-1">
-                  <span className="text-[10px] text-muted-foreground">
-                    {r.symbol}
-                  </span>
-                  <span className="text-[11px] font-medium tabular-nums">
-                    ${formatCurrency(r.price)}
-                  </span>
-                </div>
-              ))}
+              {cryptoRates.map((r) => {
+                const crypto = CRYPTOS.find((c) => c.id === r.id);
+                return (
+                  <div key={r.id} className="flex items-center gap-1.5">
+                    {crypto && (
+                      <CryptoIcon icon={crypto.icon} symbol={r.symbol} size={14} />
+                    )}
+                    <span className="text-[10px] text-muted-foreground">
+                      {r.symbol}
+                    </span>
+                    <span className="text-[11px] font-medium tabular-nums">
+                      ${formatCurrency(r.price)}
+                    </span>
+                  </div>
+                );
+              })}
               {fiatRates.length > 0 && (
                 <span className="text-[10px] text-muted-foreground">|</span>
               )}
