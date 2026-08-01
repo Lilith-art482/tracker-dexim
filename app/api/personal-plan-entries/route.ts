@@ -87,7 +87,10 @@ export async function POST(request: NextRequest) {
 
     if (diffDays < -7 || diffDays > 7) {
       return NextResponse.json(
-        { error: "План можно создать только в диапазоне ±7 дней от текущей даты" },
+        {
+          error:
+            "План можно создать только в диапазоне ±7 дней от текущей даты",
+        },
         { status: 400 },
       );
     }

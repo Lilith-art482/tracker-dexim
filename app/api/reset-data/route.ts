@@ -88,8 +88,7 @@ export async function POST(request: NextRequest) {
         for (const kt of kanbanTasks) {
           await deletePersonalKanbanTask(kt.id);
         }
-        results.kanbanTasks =
-          (results.kanbanTasks || 0) + kanbanTasks.length;
+        results.kanbanTasks = (results.kanbanTasks || 0) + kanbanTasks.length;
 
         await deleteBoard(board.id);
         results.boards = (results.boards || 0) + 1;
@@ -118,8 +117,7 @@ export async function POST(request: NextRequest) {
         for (const t of filtered) {
           await deletePersonalKanbanTask(t.id);
         }
-        results.kanbanTasks =
-          (results.kanbanTasks || 0) + filtered.length;
+        results.kanbanTasks = (results.kanbanTasks || 0) + filtered.length;
       }
     }
 
