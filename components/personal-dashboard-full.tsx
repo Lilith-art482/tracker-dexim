@@ -40,6 +40,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
+import { WeatherSidebarWidget } from "@/components/weather-sidebar-widget";
 import { toast } from "sonner";
 import { useMode } from "@/lib/mode-context";
 
@@ -1451,6 +1452,9 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
               )}
             </div>
           </div>
+
+          {/* Weather Widget */}
+          <WeatherSidebarWidget />
         </div>
       </div>
 
