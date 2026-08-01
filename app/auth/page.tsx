@@ -237,18 +237,18 @@ export default function AuthPage() {
             <div className="flex items-center gap-2">
               <Link
                 href="/about"
-                className="h-9 px-3 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors text-xs font-medium"
+                className="h-11 px-5 rounded-xl bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all text-sm font-semibold"
               >
                 О нас
               </Link>
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="h-9 w-9 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                className="h-11 w-11 rounded-xl bg-muted/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all"
               >
                 {theme === "dark" ? (
-                  <Sun className="h-4 w-4" />
+                  <Sun className="h-5 w-5" />
                 ) : (
-                  <Moon className="h-4 w-4" />
+                  <Moon className="h-5 w-5" />
                 )}
               </button>
             </div>
@@ -462,21 +462,21 @@ export default function AuthPage() {
           <div className="w-1/2 flex items-center justify-center p-8">
             <div className="relative w-full max-w-md">
               {/* Theme + About buttons */}
-              <div className="absolute -top-12 right-0 flex items-center gap-2">
+              <div className="absolute -top-14 right-0 flex items-center gap-3">
                 <Link
                   href="/about"
-                  className="h-9 px-3 rounded-lg bg-muted/50 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors text-xs font-medium"
+                  className="h-11 px-5 rounded-xl bg-muted/60 border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/90 transition-all text-sm font-semibold shadow-sm"
                 >
                   О нас
                 </Link>
                 <button
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="h-9 w-9 rounded-lg bg-muted/50 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+                  className="h-11 w-11 rounded-xl bg-muted/60 border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/90 transition-all shadow-sm"
                 >
                   {theme === "dark" ? (
-                    <Sun className="h-4 w-4" />
+                    <Sun className="h-5 w-5" />
                   ) : (
-                    <Moon className="h-4 w-4" />
+                    <Moon className="h-5 w-5" />
                   )}
                 </button>
               </div>
