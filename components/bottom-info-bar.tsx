@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import Image from "next/image";
 import {
   Wind,
   Droplets,
@@ -27,10 +26,10 @@ import { Button } from "@/components/ui/button";
 interface WeatherData {
   city: string;
   country: string;
+  weatherCode: number;
   tempC: number;
   feelsLikeC: number;
   condition: string;
-  icon: string;
   humidity: number;
   windKph: number;
   visibility: number;
@@ -38,8 +37,8 @@ interface WeatherData {
   uvIndex: number;
   tempHigh: number;
   tempLow: number;
-  hourly: { time: string; tempC: number; icon: string }[];
-  daily: { day: string; high: number; low: number; icon: string }[];
+  hourly: { time: string; tempC: number; weatherCode: number }[];
+  daily: { day: string; high: number; low: number; weatherCode: number }[];
 }
 
 interface CryptoRate {
@@ -88,37 +87,145 @@ const FIATS = [
   { code: "RUB", symbol: "₽", name: "Рубль" },
   { code: "USD", symbol: "$", name: "Доллар" },
   { code: "EUR", symbol: "€", name: "Евро" },
+  { code: "CNY", symbol: "¥", name: "Юань" },
+  { code: "BYN", symbol: "Br", name: "Бел. рубль" },
 ];
 
-const WMO_ICONS: Record<number, { icon: string; label: string }> = {
-  0: { icon: "☀️", label: "Ясно" },
-  1: { icon: "🌤️", label: "Малооблачно" },
-  2: { icon: "⛅", label: "Облачно" },
-  3: { icon: "☁️", label: "Пасмурно" },
-  45: { icon: "🌫️", label: "Туман" },
-  48: { icon: "🌫️", label: "Инейный туман" },
-  51: { icon: "🌦️", label: "Морось" },
-  53: { icon: "🌦️", label: "Морось" },
-  55: { icon: "🌧️", label: "Сильная морось" },
-  61: { icon: "🌧️", label: "Дождь" },
-  63: { icon: "🌧️", label: "Дождь" },
-  65: { icon: "🌧️", label: "Сильный дождь" },
-  71: { icon: "❄️", label: "Снег" },
-  73: { icon: "❄️", label: "Снег" },
-  75: { icon: "❄️", label: "Сильный снег" },
-  80: { icon: "🌦️", label: "Ливень" },
-  81: { icon: "🌧️", label: "Ливень" },
-  82: { icon: "⛈️", label: "Сильный ливень" },
-  95: { icon: "⛈️", label: "Гроза" },
-  96: { icon: "⛈️", label: "Гроза с градом" },
-  99: { icon: "⛈️", label: "Гроза с градом" },
+/* ─────────── Weather Condition Labels ─────────── */
+
+const WMO_LABELS: Record<number, string> = {
+  0: "Ясно",
+  1: "Малооблачно",
+  2: "Облачно",
+  3: "Пасмурно",
+  45: "Туман",
+  48: "Инейный туман",
+  51: "Морось",
+  53: "Морось",
+  55: "Сильная морось",
+  61: "Дождь",
+  63: "Дождь",
+  65: "Сильный дождь",
+  71: "Снег",
+  73: "Снег",
+  75: "Сильный снег",
+  80: "Ливень",
+  81: "Ливень",
+  82: "Сильный ливень",
+  95: "Гроза",
+  96: "Гроза с градом",
+  99: "Гроза с градом",
 };
 
-/* ─────────── Helpers ─────────── */
-
-function getWeatherIcon(code: number) {
-  return WMO_ICONS[code] || { icon: "🌡️", label: "Неизвестно" };
+function getWeatherLabel(code: number) {
+  return WMO_LABELS[code] || "Неизвестно";
 }
+
+function WeatherSvgIcon({ code, size = 20 }: { code: number; size?: number }) {
+  const isNight = new Date().getHours() >= 20 || new Date().getHours() < 6;
+
+  if (code === 0) {
+    return isNight ? (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#a5b4fc" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ) : (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="5" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1.5"/>
+        <line x1="12" y1="1" x2="12" y2="3" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="12" y1="21" x2="12" y2="23" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="1" y1="12" x2="3" y2="12" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="21" y1="12" x2="23" y2="12" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    );
+  }
+  if (code === 1) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="10" cy="10" r="4" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1.5"/>
+        <line x1="10" y1="2" x2="10" y2="4" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="10" y1="16" x2="10" y2="18" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="3.5" y1="10" x2="5.5" y2="10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M17 18a4 4 0 0 0-4-4 4 4 0 0 0-3.5 2A3 3 0 0 0 10 19h7a3 3 0 0 0 0-6" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    );
+  }
+  if (code === 2) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="8" cy="8" r="3.5" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1.2"/>
+        <path d="M19 17a4 4 0 0 0-4-4 4 4 0 0 0-3 1.5A3.5 3.5 0 0 0 8 15a3.5 3.5 0 0 0 0 7h11a3 3 0 0 0 0-5" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    );
+  }
+  if (code === 3) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    );
+  }
+  if (code >= 45 && code <= 48) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M5 17h14M7 13h10M9 9h6" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+        <path d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    );
+  }
+  if (code >= 51 && code <= 67) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7" fill="#94a3b8" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <line x1="8" y1="19" x2="7" y2="22" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="12" y1="19" x2="11" y2="22" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="16" y1="19" x2="15" y2="22" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    );
+  }
+  if (code >= 71 && code <= 77) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7" fill="#94a3b8" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="8" cy="20" r="1" fill="#bfdbfe"/>
+        <circle cx="12" cy="21" r="1" fill="#bfdbfe"/>
+        <circle cx="16" cy="19.5" r="1" fill="#bfdbfe"/>
+        <circle cx="10" cy="22" r="0.8" fill="#bfdbfe"/>
+        <circle cx="14" cy="22.5" r="0.8" fill="#bfdbfe"/>
+      </svg>
+    );
+  }
+  if (code >= 80 && code <= 82) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7" fill="#64748b" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <line x1="7" y1="19" x2="5" y2="23" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
+        <line x1="12" y1="19" x2="10" y2="23" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
+        <line x1="17" y1="19" x2="15" y2="23" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    );
+  }
+  if (code >= 95) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7" fill="#475569" stroke="#334155" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <polyline points="13 17 11 21 14 21 12 25" fill="none" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    );
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.5"/>
+      <path d="M8 12a4 4 0 0 1 8 0" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+/* ─────────── Helpers ─────────── */
 
 function getUserTimezone(): string {
   try {
@@ -206,31 +313,19 @@ function CryptoIcon({
   symbol: string;
   size?: number;
 }) {
-  const isSvg = icon.endsWith(".svg");
   return (
     <div
       className="flex items-center justify-center rounded-lg bg-muted/50 overflow-hidden shrink-0"
       style={{ width: size, height: size }}
     >
-      {isSvg ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={icon}
-          alt={symbol}
-          width={size}
-          height={size}
-          className="object-contain"
-        />
-      ) : (
-        <Image
-          src={icon}
-          alt={symbol}
-          width={size}
-          height={size}
-          className="object-cover"
-          unoptimized
-        />
-      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={icon}
+        alt={symbol}
+        width={size}
+        height={size}
+        className="object-contain"
+      />
     </div>
   );
 }
@@ -327,7 +422,7 @@ function WeatherWidget() {
         return {
           time,
           tempC: Math.round(hourlyTemp[idx] ?? 0),
-          icon: getWeatherIcon(hourlyCode[idx] ?? 0).icon,
+          weatherCode: hourlyCode[idx] ?? 0,
         };
       }).filter((h) => h.time);
 
@@ -342,19 +437,19 @@ function WeatherWidget() {
           day,
           high: Math.round(daily.temperature_2m_max?.[i] ?? 0),
           low: Math.round(daily.temperature_2m_min?.[i] ?? 0),
-          icon: getWeatherIcon(daily.weather_code?.[i] ?? 0).icon,
+          weatherCode: daily.weather_code?.[i] ?? 0,
         };
       });
 
-      const wmoInfo = getWeatherIcon(current.weather_code);
+      const conditionLabel = getWeatherLabel(current.weather_code);
 
       setWeather({
         city: city.name,
         country: city.country,
+        weatherCode: current.weather_code,
         tempC: Math.round(current.temperature_2m),
         feelsLikeC: Math.round(current.apparent_temperature),
-        condition: wmoInfo.label,
-        icon: wmoInfo.icon,
+        condition: conditionLabel,
         humidity: current.relative_humidity_2m,
         windKph: Math.round(current.wind_speed_10m),
         visibility: 10,
@@ -385,7 +480,7 @@ function WeatherWidget() {
           {loading ? (
             <div className="h-4 w-4 rounded-full bg-muted animate-pulse" />
           ) : (
-            <span className="text-base leading-none">{weather?.icon}</span>
+            <WeatherSvgIcon code={weather?.weatherCode ?? 0} size={16} />
           )}
           <span className="text-xs font-medium truncate">
             {loading ? "—" : `${weather?.tempC}°`}
@@ -419,7 +514,7 @@ function WeatherWidget() {
                         {weather.condition}
                       </p>
                     </div>
-                    <span className="text-5xl drop-shadow-sm">{weather.icon}</span>
+                    <WeatherSvgIcon code={weather.weatherCode} size={48} />
                   </div>
 
                   <div className="mt-3 flex items-end gap-3">
@@ -449,7 +544,7 @@ function WeatherWidget() {
                         <span className="text-[10px] text-muted-foreground font-medium">
                           {h.time}
                         </span>
-                        <span className="text-base">{h.icon}</span>
+                        <WeatherSvgIcon code={h.weatherCode} size={18} />
                         <span className="text-xs font-semibold">{h.tempC}°</span>
                       </div>
                     ))}
@@ -457,7 +552,7 @@ function WeatherWidget() {
                 </div>
 
                 {/* 7-day */}
-                <div className="mx-5 mb-4 rounded-xl bg-muted/20 border border-border/30 overflow-y-auto max-h-[240px] scrollbar-none">
+                <div className="mx-5 mb-4 rounded-xl bg-muted/20 border border-border/30 overflow-y-auto max-h-[240px] scrollbar-none" style={{ WebkitOverflowScrolling: "touch" }}>
                   {weather.daily.map((d, i) => (
                     <div
                       key={i}
@@ -468,7 +563,7 @@ function WeatherWidget() {
                       <span className="text-xs font-medium w-16">
                         {i === 0 ? "Сегодня" : d.day}
                       </span>
-                      <span className="text-sm">{d.icon}</span>
+                      <WeatherSvgIcon code={d.weatherCode} size={18} />
                       <div className="flex items-center gap-1.5 text-xs">
                         <span className="font-semibold w-8 text-right">{d.high}°</span>
                         <div className="w-16 h-1 rounded-full bg-muted/40 overflow-hidden">
@@ -786,29 +881,33 @@ function MarketsWidget() {
   const fetchFiatRates = useCallback(async () => {
     try {
       const res = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=rub,eur&include_24hr_change=true`,
+        `https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=rub,eur,cny,byn&include_24hr_change=true`,
       );
       if (!res.ok) {
         return FIATS.map((f) => ({
           code: f.code,
           symbol: f.symbol,
-          rate: f.code === "USD" ? 1 : f.code === "RUB" ? 85 : 0.92,
+          rate: f.code === "USD" ? 1 : f.code === "RUB" ? 85 : f.code === "EUR" ? 0.92 : f.code === "CNY" ? 7.2 : 3.2,
           change24h: 0,
         }));
       }
       const data = await res.json();
       const usdRub = data?.tether?.rub ?? 85;
       const usdEur = data?.tether?.eur ? 1 / data.tether.eur : 0.92;
+      const usdCny = data?.tether?.cny ? 1 / data.tether.cny : 7.2;
+      const usdByn = data?.tether?.byn ? 1 / data.tether.byn : 3.2;
       return [
         { code: "RUB", symbol: "₽", rate: usdRub, change24h: data?.tether?.rub_24h_change ?? 0 },
         { code: "USD", symbol: "$", rate: 1, change24h: 0 },
         { code: "EUR", symbol: "€", rate: usdEur, change24h: data?.tether?.eur_24h_change ?? 0 },
+        { code: "CNY", symbol: "¥", rate: usdCny, change24h: data?.tether?.cny_24h_change ?? 0 },
+        { code: "BYN", symbol: "Br", rate: usdByn, change24h: data?.tether?.byn_24h_change ?? 0 },
       ];
     } catch {
       return FIATS.map((f) => ({
         code: f.code,
         symbol: f.symbol,
-        rate: f.code === "USD" ? 1 : f.code === "RUB" ? 85 : 0.92,
+        rate: f.code === "USD" ? 1 : f.code === "RUB" ? 85 : f.code === "EUR" ? 0.92 : f.code === "CNY" ? 7.2 : 3.2,
         change24h: 0,
       }));
     }
@@ -866,7 +965,7 @@ function MarketsWidget() {
               {fiatRates.length > 0 && (
                 <span className="text-[10px] text-muted-foreground">|</span>
               )}
-              {fiatRates.slice(0, 1).map((r) => (
+              {fiatRates.slice(0, 2).map((r) => (
                 <div key={r.code} className="flex items-center gap-1">
                   <span className="text-[10px] text-muted-foreground">
                     {r.code}
