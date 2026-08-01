@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
+  Cloud,
   Wind,
   Droplets,
   Thermometer,
-  ChevronDown,
   X,
-  TrendingUp,
   Clock,
   MapPin,
   RefreshCw,
@@ -38,7 +37,7 @@ interface WeatherData {
   tempHigh: number;
   tempLow: number;
   hourly: { time: string; tempC: number; weatherCode: number }[];
-  daily: { day: string; high: number; low: number; weatherCode: number }[];
+  daily: { day: string; date: string; high: number; low: number; weatherCode: number }[];
 }
 
 interface CryptoRate {
@@ -336,7 +335,6 @@ function WeatherWidget() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCity, setSelectedCity] = useState<GeoCity>(DEFAULT_CITIES[0]);
-  const [detailOpen, setDetailOpen] = useState(false);
   const [citySearchOpen, setCitySearchOpen] = useState(false);
   const [cityQuery, setCityQuery] = useState("");
   const [geoResults, setGeoResults] = useState<GeoCity[]>([]);
@@ -433,8 +431,15 @@ function WeatherWidget() {
               weekday: "short",
             })
           : "";
+        const dateLabel = date
+          ? new Date(date + "T00:00:00Z").toLocaleDateString("ru-RU", {
+              day: "numeric",
+              month: "short",
+            })
+          : "";
         return {
           day,
+          date: dateLabel,
           high: Math.round(daily.temperature_2m_max?.[i] ?? 0),
           low: Math.round(daily.temperature_2m_min?.[i] ?? 0),
           weatherCode: daily.weather_code?.[i] ?? 0,
@@ -474,254 +479,199 @@ function WeatherWidget() {
   }, [selectedCity, fetchWeather]);
 
   return (
-    <div className="flex items-center gap-2 min-w-0">
-      <Popover open={detailOpen} onOpenChange={setDetailOpen}>
-        <PopoverTrigger className="flex items-center gap-2 rounded-lg hover:bg-muted/50 px-2 py-1.5 transition-colors min-w-0">
-          {loading ? (
-            <div className="h-4 w-4 rounded-full bg-muted animate-pulse" />
-          ) : (
-            <WeatherSvgIcon code={weather?.weatherCode ?? 0} size={16} />
-          )}
-          <span className="text-xs font-medium truncate">
-            {loading ? "—" : `${weather?.tempC}°`}
-          </span>
-          <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          side="top"
-          sideOffset={8}
-          className="w-[360px] p-0 overflow-hidden border-border/50 shadow-2xl"
-        >
-          {weather && (
-            <div className="relative">
-              {/* Premium gradient bg */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background to-primary/5" />
-              <div className="absolute inset-0 backdrop-blur-xl" />
+    <div className="relative">
+      {/* Premium gradient bg */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background to-primary/5" />
+      <div className="absolute inset-0 backdrop-blur-xl" />
 
-              <div className="relative">
-                {/* Hero section */}
-                <div className="px-5 pt-5 pb-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        <span className="text-xs font-medium tracking-wide uppercase">
-                          {weather.city}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground/70">
-                        {weather.condition}
-                      </p>
-                    </div>
-                    <WeatherSvgIcon code={weather.weatherCode} size={48} />
-                  </div>
-
-                  <div className="mt-3 flex items-end gap-3">
-                    <span className="text-6xl font-extralight tracking-tighter leading-none text-foreground">
-                      {weather.tempC}°
-                    </span>
-                    <div className="pb-1.5 space-y-0.5">
-                      <p className="text-xs text-muted-foreground">
-                        ощущ. {weather.feelsLikeC}°
-                      </p>
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground/70">
-                        <span>↑ {weather.tempHigh}°</span>
-                        <span>↓ {weather.tempLow}°</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Hourly */}
-                <div className="px-5 pb-4">
-                  <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
-                    {weather.hourly.map((h, i) => (
-                      <div
-                        key={i}
-                        className="flex flex-col items-center gap-1.5 shrink-0 px-2.5 py-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors min-w-[52px]"
-                      >
-                        <span className="text-[10px] text-muted-foreground font-medium">
-                          {h.time}
-                        </span>
-                        <WeatherSvgIcon code={h.weatherCode} size={18} />
-                        <span className="text-xs font-semibold">{h.tempC}°</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 7-day */}
-                <div className="mx-5 mb-4 rounded-xl bg-muted/20 border border-border/30 overflow-y-auto max-h-[240px] scrollbar-none" style={{ WebkitOverflowScrolling: "touch" }}>
-                  {weather.daily.map((d, i) => (
-                    <div
-                      key={i}
-                      className={`flex items-center justify-between px-3.5 py-2.5 ${
-                        i !== weather.daily.length - 1 ? "border-b border-border/20" : ""
-                      }`}
-                    >
-                      <span className="text-xs font-medium w-16">
-                        {i === 0 ? "Сегодня" : d.day}
-                      </span>
-                      <WeatherSvgIcon code={d.weatherCode} size={18} />
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <span className="font-semibold w-8 text-right">{d.high}°</span>
-                        <div className="w-16 h-1 rounded-full bg-muted/40 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary"
-                            style={{
-                              width: `${Math.min(100, Math.max(20, ((d.high - d.low) / 30) * 100))}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="text-muted-foreground w-8 text-right">{d.low}°</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Details */}
-                <div className="mx-5 mb-5 grid grid-cols-3 gap-2">
-                  {[
-                    {
-                      icon: Wind,
-                      label: "Ветер",
-                      value: `${weather.windKph}`,
-                      unit: "км/ч",
-                    },
-                    {
-                      icon: Droplets,
-                      label: "Влажность",
-                      value: `${weather.humidity}`,
-                      unit: "%",
-                    },
-                    {
-                      icon: Thermometer,
-                      label: "Давление",
-                      value: `${Math.round(weather.pressure * 0.75)}`,
-                      unit: "мм",
-                    },
-                  ].map((item, i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl bg-muted/20 border border-border/30 p-3 text-center space-y-1.5"
-                    >
-                      <item.icon className="h-4 w-4 mx-auto text-primary/70" />
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                        {item.label}
-                      </p>
-                      <p className="text-sm font-semibold">
-                        {item.value}
-                        <span className="text-[10px] font-normal text-muted-foreground ml-0.5">
-                          {item.unit}
-                        </span>
-                      </p>
-                    </div>
-                  ))}
-                </div>
+      <div className="relative">
+        {/* Hero section */}
+        <div className="px-5 pt-5 pb-4">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <MapPin className="h-3 w-3" />
+                <span className="text-xs font-medium tracking-wide uppercase">
+                  {weather?.city || selectedCity.name}
+                </span>
               </div>
+              <p className="text-[11px] text-muted-foreground/70">
+                {weather?.condition || (loading ? "Загрузка..." : "")}
+              </p>
             </div>
-          )}
-        </PopoverContent>
-      </Popover>
-
-      {/* City Search */}
-      <Popover open={citySearchOpen} onOpenChange={setCitySearchOpen}>
-        <PopoverTrigger className="text-[10px] text-muted-foreground hover:text-foreground transition-colors truncate max-w-[100px]">
-          {selectedCity.name}
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          side="top"
-          sideOffset={8}
-          className="w-64 p-0"
-        >
-          <div className="p-2 border-b border-border/40">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                value={cityQuery}
-                onChange={(e) => handleCityQueryChange(e.target.value)}
-                placeholder="Найти город..."
-                className="w-full rounded-md border border-border/60 bg-background pl-8 pr-2 py-1.5 text-xs outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
-                autoFocus
-              />
-              {cityQuery && (
-                <button
-                  onClick={() => {
-                    setCityQuery("");
-                    setGeoResults([]);
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
+            <WeatherSvgIcon code={weather?.weatherCode ?? 0} size={48} />
           </div>
-          <div className="max-h-56 overflow-y-auto">
-            {geoLoading && (
-              <div className="flex items-center justify-center py-4">
-                <div className="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+
+          <div className="mt-3 flex items-end gap-3">
+            <span className="text-6xl font-extralight tracking-tighter leading-none text-foreground">
+              {loading ? "—" : `${weather?.tempC}°`}
+            </span>
+            {weather && (
+              <div className="pb-1.5 space-y-0.5">
+                <p className="text-xs text-muted-foreground">
+                  ощущ. {weather.feelsLikeC}°
+                </p>
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground/70">
+                  <span>↑ {weather.tempHigh}°</span>
+                  <span>↓ {weather.tempLow}°</span>
+                </div>
               </div>
             )}
-            {!geoLoading && geoResults.length > 0 && (
-              <>
-                {geoResults.map((city, i) => (
+          </div>
+        </div>
+
+        {/* Hourly */}
+        {weather && (
+          <div className="px-5 pb-4">
+            <div
+              className="flex gap-1 overflow-x-auto pb-1 scrollbar-none"
+              onWheel={(e) => {
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                  e.preventDefault();
+                  e.currentTarget.scrollLeft += e.deltaY;
+                }
+              }}
+            >
+              {weather.hourly.map((h, i) => (
+                <div
+                  key={i}
+                  className="flex flex-col items-center gap-1.5 shrink-0 px-2.5 py-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors min-w-[52px]"
+                >
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    {h.time}
+                  </span>
+                  <WeatherSvgIcon code={h.weatherCode} size={18} />
+                  <span className="text-xs font-semibold">{h.tempC}°</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 7-day */}
+        {weather && (
+          <div className="mx-5 mb-4 rounded-xl bg-muted/20 border border-border/30 overflow-y-auto max-h-[240px] scrollbar-none" style={{ WebkitOverflowScrolling: "touch" }}>
+            {weather.daily.map((d, i) => (
+              <div
+                key={i}
+                className={`flex items-center justify-between px-3.5 py-2.5 ${
+                  i !== weather.daily.length - 1 ? "border-b border-border/20" : ""
+                }`}
+              >
+                <span className="text-xs font-medium w-20">
+                  {i === 0 ? "Сегодня" : d.day}
+                  <span className="text-[10px] text-muted-foreground ml-1">{i === 0 ? "" : d.date}</span>
+                </span>
+                <WeatherSvgIcon code={d.weatherCode} size={18} />
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="font-semibold w-8 text-right">{d.high}°</span>
+                  <div className="w-16 h-1 rounded-full bg-muted/40 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary"
+                      style={{
+                        width: `${Math.min(100, Math.max(20, ((d.high - d.low) / 30) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="text-muted-foreground w-8 text-right">{d.low}°</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Details */}
+        {weather && (
+          <div className="mx-5 mb-4 grid grid-cols-3 gap-2">
+            {[
+              { icon: Wind, label: "Ветер", value: `${weather.windKph}`, unit: "км/ч" },
+              { icon: Droplets, label: "Влажность", value: `${weather.humidity}`, unit: "%" },
+              { icon: Thermometer, label: "Давление", value: `${Math.round(weather.pressure * 0.75)}`, unit: "мм" },
+            ].map((item, i) => (
+              <div key={i} className="rounded-xl bg-muted/20 border border-border/30 p-3 text-center space-y-1.5">
+                <item.icon className="h-4 w-4 mx-auto text-primary/70" />
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{item.label}</p>
+                <p className="text-sm font-semibold">
+                  {item.value}
+                  <span className="text-[10px] font-normal text-muted-foreground ml-0.5">{item.unit}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* City Search */}
+        <div className="px-5 pb-4">
+          <Popover open={citySearchOpen} onOpenChange={setCitySearchOpen}>
+            <PopoverTrigger className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+              <MapPin className="h-3 w-3 inline mr-1" />
+              {selectedCity.name} — сменить город
+            </PopoverTrigger>
+            <PopoverContent align="start" side="top" sideOffset={8} className="w-64 p-0">
+              <div className="p-2 border-b border-border/40">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={cityQuery}
+                    onChange={(e) => handleCityQueryChange(e.target.value)}
+                    placeholder="Найти город..."
+                    className="w-full rounded-md border border-border/60 bg-background pl-8 pr-2 py-1.5 text-xs outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
+                    autoFocus
+                  />
+                  {cityQuery && (
+                    <button onClick={() => { setCityQuery(""); setGeoResults([]); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="max-h-56 overflow-y-auto">
+                {geoLoading && (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                  </div>
+                )}
+                {!geoLoading && geoResults.length > 0 && geoResults.map((city, i) => (
                   <button
                     key={`${city.name}-${city.latitude}-${i}`}
                     onClick={() => selectCity(city)}
                     className={cn(
                       "flex items-center gap-2 w-full px-3 py-2 text-xs transition-colors",
-                      selectedCity.name === city.name &&
-                        selectedCity.latitude === city.latitude
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "hover:bg-muted/50 text-foreground",
+                      selectedCity.name === city.name && selectedCity.latitude === city.latitude ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-foreground",
                     )}
                   >
                     <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
                     <span className="truncate">{city.name}</span>
-                    {city.country && (
-                      <span className="text-[10px] text-muted-foreground ml-auto">
-                        {city.country}
-                      </span>
-                    )}
+                    {city.country && <span className="text-[10px] text-muted-foreground ml-auto">{city.country}</span>}
                   </button>
                 ))}
-              </>
-            )}
-            {!geoLoading && geoResults.length === 0 && cityQuery.length >= 2 && (
-              <div className="py-4 text-center text-xs text-muted-foreground">
-                Город не найден
+                {!geoLoading && geoResults.length === 0 && cityQuery.length >= 2 && (
+                  <div className="py-4 text-center text-xs text-muted-foreground">Город не найден</div>
+                )}
+                {!geoLoading && geoResults.length === 0 && cityQuery.length < 2 && (
+                  <div className="p-2 space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground px-2 py-1">Популярные города</p>
+                    {DEFAULT_CITIES.map((city) => (
+                      <button
+                        key={`${city.name}-${city.latitude}`}
+                        onClick={() => selectCity(city)}
+                        className={cn(
+                          "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs transition-colors",
+                          selectedCity.name === city.name && selectedCity.latitude === city.latitude ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-foreground",
+                        )}
+                      >
+                        <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{city.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-            {!geoLoading && geoResults.length === 0 && cityQuery.length < 2 && (
-              <div className="p-2 space-y-0.5">
-                <p className="text-[10px] text-muted-foreground px-2 py-1">
-                  Популярные города
-                </p>
-                {DEFAULT_CITIES.map((city) => (
-                  <button
-                    key={`${city.name}-${city.latitude}`}
-                    onClick={() => selectCity(city)}
-                    className={cn(
-                      "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs transition-colors",
-                      selectedCity.name === city.name &&
-                        selectedCity.latitude === city.latitude
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "hover:bg-muted/50 text-foreground",
-                    )}
-                  >
-                    <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{city.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
     </div>
   );
 }
@@ -848,7 +798,6 @@ function MarketsWidget() {
   const [cryptoRates, setCryptoRates] = useState<CryptoRate[]>([]);
   const [fiatRates, setFiatRates] = useState<FiatRate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(false);
 
   const fetchCryptoRates = useCallback(async () => {
     try {
@@ -931,187 +880,109 @@ function MarketsWidget() {
   }, [fetchAll]);
 
   return (
-    <Popover open={expanded} onOpenChange={setExpanded}>
-      <PopoverTrigger className="flex items-center gap-2 rounded-lg hover:bg-muted/50 px-2 py-1.5 transition-colors">
-        <TrendingUp className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-        <div className="flex items-center gap-2">
-          {loading ? (
-            <>
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-3 w-10 rounded bg-muted animate-pulse"
-                />
-              ))}
-            </>
-          ) : (
-            <>
-              {cryptoRates.map((r) => {
-                const crypto = CRYPTOS.find((c) => c.id === r.id);
-                return (
-                  <div key={r.id} className="flex items-center gap-1.5">
-                    {crypto && (
-                      <CryptoIcon icon={crypto.icon} symbol={r.symbol} size={14} />
-                    )}
-                    <span className="text-[10px] text-muted-foreground">
-                      {r.symbol}
-                    </span>
-                    <span className="text-[11px] font-medium tabular-nums">
-                      ${formatCurrency(r.price)}
-                    </span>
-                  </div>
-                );
-              })}
-              {fiatRates.length > 0 && (
-                <span className="text-[10px] text-muted-foreground">|</span>
-              )}
-              {fiatRates.slice(0, 2).map((r) => (
-                <div key={r.code} className="flex items-center gap-1">
-                  <span className="text-[10px] text-muted-foreground">
-                    {r.code}
-                  </span>
-                  <span className="text-[11px] font-medium tabular-nums">
-                    {formatFiatRate(r.rate, r.code)}
-                  </span>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-        <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        side="top"
-        sideOffset={8}
-        className="w-[340px] p-0"
-      >
-        {/* Header */}
-        <div className="p-3 border-b border-border/40">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-semibold">Рынки</h4>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => fetchAll()}
-              className="h-6 px-1.5"
-            >
-              <RefreshCw className="h-3 w-3" />
-            </Button>
-          </div>
-        </div>
+    <div className="p-3">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-xs font-semibold">Рынки</h4>
+        <Button variant="ghost" size="sm" onClick={() => fetchAll()} className="h-6 px-1.5">
+          <RefreshCw className="h-3 w-3" />
+        </Button>
+      </div>
 
-        {/* Crypto */}
-        <div className="px-3 pt-2 pb-1">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
-            Криптовалюты
-          </p>
-        </div>
-        <div className="divide-y divide-border/30">
-          {cryptoRates.map((r) => {
-            const positive = r.change24h >= 0;
-            const crypto = CRYPTOS.find((c) => c.id === r.id);
-            return (
-              <div
-                key={r.id}
-                className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/30 transition-colors"
-              >
-                {crypto && (
-                  <CryptoIcon icon={crypto.icon} symbol={r.symbol} size={28} />
+      {/* Fiat first */}
+      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
+        Валюты (к USD)
+      </p>
+      <div className="divide-y divide-border/30 mb-3">
+        {fiatRates.map((r) => {
+          const positive = r.change24h >= 0;
+          return (
+            <div key={r.code} className="flex items-center gap-3 py-2 hover:bg-muted/30 rounded-lg px-2 transition-colors">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted/50 text-sm font-bold shrink-0">
+                {r.symbol}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium">{FIATS.find((f) => f.code === r.code)?.name || r.code}</p>
+                <p className="text-[10px] text-muted-foreground">{r.code}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-xs font-semibold tabular-nums">{formatFiatRate(r.rate, r.code)} {r.symbol}</p>
+                {r.change24h !== 0 && (
+                  <p className={cn("text-[10px] font-medium tabular-nums", positive ? "text-emerald-500" : "text-red-500")}>
+                    {positive ? "+" : ""}{r.change24h.toFixed(2)}%
+                  </p>
                 )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{r.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{r.symbol}</p>
-                </div>
-                <MiniSparkline data={r.sparkline} positive={positive} />
-                <div className="text-right shrink-0">
-                  <p className="text-xs font-semibold tabular-nums">
-                    ${formatCurrency(r.price)}
-                  </p>
-                  <p
-                    className={cn(
-                      "text-[10px] font-medium tabular-nums",
-                      positive ? "text-emerald-500" : "text-red-500",
-                    )}
-                  >
-                    {positive ? "+" : ""}
-                    {r.change24h.toFixed(2)}%
-                  </p>
-                </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
+      </div>
 
-        {/* Fiat */}
-        <div className="px-3 pt-3 pb-1">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
-            Валюты (к USD)
-          </p>
-        </div>
-        <div className="divide-y divide-border/30">
-          {fiatRates.map((r) => {
-            const positive = r.change24h >= 0;
-            return (
-              <div
-                key={r.code}
-                className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted/50 text-sm font-bold shrink-0">
-                  {r.symbol}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">
-                    {FIATS.find((f) => f.code === r.code)?.name || r.code}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">{r.code}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-xs font-semibold tabular-nums">
-                    {formatFiatRate(r.rate, r.code)} {r.symbol}
-                  </p>
-                  {r.change24h !== 0 && (
-                    <p
-                      className={cn(
-                        "text-[10px] font-medium tabular-nums",
-                        positive ? "text-emerald-500" : "text-red-500",
-                      )}
-                    >
-                      {positive ? "+" : ""}
-                      {r.change24h.toFixed(2)}%
-                    </p>
-                  )}
-                </div>
+      {/* Then crypto */}
+      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
+        Криптовалюты
+      </p>
+      <div className="divide-y divide-border/30">
+        {cryptoRates.map((r) => {
+          const positive = r.change24h >= 0;
+          const crypto = CRYPTOS.find((c) => c.id === r.id);
+          return (
+            <div key={r.id} className="flex items-center gap-3 py-2 hover:bg-muted/30 rounded-lg px-2 transition-colors">
+              {crypto && <CryptoIcon icon={crypto.icon} symbol={r.symbol} size={28} />}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium truncate">{r.name}</p>
+                <p className="text-[10px] text-muted-foreground">{r.symbol}</p>
               </div>
-            );
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
+              <MiniSparkline data={r.sparkline} positive={positive} />
+              <div className="text-right shrink-0">
+                <p className="text-xs font-semibold tabular-nums">${formatCurrency(r.price)}</p>
+                <p className={cn("text-[10px] font-medium tabular-nums", positive ? "text-emerald-500" : "text-red-500")}>
+                  {positive ? "+" : ""}{r.change24h.toFixed(2)}%
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
-/* ─────────── Main Bottom Bar ─────────── */
+/* ─────────── Main Bottom Bar (Floating Button) ─────────── */
 
 export function BottomInfoBar() {
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className="sticky bottom-0 z-40 w-full border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-10 items-center justify-between px-3 sm:px-4 gap-4">
-        {/* Left: Weather */}
-        <div className="flex items-center min-w-0 shrink-0">
+    <div className="fixed bottom-4 right-4 z-50">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger className="flex items-center gap-2 h-11 px-4 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-105 active:scale-95 transition-all duration-200">
+          <Cloud className="h-4 w-4" />
+          <span className="text-xs font-semibold">Инфо</span>
+        </PopoverTrigger>
+        <PopoverContent
+          align="end"
+          side="top"
+          sideOffset={8}
+          className="w-[380px] p-0 max-h-[80vh] overflow-y-auto scrollbar-none"
+        >
+          {/* Weather */}
           <WeatherWidget />
-        </div>
 
-        {/* Center: Time */}
-        <div className="hidden sm:flex items-center justify-center flex-1 min-w-0">
-          <TimeWidget />
-        </div>
+          {/* Divider */}
+          <div className="h-px bg-border/40 mx-4" />
 
-        {/* Right: Markets */}
-        <div className="flex items-center justify-end min-w-0 shrink-0">
+          {/* Time */}
+          <div className="px-4 py-3">
+            <TimeWidget />
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-border/40 mx-4" />
+
+          {/* Markets */}
           <MarketsWidget />
-        </div>
-      </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
