@@ -23,7 +23,13 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import type { PersonalTask, PersonalKanbanTask, PersonalPlanEntry, Board, Priority } from "@/lib/models";
+import type {
+  PersonalTask,
+  PersonalKanbanTask,
+  PersonalPlanEntry,
+  Board,
+  Priority,
+} from "@/lib/models";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -531,7 +537,9 @@ interface PersonalDashboardFullProps {
 export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
   const { setDashboardOpen, setMode } = useMode();
   const [tasks, setTasks] = useState<PersonalTask[]>([]);
-  const [taskSourceMap, setTaskSourceMap] = useState<Map<string, "list" | "kanban" | "plan">>(new Map());
+  const [taskSourceMap, setTaskSourceMap] = useState<
+    Map<string, "list" | "kanban" | "plan">
+  >(new Map());
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "completed"
@@ -591,7 +599,9 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
                 sourceMap.set(kt.id, "kanban");
                 allTasks.push({
                   id: kt.id,
-                  date: kt.createdAt ? kt.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
+                  date: kt.createdAt
+                    ? kt.createdAt.split("T")[0]
+                    : new Date().toISOString().split("T")[0],
                   startTime: kt.startTime,
                   endTime: kt.endTime,
                   title: kt.title,
@@ -612,9 +622,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
         }
 
         try {
-          const planRes = await fetch(
-            `/api/personal-plan-entries?uid=${uid}`,
-          );
+          const planRes = await fetch(`/api/personal-plan-entries?uid=${uid}`);
           if (planRes.ok) {
             const planEntries: PersonalPlanEntry[] = await planRes.json();
             const existingIds = new Set(allTasks.map((t) => t.id));
@@ -681,13 +689,23 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
     return tasks.filter((t) => {
       if (statusFilter === "completed" && !t.completed) return false;
       if (statusFilter === "pending" && t.completed) return false;
-      if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
+      if (priorityFilter !== "all" && t.priority !== priorityFilter)
+        return false;
       if (boardFilter !== "all" && t.boardId !== boardFilter) return false;
-      if (sourceFilter !== "all" && taskSourceMap.get(t.id) !== sourceFilter) return false;
+      if (sourceFilter !== "all" && taskSourceMap.get(t.id) !== sourceFilter)
+        return false;
       if (t.date < start || t.date > end) return false;
       return true;
     });
-  }, [tasks, statusFilter, priorityFilter, periodFilter, boardFilter, sourceFilter, taskSourceMap]);
+  }, [
+    tasks,
+    statusFilter,
+    priorityFilter,
+    periodFilter,
+    boardFilter,
+    sourceFilter,
+    taskSourceMap,
+  ]);
 
   const stats = useMemo(() => {
     const total = filteredTasks.length;
@@ -752,38 +770,41 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
     return dist;
   }, [filteredTasks]);
 
-  const handleToggleComplete = useCallback(async (task: PersonalTask) => {
-    const newCompleted = !task.completed;
-    const source = taskSourceMap.get(task.id);
-    const apiPath =
-      source === "kanban"
-        ? "/api/personal-kanban-tasks"
-        : source === "plan"
-          ? "/api/personal-plan-entries"
-          : "/api/personal-tasks";
-    try {
-      const res = await fetch(apiPath, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: task.id,
-          completed: newCompleted,
-          completedAt: newCompleted ? new Date().toISOString() : null,
-        }),
-      });
-      if (res.ok) {
-        const updated: PersonalTask = await res.json();
-        setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
-        toast.success(
-          newCompleted ? "Задача выполнена" : "Задача возвращена в работу",
-        );
-      } else {
-        toast.error("Не удалось обновить задачу");
+  const handleToggleComplete = useCallback(
+    async (task: PersonalTask) => {
+      const newCompleted = !task.completed;
+      const source = taskSourceMap.get(task.id);
+      const apiPath =
+        source === "kanban"
+          ? "/api/personal-kanban-tasks"
+          : source === "plan"
+            ? "/api/personal-plan-entries"
+            : "/api/personal-tasks";
+      try {
+        const res = await fetch(apiPath, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: task.id,
+            completed: newCompleted,
+            completedAt: newCompleted ? new Date().toISOString() : null,
+          }),
+        });
+        if (res.ok) {
+          const updated: PersonalTask = await res.json();
+          setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+          toast.success(
+            newCompleted ? "Задача выполнена" : "Задача возвращена в работу",
+          );
+        } else {
+          toast.error("Не удалось обновить задачу");
+        }
+      } catch {
+        toast.error("Ошибка сети");
       }
-    } catch {
-      toast.error("Ошибка сети");
-    }
-  }, [taskSourceMap]);
+    },
+    [taskSourceMap],
+  );
 
   const handleChangeBoard = useCallback(
     async (task: PersonalTask, newBoardId: string) => {

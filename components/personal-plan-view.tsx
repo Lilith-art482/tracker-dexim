@@ -149,7 +149,8 @@ function PlanEntryDialog({
   const handleSubmit = async () => {
     const newErrors: Record<string, string> = {};
     if (!title.trim()) newErrors.title = "Название обязательно";
-    if (startTime >= endTime) newErrors.endTime = "Конец должен быть позже начала";
+    if (startTime >= endTime)
+      newErrors.endTime = "Конец должен быть позже начала";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -426,36 +427,31 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
     loadEntries();
   }, [loadEntries]);
 
-  const handleToggleComplete = useCallback(
-    async (entry: PersonalPlanEntry) => {
-      const newCompleted = !entry.completed;
-      try {
-        const res = await fetch("/api/personal-plan-entries", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: entry.id,
-            completed: newCompleted,
-            completedAt: newCompleted ? new Date().toISOString() : null,
-          }),
-        });
-        if (res.ok) {
-          const updated: PersonalPlanEntry = await res.json();
-          setEntries((prev) =>
-            prev.map((e) => (e.id === entry.id ? updated : e)),
-          );
-          toast.success(
-            newCompleted ? "Выполнено" : "Возвращено в план",
-          );
-        } else {
-          toast.error("Не удалось обновить");
-        }
-      } catch {
-        toast.error("Ошибка сети");
+  const handleToggleComplete = useCallback(async (entry: PersonalPlanEntry) => {
+    const newCompleted = !entry.completed;
+    try {
+      const res = await fetch("/api/personal-plan-entries", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: entry.id,
+          completed: newCompleted,
+          completedAt: newCompleted ? new Date().toISOString() : null,
+        }),
+      });
+      if (res.ok) {
+        const updated: PersonalPlanEntry = await res.json();
+        setEntries((prev) =>
+          prev.map((e) => (e.id === entry.id ? updated : e)),
+        );
+        toast.success(newCompleted ? "Выполнено" : "Возвращено в план");
+      } else {
+        toast.error("Не удалось обновить");
       }
-    },
-    [],
-  );
+    } catch {
+      toast.error("Ошибка сети");
+    }
+  }, []);
 
   const handleDelete = useCallback(async (entry: PersonalPlanEntry) => {
     try {
@@ -619,8 +615,7 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
                     <p
                       className={cn(
                         "text-sm font-medium",
-                        entry.completed &&
-                          "line-through text-muted-foreground",
+                        entry.completed && "line-through text-muted-foreground",
                       )}
                     >
                       {entry.title}

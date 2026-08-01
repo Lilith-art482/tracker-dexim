@@ -119,7 +119,9 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
         const todayMonday = new Date(today);
         todayMonday.setDate(todayMonday.getDate() + mondayOffset);
         const taskMonday = new Date(taskDate);
-        taskMonday.setDate(taskMonday.getDate() - ((taskDate.getDay() + 6) % 7));
+        taskMonday.setDate(
+          taskMonday.getDate() - ((taskDate.getDay() + 6) % 7),
+        );
         const weekDiff = Math.round(
           (taskMonday.getTime() - todayMonday.getTime()) / (7 * 86400000),
         );
