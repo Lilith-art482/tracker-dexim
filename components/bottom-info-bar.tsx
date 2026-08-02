@@ -763,7 +763,7 @@ function WeatherSection() {
           align="start"
           side="top"
           sideOffset={8}
-          className="w-[420px] p-0 max-h-[70vh] overflow-y-auto scrollbar-none"
+          className="w-[460px] p-0 max-h-[70vh] overflow-y-auto scrollbar-none"
         >
           {/* Premium bg */}
           <div className="relative">
@@ -1353,19 +1353,19 @@ export function BottomInfoBar() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 h-12 bg-background/80 backdrop-blur-xl border-t border-border/40">
-      <div className="h-full px-3 sm:px-5 flex items-center justify-between gap-3">
+      <div className="h-full px-3 sm:px-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         {/* Left: Weather + City Search */}
-        <div className="min-w-0 w-0 flex-1">
+        <div className="min-w-0 flex justify-start">
           <WeatherSection />
         </div>
 
         {/* Center: Time + UTC */}
-        <div className="shrink-0">
+        <div className="flex justify-center">
           <TimeSection />
         </div>
 
         {/* Right: FinInfo icon button */}
-        <div className="shrink-0">
+        <div className="flex justify-end">
           <Popover open={marketsOpen} onOpenChange={setMarketsOpen}>
             <PopoverTrigger className="h-8 w-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
               <DollarSign className="h-4 w-4" />
