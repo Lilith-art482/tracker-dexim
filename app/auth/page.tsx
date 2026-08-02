@@ -74,8 +74,8 @@ export default function AuthPage() {
   });
 
   useEffect(() => {
-    document.body.classList.add("no-grain");
-    return () => document.body.classList.remove("no-grain");
+    document.body.classList.add("grain-strong");
+    return () => document.body.classList.remove("grain-strong");
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

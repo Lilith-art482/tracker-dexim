@@ -172,8 +172,8 @@ export default function AboutPage() {
   );
 
   useEffect(() => {
-    document.body.classList.add("no-grain");
-    return () => document.body.classList.remove("no-grain");
+    document.body.classList.add("grain-strong");
+    return () => document.body.classList.remove("grain-strong");
   }, []);
 
   useEffect(() => {
