@@ -10,7 +10,6 @@ import {
   Settings,
   Sun,
   Moon,
-  Palette,
   Globe,
   Monitor,
   Volume2,
@@ -512,16 +511,23 @@ export function HeaderActions() {
                   </div>
                 </button>
                 <button
-                  disabled
-                  className="relative flex flex-col items-center gap-2 rounded-lg px-2.5 py-2.5 text-xs font-medium text-muted-foreground/40 border border-dashed border-border/30 cursor-not-allowed"
+                  onClick={() => setTheme("system")}
+                  className={cn(
+                    "relative flex flex-col items-center gap-2 rounded-lg px-2.5 py-2.5 text-xs font-medium transition-all",
+                    theme === "system"
+                      ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 shadow-sm dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border/40",
+                  )}
                 >
                   <div className="flex items-center gap-1">
-                    <Palette className="h-3.5 w-3.5" />
+                    <Monitor className="h-3.5 w-3.5" />
+                    {theme === "system" && <Check className="h-3 w-3" />}
                   </div>
-                  <span>Своя</span>
-                  <span className="text-[9px] text-muted-foreground/30">
-                    Скоро
-                  </span>
+                  <span>Система</span>
+                  <div className="flex gap-0.5 mt-0.5">
+                    <span className="h-1 w-3 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+                    <span className="h-1 w-3 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+                  </div>
                 </button>
               </div>
             </div>
