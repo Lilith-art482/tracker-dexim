@@ -763,7 +763,7 @@ function WeatherSection() {
           align="start"
           side="top"
           sideOffset={8}
-          className="w-[580px] p-0 max-h-[70vh] overflow-y-auto scrollbar-none"
+          className="w-[420px] p-0 max-h-[70vh] overflow-y-auto scrollbar-none"
         >
           {/* Premium bg */}
           <div className="relative">
