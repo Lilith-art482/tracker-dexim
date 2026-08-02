@@ -274,22 +274,22 @@ export default function AboutPage() {
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Grainy overlay */}
       <div
-        className="absolute inset-0 opacity-[0.12] pointer-events-none z-0"
+        className="absolute inset-0 opacity-[0.22] pointer-events-none z-0"
         style={{ backgroundImage: STRONG_NOISE }}
       />
 
       {/* Blobs */}
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-3xl overflow-hidden animate-float-slow">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/10" />
-        <div className="absolute inset-0 opacity-[0.10]" style={{ backgroundImage: STRONG_NOISE }} />
+        <div className="absolute inset-0 opacity-[0.16]" style={{ backgroundImage: STRONG_NOISE }} />
       </div>
       <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full blur-3xl overflow-hidden animate-float-medium" style={{ animationDelay: "-2s" }}>
         <div className="absolute inset-0 bg-gradient-to-tl from-primary/25 to-primary/10" />
-        <div className="absolute inset-0 opacity-[0.10]" style={{ backgroundImage: STRONG_NOISE }} />
+        <div className="absolute inset-0 opacity-[0.16]" style={{ backgroundImage: STRONG_NOISE }} />
       </div>
       <div className="absolute top-1/3 left-1/2 w-72 h-72 rounded-full blur-3xl overflow-hidden animate-float-fast" style={{ animationDelay: "-4s" }}>
         <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/5" />
-        <div className="absolute inset-0 opacity-[0.10]" style={{ backgroundImage: STRONG_NOISE }} />
+        <div className="absolute inset-0 opacity-[0.16]" style={{ backgroundImage: STRONG_NOISE }} />
       </div>
 
       <style jsx>{`
@@ -328,7 +328,7 @@ export default function AboutPage() {
           <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-emerald-500/[0.04] via-background to-emerald-500/[0.01] p-7 sm:p-10 backdrop-blur-sm">
             <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-emerald-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: STRONG_NOISE }} />
+            <div className="absolute inset-0 opacity-[0.12] pointer-events-none" style={{ backgroundImage: STRONG_NOISE }} />
 
             <div className="relative flex flex-col sm:flex-row items-start gap-6">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30">
@@ -602,7 +602,7 @@ export default function AboutPage() {
 
         {/* AI Chat Block */}
         <div className="mb-10 rounded-2xl border border-border/60 bg-gradient-to-br from-violet-500/5 to-violet-500/[0.02] backdrop-blur-sm p-6 sm:p-8 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: STRONG_NOISE }} />
+          <div className="absolute inset-0 opacity-[0.12] pointer-events-none" style={{ backgroundImage: STRONG_NOISE }} />
           <div className="relative flex flex-col sm:flex-row items-center gap-6">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shrink-0">
               <Bot className="h-8 w-8 text-white" />
@@ -644,7 +644,7 @@ export default function AboutPage() {
             </div>
             <h2 className="text-lg font-semibold">Мы в соцсетях</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <a
               href="https://vk.com"
               target="_blank"
@@ -675,25 +675,7 @@ export default function AboutPage() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">Telegram</p>
                 <p className="text-xs text-muted-foreground/60 mt-0.5">
-                  Оперативные обновления и поддержка
-                </p>
-              </div>
-              <ExternalLink className="h-4 w-4 text-muted-foreground/40 group-hover:text-sky-500 transition-colors shrink-0" />
-            </a>
-
-            <a
-              href="https://max.ru"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/50 backdrop-blur-sm p-4 hover:bg-muted/30 hover:border-sky-500/30 transition-all group"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500/10 to-purple-500/10 shrink-0 group-hover:from-rose-500/20 group-hover:to-purple-500/20 transition-colors">
-                <Sparkles className="h-5 w-5 text-rose-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">MAX</p>
-                <p className="text-xs text-muted-foreground/60 mt-0.5">
-                  Эксклюзивный контент и общение
+                  Новости, анонсы и поддержка
                 </p>
               </div>
               <ExternalLink className="h-4 w-4 text-muted-foreground/40 group-hover:text-sky-500 transition-colors shrink-0" />
