@@ -2,21 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isDatabaseAvailable } from "@/lib/db";
 import {
-  getBoardsByUser,
-  createBoard,
-  createColumn,
-  updateBoard,
-  deleteBoard,
+  getCompaniesByUser,
+  createCompany,
+  updateCompany,
+  deleteCompany,
 } from "@/lib/models";
-import { mockBoards } from "@/lib/mock-data";
+import { mockCompanies } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const createBoardSchema = z.object({
+const createCompanySchema = z.object({
   name: z.string().min(1).max(200),
-  type: z.enum(["personal", "team"]).default("team"),
-  companyId: z.string().min(1).optional(),
+  color: z.string().optional(),
+  icon: z.string().optional(),
+  description: z.string().max(500).optional(),
+});
+
+const updateCompanySchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(200).optional(),
+  color: z.string().optional().nullable(),
+  icon: z.string().optional().nullable(),
+  description: z.string().max(500).optional().nullable(),
 });
 
 export async function GET(request: NextRequest) {
@@ -25,7 +33,6 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const uid = url.searchParams.get("uid");
 
-  // uid обязателен для безопасности
   if (!uid) {
     return NextResponse.json(
       { error: "Требуется авторизация" },
@@ -35,10 +42,10 @@ export async function GET(request: NextRequest) {
 
   if (dbAvailable) {
     try {
-      const boards = await getBoardsByUser(uid);
-      return NextResponse.json(boards);
+      const companies = await getCompaniesByUser(uid);
+      return NextResponse.json(companies);
     } catch (error) {
-      console.error("Ошибка получения досок:", error);
+      console.error("Ошибка получения компаний:", error);
       return NextResponse.json(
         { error: "Ошибка получения данных из Firestore" },
         { status: 500 },
@@ -46,9 +53,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Static fallback - filter by uid
-  const filtered = mockBoards.filter(
-    (b) => b.ownerId === uid || b.members?.includes(uid),
+  const filtered = mockCompanies.filter(
+    (c) => c.ownerId === uid || c.members?.includes(uid),
   );
   return NextResponse.json(filtered);
 }
@@ -65,7 +71,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const parsed = createBoardSchema.safeParse(body);
+    const parsed = createCompanySchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -78,54 +84,25 @@ export async function POST(request: NextRequest) {
     }
 
     const ownerId = body.ownerId || null;
-    const boardId = crypto.randomUUID();
-    const board = await createBoard({
-      id: boardId,
+    const company = await createCompany({
+      id: crypto.randomUUID(),
       name: parsed.data.name,
-      type: parsed.data.type,
-      companyId: parsed.data.companyId,
+      color: parsed.data.color,
+      icon: parsed.data.icon,
+      description: parsed.data.description,
       ownerId: ownerId || undefined,
       members: ownerId ? [ownerId] : [],
     });
 
-    if (parsed.data.type === "team") {
-      const defaultColumns = [
-        { name: "Надо сделать", order: 0 },
-        { name: "В работе", order: 1 },
-        { name: "Завершено", order: 2 },
-        { name: "Отправлено в архив", order: 3 },
-      ];
-      await Promise.all(
-        defaultColumns.map((col) =>
-          createColumn({
-            id: crypto.randomUUID(),
-            boardId,
-            name: col.name,
-            order: col.order,
-          }),
-        ),
-      );
-    }
-
-    return NextResponse.json(board, { status: 201 });
+    return NextResponse.json(company, { status: 201 });
   } catch (error) {
-    console.error("Ошибка создания доски:", error);
+    console.error("Ошибка создания компании:", error);
     return NextResponse.json(
-      { error: "Ошибка создания доски" },
+      { error: "Ошибка создания компании" },
       { status: 500 },
     );
   }
 }
-
-const updateBoardSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1).max(200).optional(),
-  color: z.string().optional().nullable(),
-  icon: z.string().optional().nullable(),
-  pinned: z.boolean().optional(),
-  order: z.number().optional(),
-  companyId: z.string().optional().nullable(),
-});
 
 export async function PATCH(request: NextRequest) {
   const dbAvailable = await isDatabaseAvailable();
@@ -138,7 +115,7 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const parsed = updateBoardSchema.safeParse(body);
+    const parsed = updateCompanySchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -152,14 +129,17 @@ export async function PATCH(request: NextRequest) {
     for (const [k, v] of Object.entries(data)) {
       if (v !== undefined) clean[k] = v ?? undefined;
     }
-    const updated = await updateBoard(
+    const updated = await updateCompany(
       id,
-      clean as Parameters<typeof updateBoard>[1],
+      clean as Parameters<typeof updateCompany>[1],
     );
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("Ошибка обновления доски:", error);
-    return NextResponse.json({ error: "Ошибка обновления" }, { status: 500 });
+    console.error("Ошибка обновления компании:", error);
+    return NextResponse.json(
+      { error: "Ошибка обновления" },
+      { status: 500 },
+    );
   }
 }
 
@@ -178,10 +158,10 @@ export async function DELETE(request: NextRequest) {
     if (!id || typeof id !== "string") {
       return NextResponse.json({ error: "id обязателен" }, { status: 400 });
     }
-    await deleteBoard(id);
+    await deleteCompany(id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Ошибка удаления доски:", error);
+    console.error("Ошибка удаления компании:", error);
     return NextResponse.json({ error: "Ошибка удаления" }, { status: 500 });
   }
 }

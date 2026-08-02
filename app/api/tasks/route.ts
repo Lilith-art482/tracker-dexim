@@ -240,7 +240,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    let { id, boardId, columnId, ...data } = parsed.data;
+    let { id, boardId, columnId, newColumnId, ...data } = parsed.data;
 
     if (!boardId || !columnId) {
       return NextResponse.json(
@@ -255,7 +255,44 @@ export async function PATCH(request: NextRequest) {
       data.archivedAt = null;
     }
 
-    const task = await updateTask(id, data, boardId, columnId);
+    let task;
+    if (newColumnId && newColumnId !== columnId) {
+      // Перемещение задачи между колонками
+      const existing = await getTasksByColumnId(boardId, columnId);
+      const current = existing.find((t) => t.id === id);
+      if (!current) {
+        return NextResponse.json(
+          { error: "Задача не найдена" },
+          { status: 404 },
+        );
+      }
+      await deleteTask(boardId, columnId, id);
+      const rest = {
+        id: current.id,
+        title: current.title,
+        description: current.description,
+        startDate: current.startDate,
+        endDate: current.endDate,
+        assignee: current.assignee,
+        assignees: current.assignees,
+        priority: current.priority,
+        completed: current.completed,
+        archived: current.archived,
+        archivedAt: current.archivedAt,
+        columnId: current.columnId,
+        boardId,
+      };
+      task = await createTask(
+        {
+          ...rest,
+          ...data,
+          columnId: newColumnId,
+        },
+        boardId,
+      );
+    } else {
+      task = await updateTask(id, data, boardId, columnId);
+    }
     console.log(`[api/tasks PATCH] updated task ${id}`, data);
     return NextResponse.json(task);
   } catch (error) {

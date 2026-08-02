@@ -172,6 +172,11 @@ export default function AboutPage() {
   );
 
   useEffect(() => {
+    document.body.classList.add("no-grain");
+    return () => document.body.classList.remove("no-grain");
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setLoading(false);

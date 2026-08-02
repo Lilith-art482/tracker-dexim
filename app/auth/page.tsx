@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -72,6 +72,11 @@ export default function AuthPage() {
     password: "",
     nickname: "",
   });
+
+  useEffect(() => {
+    document.body.classList.add("no-grain");
+    return () => document.body.classList.remove("no-grain");
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

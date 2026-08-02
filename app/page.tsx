@@ -1,11 +1,7 @@
 import { isDatabaseAvailable } from "@/lib/db";
-import {
-  getBoardsByUser,
-  getColumnsByBoardId,
-  getBoardMembersByBoardId,
-} from "@/lib/models";
-import { mockBoards, mockColumns, mockBoardMembers } from "@/lib/mock-data";
-import type { Board, Column, BoardMember } from "@/lib/models";
+import { getBoardsByUser, getColumnsByBoardId } from "@/lib/models";
+import { mockBoards, mockColumns } from "@/lib/mock-data";
+import type { Board, Column } from "@/lib/models";
 import { TeamOrPersonalView } from "@/components/team-or-personal-view";
 import HomeContent from "@/components/home-content";
 
@@ -19,18 +15,6 @@ async function getColumnsForBoard(boardId: string): Promise<Column[]> {
     }
   }
   return mockColumns.filter((c) => c.boardId === boardId);
-}
-
-async function getBoardMembers(boardId: string): Promise<BoardMember[]> {
-  const dbAvailable = await isDatabaseAvailable();
-  if (dbAvailable) {
-    try {
-      return await getBoardMembersByBoardId(boardId);
-    } catch {
-      return mockBoardMembers.filter((m) => m.boardId === boardId);
-    }
-  }
-  return mockBoardMembers.filter((m) => m.boardId === boardId);
 }
 
 export default async function HomePage({
@@ -64,7 +48,6 @@ export default async function HomePage({
     : undefined;
 
   const columns = activeBoard ? await getColumnsForBoard(activeBoard.id) : [];
-  const boardMembers = activeBoard ? await getBoardMembers(activeBoard.id) : [];
   const isArchiveView = view === "archive";
 
   return (
@@ -73,7 +56,6 @@ export default async function HomePage({
         _boards={boards}
         activeBoard={activeBoard}
         columns={columns}
-        boardMembers={boardMembers}
         isArchiveView={isArchiveView}
       />
     </HomeContent>
