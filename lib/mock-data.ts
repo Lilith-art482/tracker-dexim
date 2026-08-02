@@ -6,6 +6,7 @@ import {
   BoardMember,
   Column,
   Comment,
+  Company,
   Note,
   PersonalTask,
   PersonalPlanEntry,
@@ -13,11 +14,37 @@ import {
   Task,
 } from "./models";
 
+export const mockCompanies: Company[] = [
+  {
+    id: "company-1",
+    name: "In Motion",
+    color: "blue",
+    icon: "Rocket",
+    description: "Разработка основного продукта",
+    ownerId: "user-1",
+    members: ["user-1", "user-2", "user-3"],
+    createdAt: new Date("2024-01-01").toISOString(),
+    updatedAt: new Date("2024-01-01").toISOString(),
+  },
+  {
+    id: "company-2",
+    name: "Маркетинг",
+    color: "amber",
+    icon: "Megaphone",
+    description: "Продвижение и коммуникации",
+    ownerId: "user-2",
+    members: ["user-2", "user-3"],
+    createdAt: new Date("2024-01-01").toISOString(),
+    updatedAt: new Date("2024-01-01").toISOString(),
+  },
+];
+
 export const mockBoards: Board[] = [
   {
     id: "board-1",
     name: "Разработка MVP",
     type: "team",
+    companyId: "company-1",
     createdAt: new Date("2024-01-01").toISOString(),
     updatedAt: new Date("2024-01-01").toISOString(),
     ownerId: "user-1",
@@ -31,6 +58,7 @@ export const mockBoards: Board[] = [
     id: "board-2",
     name: "Маркетинг",
     type: "team",
+    companyId: "company-2",
     createdAt: new Date("2024-01-01").toISOString(),
     updatedAt: new Date("2024-01-01").toISOString(),
     ownerId: "user-2",

@@ -16,6 +16,7 @@ export const updateTaskSchema = z.object({
   id: z.string().min(1),
   boardId: z.string().min(1),
   columnId: z.string().min(1),
+  newColumnId: z.string().min(1).optional(),
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(10_000).optional(),
   startDate: z.string().optional().nullable(),
@@ -109,5 +110,9 @@ export const updatePersonalPlanEntrySchema = z.object({
   boardId: z.string().min(1).optional(),
 });
 
-export type CreatePersonalPlanEntryInput = z.infer<typeof createPersonalPlanEntrySchema>;
-export type UpdatePersonalPlanEntryInput = z.infer<typeof updatePersonalPlanEntrySchema>;
+export type CreatePersonalPlanEntryInput = z.infer<
+  typeof createPersonalPlanEntrySchema
+>;
+export type UpdatePersonalPlanEntryInput = z.infer<
+  typeof updatePersonalPlanEntrySchema
+>;

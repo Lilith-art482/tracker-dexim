@@ -4,6 +4,7 @@ export interface Board {
   id: string;
   name: string;
   type: "personal" | "team";
+  companyId?: string;
   createdAt: string;
   updatedAt: string;
   ownerId?: string;
@@ -12,6 +13,18 @@ export interface Board {
   icon?: string;
   pinned?: boolean;
   order?: number;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  color?: string;
+  icon?: string;
+  description?: string;
+  ownerId?: string;
+  members?: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Column {
@@ -181,6 +194,57 @@ export async function getAllBoards(): Promise<Board[]> {
   return snap.docs.map((d) => toPlain(d) as Board);
 }
 
+export async function getCompaniesByUser(uid: string): Promise<Company[]> {
+  const db = getAdminDb();
+  const ownerSnap = await db
+    .collection(COL("COMPANIES"))
+    .where("ownerId", "==", uid)
+    .get();
+  const memberSnap = await db
+    .collection(COL("COMPANIES"))
+    .where("members", "array-contains", uid)
+    .get();
+  const companiesMap = new Map<string, Company>();
+  ownerSnap.docs.forEach((d) => companiesMap.set(d.id, toPlain(d) as Company));
+  memberSnap.docs.forEach((d) => companiesMap.set(d.id, toPlain(d) as Company));
+  return Array.from(companiesMap.values());
+}
+
+export async function createCompany(
+  data: Omit<Company, "createdAt" | "updatedAt">,
+): Promise<Company> {
+  const now = new Date().toISOString();
+  const company: Company = {
+    ...data,
+    createdAt: now,
+    updatedAt: now,
+    members: data.members || [],
+  };
+  await getAdminDb().collection(COL("COMPANIES")).doc(company.id).set(company);
+  return company;
+}
+
+export async function updateCompany(
+  id: string,
+  data: Partial<
+    Pick<Company, "name" | "description" | "color" | "icon" | "members">
+  >,
+): Promise<Company> {
+  await getAdminDb()
+    .collection(COL("COMPANIES"))
+    .doc(id)
+    .update({
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
+  const snap = await getAdminDb().collection(COL("COMPANIES")).doc(id).get();
+  return toPlain(snap) as Company;
+}
+
+export async function deleteCompany(id: string): Promise<void> {
+  await getAdminDb().collection(COL("COMPANIES")).doc(id).delete();
+}
+
 export async function getBoardsByUser(uid: string): Promise<Board[]> {
   // Boards where user is owner or listed in members array
   const db = getAdminDb();
@@ -215,7 +279,7 @@ export async function createBoard(
 export async function updateBoard(
   id: string,
   data: Partial<
-    Pick<Board, "name" | "members" | "color" | "icon" | "pinned" | "order">
+    Pick<Board, "name" | "members" | "color" | "icon" | "pinned" | "order" | "companyId">
   >,
 ): Promise<Board> {
   await getAdminDb()
@@ -682,10 +746,7 @@ export async function createPersonalPlanEntry(
 ): Promise<PersonalPlanEntry> {
   const now = new Date().toISOString();
   const entry: PersonalPlanEntry = { ...data, createdAt: now, updatedAt: now };
-  await getAdminDb()
-    .collection(PERSONAL_PLAN_ENTRIES)
-    .doc(entry.id)
-    .set(entry);
+  await getAdminDb().collection(PERSONAL_PLAN_ENTRIES).doc(entry.id).set(entry);
   return entry;
 }
 
