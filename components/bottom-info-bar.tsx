@@ -11,6 +11,7 @@ import {
   MapPin,
   RefreshCw,
   Search,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -745,43 +746,172 @@ function WeatherSection() {
   }, [selectedCity, fetchWeather]);
 
   return (
-    <div className="flex items-center gap-3 min-w-0">
-      {/* Weather icon + temp */}
-      <div className="flex items-center gap-2 shrink-0">
+    <Popover open={citySearchOpen} onOpenChange={setCitySearchOpen}>
+      <PopoverTrigger className="flex items-center gap-3 min-w-0 cursor-pointer hover:bg-muted/30 rounded-lg px-2 py-1 -ml-2 transition-colors">
         <WeatherSvgIcon code={weather?.weatherCode ?? 0} size={24} />
-        <span className="text-sm font-semibold tabular-nums">
+        <span className="text-sm font-semibold tabular-nums shrink-0">
           {loading ? "—" : `${weather?.tempC}°`}
         </span>
-      </div>
-
-      {/* Condition + city */}
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-[11px] text-muted-foreground truncate max-w-[120px]">
+        <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">
           {weather?.condition || "Загрузка..."}
         </span>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
+          <MapPin className="h-3 w-3" />
+          {weather?.city || selectedCity.name}
+        </span>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        side="top"
+        sideOffset={8}
+        className="w-[340px] p-0 max-h-[70vh] overflow-y-auto scrollbar-none"
+      >
+        {/* Premium bg */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background to-primary/5" />
+          <div className="absolute inset-0 backdrop-blur-xl" />
 
-        {/* City search trigger */}
-        <Popover open={citySearchOpen} onOpenChange={setCitySearchOpen}>
-          <PopoverTrigger className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0">
-            <MapPin className="h-3 w-3" />
-            {weather?.city || selectedCity.name}
-          </PopoverTrigger>
-          <PopoverContent
-            align="start"
-            side="top"
-            sideOffset={8}
-            className="w-64 p-0"
-          >
-            <div className="p-2 border-b border-border/40">
+          <div className="relative">
+            {/* Hero */}
+            <div className="px-5 pt-5 pb-4">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <MapPin className="h-3 w-3" />
+                    <span className="text-xs font-medium tracking-wide uppercase">
+                      {weather?.city || selectedCity.name}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/70">
+                    {weather?.condition || (loading ? "Загрузка..." : "")}
+                  </p>
+                </div>
+                <WeatherSvgIcon code={weather?.weatherCode ?? 0} size={48} />
+              </div>
+
+              <div className="mt-3 flex items-end gap-3">
+                <span className="text-6xl font-extralight tracking-tighter leading-none text-foreground">
+                  {loading ? "—" : `${weather?.tempC}°`}
+                </span>
+                {weather && (
+                  <div className="pb-1.5 space-y-0.5">
+                    <p className="text-xs text-muted-foreground">
+                      ощущ. {weather.feelsLikeC}°
+                    </p>
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground/70">
+                      <span>↑ {weather.tempHigh}°</span>
+                      <span>↓ {weather.tempLow}°</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Hourly */}
+            {weather && (
+              <div className="px-5 pb-4">
+                <div
+                  className="flex gap-1 overflow-x-auto pb-1 scrollbar-none"
+                  onWheel={(e) => {
+                    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                      e.preventDefault();
+                      e.currentTarget.scrollLeft += e.deltaY;
+                    }
+                  }}
+                >
+                  {weather.hourly.map((h, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col items-center gap-1.5 shrink-0 px-2.5 py-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors min-w-[52px]"
+                    >
+                      <span className="text-[10px] text-muted-foreground font-medium">
+                        {h.time}
+                      </span>
+                      <WeatherSvgIcon code={h.weatherCode} size={18} />
+                      <span className="text-xs font-semibold">{h.tempC}°</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 7-day */}
+            {weather && (
+              <div className="mx-5 mb-4 rounded-xl bg-muted/20 border border-border/30 overflow-y-auto max-h-[240px] scrollbar-none">
+                {weather.daily.map((d, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between px-3.5 py-2.5 ${
+                      i !== weather.daily.length - 1
+                        ? "border-b border-border/20"
+                        : ""
+                    }`}
+                  >
+                    <span className="text-xs font-medium w-20">
+                      {i === 0 ? "Сегодня" : d.day}
+                      <span className="text-[10px] text-muted-foreground ml-1">
+                        {i === 0 ? "" : d.date}
+                      </span>
+                    </span>
+                    <WeatherSvgIcon code={d.weatherCode} size={18} />
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="font-semibold w-8 text-right">
+                        {d.high}°
+                      </span>
+                      <div className="w-16 h-1 rounded-full bg-muted/40 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary"
+                          style={{
+                            width: `${Math.min(100, Math.max(20, ((d.high - d.low) / 30) * 100))}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="text-muted-foreground w-8 text-right">
+                        {d.low}°
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Details */}
+            {weather && (
+              <div className="mx-5 mb-4 grid grid-cols-3 gap-2">
+                {[
+                  { icon: Wind, label: "Ветер", value: `${weather.windKph}`, unit: "км/ч" },
+                  { icon: Droplets, label: "Влажность", value: `${weather.humidity}`, unit: "%" },
+                  { icon: Thermometer, label: "Давление", value: `${Math.round(weather.pressure * 0.75)}`, unit: "мм" },
+                ].map((item, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl bg-muted/20 border border-border/30 p-3 text-center space-y-1.5"
+                  >
+                    <item.icon className="h-4 w-4 mx-auto text-primary/70" />
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                      {item.label}
+                    </p>
+                    <p className="text-sm font-semibold">
+                      {item.value}
+                      <span className="text-[10px] font-normal text-muted-foreground ml-0.5">
+                        {item.unit}
+                      </span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* City Search */}
+            <div className="px-5 pb-4">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <input
                   type="text"
                   value={cityQuery}
                   onChange={(e) => handleCityQueryChange(e.target.value)}
-                  placeholder="Найти город..."
-                  className="w-full rounded-md border border-border/60 bg-background pl-8 pr-2 py-1.5 text-xs outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
-                  autoFocus
+                  placeholder="Сменить город..."
+                  className="w-full rounded-lg border border-border/60 bg-background pl-8 pr-2 py-2 text-xs outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
                 />
                 {cityQuery && (
                   <button
@@ -795,73 +925,74 @@ function WeatherSection() {
                   </button>
                 )}
               </div>
-            </div>
-            <div className="max-h-56 overflow-y-auto">
-              {geoLoading && (
-                <div className="flex items-center justify-center py-4">
-                  <div className="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-                </div>
-              )}
-              {!geoLoading &&
-                geoResults.length > 0 &&
-                geoResults.map((city, i) => (
-                  <button
-                    key={`${city.name}-${city.latitude}-${i}`}
-                    onClick={() => selectCity(city)}
-                    className={cn(
-                      "flex items-center gap-2 w-full px-3 py-2 text-xs transition-colors",
-                      selectedCity.name === city.name &&
-                        selectedCity.latitude === city.latitude
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "hover:bg-muted/50 text-foreground",
-                    )}
-                  >
-                    <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{city.name}</span>
-                    {city.country && (
-                      <span className="text-[10px] text-muted-foreground ml-auto">
-                        {city.country}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              {!geoLoading &&
-                geoResults.length === 0 &&
-                cityQuery.length >= 2 && (
-                  <div className="py-4 text-center text-xs text-muted-foreground">
-                    Город не найден
+              {/* Search results */}
+              <div className="max-h-40 overflow-y-auto mt-2">
+                {geoLoading && (
+                  <div className="flex items-center justify-center py-3">
+                    <div className="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
                   </div>
                 )}
-              {!geoLoading &&
-                geoResults.length === 0 &&
-                cityQuery.length < 2 && (
-                  <div className="p-2 space-y-0.5">
-                    <p className="text-[10px] text-muted-foreground px-2 py-1">
-                      Популярные города
-                    </p>
-                    {DEFAULT_CITIES.map((city) => (
-                      <button
-                        key={`${city.name}-${city.latitude}`}
-                        onClick={() => selectCity(city)}
-                        className={cn(
-                          "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs transition-colors",
-                          selectedCity.name === city.name &&
-                            selectedCity.latitude === city.latitude
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "hover:bg-muted/50 text-foreground",
-                        )}
-                      >
-                        <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{city.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {!geoLoading &&
+                  geoResults.length > 0 &&
+                  geoResults.map((city, i) => (
+                    <button
+                      key={`${city.name}-${city.latitude}-${i}`}
+                      onClick={() => selectCity(city)}
+                      className={cn(
+                        "flex items-center gap-2 w-full px-2.5 py-1.5 text-xs rounded-md transition-colors",
+                        selectedCity.name === city.name &&
+                          selectedCity.latitude === city.latitude
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "hover:bg-muted/50 text-foreground",
+                      )}
+                    >
+                      <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{city.name}</span>
+                      {city.country && (
+                        <span className="text-[10px] text-muted-foreground ml-auto">
+                          {city.country}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                {!geoLoading &&
+                  geoResults.length === 0 &&
+                  cityQuery.length >= 2 && (
+                    <div className="py-3 text-center text-xs text-muted-foreground">
+                      Город не найден
+                    </div>
+                  )}
+                {!geoLoading &&
+                  geoResults.length === 0 &&
+                  cityQuery.length < 2 && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-muted-foreground">
+                        Популярные города
+                      </p>
+                      {DEFAULT_CITIES.map((city) => (
+                        <button
+                          key={`${city.name}-${city.latitude}`}
+                          onClick={() => selectCity(city)}
+                          className={cn(
+                            "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs transition-colors",
+                            selectedCity.name === city.name &&
+                              selectedCity.latitude === city.latitude
+                              ? "bg-primary/10 text-primary font-medium"
+                              : "hover:bg-muted/50 text-foreground",
+                          )}
+                        >
+                          <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{city.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+              </div>
             </div>
-          </PopoverContent>
-        </Popover>
-      </div>
-    </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -1209,9 +1340,9 @@ export function BottomInfoBar() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 h-12 bg-background/80 backdrop-blur-xl border-t border-border/40">
-      <div className="h-full max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
+      <div className="h-full px-3 sm:px-5 flex items-center justify-between gap-3">
         {/* Left: Weather + City Search */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 w-0 flex-1">
           <WeatherSection />
         </div>
 
@@ -1220,11 +1351,11 @@ export function BottomInfoBar() {
           <TimeSection />
         </div>
 
-        {/* Right: FinInfo button */}
+        {/* Right: FinInfo icon button */}
         <div className="shrink-0">
           <Popover open={marketsOpen} onOpenChange={setMarketsOpen}>
-            <PopoverTrigger className="flex items-center gap-2 h-8 px-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-semibold">
-              FinInfo
+            <PopoverTrigger className="h-8 w-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+              <DollarSign className="h-4 w-4" />
             </PopoverTrigger>
             <PopoverContent
               align="end"
