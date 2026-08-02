@@ -12,8 +12,11 @@ import {
   Pin,
   PinOff,
   GripVertical,
+  Building2,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
-import { Board } from "@/lib/models";
+import { Board, Company } from "@/lib/models";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import {
@@ -118,9 +121,21 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   const pathname = usePathname();
 
   const [boards, setBoards] = useState<Board[]>(initialBoards);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+  const [createCompanyName, setCreateCompanyName] = useState("");
+  const [creatingCompany, setCreatingCompany] = useState(false);
+  const [boardCompanyId, setBoardCompanyId] = useState<string>("");
+  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [settingsCompany, setSettingsCompany] = useState<Company | null>(null);
+  const [companySettingsTab, setCompanySettingsTab] = useState<
+    "general" | "color" | "icon"
+  >("general");
   const [settingsBoard, setSettingsBoard] = useState<Board | null>(null);
   const [settingsTab, setSettingsTab] = useState<"general" | "color" | "icon">(
     "general",
@@ -155,13 +170,27 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
     }
   }, []);
 
+  const fetchCompanies = useCallback(async () => {
+    try {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const res = await fetch(`/api/companies?uid=${uid}`);
+      if (res.ok) {
+        setCompanies(await res.json());
+      }
+    } catch {
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         fetchBoards();
+        fetchCompanies();
       }
     });
     fetchBoards();
+    fetchCompanies();
     const uid = auth.currentUser?.uid;
     if (uid && !searchParams.has("uid")) {
       const params = new URLSearchParams(searchParams.toString());
@@ -169,7 +198,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
       router.replace(`${pathname}?${params.toString()}`);
     }
     return () => unsubscribe();
-  }, [fetchBoards, searchParams, pathname, router]);
+  }, [fetchBoards, fetchCompanies, searchParams, pathname, router]);
 
   const switchBoard = (boardId: string) => {
     const board = boards.find((b) => b.id === boardId);
@@ -189,13 +218,23 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
     const name = createName.trim();
     if (!name) return;
 
+    if (mode === "team" && !boardCompanyId) {
+      toast.error("Выберите компанию для доски");
+      return;
+    }
+
     setCreating(true);
     try {
       const ownerId = auth.currentUser?.uid || null;
       const res = await fetch("/api/boards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, ownerId, type: mode }),
+        body: JSON.stringify({
+          name,
+          ownerId,
+          type: mode,
+          companyId: boardCompanyId || undefined,
+        }),
       });
 
       if (!res.ok) {
@@ -215,6 +254,107 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleCreateCompany = async () => {
+    const name = createCompanyName.trim();
+    if (!name) return;
+
+    setCreatingCompany(true);
+    try {
+      const ownerId = auth.currentUser?.uid || null;
+      const res = await fetch("/api/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, ownerId }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Ошибка создания компании");
+        return;
+      }
+
+      const newCompany: Company = await res.json();
+      setCompanies((prev) => [...prev, newCompany]);
+      setCompanyDialogOpen(false);
+      setCreateCompanyName("");
+      setExpandedCompanies((prev) => {
+        const next = new Set(prev);
+        next.add(newCompany.id);
+        return next;
+      });
+      toast.success("Компания создана");
+    } catch {
+      toast.error("Ошибка создания компании");
+    } finally {
+      setCreatingCompany(false);
+    }
+  };
+
+  const updateCompanyField = async (
+    companyId: string,
+    data: Partial<Company>,
+  ) => {
+    try {
+      const res = await fetch("/api/companies", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: companyId, ...data }),
+      });
+      if (!res.ok) return;
+      const updated: Company = await res.json();
+      setCompanies((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c)),
+      );
+      if (settingsCompany?.id === companyId) {
+        setSettingsCompany(updated);
+      }
+    } catch {
+      toast.error("Ошибка обновления компании");
+    }
+  };
+
+  const handleDeleteCompany = async (companyId: string) => {
+    const company = companies.find((c) => c.id === companyId);
+    if (!company) return;
+    const boardsInCompany = boards.filter(
+      (b) => b.type === "team" && b.companyId === companyId,
+    );
+    if (boardsInCompany.length > 0) {
+      toast.error("Сначала удалите доски компании");
+      return;
+    }
+    if (!confirm(`Удалить компанию «${company.name}»?`)) return;
+    try {
+      const res = await fetch("/api/companies", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: companyId }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Ошибка удаления компании");
+        return;
+      }
+      setCompanies((prev) => prev.filter((c) => c.id !== companyId));
+      toast.success("Компания удалена");
+      if (settingsCompany?.id === companyId) setSettingsCompany(null);
+    } catch {
+      toast.error("Ошибка удаления компании");
+    }
+  };
+
+  const toggleCompany = (companyId: string) => {
+    setExpandedCompanies((prev) => {
+      const next = new Set(prev);
+      if (next.has(companyId)) {
+        next.delete(companyId);
+      } else {
+        next.add(companyId);
+      }
+      return next;
+    });
   };
 
   const updateBoardField = async (boardId: string, data: Partial<Board>) => {
@@ -336,55 +476,248 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
 
         <div className="flex items-center justify-between px-4 py-2.5">
           <span className="text-[11px] font-medium tracking-wider text-sidebar-foreground/40 uppercase">
-            {mode === "team" ? "Командные" : "Личные"}
+            {mode === "team" ? "Компании" : "Личные"}
           </span>
-          <Dialog
-            open={dialogOpen && !settingsBoard}
-            onOpenChange={(o) => {
-              setDialogOpen(o);
-              if (!o) setCreateName("");
-            }}
-          >
-            <DialogTrigger>
-              <button className="flex h-5 w-5 items-center justify-center rounded-md text-sidebar-foreground/30 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
-                <Plus className="h-3 w-3" />
-              </button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Новая доска</DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col gap-4">
-                <Input
-                  placeholder="Название доски"
-                  value={createName}
-                  onChange={(e) => setCreateName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleCreate();
-                  }}
-                  autoFocus
-                />
-                <Button
-                  onClick={handleCreate}
-                  disabled={creating || !createName.trim()}
-                >
-                  {creating && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Создать
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          {mode === "team" ? (
+            <Dialog
+              open={companyDialogOpen}
+              onOpenChange={(o) => {
+                setCompanyDialogOpen(o);
+                if (!o) setCreateCompanyName("");
+              }}
+            >
+              <DialogTrigger>
+                <button className="flex h-5 w-5 items-center justify-center rounded-md text-sidebar-foreground/30 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
+                  <Plus className="h-3 w-3" />
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Новая компания</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-4">
+                  <Input
+                    placeholder="Название компании"
+                    value={createCompanyName}
+                    onChange={(e) => setCreateCompanyName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreateCompany();
+                    }}
+                    autoFocus
+                  />
+                  <Button
+                    onClick={handleCreateCompany}
+                    disabled={creatingCompany || !createCompanyName.trim()}
+                  >
+                    {creatingCompany && (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+                    Создать
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <button
+              onClick={() => {
+                setBoardCompanyId("");
+                setCreateName("");
+                setDialogOpen(true);
+              }}
+              className="flex h-5 w-5 items-center justify-center rounded-md text-sidebar-foreground/30 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+          )}
         </div>
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-3 pt-0.5">
-          {filteredBoards.length === 0 ? (
+          {mode === "team" ? (
+            companies.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 px-4 py-10">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sidebar-accent/50">
+                  <Building2 className="h-4 w-4 text-sidebar-foreground/30" />
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-medium text-sidebar-foreground/60">
+                    Нет компаний
+                  </p>
+                  <p className="text-[11px] text-sidebar-foreground/40 mt-0.5">
+                    Создайте компанию, чтобы добавить доски
+                  </p>
+                </div>
+              </div>
+            ) : (
+              companies.map((company) => {
+                const companyBoards = filteredBoards.filter(
+                  (b) => b.companyId === company.id,
+                );
+                const isExpanded = expandedCompanies.has(company.id);
+                const companyColor = company.color
+                  ? COLOR_MAP.get(company.color)
+                  : undefined;
+                const CompanyIcon = company.icon
+                  ? getBoardIcon(company.icon)
+                  : null;
+                return (
+                  <div key={company.id} className="mb-2">
+                    <div className="group flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 hover:bg-sidebar-accent/40 transition-colors cursor-pointer">
+                      <button
+                        onClick={() => toggleCompany(company.id)}
+                        className="flex flex-1 items-center gap-1.5 min-w-0 text-left"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/40" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/40" />
+                        )}
+                        <div
+                          className={cn(
+                            "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white",
+                            companyColor?.dot || "bg-primary",
+                          )}
+                        >
+                          {CompanyIcon ? (
+                            <CompanyIcon className="h-3.5 w-3.5" />
+                          ) : (
+                            company.name.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                        <span className="flex-1 truncate text-sm text-sidebar-foreground/75 group-hover:text-sidebar-foreground/90">
+                          {company.name}
+                        </span>
+                        <span className="text-[10px] text-sidebar-foreground/40 shrink-0">
+                          {companyBoards.length}
+                        </span>
+                      </button>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setBoardCompanyId(company.id);
+                            setCreateName("");
+                            setDialogOpen(true);
+                          }}
+                          className="flex h-6 w-6 items-center justify-center rounded-lg text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                          title="Новая доска"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSettingsCompany(company);
+                            setCompanySettingsTab("general");
+                          }}
+                          className="flex h-6 w-6 items-center justify-center rounded-lg text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                          title="Настроить компанию"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="ml-4 mt-0.5 space-y-0.5 border-l border-border/40 pl-2">
+                        {companyBoards.length === 0 ? (
+                          <div className="px-3 py-2 text-[11px] text-sidebar-foreground/40">
+                            Нет досок. Создайте первую.
+                          </div>
+                        ) : (
+                          companyBoards.map((board, index) => {
+                            const isActive =
+                              activeBoardId === board.id ||
+                              (!activeBoardId &&
+                                companyBoards[0]?.id === board.id);
+                            const color = getBoardColor(board);
+                            const IconComponent = board.icon
+                              ? getBoardIcon(board.icon)
+                              : null;
+                            return (
+                              <div
+                                key={board.id}
+                                draggable
+                                onDragStart={() => handleDragStart(index)}
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  handleDragOver(index);
+                                }}
+                                onDrop={handleDrop}
+                                onDragEnd={() => {
+                                  dragItem.current = null;
+                                  dragOverItem.current = null;
+                                }}
+                                className={cn(
+                                  "group relative flex items-center gap-1.5 rounded-xl px-1.5 py-2 transition-all duration-150 cursor-pointer",
+                                  isActive
+                                    ? `${color.bg} ${color.ring} ring-1`
+                                    : "hover:bg-sidebar-accent/40",
+                                )}
+                                onClick={() => switchBoard(board.id)}
+                              >
+                                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white transition-all duration-150">
+                                  {IconComponent ? (
+                                    <IconComponent className="h-3.5 w-3.5" />
+                                  ) : (
+                                    board.name.charAt(0).toUpperCase()
+                                  )}
+                                </div>
+                                <span
+                                  className={cn(
+                                    "flex-1 truncate text-sm transition-all duration-150",
+                                    isActive
+                                      ? "font-medium text-sidebar-accent-foreground"
+                                      : "text-sidebar-foreground/65 group-hover:text-sidebar-foreground/90",
+                                  )}
+                                >
+                                  {board.name}
+                                </span>
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-150">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSettingsBoard(board);
+                                      setSettingsTab("general");
+                                    }}
+                                    className="flex h-6 w-6 items-center justify-center rounded-lg text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                                    title="Настроить"
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(board.id);
+                                    }}
+                                    className="flex h-6 w-6 items-center justify-center rounded-lg text-sidebar-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                                    title="Удалить"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                                {board.pinned && (
+                                  <div className="absolute -top-0.5 -right-0.5">
+                                    <Pin className="h-2.5 w-2.5 text-sidebar-foreground/40 fill-sidebar-foreground/40" />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )
+          ) : filteredBoards.length === 0 ? (
             <div className="flex flex-col items-center gap-3 px-4 py-10">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sidebar-accent/50">
                 <LayoutGrid className="h-4 w-4 text-sidebar-foreground/30" />
               </div>
               <div className="text-center">
                 <p className="text-xs font-medium text-sidebar-foreground/60">
-                  {mode === "team" ? "Нет командных досок" : "Нет личных досок"}
+                  Нет личных досок
                 </p>
                 <p className="text-[11px] text-sidebar-foreground/40 mt-0.5">
                   Создайте новую доску
@@ -397,9 +730,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                 activeBoardId === board.id ||
                 (!activeBoardId && filteredBoards[0]?.id === board.id);
               const color = getBoardColor(board);
-              const IconComponent = board.icon
-                ? getBoardIcon(board.icon)
-                : null;
+              const IconComponent = board.icon ? getBoardIcon(board.icon) : null;
               return (
                 <div
                   key={board.id}
@@ -482,6 +813,174 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
           )}
         </nav>
       </aside>
+
+      {/* Company settings dialog */}
+      <Dialog
+        open={!!settingsCompany}
+        onOpenChange={(o) => {
+          if (!o) setSettingsCompany(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Настройки компании</DialogTitle>
+          </DialogHeader>
+          {settingsCompany && (
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-1 p-0.5 bg-muted/60 rounded-lg">
+                <button
+                  onClick={() => setCompanySettingsTab("general")}
+                  className={cn(
+                    "flex-1 py-1.5 text-xs font-medium rounded-md transition-colors",
+                    companySettingsTab === "general"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Основное
+                </button>
+                <button
+                  onClick={() => setCompanySettingsTab("color")}
+                  className={cn(
+                    "flex-1 py-1.5 text-xs font-medium rounded-md transition-colors",
+                    companySettingsTab === "color"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Цвет
+                </button>
+                <button
+                  onClick={() => setCompanySettingsTab("icon")}
+                  className={cn(
+                    "flex-1 py-1.5 text-xs font-medium rounded-md transition-colors",
+                    companySettingsTab === "icon"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Иконка
+                </button>
+              </div>
+
+              {companySettingsTab === "general" && (
+                <div className="flex flex-col gap-4">
+                  <Input
+                    placeholder="Название компании"
+                    value={settingsCompany.name}
+                    onChange={(e) => {
+                      setSettingsCompany({
+                        ...settingsCompany,
+                        name: e.target.value,
+                      });
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={async () => {
+                        const name = settingsCompany.name.trim();
+                        if (!name) return;
+                        await updateCompanyField(settingsCompany.id, {
+                          name,
+                        });
+                        toast.success("Сохранено");
+                        setSettingsCompany(null);
+                      }}
+                      className="flex-1"
+                    >
+                      Сохранить
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setSettingsCompany(null)}
+                      className="flex-1"
+                    >
+                      Отмена
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-destructive/30 p-3">
+                    <span className="text-sm text-muted-foreground">
+                      Удалить компанию
+                    </span>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        const id = settingsCompany.id;
+                        setSettingsCompany(null);
+                        handleDeleteCompany(id);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                      Удалить
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {companySettingsTab === "color" && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Выберите цвет компании
+                  </p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {BOARD_COLORS.map((c) => (
+                      <button
+                        key={c.name}
+                        onClick={() =>
+                          updateCompanyField(settingsCompany.id, {
+                            color: c.name,
+                          })
+                        }
+                        className={cn(
+                          "flex items-center justify-center h-10 rounded-xl transition-all",
+                          settingsCompany.color === c.name
+                            ? `ring-2 ring-offset-2 ring-offset-background ${c.ring}`
+                            : "hover:scale-105",
+                        )}
+                      >
+                        <div className={cn("h-5 w-5 rounded-full", c.dot)} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {companySettingsTab === "icon" && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Выберите иконку компании
+                  </p>
+                  <div className="grid grid-cols-7 gap-1.5 max-h-48 overflow-y-auto">
+                    {BOARD_ICONS.map((ic) => {
+                      const Icon = ic.icon;
+                      return (
+                        <button
+                          key={ic.name}
+                          onClick={() =>
+                            updateCompanyField(settingsCompany.id, {
+                              icon: ic.name,
+                            })
+                          }
+                          className={cn(
+                            "flex items-center justify-center h-8 w-8 rounded-lg transition-all",
+                            settingsCompany.icon === ic.name
+                              ? "bg-primary/10 text-primary ring-1 ring-primary/20"
+                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                          )}
+                          title={ic.name}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Board settings dialog */}
       <Dialog
@@ -665,6 +1164,63 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create board dialog */}
+      <Dialog
+        open={dialogOpen && !settingsBoard}
+        onOpenChange={(o) => {
+          setDialogOpen(o);
+          if (!o) setCreateName("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Новая доска</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            {mode === "team" && companies.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                  Компания
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {companies.map((company) => (
+                    <button
+                      key={company.id}
+                      onClick={() => setBoardCompanyId(company.id)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors",
+                        boardCompanyId === company.id
+                          ? "bg-primary/10 text-primary border-primary/30"
+                          : "text-muted-foreground hover:text-foreground border-border/60",
+                      )}
+                    >
+                      <Building2 className="h-3.5 w-3.5" />
+                      {company.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Input
+              placeholder="Название доски"
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCreate();
+              }}
+              autoFocus
+            />
+            <Button
+              onClick={handleCreate}
+              disabled={creating || !createName.trim()}
+            >
+              {creating && <Loader2 className="h-4 w-4 animate-spin" />}
+              Создать
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>

@@ -19,6 +19,7 @@ import {
   UserCheck,
   ListTodo,
   Loader2,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
@@ -133,6 +134,42 @@ export function PlannerEmptyState() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [boardName, setBoardName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+  const [companyName, setCompanyName] = useState("");
+  const [creatingCompany, setCreatingCompany] = useState(false);
+
+  const handleCreateCompany = async () => {
+    const name = companyName.trim();
+    if (!name) return;
+
+    setCreatingCompany(true);
+    try {
+      const ownerId = auth.currentUser?.uid || null;
+      const res = await fetch("/api/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, ownerId }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Ошибка создания компании");
+        return;
+      }
+
+      toast.success("Компания создана");
+      setCompanyDialogOpen(false);
+      setCompanyName("");
+      const uid = auth.currentUser?.uid;
+      const params = new URLSearchParams();
+      if (uid) params.set("uid", uid);
+      router.push(`/?${params.toString()}`);
+    } catch {
+      toast.error("Ошибка создания компании");
+    } finally {
+      setCreatingCompany(false);
+    }
+  };
 
   const handleCreate = async () => {
     const name = boardName.trim();
@@ -188,7 +225,7 @@ export function PlannerEmptyState() {
         <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed">
           {mode === "personal"
             ? "Создайте первую доску, чтобы начать планировать. Распределяйте задачи по дням, отслеживайте прогресс и держите всё под контролем."
-            : "Создайте доску для команды, чтобы распределять задачи, назначать ответственных и контролировать дедлайны в одном месте."}
+            : "Создайте компанию, чтобы добавить в неё доски, распределять задачи, назначать ответственных и контролировать дедлайны."}
         </p>
       </section>
 
@@ -256,49 +293,91 @@ export function PlannerEmptyState() {
       <section className="text-center space-y-4 pb-4">
         <div className="rounded-2xl border bg-gradient-to-br from-primary/5 via-transparent to-primary/5 p-8 sm:p-12 space-y-4">
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-            Готовы начать?
+            {mode === "personal" ? "Готовы начать?" : "Создайте компанию"}
           </h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             {mode === "personal"
               ? "Создайте первую доску и начните планировать уже сегодня"
-              : "Создайте доску, добавьте команду и распределите задачи"}
+              : "Создайте компанию и добавьте в неё доски для задач"}
           </p>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <Button
-              size="lg"
-              className="gap-2"
-              onClick={() => setDialogOpen(true)}
+          {mode === "team" ? (
+            <Dialog
+              open={companyDialogOpen}
+              onOpenChange={setCompanyDialogOpen}
             >
-              Создать доску
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Новая доска</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-2">
-                <Input
-                  value={boardName}
-                  onChange={(e) => setBoardName(e.target.value)}
-                  placeholder="Название доски"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleCreate();
-                  }}
-                />
-                <Button
-                  onClick={handleCreate}
-                  disabled={!boardName.trim() || creating}
-                  className="w-full"
-                >
-                  {creating && (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  )}
-                  Создать
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={() => setCompanyDialogOpen(true)}
+              >
+                Создать компанию
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Новая компания</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <Input
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="Название компании"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreateCompany();
+                    }}
+                  />
+                  <Button
+                    onClick={handleCreateCompany}
+                    disabled={!companyName.trim() || creatingCompany}
+                    className="w-full"
+                  >
+                    {creatingCompany && (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    )}
+                    Создать
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={() => setDialogOpen(true)}
+              >
+                Создать доску
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Новая доска</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <Input
+                    value={boardName}
+                    onChange={(e) => setBoardName(e.target.value)}
+                    placeholder="Название доски"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreate();
+                    }}
+                  />
+                  <Button
+                    onClick={handleCreate}
+                    disabled={!boardName.trim() || creating}
+                    className="w-full"
+                  >
+                    {creating && (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    )}
+                    Создать
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </section>
     </div>
