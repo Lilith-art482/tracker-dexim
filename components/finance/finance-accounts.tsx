@@ -139,6 +139,14 @@ const CRYPTO_ICONS: Record<string, string> = {
   SOL: "/icon-sol.webp",
   BNB: "/icon-bnb.webp",
   TON: "/Gram Circular Badge.svg",
+  TRX: "/trx.png",
+  USDT: "/usdt.png",
+  USDC: "/usdc.jpg",
+};
+
+const FIAT_ICONS: Record<string, string> = {
+  RUB: "/рубль.png",
+  USD: "/usd.png",
 };
 
 const TYPE_CONFIG: Record<
@@ -206,10 +214,10 @@ function CurrencySelect({
       <PopoverTrigger className="flex w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 h-8 data-placeholder:text-muted-foreground dark:bg-input/30 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
         {selected ? (
           <span className="flex items-center gap-1.5">
-            {CRYPTO_ICONS[selected.code] ? (
+            {(CRYPTO_ICONS[selected.code] || FIAT_ICONS[selected.code]) ? (
               <span className="flex h-5 w-5 items-center justify-center rounded border bg-background shrink-0 overflow-hidden">
                 <img
-                  src={CRYPTO_ICONS[selected.code]}
+                  src={CRYPTO_ICONS[selected.code] || FIAT_ICONS[selected.code]}
                   alt={selected.code}
                   width={18}
                   height={18}
@@ -285,10 +293,10 @@ function CurrencySelect({
                         setSearch("");
                       }}
                     >
-                      {CRYPTO_ICONS[c.code] ? (
+                      {(CRYPTO_ICONS[c.code] || FIAT_ICONS[c.code]) ? (
                         <span className="flex h-5 w-5 items-center justify-center rounded overflow-hidden shrink-0">
                           <img
-                            src={CRYPTO_ICONS[c.code]}
+                            src={CRYPTO_ICONS[c.code] || FIAT_ICONS[c.code]}
                             alt={c.code}
                             width={20}
                             height={20}
