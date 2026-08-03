@@ -133,6 +133,14 @@ const INTEREST_PERIOD_LABELS: Record<string, string> = {
   annual: "Ежегодно",
 };
 
+const CRYPTO_ICONS: Record<string, string> = {
+  BTC: "/icon-btc.webp",
+  ETH: "/icon-eth.webp",
+  SOL: "/icon-sol.webp",
+  BNB: "/icon-bnb.webp",
+  TON: "/Gram Circular Badge.svg",
+};
+
 const TYPE_CONFIG: Record<
   AccountType,
   { label: string; icon: React.ElementType; color: string }
@@ -198,9 +206,21 @@ function CurrencySelect({
       <PopoverTrigger className="flex w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 h-8 data-placeholder:text-muted-foreground dark:bg-input/30 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
         {selected ? (
           <span className="flex items-center gap-1.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded border bg-background text-[10px] font-medium shrink-0">
-              {selected.symbol}
-            </span>
+            {CRYPTO_ICONS[selected.code] ? (
+              <span className="flex h-5 w-5 items-center justify-center rounded border bg-background shrink-0 overflow-hidden">
+                <img
+                  src={CRYPTO_ICONS[selected.code]}
+                  alt={selected.code}
+                  width={18}
+                  height={18}
+                  className="object-contain"
+                />
+              </span>
+            ) : (
+              <span className="flex h-5 w-5 items-center justify-center rounded border bg-background text-[10px] font-medium shrink-0">
+                {selected.symbol}
+              </span>
+            )}
             <span className="font-medium text-xs">{selected.code}</span>
           </span>
         ) : (
@@ -265,9 +285,21 @@ function CurrencySelect({
                         setSearch("");
                       }}
                     >
-                      <span className="text-base w-5 text-center">
-                        {c.symbol}
-                      </span>
+                      {CRYPTO_ICONS[c.code] ? (
+                        <span className="flex h-5 w-5 items-center justify-center rounded overflow-hidden shrink-0">
+                          <img
+                            src={CRYPTO_ICONS[c.code]}
+                            alt={c.code}
+                            width={20}
+                            height={20}
+                            className="object-contain"
+                          />
+                        </span>
+                      ) : (
+                        <span className="text-base w-5 text-center">
+                          {c.symbol}
+                        </span>
+                      )}
                       <span className="font-medium">{c.code}</span>
                       <span className="text-xs text-muted-foreground truncate">
                         {c.label}
@@ -1513,25 +1545,25 @@ export function FinanceAccounts() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-lg overflow-hidden p-0 gap-0">
-          <div className="relative bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent p-6 pb-4">
+        <DialogContent className="sm:max-w-md overflow-hidden p-0 gap-0">
+          <div className="relative bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent p-4 pb-3">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(var(--primary-rgb),0.06),transparent_70%)]" />
             <DialogHeader className="relative">
               <DialogTitle className="flex items-center gap-3">
                 <span
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-xl text-sm shadow-sm",
+                    "flex h-9 w-9 items-center justify-center rounded-xl text-sm shadow-sm",
                     TYPE_CONFIG[formType]?.color,
                   )}
                 >
                   {(() => {
                     const Icon = TYPE_CONFIG[formType]?.icon || Wallet;
-                    return <Icon className="h-5 w-5" />;
+                    return <Icon className="h-4 w-4" />;
                 })()}
               </span>
               <div>
-                <p className="text-base">{dialogTitle}</p>
-                <p className="text-xs text-muted-foreground font-normal">
+                <p className="text-sm font-semibold">{dialogTitle}</p>
+                <p className="text-[11px] text-muted-foreground font-normal">
                   {formType === "cash" && "Наличные средства"}
                   {formType === "card" && "Банковская карта"}
                   {formType === "crypto" && "Криптовалютный кошелёк"}
@@ -1543,8 +1575,8 @@ export function FinanceAccounts() {
             </DialogHeader>
           </div>
 
-          <div className="space-y-4 max-h-[70vh] overflow-y-auto px-6 py-4">
-            {/* Type selector as horizontal cards */}
+          <div className="space-y-3 max-h-[70vh] overflow-y-auto px-4 py-3">
+            {/* Type selector */}
             <div className="flex gap-1.5 flex-wrap">
               {(
                 Object.entries(TYPE_CONFIG) as [
@@ -1558,9 +1590,9 @@ export function FinanceAccounts() {
                   <button
                     key={key}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-xl border px-3.5 py-2.5 text-xs font-medium transition-all duration-200",
+                      "flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200",
                       isActive
-                        ? "border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20 scale-[1.02]"
+                        ? "border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
                         : "border-border/60 hover:bg-accent/50 hover:border-muted-foreground/30 text-muted-foreground hover:text-foreground",
                     )}
                     onClick={() => {
@@ -1589,12 +1621,12 @@ export function FinanceAccounts() {
             </div>
 
             {/* Основное */}
-            <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm p-4 space-y-3">
-              <div className="flex items-center gap-2.5 pb-2 border-b border-border/40">
-                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Wallet className="h-3.5 w-3.5" />
+            <div className="rounded-xl border border-border/50 bg-card p-3 space-y-2.5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Wallet className="h-3 w-3" />
                 </div>
-                <span className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
+                <span className="text-sm font-medium text-foreground/80">
                   Основное
                 </span>
               </div>
@@ -1612,18 +1644,31 @@ export function FinanceAccounts() {
                         ? "MetaMask..."
                         : "Например: Т-Банк"
                   }
-                  className="h-10 bg-background/60"
+                  className="h-9"
                 />
               </div>
+              {formType === "crypto" && (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <Label className="text-xs font-medium">
+                    Адрес кошелька
+                  </Label>
+                  <Input
+                    value={formWalletAddress}
+                    onChange={(e) => setFormWalletAddress(e.target.value)}
+                    placeholder="0x..."
+                    className="h-9 font-mono text-xs"
+                  />
+                </div>
+              )}
             </div>
 
             {formType === "card" && (
-              <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center gap-2.5 pb-2 border-b border-border/40">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
-                    <CreditCard className="h-3.5 w-3.5" />
+              <div className="rounded-xl border border-border/50 bg-card p-3 space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-500/10 text-blue-600">
+                    <CreditCard className="h-3 w-3" />
                   </div>
-                  <span className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
+                  <span className="text-sm font-medium text-foreground/80">
                     Карта
                   </span>
                 </div>
@@ -1632,7 +1677,7 @@ export function FinanceAccounts() {
                     <button
                       key={ct.value}
                       className={cn(
-                        "flex-1 rounded-xl border px-3 py-2.5 text-xs font-medium transition-all duration-200",
+                        "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200",
                         formCardType === ct.value
                           ? "border-blue-500 bg-blue-500/10 text-blue-600 shadow-sm ring-1 ring-blue-500/20"
                           : "border-border/60 hover:bg-accent/50 hover:border-muted-foreground/30",
@@ -1660,37 +1705,13 @@ export function FinanceAccounts() {
               </div>
             )}
 
-            {formType === "crypto" && (
-              <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center gap-2.5 pb-2 border-b border-border/40">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
-                    <Coins className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
-                    Кошелёк
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">
-                    Адрес кошелька
-                  </Label>
-                  <Input
-                    value={formWalletAddress}
-                    onChange={(e) => setFormWalletAddress(e.target.value)}
-                    placeholder="0x..."
-                    className="h-9 font-mono text-xs"
-                  />
-                </div>
-              </div>
-            )}
-
             {(formType === "investment" || formType === "savings") && (
-              <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center gap-2.5 pb-2 border-b border-border/40">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600">
-                    <Percent className="h-3.5 w-3.5" />
+              <div className="rounded-xl border border-border/50 bg-card p-3 space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-md bg-rose-500/10 text-rose-600">
+                    <Percent className="h-3 w-3" />
                   </div>
-                  <span className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
+                  <span className="text-sm font-medium text-foreground/80">
                     Условия
                   </span>
                 </div>
@@ -1742,32 +1763,10 @@ export function FinanceAccounts() {
                     </SelectContent>
                   </Select>
                 </div>
-                {formType === "investment" && (
-                  <label className="flex items-center gap-3 cursor-pointer group p-2.5 rounded-lg border border-border/40 hover:bg-accent/30 transition-colors">
-                    <div
-                      className={cn(
-                        "flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200",
-                        formReinvest
-                          ? "bg-primary border-primary shadow-sm"
-                          : "border-border/60 group-hover:border-muted-foreground/50",
-                      )}
-                    >
-                      {formReinvest && (
-                        <Check className="h-3 w-3 text-primary-foreground" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium">Реинвестирование</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        Автоматическое reinvest дохода
-                      </p>
-                    </div>
-                  </label>
-                )}
-                <label className="flex items-center gap-3 cursor-pointer group p-2.5 rounded-lg border border-border/40 hover:bg-accent/30 transition-colors">
+                <label className="flex items-center gap-3 cursor-pointer group p-2 rounded-lg border border-border/40 hover:bg-accent/30 transition-colors">
                   <div
                     className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200",
+                      "flex h-4.5 w-4.5 items-center justify-center rounded border transition-all duration-200",
                       formCapitalize
                         ? "bg-primary border-primary shadow-sm"
                         : "border-border/60 group-hover:border-muted-foreground/50",
@@ -1830,12 +1829,12 @@ export function FinanceAccounts() {
             )}
 
             {/* Баланс и валюта */}
-            <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm p-4 space-y-3">
-              <div className="flex items-center gap-2.5 pb-2 border-b border-border/40">
-                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
-                  <DollarSign className="h-3.5 w-3.5" />
+            <div className="rounded-xl border border-border/50 bg-card p-3 space-y-2.5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600">
+                  <DollarSign className="h-3 w-3" />
                 </div>
-                <span className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
+                <span className="text-sm font-medium text-foreground/80">
                   Баланс и валюта
                 </span>
               </div>
@@ -1862,13 +1861,13 @@ export function FinanceAccounts() {
               </div>
             </div>
 
-            {/* Дополнительно: ссылка и заметки */}
-            <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm p-4 space-y-3">
-              <div className="flex items-center gap-2.5 pb-2 border-b border-border/40">
-                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-muted-foreground/10 text-muted-foreground">
-                  <Link2 className="h-3.5 w-3.5" />
+            {/* Дополнительно */}
+            <div className="rounded-xl border border-border/50 bg-card p-3 space-y-2.5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-5 w-5 items-center justify-center rounded-md bg-muted-foreground/10 text-muted-foreground">
+                  <Link2 className="h-3 w-3" />
                 </div>
-                <span className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
+                <span className="text-sm font-medium text-foreground/80">
                   Дополнительно
                 </span>
               </div>
