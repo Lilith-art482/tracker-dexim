@@ -15,8 +15,10 @@ import {
   Building2,
   ChevronDown,
   ChevronRight,
+  Users,
+  X,
 } from "lucide-react";
-import { Board, Company } from "@/lib/models";
+import { Board, Company, PermissionFlags, DEFAULT_PERMISSIONS } from "@/lib/models";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,6 +100,46 @@ const BOARD_COLORS = [
 
 const COLOR_MAP = new Map(BOARD_COLORS.map((c) => [c.name, c]));
 
+const PERMISSION_LABELS: Record<keyof PermissionFlags, string> = {
+  createTasks: "Создавать задачи",
+  moveTasks: "Перемещать задачи",
+  assignMembers: "Назначать исполнителей",
+  approveTasks: "Утверждать задачи",
+  deleteTasks: "Удалять задачи",
+  comment: "Комментировать",
+  setDeadlines: "Ставить дедлайн",
+  setStartTimes: "Ставить время начала",
+};
+
+function PermissionToggles({
+  permissions,
+  onChange,
+}: {
+  permissions: PermissionFlags;
+  onChange: (p: PermissionFlags) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {(Object.entries(PERMISSION_LABELS) as [keyof PermissionFlags, string][]).map(
+        ([key, label]) => (
+          <label
+            key={key}
+            className="flex items-center gap-2 text-xs cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              checked={permissions[key]}
+              onChange={(e) => onChange({ ...permissions, [key]: e.target.checked })}
+              className="accent-primary"
+            />
+            {label}
+          </label>
+        ),
+      )}
+    </div>
+  );
+}
+
 function getBoardColor(board: Board) {
   if (board.color && COLOR_MAP.has(board.color)) {
     return COLOR_MAP.get(board.color)!;
@@ -134,8 +176,14 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
   );
   const [settingsCompany, setSettingsCompany] = useState<Company | null>(null);
   const [companySettingsTab, setCompanySettingsTab] = useState<
-    "general" | "color" | "icon"
+    "general" | "color" | "icon" | "team"
   >("general");
+  const [memberInput, setMemberInput] = useState("");
+  const [addingMember, setAddingMember] = useState(false);
+  const [expandedMember, setExpandedMember] = useState<string | null>(null);
+  const [userCache, setUserCache] = useState<
+    Record<string, { email: string; nickname: string }>
+  >({});
   const [settingsBoard, setSettingsBoard] = useState<Board | null>(null);
   const [settingsTab, setSettingsTab] = useState<"general" | "color" | "icon">(
     "general",
@@ -313,6 +361,78 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
     } catch {
       toast.error("Ошибка обновления компании");
     }
+  };
+
+  const handleAddMember = async () => {
+    const uid = memberInput.trim();
+    if (!uid) return;
+    if (!settingsCompany) return;
+    const current = settingsCompany?.members || [];
+    if (current.includes(uid)) {
+      toast.info("Пользователь уже участник компании");
+      return;
+    }
+    setAddingMember(true);
+    try {
+      const newMembers = [...current, uid];
+      const newConfig = {
+        ...(settingsCompany.memberConfig || {}),
+        [uid]: {
+          boardAccess: "all" as const,
+          unifiedPermissions: true,
+          permissions: { ...DEFAULT_PERMISSIONS },
+          boardPermissions: {},
+        },
+      };
+      await updateCompanyField(settingsCompany.id, {
+        members: newMembers,
+        memberConfig: newConfig,
+      });
+      setMemberInput("");
+      toast.success("Пользователь добавлен");
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const handleRemoveMember = async (uid: string) => {
+    if (!settingsCompany) return;
+    const current = settingsCompany.members || [];
+    const newConfig = { ...(settingsCompany.memberConfig || {}) };
+    delete newConfig[uid];
+    await updateCompanyField(settingsCompany.id, {
+      members: current.filter((m) => m !== uid),
+      memberConfig: newConfig,
+    });
+  };
+
+  const fetchUserInfo = async (uid: string) => {
+    if (userCache[uid]) return userCache[uid];
+    try {
+      const res = await fetch(`/api/users?uid=${uid}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data) {
+          const info = { email: data.email || "", nickname: data.nickname || "" };
+          setUserCache((prev) => ({ ...prev, [uid]: info }));
+          return info;
+        }
+      }
+    } catch {}
+    return null;
+  };
+
+  const handleUpdateMemberConfig = async (
+    uid: string,
+    config: Partial<import("@/lib/models").MemberConfig>,
+  ) => {
+    if (!settingsCompany) return;
+    const currentConfig = settingsCompany.memberConfig || {};
+    const newConfig = {
+      ...currentConfig,
+      [uid]: { ...currentConfig[uid], ...config },
+    };
+    await updateCompanyField(settingsCompany.id, { memberConfig: newConfig });
   };
 
   const handleDeleteCompany = async (companyId: string) => {
@@ -861,6 +981,17 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                 >
                   Иконка
                 </button>
+                <button
+                  onClick={() => setCompanySettingsTab("team")}
+                  className={cn(
+                    "flex-1 py-1.5 text-xs font-medium rounded-md transition-colors",
+                    companySettingsTab === "team"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Команда
+                </button>
               </div>
 
               {companySettingsTab === "general" && (
@@ -974,6 +1105,280 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+
+              {companySettingsTab === "team" && (
+                <div className="flex flex-col gap-4">
+                  <p className="text-xs text-muted-foreground">
+                    Добавьте участников по их UID Firebase
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="UID пользователя"
+                      value={memberInput}
+                      onChange={(e) => setMemberInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddMember();
+                        }
+                      }}
+                      disabled={addingMember}
+                    />
+                    <Button
+                      onClick={handleAddMember}
+                      disabled={addingMember || !memberInput.trim()}
+                      size="sm"
+                      className="shrink-0"
+                    >
+                      {addingMember ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Участники
+                      {(settingsCompany.members || []).length > 0 && (
+                        <span className="ml-1.5 text-foreground/60">
+                          ({(settingsCompany.members || []).length})
+                        </span>
+                      )}
+                    </p>
+                    {(settingsCompany.members || []).length === 0 ? (
+                      <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed p-4 text-center">
+                        <Users className="h-5 w-5 text-muted-foreground/40" />
+                        <p className="text-xs text-muted-foreground/60">
+                          Нет участников
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2 max-h-96 overflow-y-auto">
+                        {(settingsCompany.members || []).map((uid) => {
+                          const info = userCache[uid];
+                          const isExpanded = expandedMember === uid;
+                          const config = settingsCompany.memberConfig?.[uid];
+
+                          if (!info) {
+                            fetchUserInfo(uid);
+                          }
+
+                          return (
+                            <div
+                              key={uid}
+                              className="rounded-lg border bg-muted/20 overflow-hidden"
+                            >
+                              <div className="flex items-center justify-between px-3 py-2">
+                                <div className="flex flex-col min-w-0">
+                                  {info ? (
+                                    <>
+                                      <span className="text-sm font-medium truncate">
+                                        {info.nickname || "Без никнейма"}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground truncate">
+                                        {info.email}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <code className="text-xs font-mono text-muted-foreground truncate">
+                                      {uid}
+                                    </code>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-0.5 shrink-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                                    onClick={() =>
+                                      setExpandedMember(
+                                        isExpanded ? null : uid,
+                                      )
+                                    }
+                                    title="Настройки доступа"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                    onClick={() => handleRemoveMember(uid)}
+                                    title="Удалить участника"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {isExpanded && config && (
+                                <div className="border-t bg-background/50 px-3 py-3 space-y-4">
+                                  <div className="space-y-2">
+                                    <p className="text-xs font-medium text-muted-foreground">
+                                      Доступ к доскам
+                                    </p>
+                                    <div className="flex flex-col gap-1.5">
+                                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                        <input
+                                          type="radio"
+                                          name={`boardAccess-${uid}`}
+                                          checked={config.boardAccess === "all"}
+                                          onChange={() =>
+                                            handleUpdateMemberConfig(uid, {
+                                              boardAccess: "all",
+                                            })
+                                          }
+                                          className="accent-primary"
+                                        />
+                                        Все доски
+                                      </label>
+                                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                        <input
+                                          type="radio"
+                                          name={`boardAccess-${uid}`}
+                                          checked={
+                                            config.boardAccess !== "all"
+                                          }
+                                          onChange={() =>
+                                            handleUpdateMemberConfig(uid, {
+                                              boardAccess: [],
+                                            })
+                                          }
+                                          className="accent-primary"
+                                        />
+                                        Выбрать доски
+                                      </label>
+                                    </div>
+                                    {config.boardAccess !== "all" && (
+                                      <div className="flex flex-col gap-1 ml-4 max-h-32 overflow-y-auto">
+                                        {filteredBoards
+                                          .filter(
+                                            (b) =>
+                                              b.companyId ===
+                                              settingsCompany.id,
+                                          )
+                                          .map((board) => (
+                                            <label
+                                              key={board.id}
+                                              className="flex items-center gap-2 text-xs cursor-pointer"
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                checked={
+                                                  Array.isArray(
+                                                    config.boardAccess,
+                                                  ) &&
+                                                  config.boardAccess.includes(
+                                                    board.id,
+                                                  )
+                                                }
+                                                onChange={(e) => {
+                                                  const current = Array.isArray(
+                                                    config.boardAccess,
+                                                  )
+                                                    ? config.boardAccess
+                                                    : [];
+                                                  const next = e.target.checked
+                                                    ? [...current, board.id]
+                                                    : current.filter(
+                                                        (id) =>
+                                                          id !== board.id,
+                                                      );
+                                                  handleUpdateMemberConfig(
+                                                    uid,
+                                                    { boardAccess: next },
+                                                  );
+                                                }}
+                                                className="accent-primary"
+                                              />
+                                              {board.name}
+                                            </label>
+                                          ))}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-xs font-medium text-muted-foreground">
+                                        Права доступа
+                                      </p>
+                                      <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={config.unifiedPermissions}
+                                          onChange={(e) =>
+                                            handleUpdateMemberConfig(uid, {
+                                              unifiedPermissions:
+                                                e.target.checked,
+                                            })
+                                          }
+                                          className="accent-primary"
+                                        />
+                                        Единые
+                                      </label>
+                                    </div>
+
+                                    {config.unifiedPermissions ? (
+                                      <PermissionToggles
+                                        permissions={config.permissions}
+                                        onChange={(perms) =>
+                                          handleUpdateMemberConfig(uid, {
+                                            permissions: perms,
+                                          })
+                                        }
+                                      />
+                                    ) : (
+                                      <div className="flex flex-col gap-3">
+                                        {filteredBoards
+                                          .filter(
+                                            (b) =>
+                                              b.companyId ===
+                                              settingsCompany.id,
+                                          )
+                                          .map((board) => (
+                                            <div
+                                              key={board.id}
+                                              className="space-y-1.5"
+                                            >
+                                              <p className="text-xs text-muted-foreground/70 font-medium">
+                                                {board.name}
+                                              </p>
+                                              <PermissionToggles
+                                                permissions={
+                                                  config.boardPermissions?.[
+                                                    board.id
+                                                  ] || DEFAULT_PERMISSIONS
+                                                }
+                                                onChange={(perms) =>
+                                                  handleUpdateMemberConfig(
+                                                    uid,
+                                                    {
+                                                      boardPermissions: {
+                                                        ...config.boardPermissions,
+                                                        [board.id]: perms,
+                                                      },
+                                                    },
+                                                  )
+                                                }
+                                              />
+                                            </div>
+                                          ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
