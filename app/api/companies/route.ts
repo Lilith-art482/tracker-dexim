@@ -25,6 +25,8 @@ const updateCompanySchema = z.object({
   color: z.string().optional().nullable(),
   icon: z.string().optional().nullable(),
   description: z.string().max(500).optional().nullable(),
+  members: z.array(z.string()).optional(),
+  memberConfig: z.record(z.string(), z.any()).optional(),
 });
 
 export async function GET(request: NextRequest) {

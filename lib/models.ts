@@ -23,9 +23,39 @@ export interface Company {
   description?: string;
   ownerId?: string;
   members?: string[];
+  memberConfig?: Record<string, MemberConfig>;
   createdAt: string;
   updatedAt: string;
 }
+
+export interface PermissionFlags {
+  createTasks: boolean;
+  moveTasks: boolean;
+  assignMembers: boolean;
+  approveTasks: boolean;
+  deleteTasks: boolean;
+  comment: boolean;
+  setDeadlines: boolean;
+  setStartTimes: boolean;
+}
+
+export interface MemberConfig {
+  boardAccess: string[] | "all";
+  unifiedPermissions: boolean;
+  permissions: PermissionFlags;
+  boardPermissions: Record<string, PermissionFlags>;
+}
+
+export const DEFAULT_PERMISSIONS: PermissionFlags = {
+  createTasks: true,
+  moveTasks: true,
+  assignMembers: true,
+  approveTasks: true,
+  deleteTasks: false,
+  comment: true,
+  setDeadlines: true,
+  setStartTimes: true,
+};
 
 export interface Column {
   id: string;
@@ -142,6 +172,12 @@ const toPlain = <T>(snap: {
   ...snap.data(),
 });
 
+function omitUndefined<T extends object>(obj: T): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined),
+  );
+}
+
 export async function getServiceById(id: string): Promise<Service | null> {
   const snap = await getAdminDb().collection(COL("SERVICES")).doc(id).get();
   if (!snap.exists) return null;
@@ -220,14 +256,17 @@ export async function createCompany(
     updatedAt: now,
     members: data.members || [],
   };
-  await getAdminDb().collection(COL("COMPANIES")).doc(company.id).set(company);
+  await getAdminDb()
+    .collection(COL("COMPANIES"))
+    .doc(company.id)
+    .set(omitUndefined(company));
   return company;
 }
 
 export async function updateCompany(
   id: string,
   data: Partial<
-    Pick<Company, "name" | "description" | "color" | "icon" | "members">
+    Pick<Company, "name" | "description" | "color" | "icon" | "members" | "memberConfig">
   >,
 ): Promise<Company> {
   await getAdminDb()
@@ -272,7 +311,10 @@ export async function createBoard(
     updatedAt: now,
     members: data.members || [],
   };
-  await getAdminDb().collection(COL("BOARDS")).doc(board.id).set(board);
+  await getAdminDb()
+    .collection(COL("BOARDS"))
+    .doc(board.id)
+    .set(omitUndefined(board));
   return board;
 }
 
