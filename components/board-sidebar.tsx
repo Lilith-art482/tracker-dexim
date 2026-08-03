@@ -18,7 +18,8 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { Board, Company, PermissionFlags, DEFAULT_PERMISSIONS } from "@/lib/models";
+import type { Board, Company, PermissionFlags } from "@/lib/types";
+import { DEFAULT_PERMISSIONS } from "@/lib/types";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import {
