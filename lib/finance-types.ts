@@ -2,11 +2,13 @@ export type TransactionType = "income" | "expense" | "transfer";
 export type BudgetPeriod = "day" | "week" | "month" | "year";
 export type GoalPriority = "high" | "medium" | "low";
 
+export type InterestPeriod = "daily" | "weekly" | "monthly" | "quarterly" | "semiannual" | "annual";
+
 export interface FinanceAccount {
   id: string;
   userId: string;
   name: string;
-  type: "cash" | "card" | "crypto" | "investment" | "savings" | "deposit";
+  type: "cash" | "card" | "crypto" | "investment" | "savings";
   balance: number;
   currency: string;
   cardType?: "debit" | "credit" | "business";
@@ -17,8 +19,9 @@ export interface FinanceAccount {
   walletAddress?: string;
   url?: string;
   sortOrder?: number;
-  priority?: "high" | "medium" | "low";
   interestRate?: number;
+  interestPeriod?: InterestPeriod;
+  reinvest?: boolean;
   termMonths?: number;
   startDate?: string;
   capitalizeInterest?: boolean;
