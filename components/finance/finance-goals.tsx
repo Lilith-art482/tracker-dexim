@@ -29,7 +29,7 @@ import {
   Bitcoin,
   TrendingDown,
   PiggyBank as PiggyBankIcon,
-  Building2,
+
   Flag,
   Check,
   ArrowDown,
@@ -124,11 +124,6 @@ const TYPE_CONFIG: Record<
     label: "Сбережения",
     icon: PiggyBankIcon,
     color: "text-sky-600 bg-sky-500/10",
-  },
-  deposit: {
-    label: "Вклад",
-    icon: Building2,
-    color: "text-rose-600 bg-rose-500/10",
   },
 };
 

@@ -24,7 +24,7 @@ import {
   Bitcoin,
   TrendingUp,
   PiggyBank,
-  Building2,
+
   Flag,
 } from "lucide-react";
 import type {
@@ -110,11 +110,6 @@ const TYPE_CONFIG: Record<
     label: "Сбережения",
     icon: PiggyBank,
     color: "text-sky-600 bg-sky-500/10",
-  },
-  deposit: {
-    label: "Вклад",
-    icon: Building2,
-    color: "text-rose-600 bg-rose-500/10",
   },
 };
 

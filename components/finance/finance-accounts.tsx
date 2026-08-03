@@ -30,7 +30,6 @@ import {
   DollarSign,
   Link2,
   GripVertical,
-  Flag,
   SlidersHorizontal,
   X,
   ArrowUpDown,
@@ -145,40 +144,42 @@ const TYPE_CONFIG: Record<
     color: "text-orange-600 bg-orange-500/10",
   },
   investment: {
-    label: "Инвестиции",
+    label: "Инвестиции и Стейкинг",
     icon: TrendingUp,
     color: "text-purple-600 bg-purple-500/10",
   },
   savings: {
-    label: "Сбережения",
+    label: "Сбережения и Вклад",
     icon: PiggyBank,
     color: "text-sky-600 bg-sky-500/10",
-  },
-  deposit: {
-    label: "Вклад",
-    icon: Building2,
-    color: "text-rose-600 bg-rose-500/10",
   },
 };
 
 function CurrencySelect({
   value,
   onChange,
+  fiatOnly,
+  cryptoOnly,
 }: {
   value: string;
   onChange: (v: string) => void;
+  fiatOnly?: boolean;
+  cryptoOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(
     () =>
-      CURRENCIES.filter(
-        (c) =>
+      CURRENCIES.filter((c) => {
+        if (fiatOnly && c.type !== "fiat") return false;
+        if (cryptoOnly && c.type !== "crypto") return false;
+        return (
           c.code.toLowerCase().includes(search.toLowerCase()) ||
-          c.label.toLowerCase().includes(search.toLowerCase()),
-      ),
-    [search],
+          c.label.toLowerCase().includes(search.toLowerCase())
+        );
+      }),
+    [search, fiatOnly, cryptoOnly],
   );
 
   const selected = CURRENCIES.find((c) => c.code === value);
@@ -302,8 +303,9 @@ export function FinanceAccounts() {
   const [formNotes, setFormNotes] = useState("");
   const [formCapitalize, setFormCapitalize] = useState(true);
   const [formGracePeriod, setFormGracePeriod] = useState("");
-  const [formPriority, setFormPriority] = useState<string>("none");
   const [formUrl, setFormUrl] = useState("");
+  const [formInterestPeriod, setFormInterestPeriod] = useState<string>("monthly");
+  const [formReinvest, setFormReinvest] = useState(false);
   const [formShowCalc, setFormShowCalc] = useState(false);
   const [depositCalc, setDepositCalc] = useState<FinanceAccount | null>(null);
 
@@ -333,7 +335,6 @@ export function FinanceAccounts() {
   const [newCatOpen, setNewCatOpen] = useState(false);
   const [filterMin, setFilterMin] = useState("");
   const [filterMax, setFilterMax] = useState("");
-  const [filterPriority, setFilterPriority] = useState<string>("all");
   const [sortBalance, setSortBalance] = useState<"none" | "asc" | "desc">(
     "none",
   );
@@ -406,7 +407,8 @@ export function FinanceAccounts() {
     setFormCapitalize(true);
     setFormGracePeriod("");
     setFormUrl("");
-    setFormPriority("none");
+    setFormInterestPeriod("monthly");
+    setFormReinvest(false);
     setFormShowCalc(false);
     setEditId(null);
   }, []);
@@ -452,7 +454,8 @@ export function FinanceAccounts() {
       account.gracePeriodDays ? String(account.gracePeriodDays) : "",
     );
     setFormUrl(account.url || "");
-    setFormPriority(account.priority || "none");
+    setFormInterestPeriod(account.interestPeriod || "monthly");
+    setFormReinvest(account.reinvest ?? false);
     setFormShowCalc(false);
     setEditId(account.id);
     setDialogOpen(true);
@@ -479,7 +482,6 @@ export function FinanceAccounts() {
     };
     if (formNotes) body.notes = formNotes;
     if (formUrl) body.url = formUrl;
-    if (formPriority && formPriority !== "none") body.priority = formPriority;
 
     if (formType === "card") {
       body.cardType = formCardType;
@@ -488,9 +490,8 @@ export function FinanceAccounts() {
       }
     }
     if (formType === "crypto") {
-      body.cryptoCoin = formCryptoCoin;
-      if (formWalletName) body.walletName = formWalletName;
       if (formWalletAddress) body.walletAddress = formWalletAddress;
+      body.walletName = formName.trim();
       const rates = getCachedRates();
       if (rates) {
         body.cryptoAmount = computeCryptoAmount(
@@ -501,8 +502,10 @@ export function FinanceAccounts() {
         );
       }
     }
-    if (formType === "deposit" || formType === "savings") {
+    if (formType === "investment" || formType === "savings") {
       if (formInterestRate) body.interestRate = parseFloat(formInterestRate);
+      body.interestPeriod = formInterestPeriod;
+      if (formType === "investment") body.reinvest = formReinvest;
       if (formTermMonths) body.termMonths = parseInt(formTermMonths);
       if (formStartDate) body.startDate = formStartDate;
       body.capitalizeInterest = formCapitalize;
@@ -599,15 +602,10 @@ export function FinanceAccounts() {
     let list = sortedAccounts;
     const min = filterMin ? parseFloat(filterMin) : NaN;
     const max = filterMax ? parseFloat(filterMax) : NaN;
-    if (!isNaN(min) || !isNaN(max) || filterPriority !== "all") {
+    if (!isNaN(min) || !isNaN(max)) {
       const rates = getCachedRates();
       const displayCurrency = getDisplayCurrency();
       list = list.filter((a) => {
-        if (
-          filterPriority !== "all" &&
-          (a.priority || "none") !== filterPriority
-        )
-          return false;
         if (!rates) return true;
         const effectiveBalance = accountBalance(a);
         const converted = convert(
@@ -641,7 +639,6 @@ export function FinanceAccounts() {
     sortedAccounts,
     filterMin,
     filterMax,
-    filterPriority,
     sortBalance,
     accountBalance,
   ]);
@@ -876,7 +873,7 @@ export function FinanceAccounts() {
 
   const projectedBalance = useMemo(() => {
     if (
-      (formType !== "deposit" && formType !== "savings") ||
+      (formType !== "investment" && formType !== "savings") ||
       !formBalance ||
       !formInterestRate ||
       !formTermMonths
@@ -894,7 +891,7 @@ export function FinanceAccounts() {
 
   const depositProjections = useCallback((account: FinanceAccount) => {
     if (
-      (account.type !== "deposit" && account.type !== "savings") ||
+      (account.type !== "investment" && account.type !== "savings") ||
       !account.interestRate ||
       !account.termMonths
     )
@@ -976,7 +973,7 @@ export function FinanceAccounts() {
     };
     const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.cash;
     const Icon = cfg.icon;
-    const isDepositOrSavings = a.type === "deposit" || a.type === "savings";
+    const isDepositOrSavings = a.type === "investment" || a.type === "savings";
     const projections = isDepositOrSavings ? depositProjections(a) : null;
 
     return (
@@ -1008,26 +1005,6 @@ export function FinanceAccounts() {
               <div className="min-w-0">
                 <CardTitle className="text-sm font-medium truncate flex items-center gap-2">
                   {a.name}
-                  {a.priority && (
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
-                        a.priority === "high" &&
-                          "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400",
-                        a.priority === "medium" &&
-                          "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
-                        a.priority === "low" &&
-                          "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
-                      )}
-                    >
-                      <Flag className="h-2 w-2" />
-                      {a.priority === "high"
-                        ? "Высокий"
-                        : a.priority === "medium"
-                          ? "Средний"
-                          : "Низкий"}
-                    </span>
-                  )}
                 </CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {a.sortOrder != null ? `#${a.sortOrder + 1} · ` : ""}
@@ -1148,9 +1125,6 @@ export function FinanceAccounts() {
                 {a.termMonths && ` · ${a.termMonths} мес.`}
                 <ChartLine className="h-3 w-3 ml-0.5" />
               </button>
-            )}
-            {a.type === "deposit" && a.interestRate == null && (
-              <span className="text-xs text-muted-foreground">Вклад</span>
             )}
             {a.type === "card" &&
               a.cardType === "credit" &&
@@ -1332,26 +1306,6 @@ export function FinanceAccounts() {
           </div>
           <div className="space-y-1">
             <Label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-semibold">
-              Приоритет
-            </Label>
-            <Select
-              value={filterPriority}
-              onValueChange={(v) => v && setFilterPriority(v)}
-            >
-              <SelectTrigger className="h-9 w-32 text-xs bg-background/60 border-border/40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все</SelectItem>
-                <SelectItem value="high">Высокий</SelectItem>
-                <SelectItem value="medium">Средний</SelectItem>
-                <SelectItem value="low">Низкий</SelectItem>
-                <SelectItem value="none">Без приоритета</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-semibold">
               Сортировка
             </Label>
             <button
@@ -1375,13 +1329,11 @@ export function FinanceAccounts() {
           </div>
           {(filterMin ||
             filterMax ||
-            filterPriority !== "all" ||
             sortBalance !== "none") && (
             <button
               onClick={() => {
                 setFilterMin("");
                 setFilterMax("");
-                setFilterPriority("all");
                 setSortBalance("none");
               }}
               className="flex items-center gap-1 text-[10px] text-muted-foreground/50 hover:text-foreground transition-colors mb-0.5"
@@ -1558,7 +1510,6 @@ export function FinanceAccounts() {
                   formType === "investment" &&
                     "bg-violet-500/10 text-violet-600",
                   formType === "savings" && "bg-cyan-500/10 text-cyan-600",
-                  formType === "deposit" && "bg-rose-500/10 text-rose-600",
                 )}
               >
                 {(() => {
@@ -1572,9 +1523,8 @@ export function FinanceAccounts() {
                   {formType === "cash" && "Наличные средства"}
                   {formType === "card" && "Банковская карта"}
                   {formType === "crypto" && "Криптовалютный кошелёк"}
-                  {formType === "investment" && "Инвестиционный счёт"}
-                  {formType === "savings" && "Сберегательный счёт"}
-                  {formType === "deposit" && "Депозит / Вклад"}
+                  {formType === "investment" && "Инвестиции и Стейкинг"}
+                  {formType === "savings" && "Сбережения и Вклад"}
                 </p>
               </div>
             </DialogTitle>
@@ -1600,7 +1550,12 @@ export function FinanceAccounts() {
                         ? "border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
                         : "border-input hover:bg-accent hover:border-muted-foreground/20 text-muted-foreground",
                     )}
-                    onClick={() => setFormType(key)}
+                    onClick={() => {
+                      setFormType(key);
+                      if (key === "cash" && !formName.trim()) {
+                        setFormName("Наличные средства");
+                      }
+                    }}
                   >
                     <IconEl className="h-3.5 w-3.5" />
                     {cfg.label}
@@ -1620,11 +1575,19 @@ export function FinanceAccounts() {
                 </span>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Название счёта</Label>
+                <Label className="text-xs font-medium">
+                  {formType === "crypto" ? "Название кошелька" : "Название"}
+                </Label>
                 <Input
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Например: Т-Банк"
+                  placeholder={
+                    formType === "cash"
+                      ? "Наличные средства"
+                      : formType === "crypto"
+                        ? "MetaMask..."
+                        : "Например: Т-Банк"
+                  }
                   className="h-9"
                 />
               </div>
@@ -1684,51 +1647,20 @@ export function FinanceAccounts() {
                   </span>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Монета</Label>
-                  <Select
-                    value={formCryptoCoin}
-                    onValueChange={(v) => v && setFormCryptoCoin(v)}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CRYPTO_COINS.map((coin) => (
-                        <SelectItem key={coin} value={coin}>
-                          {coin}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">
-                      Название кошелька
-                    </Label>
-                    <Input
-                      value={formWalletName}
-                      onChange={(e) => setFormWalletName(e.target.value)}
-                      placeholder="MetaMask..."
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">
-                      Адрес кошелька
-                    </Label>
-                    <Input
-                      value={formWalletAddress}
-                      onChange={(e) => setFormWalletAddress(e.target.value)}
-                      placeholder="0x..."
-                      className="h-9 font-mono text-xs"
-                    />
-                  </div>
+                  <Label className="text-xs font-medium">
+                    Адрес кошелька
+                  </Label>
+                  <Input
+                    value={formWalletAddress}
+                    onChange={(e) => setFormWalletAddress(e.target.value)}
+                    placeholder="0x..."
+                    className="h-9 font-mono text-xs"
+                  />
                 </div>
               </div>
             )}
 
-            {(formType === "deposit" || formType === "savings") && (
+            {(formType === "investment" || formType === "savings") && (
               <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-500/10 text-rose-600">
@@ -1763,6 +1695,49 @@ export function FinanceAccounts() {
                     />
                   </div>
                 </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">
+                    Начисление процентов
+                  </Label>
+                  <Select
+                    value={formInterestPeriod}
+                    onValueChange={(v) => v && setFormInterestPeriod(v)}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Ежедневно</SelectItem>
+                      <SelectItem value="weekly">Еженедельно</SelectItem>
+                      <SelectItem value="monthly">Ежемесячно</SelectItem>
+                      <SelectItem value="quarterly">Ежеквартально</SelectItem>
+                      <SelectItem value="semiannual">Раз в 6 месяцев</SelectItem>
+                      <SelectItem value="annual">Ежегодно</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formType === "investment" && (
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div
+                      className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded border border-input transition-colors",
+                        formReinvest
+                          ? "bg-primary border-primary"
+                          : "group-hover:border-muted-foreground/40",
+                      )}
+                    >
+                      {formReinvest && (
+                        <Check className="h-3 w-3 text-primary-foreground" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium">Реинвестирование</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Автоматическое reinvest дохода
+                      </p>
+                    </div>
+                  </label>
+                )}
                 <label className="flex items-center gap-3 cursor-pointer group">
                   <div
                     className={cn(
@@ -1854,6 +1829,8 @@ export function FinanceAccounts() {
                   <CurrencySelect
                     value={formCurrency}
                     onChange={setFormCurrency}
+                    fiatOnly={formType === "cash"}
+                    cryptoOnly={formType === "crypto"}
                   />
                 </div>
               </div>
@@ -1897,54 +1874,6 @@ export function FinanceAccounts() {
                 rows={2}
                 className="resize-none"
               />
-            </div>
-            {/* Приоритет */}
-            <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3">
-              <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-orange-500/10 text-orange-600">
-                  <Flag className="h-3.5 w-3.5" />
-                </div>
-                <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
-                  Приоритет
-                </span>
-              </div>
-              <div className="flex gap-2">
-                {[
-                  {
-                    value: "none",
-                    label: "Нет",
-                    color: "bg-muted-foreground/10 text-muted-foreground",
-                  },
-                  {
-                    value: "low",
-                    label: "Низкий",
-                    color: "bg-green-500/10 text-green-600",
-                  },
-                  {
-                    value: "medium",
-                    label: "Средний",
-                    color: "bg-amber-500/10 text-amber-600",
-                  },
-                  {
-                    value: "high",
-                    label: "Высокий",
-                    color: "bg-red-500/10 text-red-600",
-                  },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    className={cn(
-                      "flex-1 rounded-lg border px-2 py-2 text-xs font-medium transition-all duration-200",
-                      formPriority === opt.value
-                        ? "border-current ring-1 ring-current/20 " + opt.color
-                        : "border-input hover:bg-accent hover:border-muted-foreground/20 text-muted-foreground",
-                    )}
-                    onClick={() => setFormPriority(opt.value)}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -2033,21 +1962,6 @@ export function FinanceAccounts() {
                           <span className="text-xs font-medium truncate leading-tight">
                             {a.name}
                           </span>
-                          {a.priority && (
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-0.5 rounded-full px-1 py-0.5 text-[8px] font-semibold uppercase tracking-wider",
-                                a.priority === "high" &&
-                                  "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400",
-                                a.priority === "medium" &&
-                                  "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
-                                a.priority === "low" &&
-                                  "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
-                              )}
-                            >
-                              <Flag className="h-2 w-2" />
-                            </span>
-                          )}
                         </div>
                         <p className="text-[10px] text-muted-foreground/60 leading-tight mt-0.5">
                           #{a.sortOrder != null ? a.sortOrder + 1 : "—"} ·{" "}
@@ -2117,21 +2031,6 @@ export function FinanceAccounts() {
                             <span className="text-xs font-medium truncate leading-tight">
                               {a.name}
                             </span>
-                            {a.priority && (
-                              <span
-                                className={cn(
-                                  "inline-flex items-center gap-0.5 rounded-full px-1 py-0.5 text-[8px] font-semibold uppercase tracking-wider",
-                                  a.priority === "high" &&
-                                    "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400",
-                                  a.priority === "medium" &&
-                                    "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
-                                  a.priority === "low" &&
-                                    "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
-                                )}
-                              >
-                                <Flag className="h-2 w-2" />
-                              </span>
-                            )}
                           </div>
                           <p className="text-[10px] text-muted-foreground/60 leading-tight mt-0.5">
                             #{a.sortOrder != null ? a.sortOrder + 1 : "—"} ·{" "}

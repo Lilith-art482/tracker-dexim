@@ -27,7 +27,7 @@ import {
   Gavel,
   Home,
   Check,
-  Flag,
+
   Banknote,
 } from "lucide-react";
 import type { Loan, ObligationType, FinanceAccount } from "@/lib/finance-types";
@@ -1984,21 +1984,7 @@ export function FinanceLoans() {
                           <span className="text-xs font-medium truncate leading-tight">
                             {a.name}
                           </span>
-                          {a.priority && (
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-0.5 rounded-full px-1 py-0.5 text-[8px] font-semibold uppercase tracking-wider",
-                                a.priority === "high" &&
-                                  "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400",
-                                a.priority === "medium" &&
-                                  "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
-                                a.priority === "low" &&
-                                  "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400",
-                              )}
-                            >
-                              <Flag className="h-2 w-2" />
-                            </span>
-                          )}
+
                         </div>
                         <p className="text-[10px] text-muted-foreground/60 leading-tight mt-0.5">
                           #{a.sortOrder != null ? a.sortOrder + 1 : "—"} ·{" "}
