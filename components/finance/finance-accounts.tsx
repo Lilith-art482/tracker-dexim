@@ -124,6 +124,15 @@ const CRYPTO_COINS = CURRENCIES.filter((c) => c.type === "crypto").map(
   (c) => c.code,
 );
 
+const INTEREST_PERIOD_LABELS: Record<string, string> = {
+  daily: "Ежедневно",
+  weekly: "Еженедельно",
+  monthly: "Ежемесячно",
+  quarterly: "Ежеквартально",
+  semiannual: "Раз в 6 месяцев",
+  annual: "Ежегодно",
+};
+
 const TYPE_CONFIG: Record<
   AccountType,
   { label: string; icon: React.ElementType; color: string }
@@ -1373,10 +1382,14 @@ export function FinanceAccounts() {
           if (!open) setDepositCalc(null);
         }}
       >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-rose-600" />
+        <DialogContent className="sm:max-w-sm overflow-hidden p-0 gap-0">
+          <div className="relative bg-gradient-to-br from-emerald-500/5 via-emerald-500/[0.02] to-transparent p-6 pb-4">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.06),transparent_70%)]" />
+            <DialogHeader className="relative">
+              <DialogTitle className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
+                  <Building2 className="h-4 w-4" />
+                </div>
               Расчёт доходности
             </DialogTitle>
             {depositCalc && (
@@ -1385,7 +1398,9 @@ export function FinanceAccounts() {
                 {depositCalc.currency}
               </p>
             )}
-          </DialogHeader>
+            </DialogHeader>
+          </div>
+          <div className="px-6 pb-4">
           {depositCalc &&
             (() => {
               const proj = depositProjections(depositCalc);
@@ -1485,6 +1500,7 @@ export function FinanceAccounts() {
                 </div>
               );
             })()}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1497,24 +1513,20 @@ export function FinanceAccounts() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
-              <span
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-xl text-sm shadow-sm",
-                  TYPE_CONFIG[formType]?.color,
-                  formType === "cash" && "bg-emerald-500/10 text-emerald-600",
-                  formType === "card" && "bg-blue-500/10 text-blue-600",
-                  formType === "crypto" && "bg-amber-500/10 text-amber-600",
-                  formType === "investment" &&
-                    "bg-violet-500/10 text-violet-600",
-                  formType === "savings" && "bg-cyan-500/10 text-cyan-600",
-                )}
-              >
-                {(() => {
-                  const Icon = TYPE_CONFIG[formType]?.icon || Wallet;
-                  return <Icon className="h-4 w-4" />;
+        <DialogContent className="sm:max-w-lg overflow-hidden p-0 gap-0">
+          <div className="relative bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent p-6 pb-4">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(var(--primary-rgb),0.06),transparent_70%)]" />
+            <DialogHeader className="relative">
+              <DialogTitle className="flex items-center gap-3">
+                <span
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-xl text-sm shadow-sm",
+                    TYPE_CONFIG[formType]?.color,
+                  )}
+                >
+                  {(() => {
+                    const Icon = TYPE_CONFIG[formType]?.icon || Wallet;
+                    return <Icon className="h-5 w-5" />;
                 })()}
               </span>
               <div>
@@ -1528,9 +1540,10 @@ export function FinanceAccounts() {
                 </p>
               </div>
             </DialogTitle>
-          </DialogHeader>
+            </DialogHeader>
+          </div>
 
-          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto px-6 py-4">
             {/* Type selector as horizontal cards */}
             <div className="flex gap-1.5 flex-wrap">
               {(
@@ -1545,13 +1558,24 @@ export function FinanceAccounts() {
                   <button
                     key={key}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200",
+                      "flex items-center gap-1.5 rounded-xl border px-3.5 py-2.5 text-xs font-medium transition-all duration-200",
                       isActive
-                        ? "border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
-                        : "border-input hover:bg-accent hover:border-muted-foreground/20 text-muted-foreground",
+                        ? "border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20 scale-[1.02]"
+                        : "border-border/60 hover:bg-accent/50 hover:border-muted-foreground/30 text-muted-foreground hover:text-foreground",
                     )}
                     onClick={() => {
+                      const prevType = formType;
                       setFormType(key);
+                      if (key !== prevType) {
+                        setFormName("");
+                        if (key === "cash") setFormCurrency("RUB");
+                        else if (key === "crypto") setFormCurrency("BTC");
+                        else if (
+                          prevType === "cash" ||
+                          prevType === "crypto"
+                        )
+                          setFormCurrency("RUB");
+                      }
                       if (key === "cash" && !formName.trim()) {
                         setFormName("Наличные средства");
                       }
@@ -1565,12 +1589,12 @@ export function FinanceAccounts() {
             </div>
 
             {/* Основное */}
-            <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3">
-              <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm p-4 space-y-3">
+              <div className="flex items-center gap-2.5 pb-2 border-b border-border/40">
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Wallet className="h-3.5 w-3.5" />
                 </div>
-                <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                <span className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
                   Основное
                 </span>
               </div>
@@ -1588,18 +1612,18 @@ export function FinanceAccounts() {
                         ? "MetaMask..."
                         : "Например: Т-Банк"
                   }
-                  className="h-9"
+                  className="h-10 bg-background/60"
                 />
               </div>
             </div>
 
             {formType === "card" && (
-              <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-500/10 text-blue-600">
+              <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-2.5 pb-2 border-b border-border/40">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
                     <CreditCard className="h-3.5 w-3.5" />
                   </div>
-                  <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                  <span className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
                     Карта
                   </span>
                 </div>
@@ -1608,10 +1632,10 @@ export function FinanceAccounts() {
                     <button
                       key={ct.value}
                       className={cn(
-                        "flex-1 rounded-lg border px-3 py-2.5 text-xs font-medium transition-all duration-200",
+                        "flex-1 rounded-xl border px-3 py-2.5 text-xs font-medium transition-all duration-200",
                         formCardType === ct.value
                           ? "border-blue-500 bg-blue-500/10 text-blue-600 shadow-sm ring-1 ring-blue-500/20"
-                          : "border-input hover:bg-accent hover:border-muted-foreground/20",
+                          : "border-border/60 hover:bg-accent/50 hover:border-muted-foreground/30",
                       )}
                       onClick={() => setFormCardType(ct.value)}
                     >
@@ -1637,12 +1661,12 @@ export function FinanceAccounts() {
             )}
 
             {formType === "crypto" && (
-              <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500/10 text-amber-600">
+              <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-2.5 pb-2 border-b border-border/40">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
                     <Coins className="h-3.5 w-3.5" />
                   </div>
-                  <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                  <span className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
                     Кошелёк
                   </span>
                 </div>
@@ -1661,12 +1685,12 @@ export function FinanceAccounts() {
             )}
 
             {(formType === "investment" || formType === "savings") && (
-              <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-500/10 text-rose-600">
+              <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-2.5 pb-2 border-b border-border/40">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600">
                     <Percent className="h-3.5 w-3.5" />
                   </div>
-                  <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                  <span className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
                     Условия
                   </span>
                 </div>
@@ -1704,7 +1728,9 @@ export function FinanceAccounts() {
                     onValueChange={(v) => v && setFormInterestPeriod(v)}
                   >
                     <SelectTrigger className="h-9">
-                      <SelectValue />
+                      <SelectValue>
+                        {INTEREST_PERIOD_LABELS[formInterestPeriod] || "Ежемесячно"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="daily">Ежедневно</SelectItem>
@@ -1717,13 +1743,13 @@ export function FinanceAccounts() {
                   </Select>
                 </div>
                 {formType === "investment" && (
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-3 cursor-pointer group p-2.5 rounded-lg border border-border/40 hover:bg-accent/30 transition-colors">
                     <div
                       className={cn(
-                        "flex h-5 w-5 items-center justify-center rounded border border-input transition-colors",
+                        "flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200",
                         formReinvest
-                          ? "bg-primary border-primary"
-                          : "group-hover:border-muted-foreground/40",
+                          ? "bg-primary border-primary shadow-sm"
+                          : "border-border/60 group-hover:border-muted-foreground/50",
                       )}
                     >
                       {formReinvest && (
@@ -1738,13 +1764,13 @@ export function FinanceAccounts() {
                     </div>
                   </label>
                 )}
-                <label className="flex items-center gap-3 cursor-pointer group">
+                <label className="flex items-center gap-3 cursor-pointer group p-2.5 rounded-lg border border-border/40 hover:bg-accent/30 transition-colors">
                   <div
                     className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded border border-input transition-colors",
+                      "flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200",
                       formCapitalize
-                        ? "bg-primary border-primary"
-                        : "group-hover:border-muted-foreground/40",
+                        ? "bg-primary border-primary shadow-sm"
+                        : "border-border/60 group-hover:border-muted-foreground/50",
                     )}
                   >
                     {formCapitalize && (
@@ -1804,12 +1830,12 @@ export function FinanceAccounts() {
             )}
 
             {/* Баланс и валюта */}
-            <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3">
-              <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600">
+            <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm p-4 space-y-3">
+              <div className="flex items-center gap-2.5 pb-2 border-b border-border/40">
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
                   <DollarSign className="h-3.5 w-3.5" />
                 </div>
-                <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                <span className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
                   Баланс и валюта
                 </span>
               </div>
@@ -1821,7 +1847,7 @@ export function FinanceAccounts() {
                     value={formBalance}
                     onChange={(e) => setFormBalance(e.target.value)}
                     placeholder="0"
-                    className="h-9 text-base font-semibold tabular-nums"
+                    className="h-10 text-base font-semibold tabular-nums bg-background/60"
                   />
                 </div>
                 <div className="col-span-2 space-y-1.5">
@@ -1836,44 +1862,35 @@ export function FinanceAccounts() {
               </div>
             </div>
 
-            {/* Ссылка */}
-            <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3">
-              <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-sky-500/10 text-sky-600">
+            {/* Дополнительно: ссылка и заметки */}
+            <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm p-4 space-y-3">
+              <div className="flex items-center gap-2.5 pb-2 border-b border-border/40">
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-muted-foreground/10 text-muted-foreground">
                   <Link2 className="h-3.5 w-3.5" />
                 </div>
-                <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
-                  Ссылка
+                <span className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
+                  Дополнительно
                 </span>
               </div>
-              <Input
-                value={formUrl}
-                onChange={(e) => setFormUrl(e.target.value)}
-                placeholder="https://example.com/reference"
-                className="h-9 text-xs"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Ссылка на оригинал счёта, скачанную выписку или заметку
-              </p>
-            </div>
-
-            {/* Заметки (для всех, кроме депозитов) */}
-            <div className="rounded-xl border bg-card shadow-xs p-4 space-y-3">
-              <div className="flex items-center gap-2.5 pb-1 border-b border-border/50">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted-foreground/10 text-muted-foreground">
-                  <FileText className="h-3.5 w-3.5" />
-                </div>
-                <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
-                  Заметки
-                </span>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Ссылка</Label>
+                <Input
+                  value={formUrl}
+                  onChange={(e) => setFormUrl(e.target.value)}
+                  placeholder="https://example.com/reference"
+                  className="h-9 text-xs"
+                />
               </div>
-              <Textarea
-                value={formNotes}
-                onChange={(e) => setFormNotes(e.target.value)}
-                placeholder="Дополнительная информация по счёту..."
-                rows={2}
-                className="resize-none"
-              />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Заметки</Label>
+                <Textarea
+                  value={formNotes}
+                  onChange={(e) => setFormNotes(e.target.value)}
+                  placeholder="Дополнительная информация по счёту..."
+                  rows={2}
+                  className="resize-none"
+                />
+              </div>
             </div>
           </div>
 
