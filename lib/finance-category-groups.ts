@@ -341,6 +341,11 @@ export const getCategoryGroup = (
 ): CategoryGroup => {
   for (const group of CATEGORY_GROUPS) {
     for (const c of group.categories) {
+      if (c.name === catName && (!catType || c.type === catType)) return group;
+    }
+  }
+  for (const group of CATEGORY_GROUPS) {
+    for (const c of group.categories) {
       if (c.name === catName) return group;
     }
   }
