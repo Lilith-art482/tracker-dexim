@@ -105,8 +105,11 @@ export function FinanceRecurring() {
   const [formIsActive, setFormIsActive] = useState(true);
 
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
-  const categoryMap = new Map(categories.map((c) => [c.id, c]));
-  const filteredCategories = categories.filter((c) => c.type === formType);
+  const activeCategories = categories.filter((c) => !c.isArchived);
+  const categoryMap = new Map(activeCategories.map((c) => [c.id, c]));
+  const filteredCategories = activeCategories.filter(
+    (c) => c.type === formType,
+  );
 
   useEffect(() => {
     if (!formAccountId && accounts.length > 0) {

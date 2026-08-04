@@ -261,11 +261,16 @@ export function FinanceTransactions() {
     today,
   ]);
 
+  const activeCategories = useMemo(
+    () => categories.filter((c) => !c.isArchived),
+    [categories],
+  );
+
   const categoryMap = useMemo(() => {
     const map: Record<string, TransactionCategory> = {};
-    for (const c of categories) map[c.id] = c;
+    for (const c of activeCategories) map[c.id] = c;
     return map;
-  }, [categories]);
+  }, [activeCategories]);
 
   const accountMap = useMemo(() => {
     const map: Record<string, FinanceAccount> = {};
@@ -274,12 +279,12 @@ export function FinanceTransactions() {
   }, [accounts]);
 
   const incomeCategories = useMemo(
-    () => categories.filter((c) => c.type === "income"),
-    [categories],
+    () => activeCategories.filter((c) => c.type === "income"),
+    [activeCategories],
   );
   const expenseCategories = useMemo(
-    () => categories.filter((c) => c.type === "expense"),
-    [categories],
+    () => activeCategories.filter((c) => c.type === "expense"),
+    [activeCategories],
   );
 
   const selectedCategories = useMemo(() => {
@@ -684,7 +689,7 @@ export function FinanceTransactions() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все</SelectItem>
-                  {categories
+                  {activeCategories
                     .filter((c) => c.type === typeFilter)
                     .map((c) => (
                       <SelectItem key={c.id} value={c.id}>

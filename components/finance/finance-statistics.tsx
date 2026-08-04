@@ -305,7 +305,7 @@ export function FinanceStatistics() {
 
   const categoryMap = useMemo(() => {
     const map = new Map<string, TransactionCategory>();
-    for (const cat of categories) {
+    for (const cat of categories.filter((c) => !c.isArchived)) {
       map.set(cat.id, cat);
     }
     return map;
@@ -367,6 +367,8 @@ export function FinanceStatistics() {
     const byCategory = new Map<string, { amount: number; count: number }>();
 
     for (const tx of expenseTxns) {
+      const cat = categoryMap.get(tx.categoryId);
+      if (!cat) continue;
       const existing = byCategory.get(tx.categoryId) || {
         amount: 0,
         count: 0,

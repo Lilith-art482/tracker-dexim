@@ -149,8 +149,10 @@ export function QrScannerDialog({
     }
   };
 
-  const filteredCategories = categories.filter((c) =>
-    txType === "income" ? c.type === "income" : c.type === "expense",
+  const filteredCategories = categories.filter(
+    (c) =>
+      !c.isArchived &&
+      (txType === "income" ? c.type === "income" : c.type === "expense"),
   );
 
   return (

@@ -136,7 +136,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -854,7 +854,8 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
     setCatType("expense");
     setColor("blue");
     setIcon("MoreHorizontal");
-  }, [name, catType, color, icon, editingCat, uid]);
+    setShowInBudget(true);
+  }, [name, catType, color, icon, editingCat, uid, showInBudget]);
 
   const handleTogglePin = useCallback(async (cat: TransactionCategory) => {
     const next = !cat.isPinned;
@@ -1545,16 +1546,49 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
               </div>
             </div>
 
-            <label className="flex items-center gap-2.5 cursor-pointer group">
-              <Checkbox
-                checked={showInBudget}
-                onCheckedChange={(v) => setShowInBudget(!!v)}
-                className="h-4 w-4"
-              />
-              <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-                Отображать в планировании бюджета
-              </span>
-            </label>
+            <div
+              className={cn(
+                "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-200",
+                showInBudget
+                  ? "border-primary/50 bg-primary/5 shadow-sm"
+                  : "border-border hover:border-muted-foreground/30 bg-background",
+              )}
+              onClick={() => setShowInBudget(!showInBudget)}
+            >
+              <div
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200",
+                  showInBudget
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground",
+                )}
+              >
+                <Target className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p
+                  className={cn(
+                    "text-sm font-medium transition-colors",
+                    showInBudget ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  В планировании бюджета
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  {showInBudget
+                    ? "Категория видна в плане расходов"
+                    : "Не учитывается в бюджете"}
+                </p>
+              </div>
+              <div
+                className={cn(
+                  "h-5 w-9 rounded-full flex items-center px-0.5 transition-all duration-200 shrink-0",
+                  showInBudget ? "bg-primary justify-end" : "bg-muted justify-start",
+                )}
+              >
+                <div className="h-4 w-4 rounded-full bg-white shadow-sm" />
+              </div>
+            </div>
 
             <div>
               <label className="text-sm font-medium mb-2 block">Иконка</label>

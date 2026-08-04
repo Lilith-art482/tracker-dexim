@@ -301,7 +301,7 @@ export function FinanceDashboard({
         (t.categoryId === "fin-cat-3" || t.categoryId === "fin-cat-6"),
     )
     .reduce((s, t) => s + t.amount, 0);
-  const freeMoney = periodIncome - periodExpenses - periodObligations;
+  const freeMoney = periodIncome - periodExpenses;
 
   const incomeDelta =
     prevPeriodIncome > 0
@@ -408,12 +408,18 @@ export function FinanceDashboard({
     const typeTxns = catTxns.filter((t) => t.type === catType);
     const byCategory = new Map<string, { amount: number; count: number }>();
     for (const tx of typeTxns) {
+      const cat = categoryMap.get(tx.categoryId);
+      if (cat?.isArchived) continue;
       const e = byCategory.get(tx.categoryId) || { amount: 0, count: 0 };
       e.amount += tx.amount;
       e.count += 1;
       byCategory.set(tx.categoryId, e);
     }
-    const total = typeTxns.reduce((s, t) => s + t.amount, 0);
+    const total = typeTxns.reduce((s, t) => {
+      const cat = categoryMap.get(t.categoryId);
+      if (cat?.isArchived) return s;
+      return s + t.amount;
+    }, 0);
     return Array.from(byCategory.entries())
       .map(([id, { amount, count }]) => {
         const cat = categoryMap.get(id);
@@ -539,9 +545,10 @@ export function FinanceDashboard({
 
   const budgetLoad = useMemo(() => {
     if (!budget || !budget.categoryBudgets.length) return null;
-    const activeCatBudgets = budget.categoryBudgets.filter((cb) =>
-      categoryMap.has(cb.categoryId),
-    );
+    const activeCatBudgets = budget.categoryBudgets.filter((cb) => {
+      const cat = categoryMap.get(cb.categoryId);
+      return cat && !cat.isArchived;
+    });
     if (!activeCatBudgets.length) return null;
     const totalLimit = activeCatBudgets.reduce((s, cb) => s + cb.limit, 0);
     const categories = activeCatBudgets.map((cb) => {
@@ -890,6 +897,10 @@ export function FinanceDashboard({
               ) : (
                 <div>
                   {transactions
+                    .filter((tx) => {
+                      const cat = categoryMap.get(tx.categoryId);
+                      return !cat?.isArchived;
+                    })
                     .sort((a, b) => (a.date < b.date ? 1 : -1))
                     .slice(0, 10)
                     .map((tx, i) => {

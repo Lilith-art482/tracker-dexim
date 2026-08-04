@@ -183,7 +183,9 @@ export function FinanceShopping() {
     localStorage.setItem("shopping_hint_closed", "true");
   };
 
-  const expenseCategories = categories.filter((c) => c.type === "expense");
+  const expenseCategories = categories.filter(
+    (c) => c.type === "expense" && !c.isArchived,
+  );
 
   const fetchData = useCallback(async () => {
     if (!uid) return;

@@ -43,7 +43,9 @@ export function CategorySearchSelect({
   );
 
   const filtered = useMemo(() => {
-    const filteredByType = categories.filter((c) => c.type === type);
+    const filteredByType = categories.filter(
+      (c) => c.type === type && !c.isArchived,
+    );
     if (!search.trim()) return filteredByType;
     const q = search.toLowerCase();
     return filteredByType.filter((c) => c.name.toLowerCase().includes(q));

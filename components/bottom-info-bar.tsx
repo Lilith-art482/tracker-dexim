@@ -1374,7 +1374,7 @@ export function BottomInfoBar() {
               align="end"
               side="top"
               sideOffset={8}
-              className="w-[320px] p-0 max-h-[70vh] overflow-y-auto scrollbar-none"
+              className="w-[360px] p-0 max-h-[80vh] overflow-y-auto"
             >
               <MarketsWidget />
             </PopoverContent>

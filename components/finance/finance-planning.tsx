@@ -33,6 +33,7 @@ import {
   getTransactionsByUser,
   getCategoriesByUser,
   getLoansByUser,
+  deleteCategory,
 } from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -130,6 +131,33 @@ export function FinancePlanning() {
     {},
   );
 
+  const handleDeleteCategory = useCallback(async (catId: string) => {
+    const cat = categories.find((c) => c.id === catId);
+    if (!cat) return;
+    toast("Удалить категорию?", {
+      description: `${cat.name} будет удалена навсегда`,
+      action: {
+        label: "Удалить",
+        onClick: async () => {
+          const id = toast.loading("Удаляем...");
+          try {
+            await deleteCategory(catId);
+            setCategories((prev) => prev.filter((c) => c.id !== catId));
+            setCategoryLimits((prev) => {
+              const next = { ...prev };
+              delete next[catId];
+              return next;
+            });
+            toast.success("Категория удалена", { id });
+          } catch {
+            toast.error("Ошибка при удалении", { id });
+          }
+        },
+      },
+      cancel: { label: "Отмена", onClick: () => {} },
+    });
+  }, [categories]);
+
   const { periodStart, periodEnd } = useMemo(
     () => getPeriodRange(period),
     [period],
@@ -195,7 +223,10 @@ export function FinancePlanning() {
   }, [fetchData]);
 
   const expenseCategories = useMemo(
-    () => categories.filter((c) => c.type === "expense"),
+    () =>
+      categories.filter(
+        (c) => c.type === "expense" && !c.isArchived && c.showInBudget !== false,
+      ),
     [categories],
   );
 
@@ -555,23 +586,31 @@ export function FinancePlanning() {
                           {cat.name}
                         </span>
                       </div>
-                      {isDanger && (
-                        <Badge
-                          variant="destructive"
-                          className="text-[10px] px-1 py-0 h-5 shrink-0"
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isDanger && (
+                          <Badge
+                            variant="destructive"
+                            className="text-[10px] px-1 py-0 h-5"
+                          >
+                            <AlertTriangle className="h-3 w-3 mr-0.5" />
+                            {Math.round(pct)}%
+                          </Badge>
+                        )}
+                        {isWarning && !isDanger && (
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] px-1.5 py-0 h-5 bg-amber-500/10 text-amber-600 border-amber-500/20"
+                          >
+                            {Math.round(pct)}%
+                          </Badge>
+                        )}
+                        <button
+                          onClick={() => handleDeleteCategory(cat.id)}
+                          className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
                         >
-                          <AlertTriangle className="h-3 w-3 mr-0.5" />
-                          {Math.round(pct)}%
-                        </Badge>
-                      )}
-                      {isWarning && !isDanger && (
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px] px-1.5 py-0 h-5 shrink-0 bg-amber-500/10 text-amber-600 border-amber-500/20"
-                        >
-                          {Math.round(pct)}%
-                        </Badge>
-                      )}
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">

@@ -2535,8 +2535,9 @@ export function FinanceAccounts() {
                     {categories
                       .filter(
                         (c) =>
+                          !c.isArchived &&
                           c.type ===
-                          (quickType === "add" ? "income" : "expense"),
+                            (quickType === "add" ? "income" : "expense"),
                       )
                       .map((c) => (
                         <SelectItem key={c.id} value={c.id}>
