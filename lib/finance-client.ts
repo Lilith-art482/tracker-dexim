@@ -331,32 +331,6 @@ export async function updateTransaction(
 
 export async function deleteTransaction(id: string): Promise<void> {
   const ref = doc(transactionsCol(), id);
-  const snap = await getDoc(ref);
-  if (snap.exists()) {
-    const tx = toPlain<Transaction>(snap);
-    const rates = await resolveRates();
-
-    const accSnap = await getDoc(doc(accountsCol(), tx.accountId));
-    const acc = accSnap.exists() ? toPlain<FinanceAccount>(accSnap) : null;
-    const accCurrency = acc?.currency || "RUB";
-    const txCurrency = tx.currency || accCurrency;
-    const converted =
-      tx.type === "income" || tx.type === "expense"
-        ? convertAmount(tx.amount, txCurrency, accCurrency, rates)
-        : 0;
-    const delta = tx.type === "income" ? -converted : converted;
-
-    if (delta !== 0 && acc) {
-      await updateDoc(
-        doc(accountsCol(), tx.accountId),
-        clean(computeAccountUpdate(acc, acc.balance + delta, rates)),
-      );
-    }
-
-    const goalDelta =
-      tx.type === "income" ? -tx.amount : tx.type === "expense" ? tx.amount : 0;
-    await applyGoalDelta(tx.userId, tx.categoryId, goalDelta);
-  }
   await deleteDoc(ref);
 }
 
