@@ -64,6 +64,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { CategorySearchSelect } from "@/components/finance/category-search-select";
 
 type DateFilter = "all" | "today" | "week" | "month" | "custom";
 
@@ -163,10 +164,6 @@ export function FinanceTransactions() {
   const [txDescription, setTxDescription] = useState("");
   const [txTags, setTxTags] = useState("");
   const [saving, setSaving] = useState(false);
-
-  const [newCatOpen, setNewCatOpen] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatSaving, setNewCatSaving] = useState(false);
 
   const uid = auth.currentUser?.uid || "user-1";
 
@@ -661,18 +658,33 @@ export function FinanceTransactions() {
                 value={categoryFilter}
                 onValueChange={(v) => v && setCategoryFilter(v)}
               >
-                <SelectTrigger className="h-7 text-xs w-[130px]">
+                <SelectTrigger className="h-7 text-xs w-[150px]">
                   <SelectValue placeholder="Категория" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все</SelectItem>
                   {activeCategories
                     .filter((c) => c.type === typeFilter)
-                    .map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
+                    .map((c) => {
+                      const Icon = c.icon ? getFinanceIcon(c.icon) : null;
+                      return (
+                        <SelectItem key={c.id} value={c.id}>
+                          <span className="flex items-center gap-2">
+                            {Icon && (
+                              <Icon
+                                className="h-3.5 w-3.5 shrink-0"
+                                style={
+                                  c.color
+                                    ? { color: c.color }
+                                    : undefined
+                                }
+                              />
+                            )}
+                            {c.name}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
             )}
@@ -990,93 +1002,13 @@ export function FinanceTransactions() {
 
             {txType !== "transfer" && (
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Категория</Label>
-                  {!newCatOpen && selectedCategories.length > 0 && (
-                    <button
-                      className="text-xs text-primary hover:underline"
-                      onClick={() => setNewCatOpen(true)}
-                    >
-                      + Новая
-                    </button>
-                  )}
-                </div>
-                {newCatOpen ? (
-                  <div className="flex gap-2">
-                    <Input
-                      value={newCatName}
-                      onChange={(e) => setNewCatName(e.target.value)}
-                      placeholder="Название категории"
-                      className="h-9 text-xs"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-9 text-xs shrink-0"
-                      disabled={!newCatName.trim() || newCatSaving}
-                      onClick={async () => {
-                        if (!newCatName.trim()) return;
-                        setNewCatSaving(true);
-                        try {
-                          const created = await createCategory({
-                            userId: uid,
-                            name: newCatName.trim(),
-                            icon: "MoreHorizontal",
-                            type: txType,
-                            color: "blue",
-                          });
-                          setCategories((prev) => [...prev, created]);
-                          setTxCategoryId(created.id);
-                          setNewCatName("");
-                          setNewCatOpen(false);
-                          toast.success("Категория создана");
-                        } catch {
-                          toast.error("Ошибка создания категории");
-                        } finally {
-                          setNewCatSaving(false);
-                        }
-                      }}
-                    >
-                      {newCatSaving ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        "ОК"
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-9 w-9 shrink-0"
-                      onClick={() => {
-                        setNewCatOpen(false);
-                        setNewCatName("");
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <Select
-                    value={txCategoryId}
-                    onValueChange={(v) => v && setTxCategoryId(v)}
-                  >
-                    <SelectTrigger className="w-full h-9">
-                      <SelectValue placeholder="Выберите категорию" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedCategories.length === 0 && (
-                        <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-                          Нет категорий. Нажмите «+ Новая» чтобы создать
-                        </div>
-                      )}
-                      {selectedCategories.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <Label className="text-xs">Категория</Label>
+                <CategorySearchSelect
+                  categories={activeCategories}
+                  type={txType}
+                  value={txCategoryId}
+                  onChange={setTxCategoryId}
+                />
               </div>
             )}
 
@@ -1256,58 +1188,47 @@ export function FinanceTransactions() {
             {txType !== "transfer" && (
               <div className="space-y-1.5">
                 <Label className="text-xs">Категория</Label>
-                <Select
+                <CategorySearchSelect
+                  categories={activeCategories}
+                  type={txType}
                   value={txCategoryId}
-                  onValueChange={(v) => v && setTxCategoryId(v)}
-                >
-                  <SelectTrigger className="w-full h-9">
-                    <SelectValue placeholder="Выберите категорию" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedCategories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={setTxCategoryId}
+                />
               </div>
             )}
 
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <Label className="text-xs">Сумма</Label>
-                <Select
-                  value={txCurrency || getDisplayCurrency()}
-                  onValueChange={(v) => v && setTxCurrency(v)}
-                >
-                  <SelectTrigger className="h-7 w-[100px] text-[11px] font-medium">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      getDisplayCurrency(),
-                      ...new Set(accounts.map((a) => a.currency)),
-                    ].map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {getCurrencySymbol(c)} {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {txAccountId &&
-                  (() => {
-                    const selAcc = accounts.find((a) => a.id === txAccountId);
-                    if (!selAcc) return null;
-                    const cur = txCurrency || getDisplayCurrency();
-                    if (selAcc.currency === cur) return null;
-                    return (
-                      <span className="text-[10px] text-muted-foreground/60">
-                        → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
-                      </span>
-                    );
-                  })()}
-              </div>
+              <Label className="text-xs">Сумма</Label>
+              <Select
+                value={txCurrency || getDisplayCurrency()}
+                onValueChange={(v) => v && setTxCurrency(v)}
+              >
+                <SelectTrigger className="h-7 w-[100px] text-[11px] font-medium">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    getDisplayCurrency(),
+                    ...new Set(accounts.map((a) => a.currency)),
+                  ].map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {getCurrencySymbol(c)} {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {txAccountId &&
+                (() => {
+                  const selAcc = accounts.find((a) => a.id === txAccountId);
+                  if (!selAcc) return null;
+                  const cur = txCurrency || getDisplayCurrency();
+                  if (selAcc.currency === cur) return null;
+                  return (
+                    <span className="text-[10px] text-muted-foreground/60">
+                      → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
+                    </span>
+                  );
+                })()}
               <div className="relative">
                 <Input
                   type="number"

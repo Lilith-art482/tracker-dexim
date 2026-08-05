@@ -27,6 +27,7 @@ import type {
   TransactionType,
 } from "@/lib/finance-types";
 import { createTransaction } from "@/lib/finance-client";
+import { CategorySearchSelect } from "@/components/finance/category-search-select";
 
 function parseQRData(text: string): { amount: number; date: string } | null {
   const params = new URLSearchParams(text);
@@ -148,12 +149,6 @@ export function QrScannerDialog({
       setSaving(false);
     }
   };
-
-  const filteredCategories = categories.filter(
-    (c) =>
-      !c.isArchived &&
-      (txType === "income" ? c.type === "income" : c.type === "expense"),
-  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -285,24 +280,12 @@ export function QrScannerDialog({
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Категория</Label>
-                <Select
+                <CategorySearchSelect
+                  categories={categories}
+                  type={txType === "income" ? "income" : "expense"}
                   value={txCategoryId}
-                  onValueChange={(v) => v && setTxCategoryId(v)}
-                >
-                  <SelectTrigger className="w-full h-9">
-                    <SelectValue placeholder="Выберите категорию" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredCategories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        <span className="flex items-center gap-2">
-                          <span className="text-base">{c.icon}</span>
-                          {c.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={setTxCategoryId}
+                />
               </div>
 
               <div className="space-y-1.5">

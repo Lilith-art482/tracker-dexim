@@ -80,6 +80,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getFinanceIcon } from "@/lib/finance-icons";
+import { CategorySearchSelect } from "@/components/finance/category-search-select";
 
 const PRIORITY_LABELS: Record<string, string> = {
   high: "Высокий",
@@ -955,30 +956,23 @@ export function FinanceGoals() {
                   <Info className="h-3.5 w-3.5" />
                 </button>
               </label>
-              <Select
-                value={formCategoryId || "__none__"}
-                onValueChange={(v) =>
-                  setFormCategoryId(v === "__none__" || !v ? "" : v)
-                }
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Без категории" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Без категории</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <span className="flex items-center gap-2">
-                        {createElement(getFinanceIcon(cat.icon), {
-                          className: "h-4 w-4",
-                          style: cat.color ? { color: cat.color } : undefined,
-                        })}
-                        {cat.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <CategorySearchSelect
+                  categories={categories}
+                  type="expense"
+                  value={formCategoryId}
+                  onChange={setFormCategoryId}
+                />
+                {formCategoryId && (
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setFormCategoryId("")}
+                  >
+                    Убрать категорию
+                  </button>
+                )}
+              </div>
               {showCategoryHint && (
                 <p className="text-xs text-muted-foreground leading-relaxed rounded-lg bg-muted/50 px-3 py-2">
                   Привяжите категорию расходов или доходов из раздела

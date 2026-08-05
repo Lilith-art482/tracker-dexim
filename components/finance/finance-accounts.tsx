@@ -113,6 +113,7 @@ import {
   updateLoan as updateLoanModel,
 } from "@/lib/finance-client";
 import { toast } from "sonner";
+import { CategorySearchSelect } from "@/components/finance/category-search-select";
 
 type AccountType = FinanceAccount["type"];
 const CARD_TYPES = [
@@ -381,15 +382,12 @@ export function FinanceAccounts() {
   const [quickLoanId, setQuickLoanId] = useState("");
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [loans, setLoans] = useState<LoanType[]>([]);
-  const [newCatOpen, setNewCatOpen] = useState(false);
   const [filterMin, setFilterMin] = useState("");
   const [filterMax, setFilterMax] = useState("");
   const [sortBalance, setSortBalance] = useState<"none" | "asc" | "desc">(
     "none",
   );
   const [showFilters, setShowFilters] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatSaving, setNewCatSaving] = useState(false);
 
   // New loan creation fields (shown when quickLinkLoan is on for income)
   const [newLoanName, setNewLoanName] = useState("");
@@ -2467,86 +2465,13 @@ export function FinanceAccounts() {
             </div>
 
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Категория</Label>
-                {!newCatOpen && (
-                  <button
-                    className="text-xs text-primary hover:underline"
-                    onClick={() => setNewCatOpen(true)}
-                  >
-                    + Новая
-                  </button>
-                )}
-              </div>
-              {newCatOpen ? (
-                <div className="flex gap-2">
-                  <Input
-                    value={newCatName}
-                    onChange={(e) => setNewCatName(e.target.value)}
-                    placeholder="Название категории"
-                    className="h-7 text-xs"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs shrink-0"
-                    disabled={!newCatName.trim() || newCatSaving}
-                    onClick={async () => {
-                      if (!newCatName.trim()) return;
-                      setNewCatSaving(true);
-                      try {
-                        const created = await createCategory({
-                          userId: uid,
-                          name: newCatName.trim(),
-                          icon:
-                            quickType === "add"
-                              ? "trending-up"
-                              : "trending-down",
-                          type: quickType === "add" ? "income" : "expense",
-                          color: quickType === "add" ? "emerald" : "rose",
-                        });
-                        setCategories((prev) => [...prev, created]);
-                        setQuickCategoryId(created.id);
-                        setNewCatName("");
-                        setNewCatOpen(false);
-                      } catch {
-                        toast.error("Ошибка создания категории");
-                      } finally {
-                        setNewCatSaving(false);
-                      }
-                    }}
-                  >
-                    {newCatSaving ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      "ОК"
-                    )}
-                  </Button>
-                </div>
-              ) : (
-                <Select
-                  value={quickCategoryId}
-                  onValueChange={(v) => v && setQuickCategoryId(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите категорию" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories
-                      .filter(
-                        (c) =>
-                          !c.isArchived &&
-                          c.type ===
-                            (quickType === "add" ? "income" : "expense"),
-                      )
-                      .map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Label className="text-xs">Категория</Label>
+              <CategorySearchSelect
+                categories={categories}
+                type={quickType === "add" ? "income" : "expense"}
+                value={quickCategoryId}
+                onChange={setQuickCategoryId}
+              />
             </div>
 
             <div className="space-y-1.5">
