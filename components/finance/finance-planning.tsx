@@ -266,9 +266,13 @@ export function FinancePlanning() {
   const elapsedDays = getDaysElapsed(periodStart);
   const dailyAvg = elapsedDays > 0 ? totalSpent / elapsedDays : 0;
   const projectedTotal = Math.max(dailyAvg * periodDays, totalPlanned);
-  const totalBalance = accounts.reduce(
-    (s, a) => s + convertToRUB(a.balance, a.currency, usdtRate),
-    0,
+  const totalBalance = useMemo(
+    () =>
+      accounts.reduce(
+        (s, a) => s + convertToRUB(a.balance, a.currency, usdtRate),
+        0,
+      ),
+    [accounts, usdtRate],
   );
   const income = parseFloat(expectedIncome) || totalBalance;
   const totalLoanDebt = loans.reduce((s, l) => s + l.remainingAmount, 0);
@@ -502,7 +506,7 @@ export function FinancePlanning() {
         <div
           className={cn(
             "rounded-xl border p-4",
-            totalPlanned - totalSpent >= 0
+            income - totalSpent >= 0
               ? "bg-gradient-to-br from-emerald-50/60 to-transparent dark:from-emerald-950/20"
               : "bg-gradient-to-br from-rose-50/60 to-transparent dark:from-rose-950/20",
           )}
@@ -511,34 +515,73 @@ export function FinancePlanning() {
             <span
               className={cn(
                 "text-[11px] font-semibold uppercase tracking-wider",
-                totalPlanned - totalSpent >= 0
+                income - totalSpent >= 0
                   ? "text-emerald-600 dark:text-emerald-400"
                   : "text-rose-600 dark:text-rose-400",
               )}
             >
-              Остаток бюджета
+              Можно потратить
             </span>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </div>
           <div
             className={cn(
               "text-2xl font-bold tabular-nums mb-1",
-              totalPlanned - totalSpent >= 0
-                ? "text-emerald-600"
-                : "text-rose-600",
+              income - totalSpent >= 0 ? "text-emerald-600" : "text-rose-600",
             )}
           >
-            {(totalPlanned - totalSpent).toLocaleString()} ₽
+            {(income - totalSpent).toLocaleString()} ₽
           </div>
           <p
             className={cn(
               "text-xs",
-              totalPlanned - totalSpent >= 0
+              income - totalSpent >= 0
                 ? "text-emerald-600/70"
                 : "text-rose-600/70",
             )}
           >
-            {totalPlanned - totalSpent >= 0 ? "Можно потратить" : "Перерасход"}
+            Доход минус расходы за период
+          </p>
+        </div>
+
+        <div
+          className={cn(
+            "rounded-xl border p-4",
+            projectedRemaining >= 0
+              ? "bg-gradient-to-br from-violet-50/60 to-transparent dark:from-violet-950/20"
+              : "bg-gradient-to-br from-rose-50/60 to-transparent dark:from-rose-950/20",
+          )}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span
+              className={cn(
+                "text-[11px] font-semibold uppercase tracking-wider",
+                projectedRemaining >= 0
+                  ? "text-violet-600 dark:text-violet-400"
+                  : "text-rose-600 dark:text-rose-400",
+              )}
+            >
+              Остаток на конец периода
+            </span>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div
+            className={cn(
+              "text-2xl font-bold tabular-nums mb-1",
+              projectedRemaining >= 0 ? "text-violet-600" : "text-rose-600",
+            )}
+          >
+            {projectedRemaining.toLocaleString()} ₽
+          </div>
+          <p
+            className={cn(
+              "text-xs",
+              projectedRemaining >= 0
+                ? "text-violet-600/70"
+                : "text-rose-600/70",
+            )}
+          >
+            Прогноз: доход − плановые расходы
           </p>
         </div>
       </div>

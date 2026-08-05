@@ -228,7 +228,9 @@ export function QrScannerDialog({
                   onValueChange={(v) => v && setTxAccountId(v)}
                 >
                   <SelectTrigger className="w-full h-9">
-                    <SelectValue placeholder="Выберите счёт" />
+                    <SelectValue placeholder="Выберите счёт">
+                      {accounts.find((a) => a.id === txAccountId)?.name}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {accounts.map((a) => (

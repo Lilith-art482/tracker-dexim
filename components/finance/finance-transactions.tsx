@@ -689,13 +689,17 @@ export function FinanceTransactions() {
               </Select>
             )}
 
-            <Select
-              value={accountFilter}
-              onValueChange={(v) => v && setAccountFilter(v)}
-            >
-              <SelectTrigger className="h-7 text-xs w-[130px]">
-                <SelectValue placeholder="Счёт" />
-              </SelectTrigger>
+              <Select
+                value={accountFilter}
+                onValueChange={(v) => v && setAccountFilter(v)}
+              >
+                <SelectTrigger className="h-7 text-xs w-[130px]">
+                  <SelectValue placeholder="Счёт">
+                    {accountFilter === "all"
+                      ? "Все"
+                      : accounts.find((a) => a.id === accountFilter)?.name}
+                  </SelectValue>
+                </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все</SelectItem>
                 {accounts.map((a) => (
@@ -980,7 +984,9 @@ export function FinanceTransactions() {
                 onValueChange={(v) => v && setTxAccountId(v)}
               >
                 <SelectTrigger className="w-full h-9">
-                  <SelectValue placeholder="Выберите счёт" />
+                  <SelectValue placeholder="Выберите счёт">
+                    {accounts.find((a) => a.id === txAccountId)?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {accounts.length === 0 && (
@@ -1173,7 +1179,9 @@ export function FinanceTransactions() {
                 onValueChange={(v) => v && setTxAccountId(v)}
               >
                 <SelectTrigger className="w-full h-9">
-                  <SelectValue placeholder="Выберите счёт" />
+                  <SelectValue placeholder="Выберите счёт">
+                    {accounts.find((a) => a.id === txAccountId)?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {accounts.map((a) => (
