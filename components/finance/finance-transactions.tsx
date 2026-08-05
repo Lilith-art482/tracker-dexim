@@ -434,32 +434,9 @@ export function FinanceTransactions() {
   };
 
   const handleDelete = async (id: string) => {
-    const tx = transactions.find((t) => t.id === id);
     try {
       await deleteTransaction(id);
       setTransactions((prev) => prev.filter((t) => t.id !== id));
-      if (tx) {
-        setAccounts((prev) =>
-          prev.map((a) => {
-            if (a.id !== tx!.accountId) return a;
-            const txCur = tx!.currency || getDisplayCurrency();
-            let delta =
-              tx!.type === "income"
-                ? tx!.amount
-                : tx!.type === "expense"
-                  ? -tx!.amount
-                  : 0;
-            if (txCur !== a.currency) {
-              const rates = getCachedRates();
-              if (rates)
-                delta =
-                  convert(tx!.amount, txCur, a.currency, rates) *
-                  (tx!.type === "expense" ? -1 : 1);
-            }
-            return { ...a, balance: a.balance - delta };
-          }),
-        );
-      }
       setSelectedIds((prev) => {
         const next = new Set(prev);
         next.delete(id);

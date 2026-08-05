@@ -409,7 +409,7 @@ export function FinanceDashboard({
     const byCategory = new Map<string, { amount: number; count: number }>();
     for (const tx of typeTxns) {
       const cat = categoryMap.get(tx.categoryId);
-      if (cat?.isArchived) continue;
+      if (!cat || cat.isArchived) continue;
       const e = byCategory.get(tx.categoryId) || { amount: 0, count: 0 };
       e.amount += tx.amount;
       e.count += 1;
@@ -417,7 +417,7 @@ export function FinanceDashboard({
     }
     const total = typeTxns.reduce((s, t) => {
       const cat = categoryMap.get(t.categoryId);
-      if (cat?.isArchived) return s;
+      if (!cat || cat.isArchived) return s;
       return s + t.amount;
     }, 0);
     return Array.from(byCategory.entries())
@@ -899,7 +899,7 @@ export function FinanceDashboard({
                   {transactions
                     .filter((tx) => {
                       const cat = categoryMap.get(tx.categoryId);
-                      return !cat?.isArchived;
+                      return cat && !cat.isArchived;
                     })
                     .sort((a, b) => (a.date < b.date ? 1 : -1))
                     .slice(0, 10)
