@@ -914,46 +914,6 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
     [],
   );
 
-  const handleRestoreDefaults = useCallback(async () => {
-    const existingNames = new Set(categories.map((c) => c.name));
-    const toCreate: {
-      name: string;
-      icon: string;
-      color: string;
-      type: "expense" | "income";
-    }[] = [];
-    for (const group of CATEGORY_GROUPS) {
-      for (const preset of group.categories) {
-        if (!existingNames.has(preset.name)) {
-          toCreate.push({
-            name: preset.name,
-            icon: preset.icon,
-            color: preset.color,
-            type: preset.type,
-          });
-        }
-      }
-    }
-    if (toCreate.length === 0) {
-      toast.success("Все стандартные категории уже есть");
-      return;
-    }
-    const loadingId = toast.loading(
-      `Восстанавливаем ${toCreate.length} категорий...`,
-    );
-    try {
-      const created = await Promise.all(
-        toCreate.map((body) => createCategory({ ...body, userId: uid })),
-      );
-      setCategories((prev) => [...prev, ...created]);
-      toast.success(`Восстановлено ${created.length} категорий`, {
-        id: loadingId,
-      });
-    } catch {
-      toast.error("Ошибка при восстановлении", { id: loadingId });
-    }
-  }, [categories, uid]);
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -1331,15 +1291,6 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
                   </div>
                 )}
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-2"
-                  onClick={handleRestoreDefaults}
-                >
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                  Восстановить стандартные
-                </Button>
                 {categories.length > 0 && (
                   <Button
                     variant="outline"
