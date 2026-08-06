@@ -11,6 +11,9 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowRightLeft,
+  ArrowRight,
+  Clock,
+  Wallet,
   X,
   Search,
   Tags,
@@ -72,9 +75,23 @@ type DateFilter = "all" | "today" | "week" | "month" | "custom";
 
 const TYPE_LABELS: Record<TransactionType, string> = {
   income: "Доход",
-  expense: "Расход",
+  expense: "Списание",
   transfer: "Перевод",
 };
+
+const TAG_LABELS: Record<string, string> = {
+  withdrawal: "Снятие",
+  topup: "Пополнение",
+  transfer: "Перевод",
+  shopping: "Покупки",
+  emergency: "Резерв",
+  goal: "Цель",
+  "obligation-payment": "Платёж",
+};
+
+function formatTag(tag: string): string {
+  return TAG_LABELS[tag] ?? tag;
+}
 
 const FILTER_TYPE_OPTIONS = [
   { value: "all", label: "Все" },
@@ -279,6 +296,30 @@ export function FinanceTransactions() {
     for (const a of accounts) map[a.id] = a;
     return map;
   }, [accounts]);
+
+  const balanceHistory = useMemo(() => {
+    const map: Record<string, { before: number; after: number }> = {};
+    const byAccount: Record<string, Transaction[]> = {};
+    for (const tx of transactions) {
+      (byAccount[tx.accountId] ??= []).push(tx);
+    }
+    for (const [accId, txs] of Object.entries(byAccount)) {
+      const acc = accountMap[accId];
+      if (!acc) continue;
+      const sorted = [...txs].sort((a, b) => {
+        const cmp = a.date.localeCompare(b.date);
+        return cmp !== 0 ? cmp : a.createdAt.localeCompare(b.createdAt);
+      });
+      let after = acc.balance;
+      for (let i = sorted.length - 1; i >= 0; i--) {
+        const tx = sorted[i];
+        const delta = tx.type === "income" ? tx.amount : -tx.amount;
+        map[tx.id] = { before: after - delta, after };
+        after = after - delta;
+      }
+    }
+    return map;
+  }, [transactions, accountMap]);
 
   const incomeCategories = useMemo(
     () => activeCategories.filter((c) => c.type === "income"),
@@ -507,7 +548,7 @@ export function FinanceTransactions() {
         cat?.name || "",
         acc?.name || "",
         String(tx.amount),
-        tx.tags.join("; "),
+        tx.tags.map(formatTag).join("; "),
       ]);
     }
     const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
@@ -770,6 +811,9 @@ export function FinanceTransactions() {
                     const CatIcon = cat?.icon
                       ? getFinanceIcon(cat.icon)
                       : TypeIcon;
+                    const visibleTags = tx.tags.filter(
+                      (t) => t !== "withdrawal" && t !== "topup",
+                    );
                     return (
                       <div
                         key={tx.id}
@@ -780,22 +824,33 @@ export function FinanceTransactions() {
                         )}
                         onClick={() => openEdit(tx)}
                       >
-                        {/* Top row: icon, description, amount */}
-                        <div className="flex items-start gap-2.5">
+                        {/* Top row: icon, title + type badge, amount */}
+                        <div className="flex items-center gap-2.5">
                           <div
                             className={cn(
-                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
                               typeBg,
                             )}
                           >
                             <CatIcon className={cn("h-4 w-4", typeColor)} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium leading-tight truncate">
-                              {tx.description || cat?.name || "Без категории"}
-                            </p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-medium leading-tight truncate">
+                                {tx.description || cat?.name || "Без категории"}
+                              </p>
+                              <span
+                                className={cn(
+                                  "inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold",
+                                  typeBg,
+                                  typeColor,
+                                )}
+                              >
+                                {TYPE_LABELS[tx.type]}
+                              </span>
+                            </div>
                             {cat && tx.description && (
-                              <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                              <p className="text-[10px] text-muted-foreground/60 mt-0.5 truncate">
                                 {cat.name}
                               </p>
                             )}
@@ -803,7 +858,7 @@ export function FinanceTransactions() {
                           <div className="shrink-0 text-right">
                             <div
                               className={cn(
-                                "text-sm font-bold tabular-nums tracking-tight",
+                                "text-base font-bold tabular-nums tracking-tight",
                                 typeColor,
                               )}
                             >
@@ -844,45 +899,19 @@ export function FinanceTransactions() {
                           </div>
                         </div>
 
-                        {/* Bottom row: metadata */}
-                        <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground/60">
-                          <span className="tabular-nums">
+                        {/* Time + account */}
+                        <div className="flex items-center gap-1.5 mt-2 text-[11px] text-muted-foreground/70">
+                          <span className="inline-flex items-center gap-1 tabular-nums">
+                            <Clock className="h-3 w-3 opacity-50" />
                             {formatTime(tx.date)}
                           </span>
                           {acc && (
                             <>
-                              <span>·</span>
-                              <span className="truncate max-w-[80px]">
-                                {acc.name}
+                              <span className="opacity-40">·</span>
+                              <span className="inline-flex items-center gap-1 truncate max-w-[110px]">
+                                <Wallet className="h-3 w-3 opacity-50 shrink-0" />
+                                <span className="truncate">{acc.name}</span>
                               </span>
-                            </>
-                          )}
-                          {tx.tags.length > 0 && (
-                            <>
-                              <span>·</span>
-                              <div className="flex gap-1">
-                                {tx.tags.slice(0, 2).map((tag) => {
-                                  const isShopping = tag === "shopping";
-                                  return (
-                                    <span
-                                      key={tag}
-                                      className={cn(
-                                        "rounded px-1.5 py-0.5 text-[9px] font-medium",
-                                        isShopping
-                                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                          : "bg-muted/50",
-                                      )}
-                                    >
-                                      {isShopping ? "🛒 Покупки" : tag}
-                                    </span>
-                                  );
-                                })}
-                                {tx.tags.length > 2 && (
-                                  <span className="text-[9px] text-muted-foreground/40">
-                                    +{tx.tags.length - 2}
-                                  </span>
-                                )}
-                              </div>
                             </>
                           )}
                           <div
@@ -907,6 +936,66 @@ export function FinanceTransactions() {
                             </Button>
                           </div>
                         </div>
+
+                        {/* Balance before → after */}
+                        {acc && balanceHistory[tx.id] && (
+                          <div className="flex items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-border/50 text-[10px]">
+                            <span className="text-muted-foreground/50">
+                              Баланс счёта
+                            </span>
+                            <span className="tabular-nums text-muted-foreground/80">
+                              {(() => {
+                                const accCurrency = acc.currency || "RUB";
+                                const b = balanceHistory[tx.id];
+                                const sym = getCurrencySymbol(accCurrency);
+                                const fmt = (n: number) =>
+                                  n.toLocaleString(undefined, {
+                                    maximumFractionDigits: 2,
+                                  });
+                                return (
+                                  <>
+                                    <span>
+                                      {fmt(b.before)} {sym}
+                                    </span>
+                                    <ArrowRight className="inline h-3 w-3 mx-1 opacity-50" />
+                                    <span
+                                      className={cn("font-semibold", typeColor)}
+                                    >
+                                      {fmt(b.after)} {sym}
+                                    </span>
+                                  </>
+                                );
+                              })()}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Tags (снятие/пополнение скрыты — дублируют вид) */}
+                        {visibleTags.length > 0 && (
+                          <div className="flex gap-1 mt-2">
+                            {visibleTags.slice(0, 2).map((tag) => {
+                              const isShopping = tag === "shopping";
+                              return (
+                                <span
+                                  key={tag}
+                                  className={cn(
+                                    "rounded px-1.5 py-0.5 text-[9px] font-medium",
+                                    isShopping
+                                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                      : "bg-muted/50",
+                                  )}
+                                >
+                                  {isShopping ? "🛒 Покупки" : formatTag(tag)}
+                                </span>
+                              );
+                            })}
+                            {visibleTags.length > 2 && (
+                              <span className="text-[9px] text-muted-foreground/40">
+                                +{visibleTags.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
