@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Filter,
-  Download,
   Plus,
   Pencil,
   Trash2,
@@ -12,6 +11,7 @@ import {
   TrendingDown,
   ArrowRightLeft,
   ArrowRight,
+  ArrowUp,
   Clock,
   Wallet,
   X,
@@ -19,7 +19,6 @@ import {
   Tags,
   Calendar,
   ChevronDown,
-  Camera,
 } from "lucide-react";
 import type {
   Transaction,
@@ -45,7 +44,7 @@ import {
   getCachedRates,
   getCurrencySymbol,
 } from "@/lib/exchange-rates";
-import { QrScannerDialog } from "@/components/finance/qr-scanner-dialog";
+import { AccountSearchSelect } from "@/components/finance/account-search-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,7 +68,6 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { localDateStr } from "@/lib/date-utils";
 import { CategorySearchSelect } from "@/components/finance/category-search-select";
-import { AccountSearchSelect } from "@/components/finance/account-search-select";
 
 type DateFilter = "all" | "today" | "week" | "month" | "custom";
 
@@ -169,7 +167,6 @@ export function FinanceTransactions() {
   const [sortAsc, setSortAsc] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [qrOpen, setQrOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
@@ -592,17 +589,17 @@ export function FinanceTransactions() {
             variant="ghost"
             size="icon-sm"
             onClick={handleExportCSV}
-            title="CSV"
+            title="Экспорт CSV"
           >
-            <Download className="h-4 w-4" />
+            <ArrowUp className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={handleExportJSON}
-            title="JSON"
+            title="Экспорт JSON"
           >
-            <Download className="h-4 w-4" />
+            <ArrowUp className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
@@ -617,14 +614,6 @@ export function FinanceTransactions() {
                 sortAsc && "rotate-180",
               )}
             />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => setQrOpen(true)}
-            title="QR-код"
-          >
-            <Camera className="h-4 w-4" />
           </Button>
           <Button
             size="sm"
@@ -1018,17 +1007,6 @@ export function FinanceTransactions() {
           </Button>
         </div>
       )}
-
-      <QrScannerDialog
-        open={qrOpen}
-        onOpenChange={setQrOpen}
-        accounts={accounts}
-        categories={categories}
-        uid={uid}
-        onTransactionCreated={() => {
-          fetchAll();
-        }}
-      />
 
       {/* Add dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
