@@ -28,6 +28,7 @@ import type {
 } from "@/lib/finance-types";
 import { createTransaction } from "@/lib/finance-client";
 import { CategorySearchSelect } from "@/components/finance/category-search-select";
+import { AccountSearchSelect } from "@/components/finance/account-search-select";
 
 function parseQRData(text: string): { amount: number; date: string } | null {
   const params = new URLSearchParams(text);
@@ -223,26 +224,11 @@ export function QrScannerDialog({
             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
               <div className="space-y-1.5">
                 <Label className="text-xs">Счёт</Label>
-                <Select
+                <AccountSearchSelect
+                  accounts={accounts}
                   value={txAccountId}
-                  onValueChange={(v) => v && setTxAccountId(v)}
-                >
-                  <SelectTrigger className="w-full h-9">
-                    <SelectValue placeholder="Выберите счёт">
-                      {accounts.find((a) => a.id === txAccountId)?.name}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name}
-                        <span className="text-muted-foreground ml-2">
-                          {a.balance.toLocaleString()} {a.currency}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={setTxAccountId}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

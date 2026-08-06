@@ -827,7 +827,9 @@ function WeatherSection() {
                           {h.time}
                         </span>
                         <WeatherSvgIcon code={h.weatherCode} size={18} />
-                        <span className="text-xs font-semibold">{h.tempC}°</span>
+                        <span className="text-xs font-semibold">
+                          {h.tempC}°
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -878,9 +880,24 @@ function WeatherSection() {
               {weather && (
                 <div className="mx-5 mb-4 grid grid-cols-3 gap-2">
                   {[
-                    { icon: Wind, label: "Ветер", value: `${weather.windKph}`, unit: "км/ч" },
-                    { icon: Droplets, label: "Влажность", value: `${weather.humidity}`, unit: "%" },
-                    { icon: Thermometer, label: "Давление", value: `${Math.round(weather.pressure * 0.75)}`, unit: "мм" },
+                    {
+                      icon: Wind,
+                      label: "Ветер",
+                      value: `${weather.windKph}`,
+                      unit: "км/ч",
+                    },
+                    {
+                      icon: Droplets,
+                      label: "Влажность",
+                      value: `${weather.humidity}`,
+                      unit: "%",
+                    },
+                    {
+                      icon: Thermometer,
+                      label: "Давление",
+                      value: `${Math.round(weather.pressure * 0.75)}`,
+                      unit: "мм",
+                    },
                   ].map((item, i) => (
                     <div
                       key={i}
@@ -977,31 +994,29 @@ function WeatherSection() {
                   Город не найден
                 </div>
               )}
-            {!geoLoading &&
-              geoResults.length === 0 &&
-              cityQuery.length < 2 && (
-                <div className="p-2 space-y-0.5">
-                  <p className="text-[10px] text-muted-foreground px-2 py-1">
-                    Популярные города
-                  </p>
-                  {DEFAULT_CITIES.map((city) => (
-                    <button
-                      key={`${city.name}-${city.latitude}`}
-                      onClick={() => selectCity(city)}
-                      className={cn(
-                        "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs transition-colors",
-                        selectedCity.name === city.name &&
-                          selectedCity.latitude === city.latitude
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "hover:bg-muted/50 text-foreground",
-                      )}
-                    >
-                      <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{city.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+            {!geoLoading && geoResults.length === 0 && cityQuery.length < 2 && (
+              <div className="p-2 space-y-0.5">
+                <p className="text-[10px] text-muted-foreground px-2 py-1">
+                  Популярные города
+                </p>
+                {DEFAULT_CITIES.map((city) => (
+                  <button
+                    key={`${city.name}-${city.latitude}`}
+                    onClick={() => selectCity(city)}
+                    className={cn(
+                      "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs transition-colors",
+                      selectedCity.name === city.name &&
+                        selectedCity.latitude === city.latitude
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "hover:bg-muted/50 text-foreground",
+                    )}
+                  >
+                    <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{city.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </PopoverContent>
       </Popover>

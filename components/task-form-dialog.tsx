@@ -17,7 +17,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import type { Task, Comment, BoardMember } from "@/lib/models";
+import type { Task, Comment, BoardMember, Priority } from "@/lib/models";
 import { createTaskSchema } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,9 +104,7 @@ export function TaskFormDialog({
   const [endDate, setEndDate] = useState(task?.endDate ?? "");
   const [assignee, setAssignee] = useState<string>(task?.assignee ?? "");
   const [assignees, setAssignees] = useState<string[]>(task?.assignees ?? []);
-  const [priority, setPriority] = useState<"low" | "medium" | "high">(
-    task?.priority ?? "medium",
-  );
+  const [priority, setPriority] = useState<Priority>(task?.priority ?? "none");
   const [completed, setCompleted] = useState(task?.completed ?? false);
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -131,7 +129,7 @@ export function TaskFormDialog({
       setEndDate(task.endDate ?? "");
       setAssignee(task.assignee ?? "");
       setAssignees(task.assignees ?? []);
-      setPriority(task.priority ?? "medium");
+      setPriority(task.priority ?? "none");
       setCompleted(task.completed);
     } else {
       setTitle("");
@@ -140,7 +138,7 @@ export function TaskFormDialog({
       setEndDate("");
       setAssignee("");
       setAssignees([]);
-      setPriority("medium");
+      setPriority("none");
       setCompleted(false);
     }
     setErrors({});
@@ -217,7 +215,7 @@ export function TaskFormDialog({
     setEndDate(task?.endDate ?? "");
     setAssignee(task?.assignee ?? "");
     setAssignees(task?.assignees ?? []);
-    setPriority(task?.priority ?? "medium");
+    setPriority(task?.priority ?? "none");
     setCompleted(task?.completed ?? false);
     setErrors({});
   };
@@ -451,14 +449,18 @@ export function TaskFormDialog({
             <FieldRow label="Приоритет">
               <Select
                 value={priority}
-                onValueChange={(value) =>
-                  setPriority(value as "low" | "medium" | "high")
-                }
+                onValueChange={(value) => setPriority(value as Priority)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">
+                    <span className="flex items-center gap-2">
+                      <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                      Без приоритета
+                    </span>
+                  </SelectItem>
                   <SelectItem value="low">
                     <span className="flex items-center gap-2">
                       <AlertTriangle className="h-3.5 w-3.5 text-sky-500" />

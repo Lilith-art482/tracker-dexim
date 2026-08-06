@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { localDateStr, parseLocalDate } from "@/lib/date-utils";
 
 type Period = "month" | "quarter" | "year";
 
@@ -36,7 +37,7 @@ const PERIOD_PREV_LABELS: Record<Period, string> = {
 
 function getPeriodRange(period: Period) {
   const now = new Date();
-  const today = now.toISOString().split("T")[0];
+  const today = localDateStr(now);
   let start: Date;
 
   if (period === "month") {
@@ -48,7 +49,7 @@ function getPeriodRange(period: Period) {
     start = new Date(now.getFullYear(), 0, 1);
   }
 
-  return { start: start.toISOString().split("T")[0], end: today };
+  return { start: localDateStr(start), end: today };
 }
 
 function getPreviousPeriodRange(period: Period) {
@@ -69,8 +70,8 @@ function getPreviousPeriodRange(period: Period) {
   }
 
   return {
-    start: start.toISOString().split("T")[0],
-    end: end.toISOString().split("T")[0],
+    start: localDateStr(start),
+    end: localDateStr(end),
   };
 }
 
@@ -80,7 +81,7 @@ function getTrendDates(period: Period): string[] {
   return Array.from({ length: count }, (_, i) => {
     const d = new Date(now);
     d.setDate(d.getDate() - (count - 1 - i));
-    return d.toISOString().split("T")[0];
+    return localDateStr(d);
   });
 }
 
@@ -252,7 +253,7 @@ function TrendLineChart({
     ctx.font = "10px sans-serif";
     const step = Math.max(1, Math.floor(data.length / 5));
     for (let i = 0; i < data.length; i += step) {
-      const d = new Date(data[i].date + "T00:00:00Z");
+      const d = parseLocalDate(data[i].date);
       const x = padding.left + (i / (data.length - 1)) * plotW;
       ctx.fillText(`${d.getDate()}.${d.getMonth() + 1}`, x, h - 22);
     }

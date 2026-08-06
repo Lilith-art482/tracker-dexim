@@ -29,7 +29,6 @@ import {
   Bitcoin,
   TrendingDown,
   PiggyBank as PiggyBankIcon,
-
   Flag,
   Check,
   ArrowDown,
@@ -81,6 +80,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getFinanceIcon } from "@/lib/finance-icons";
 import { CategorySearchSelect } from "@/components/finance/category-search-select";
+import { localDateStr, parseLocalDate } from "@/lib/date-utils";
 
 const PRIORITY_LABELS: Record<string, string> = {
   high: "Высокий",
@@ -138,8 +138,8 @@ function accountBalance(acc: FinanceAccount): number {
 }
 
 function daysBetween(from: string, to: string): number {
-  const a = new Date(from + "T00:00:00Z");
-  const b = new Date(to + "T00:00:00Z");
+  const a = parseLocalDate(from);
+  const b = parseLocalDate(to);
   return Math.ceil((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
 }
 
@@ -468,7 +468,7 @@ export function FinanceGoals() {
     uid,
   ]);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateStr();
 
   if (loading) {
     return (

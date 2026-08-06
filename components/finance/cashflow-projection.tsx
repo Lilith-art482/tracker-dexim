@@ -5,6 +5,7 @@ import { TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { FinanceAccount, RecurringTransaction } from "@/lib/finance-types";
+import { todayStart } from "@/lib/date-utils";
 
 interface CashflowProjectionProps {
   accounts: FinanceAccount[];
@@ -24,8 +25,7 @@ export function CashflowProjection({
 }: CashflowProjectionProps) {
   const { dataPoints, startingBalance, minBalance, endingBalance } =
     useMemo(() => {
-      const today = new Date();
-      today.setUTCHours(0, 0, 0, 0);
+      const today = todayStart();
 
       const totalBalance = accounts.reduce(
         (sum, a) => sum + (a.balance ?? 0),
@@ -48,13 +48,15 @@ export function CashflowProjection({
 
       for (let offset = 0; offset < 30; offset++) {
         const date = new Date(today);
-        date.setUTCDate(date.getUTCDate() + offset);
-        const dayOfMonth = date.getUTCDate();
+        date.setDate(date.getDate() + offset);
+        const dayOfMonth = date.getDate();
 
         for (const rt of activeRecurring) {
           const lastDay = new Date(
-            Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0),
-          ).getUTCDate();
+            date.getFullYear(),
+            date.getMonth() + 1,
+            0,
+          ).getDate();
           const effectiveDay = Math.min(rt.dayOfMonth, lastDay);
 
           if (dayOfMonth === effectiveDay) {

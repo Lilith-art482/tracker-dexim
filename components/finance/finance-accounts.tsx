@@ -77,6 +77,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { localDateStr, parseLocalDate } from "@/lib/date-utils";
 import {
   DndContext,
   closestCenter,
@@ -215,7 +216,7 @@ function CurrencySelect({
       <PopoverTrigger className="flex w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 h-8 data-placeholder:text-muted-foreground dark:bg-input/30 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
         {selected ? (
           <span className="flex items-center gap-1.5">
-            {(CRYPTO_ICONS[selected.code] || FIAT_ICONS[selected.code]) ? (
+            {CRYPTO_ICONS[selected.code] || FIAT_ICONS[selected.code] ? (
               <span className="flex h-5 w-5 items-center justify-center rounded border bg-background shrink-0 overflow-hidden">
                 <img
                   src={CRYPTO_ICONS[selected.code] || FIAT_ICONS[selected.code]}
@@ -294,7 +295,7 @@ function CurrencySelect({
                         setSearch("");
                       }}
                     >
-                      {(CRYPTO_ICONS[c.code] || FIAT_ICONS[c.code]) ? (
+                      {CRYPTO_ICONS[c.code] || FIAT_ICONS[c.code] ? (
                         <span className="flex h-5 w-5 items-center justify-center rounded overflow-hidden shrink-0">
                           <img
                             src={CRYPTO_ICONS[c.code] || FIAT_ICONS[c.code]}
@@ -354,7 +355,8 @@ export function FinanceAccounts() {
   const [formCapitalize, setFormCapitalize] = useState(true);
   const [formGracePeriod, setFormGracePeriod] = useState("");
   const [formUrl, setFormUrl] = useState("");
-  const [formInterestPeriod, setFormInterestPeriod] = useState<string>("monthly");
+  const [formInterestPeriod, setFormInterestPeriod] =
+    useState<string>("monthly");
   const [formReinvest, setFormReinvest] = useState(false);
   const [formShowCalc, setFormShowCalc] = useState(false);
   const [depositCalc, setDepositCalc] = useState<FinanceAccount | null>(null);
@@ -682,13 +684,7 @@ export function FinanceAccounts() {
     }
 
     return list;
-  }, [
-    sortedAccounts,
-    filterMin,
-    filterMax,
-    sortBalance,
-    accountBalance,
-  ]);
+  }, [sortedAccounts, filterMin, filterMax, sortBalance, accountBalance]);
 
   const computeCryptoUpdate = useCallback(
     (
@@ -750,7 +746,7 @@ export function FinanceAccounts() {
         amount,
         description: transferDescription.trim() || "Перевод между счетами",
         tags: ["transfer"],
-        date: new Date().toISOString().split("T")[0],
+        date: localDateStr(),
       });
 
       const fromUpdate = computeCryptoUpdate(
@@ -842,7 +838,7 @@ export function FinanceAccounts() {
           tags.length > 0
             ? tags
             : [quickType === "add" ? "topup" : "withdrawal"],
-        date: new Date().toISOString().split("T")[0],
+        date: localDateStr(),
       });
 
       // Handle loan integration
@@ -858,8 +854,7 @@ export function FinanceAccounts() {
               interestRate: parseFloat(newLoanRate) || 0,
               monthlyPayment: parseFloat(newLoanMonthly) || 0,
               remainingAmount: parseFloat(newLoanTotal),
-              nextPaymentDate:
-                newLoanNextPayment || new Date().toISOString().split("T")[0],
+              nextPaymentDate: newLoanNextPayment || localDateStr(),
               repaymentType: "monthly",
               obligationType: "credit",
               overdueMonths: 0,
@@ -947,7 +942,7 @@ export function FinanceAccounts() {
     const annualRate = account.interestRate / 100;
     const months = account.termMonths;
     const startDate = account.startDate
-      ? new Date(account.startDate + "T00:00:00Z")
+      ? parseLocalDate(account.startDate)
       : null;
     const now = new Date();
 
@@ -1374,9 +1369,7 @@ export function FinanceAccounts() {
                   : "Меньше → больше"}
             </button>
           </div>
-          {(filterMin ||
-            filterMax ||
-            sortBalance !== "none") && (
+          {(filterMin || filterMax || sortBalance !== "none") && (
             <button
               onClick={() => {
                 setFilterMin("");
@@ -1428,116 +1421,116 @@ export function FinanceAccounts() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
                   <Building2 className="h-4 w-4" />
                 </div>
-              Расчёт доходности
-            </DialogTitle>
-            {depositCalc && (
-              <p className="text-sm text-muted-foreground">
-                {depositCalc.name} · {depositCalc.balance.toLocaleString()}{" "}
-                {depositCalc.currency}
-              </p>
-            )}
+                Расчёт доходности
+              </DialogTitle>
+              {depositCalc && (
+                <p className="text-sm text-muted-foreground">
+                  {depositCalc.name} · {depositCalc.balance.toLocaleString()}{" "}
+                  {depositCalc.currency}
+                </p>
+              )}
             </DialogHeader>
           </div>
           <div className="px-6 pb-4">
-          {depositCalc &&
-            (() => {
-              const proj = depositProjections(depositCalc);
-              if (!proj) return null;
-              return (
-                <div className="space-y-4 py-2">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg bg-muted/50 p-3 text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                        Ставка
-                      </p>
-                      <p className="text-lg font-bold text-rose-600">
-                        {proj.annualRate}%
-                      </p>
+            {depositCalc &&
+              (() => {
+                const proj = depositProjections(depositCalc);
+                if (!proj) return null;
+                return (
+                  <div className="space-y-4 py-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg bg-muted/50 p-3 text-center">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          Ставка
+                        </p>
+                        <p className="text-lg font-bold text-rose-600">
+                          {proj.annualRate}%
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-muted/50 p-3 text-center">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          Срок
+                        </p>
+                        <p className="text-lg font-bold">
+                          {proj.termMonths} мес.
+                        </p>
+                      </div>
                     </div>
-                    <div className="rounded-lg bg-muted/50 p-3 text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                        Срок
-                      </p>
-                      <p className="text-lg font-bold">
-                        {proj.termMonths} мес.
-                      </p>
+                    <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-center text-muted-foreground">
+                      {proj.capitalize
+                        ? "Проценты капитализируются ежемесячно"
+                        : "Проценты без капитализации"}
                     </div>
-                  </div>
-                  <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-center text-muted-foreground">
-                    {proj.capitalize
-                      ? "Проценты капитализируются ежемесячно"
-                      : "Проценты без капитализации"}
-                  </div>
 
-                  {proj.currentEarned > 0 && (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-500/5 p-3">
-                      <p className="text-xs text-muted-foreground">
-                        Заработано сейчас
-                      </p>
-                      <p className="text-lg font-bold text-emerald-600">
-                        +{proj.currentEarned.toLocaleString()}{" "}
-                        {depositCalc.currency}
-                      </p>
-                    </div>
-                  )}
+                    {proj.currentEarned > 0 && (
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-500/5 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          Заработано сейчас
+                        </p>
+                        <p className="text-lg font-bold text-emerald-600">
+                          +{proj.currentEarned.toLocaleString()}{" "}
+                          {depositCalc.currency}
+                        </p>
+                      </div>
+                    )}
 
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-                      <ChartLine className="h-3 w-3" />
-                      Начисление процентов
-                    </p>
-                    <div className="space-y-1.5">
-                      {proj.perPeriod.map((per) => (
-                        <div
-                          key={per.label}
-                          className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2"
-                        >
-                          <span className="text-sm">{per.label}</span>
-                          <div className="text-right">
-                            <span className="text-sm font-semibold text-emerald-600">
-                              +{per.earning.toLocaleString()}
-                            </span>
-                            <span className="text-xs text-muted-foreground ml-1">
-                              {depositCalc.currency}
-                            </span>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                        <ChartLine className="h-3 w-3" />
+                        Начисление процентов
+                      </p>
+                      <div className="space-y-1.5">
+                        {proj.perPeriod.map((per) => (
+                          <div
+                            key={per.label}
+                            className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2"
+                          >
+                            <span className="text-sm">{per.label}</span>
+                            <div className="text-right">
+                              <span className="text-sm font-semibold text-emerald-600">
+                                +{per.earning.toLocaleString()}
+                              </span>
+                              <span className="text-xs text-muted-foreground ml-1">
+                                {depositCalc.currency}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="rounded-lg bg-emerald-500/10 p-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Начальная сумма
-                      </span>
-                      <span className="font-medium">
-                        {proj.initialBalance.toLocaleString()}{" "}
-                        {depositCalc.currency}
-                      </span>
-                    </div>
-                    <Separator className="my-2" />
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Проценты за {proj.termMonths} мес.
-                      </span>
-                      <span className="font-semibold text-emerald-600">
-                        +{proj.earnedTotal.toLocaleString()}{" "}
-                        {depositCalc.currency}
-                      </span>
-                    </div>
-                    <Separator className="my-2" />
-                    <div className="flex justify-between text-sm font-semibold">
-                      <span>Итого за срок</span>
-                      <span className="text-emerald-600">
-                        {proj.projectedEnd.toLocaleString()}{" "}
-                        {depositCalc.currency}
-                      </span>
+                    <div className="rounded-lg bg-emerald-500/10 p-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Начальная сумма
+                        </span>
+                        <span className="font-medium">
+                          {proj.initialBalance.toLocaleString()}{" "}
+                          {depositCalc.currency}
+                        </span>
+                      </div>
+                      <Separator className="my-2" />
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Проценты за {proj.termMonths} мес.
+                        </span>
+                        <span className="font-semibold text-emerald-600">
+                          +{proj.earnedTotal.toLocaleString()}{" "}
+                          {depositCalc.currency}
+                        </span>
+                      </div>
+                      <Separator className="my-2" />
+                      <div className="flex justify-between text-sm font-semibold">
+                        <span>Итого за срок</span>
+                        <span className="text-emerald-600">
+                          {proj.projectedEnd.toLocaleString()}{" "}
+                          {depositCalc.currency}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
           </div>
         </DialogContent>
       </Dialog>
@@ -1565,19 +1558,19 @@ export function FinanceAccounts() {
                   {(() => {
                     const Icon = TYPE_CONFIG[formType]?.icon || Wallet;
                     return <Icon className="h-4 w-4" />;
-                })()}
-              </span>
-              <div>
-                <p className="text-sm font-semibold">{dialogTitle}</p>
-                <p className="text-[11px] text-muted-foreground font-normal">
-                  {formType === "cash" && "Наличные средства"}
-                  {formType === "card" && "Банковская карта"}
-                  {formType === "crypto" && "Криптовалютный кошелёк"}
-                  {formType === "investment" && "Инвестиции и Стейкинг"}
-                  {formType === "savings" && "Сбережения и Вклад"}
-                </p>
-              </div>
-            </DialogTitle>
+                  })()}
+                </span>
+                <div>
+                  <p className="text-sm font-semibold">{dialogTitle}</p>
+                  <p className="text-[11px] text-muted-foreground font-normal">
+                    {formType === "cash" && "Наличные средства"}
+                    {formType === "card" && "Банковская карта"}
+                    {formType === "crypto" && "Криптовалютный кошелёк"}
+                    {formType === "investment" && "Инвестиции и Стейкинг"}
+                    {formType === "savings" && "Сбережения и Вклад"}
+                  </p>
+                </div>
+              </DialogTitle>
             </DialogHeader>
           </div>
 
@@ -1608,10 +1601,7 @@ export function FinanceAccounts() {
                         setFormName("");
                         if (key === "cash") setFormCurrency("RUB");
                         else if (key === "crypto") setFormCurrency("BTC");
-                        else if (
-                          prevType === "cash" ||
-                          prevType === "crypto"
-                        )
+                        else if (prevType === "cash" || prevType === "crypto")
                           setFormCurrency("RUB");
                       }
                       if (key === "cash" && !formName.trim()) {
@@ -1655,9 +1645,7 @@ export function FinanceAccounts() {
               </div>
               {formType === "crypto" && (
                 <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                  <Label className="text-xs font-medium">
-                    Адрес кошелька
-                  </Label>
+                  <Label className="text-xs font-medium">Адрес кошелька</Label>
                   <Input
                     value={formWalletAddress}
                     onChange={(e) => setFormWalletAddress(e.target.value)}
@@ -1756,7 +1744,8 @@ export function FinanceAccounts() {
                   >
                     <SelectTrigger className="h-9">
                       <SelectValue>
-                        {INTEREST_PERIOD_LABELS[formInterestPeriod] || "Ежемесячно"}
+                        {INTEREST_PERIOD_LABELS[formInterestPeriod] ||
+                          "Ежемесячно"}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -1764,7 +1753,9 @@ export function FinanceAccounts() {
                       <SelectItem value="weekly">Еженедельно</SelectItem>
                       <SelectItem value="monthly">Ежемесячно</SelectItem>
                       <SelectItem value="quarterly">Ежеквартально</SelectItem>
-                      <SelectItem value="semiannual">Раз в 6 месяцев</SelectItem>
+                      <SelectItem value="semiannual">
+                        Раз в 6 месяцев
+                      </SelectItem>
                       <SelectItem value="annual">Ежегодно</SelectItem>
                     </SelectContent>
                   </Select>

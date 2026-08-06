@@ -1,9 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Cloud, Wind, Droplets, Thermometer, MapPin, Search, X } from "lucide-react";
+import {
+  Cloud,
+  Wind,
+  Droplets,
+  Thermometer,
+  MapPin,
+  Search,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 
 /* ─────────── Types ─────────── */
 
@@ -20,7 +32,13 @@ interface WeatherData {
   tempHigh: number;
   tempLow: number;
   hourly: { time: string; tempC: number; weatherCode: number }[];
-  daily: { day: string; date: string; high: number; low: number; weatherCode: number }[];
+  daily: {
+    day: string;
+    date: string;
+    high: number;
+    low: number;
+    weatherCode: number;
+  }[];
 }
 
 interface GeoCity {
@@ -34,11 +52,21 @@ interface GeoCity {
 
 const DEFAULT_CITIES: GeoCity[] = [
   { name: "Москва", country: "RU", latitude: 55.7558, longitude: 37.6173 },
-  { name: "Санкт-Петербург", country: "RU", latitude: 59.9343, longitude: 30.3351 },
+  {
+    name: "Санкт-Петербург",
+    country: "RU",
+    latitude: 59.9343,
+    longitude: 30.3351,
+  },
   { name: "Новосибирск", country: "RU", latitude: 55.0084, longitude: 82.9357 },
   { name: "Казань", country: "RU", latitude: 55.7887, longitude: 49.1221 },
   { name: "Сочи", country: "RU", latitude: 43.6028, longitude: 39.7342 },
-  { name: "Екатеринбург", country: "RU", latitude: 56.8389, longitude: 60.6057 },
+  {
+    name: "Екатеринбург",
+    country: "RU",
+    latitude: 56.8389,
+    longitude: 60.6057,
+  },
 ];
 
 /* ─────────── Weather Condition Labels ─────────── */
@@ -77,100 +105,345 @@ function WeatherSvgIcon({ code, size = 20 }: { code: number; size?: number }) {
   if (code === 0) {
     return isNight ? (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#a5b4fc" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path
+          d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+          fill="#a5b4fc"
+          stroke="#818cf8"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     ) : (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="5" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1.5"/>
-        <line x1="12" y1="1" x2="12" y2="3" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="12" y1="21" x2="12" y2="23" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="1" y1="12" x2="3" y2="12" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="21" y1="12" x2="23" y2="12" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+        <circle
+          cx="12"
+          cy="12"
+          r="5"
+          fill="#fbbf24"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+        />
+        <line
+          x1="12"
+          y1="1"
+          x2="12"
+          y2="3"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="12"
+          y1="21"
+          x2="12"
+          y2="23"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="4.22"
+          y1="4.22"
+          x2="5.64"
+          y2="5.64"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="18.36"
+          y1="18.36"
+          x2="19.78"
+          y2="19.78"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="1"
+          y1="12"
+          x2="3"
+          y2="12"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="21"
+          y1="12"
+          x2="23"
+          y2="12"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="4.22"
+          y1="19.78"
+          x2="5.64"
+          y2="18.36"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="18.36"
+          y1="5.64"
+          x2="19.78"
+          y2="4.22"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
   if (code === 1) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <circle cx="10" cy="10" r="4" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1.5"/>
-        <line x1="10" y1="2" x2="10" y2="4" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="10" y1="16" x2="10" y2="18" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="3.5" y1="10" x2="5.5" y2="10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M17 18a4 4 0 0 0-4-4 4 4 0 0 0-3.5 2A3 3 0 0 0 10 19h7a3 3 0 0 0 0-6" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle
+          cx="10"
+          cy="10"
+          r="4"
+          fill="#fbbf24"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+        />
+        <line
+          x1="10"
+          y1="2"
+          x2="10"
+          y2="4"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="10"
+          y1="16"
+          x2="10"
+          y2="18"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="3.5"
+          y1="10"
+          x2="5.5"
+          y2="10"
+          stroke="#f59e0b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M17 18a4 4 0 0 0-4-4 4 4 0 0 0-3.5 2A3 3 0 0 0 10 19h7a3 3 0 0 0 0-6"
+          fill="#e2e8f0"
+          stroke="#94a3b8"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     );
   }
   if (code === 2) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <circle cx="8" cy="8" r="3.5" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1.2"/>
-        <path d="M19 17a4 4 0 0 0-4-4 4 4 0 0 0-3 1.5A3.5 3.5 0 0 0 8 15a3.5 3.5 0 0 0 0 7h11a3 3 0 0 0 0-5" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle
+          cx="8"
+          cy="8"
+          r="3.5"
+          fill="#fbbf24"
+          stroke="#f59e0b"
+          strokeWidth="1.2"
+        />
+        <path
+          d="M19 17a4 4 0 0 0-4-4 4 4 0 0 0-3 1.5A3.5 3.5 0 0 0 8 15a3.5 3.5 0 0 0 0 7h11a3 3 0 0 0 0-5"
+          fill="#e2e8f0"
+          stroke="#94a3b8"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     );
   }
   if (code === 3) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path
+          d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7"
+          fill="#cbd5e1"
+          stroke="#94a3b8"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     );
   }
   if (code >= 45 && code <= 48) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M5 17h14M7 13h10M9 9h6" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
-        <path d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path
+          d="M5 17h14M7 13h10M9 9h6"
+          stroke="#94a3b8"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          opacity="0.5"
+        />
+        <path
+          d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7"
+          fill="#e2e8f0"
+          stroke="#94a3b8"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     );
   }
   if (code >= 51 && code <= 67) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7" fill="#94a3b8" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <line x1="8" y1="19" x2="7" y2="22" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="12" y1="19" x2="11" y2="22" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="16" y1="19" x2="15" y2="22" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round"/>
+        <path
+          d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7"
+          fill="#94a3b8"
+          stroke="#64748b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <line
+          x1="8"
+          y1="19"
+          x2="7"
+          y2="22"
+          stroke="#60a5fa"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="12"
+          y1="19"
+          x2="11"
+          y2="22"
+          stroke="#60a5fa"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="16"
+          y1="19"
+          x2="15"
+          y2="22"
+          stroke="#60a5fa"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
   if (code >= 71 && code <= 77) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7" fill="#94a3b8" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx="8" cy="20" r="1" fill="#bfdbfe"/>
-        <circle cx="12" cy="21" r="1" fill="#bfdbfe"/>
-        <circle cx="16" cy="19.5" r="1" fill="#bfdbfe"/>
-        <circle cx="10" cy="22" r="0.8" fill="#bfdbfe"/>
-        <circle cx="14" cy="22.5" r="0.8" fill="#bfdbfe"/>
+        <path
+          d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7"
+          fill="#94a3b8"
+          stroke="#64748b"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="8" cy="20" r="1" fill="#bfdbfe" />
+        <circle cx="12" cy="21" r="1" fill="#bfdbfe" />
+        <circle cx="16" cy="19.5" r="1" fill="#bfdbfe" />
+        <circle cx="10" cy="22" r="0.8" fill="#bfdbfe" />
+        <circle cx="14" cy="22.5" r="0.8" fill="#bfdbfe" />
       </svg>
     );
   }
   if (code >= 80 && code <= 82) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7" fill="#64748b" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <line x1="7" y1="19" x2="5" y2="23" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
-        <line x1="12" y1="19" x2="10" y2="23" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
-        <line x1="17" y1="19" x2="15" y2="23" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
+        <path
+          d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7"
+          fill="#64748b"
+          stroke="#475569"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <line
+          x1="7"
+          y1="19"
+          x2="5"
+          y2="23"
+          stroke="#3b82f6"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <line
+          x1="12"
+          y1="19"
+          x2="10"
+          y2="23"
+          stroke="#3b82f6"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <line
+          x1="17"
+          y1="19"
+          x2="15"
+          y2="23"
+          stroke="#3b82f6"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
   if (code >= 95) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7" fill="#475569" stroke="#334155" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <polyline points="13 17 11 21 14 21 12 25" fill="none" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path
+          d="M18 10a5 5 0 0 0-5-5 5 5 0 0 0-4.5 2.8A4 4 0 0 0 5 11.5 3.5 3.5 0 0 0 5 18h12a3.5 3.5 0 0 0 0-7"
+          fill="#475569"
+          stroke="#334155"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <polyline
+          points="13 17 11 21 14 21 12 25"
+          fill="none"
+          stroke="#fbbf24"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     );
   }
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="10" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.5"/>
-      <path d="M8 12a4 4 0 0 1 8 0" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        fill="#e2e8f0"
+        stroke="#94a3b8"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M8 12a4 4 0 0 1 8 0"
+        stroke="#64748b"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -398,12 +671,16 @@ export function WeatherSidebarWidget() {
             <div
               key={i}
               className={`flex items-center justify-between px-3 py-2 ${
-                i !== weather.daily.length - 1 ? "border-b border-border/20" : ""
+                i !== weather.daily.length - 1
+                  ? "border-b border-border/20"
+                  : ""
               }`}
             >
               <span className="text-xs font-medium w-16">
                 {i === 0 ? "Сегодня" : d.day}
-                <span className="text-[10px] text-muted-foreground ml-1">{i === 0 ? "" : d.date}</span>
+                <span className="text-[10px] text-muted-foreground ml-1">
+                  {i === 0 ? "" : d.date}
+                </span>
               </span>
               <WeatherSvgIcon code={d.weatherCode} size={16} />
               <div className="flex items-center gap-1.5 text-xs">
@@ -416,7 +693,9 @@ export function WeatherSidebarWidget() {
                     }}
                   />
                 </div>
-                <span className="text-muted-foreground w-6 text-right">{d.low}°</span>
+                <span className="text-muted-foreground w-6 text-right">
+                  {d.low}°
+                </span>
               </div>
             </div>
           ))}
@@ -427,16 +706,38 @@ export function WeatherSidebarWidget() {
       {weather && (
         <div className="grid grid-cols-3 gap-2 mb-4">
           {[
-            { icon: Wind, label: "Ветер", value: `${weather.windKph}`, unit: "км/ч" },
-            { icon: Droplets, label: "Влажность", value: `${weather.humidity}`, unit: "%" },
-            { icon: Thermometer, label: "Давление", value: `${Math.round(weather.pressure * 0.75)}`, unit: "мм" },
+            {
+              icon: Wind,
+              label: "Ветер",
+              value: `${weather.windKph}`,
+              unit: "км/ч",
+            },
+            {
+              icon: Droplets,
+              label: "Влажность",
+              value: `${weather.humidity}`,
+              unit: "%",
+            },
+            {
+              icon: Thermometer,
+              label: "Давление",
+              value: `${Math.round(weather.pressure * 0.75)}`,
+              unit: "мм",
+            },
           ].map((item, i) => (
-            <div key={i} className="rounded-xl bg-muted/20 border border-border/30 p-2.5 text-center space-y-1">
+            <div
+              key={i}
+              className="rounded-xl bg-muted/20 border border-border/30 p-2.5 text-center space-y-1"
+            >
               <item.icon className="h-3.5 w-3.5 mx-auto text-primary/70" />
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{item.label}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                {item.label}
+              </p>
               <p className="text-xs font-semibold">
                 {item.value}
-                <span className="text-[10px] font-normal text-muted-foreground ml-0.5">{item.unit}</span>
+                <span className="text-[10px] font-normal text-muted-foreground ml-0.5">
+                  {item.unit}
+                </span>
               </p>
             </div>
           ))}
@@ -450,7 +751,12 @@ export function WeatherSidebarWidget() {
             <MapPin className="h-3 w-3" />
             {selectedCity.name} — сменить город
           </PopoverTrigger>
-          <PopoverContent align="start" side="top" sideOffset={8} className="w-64 p-0">
+          <PopoverContent
+            align="start"
+            side="top"
+            sideOffset={8}
+            className="w-64 p-0"
+          >
             <div className="p-2 border-b border-border/40">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -463,7 +769,13 @@ export function WeatherSidebarWidget() {
                   autoFocus
                 />
                 {cityQuery && (
-                  <button onClick={() => { setCityQuery(""); setGeoResults([]); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <button
+                    onClick={() => {
+                      setCityQuery("");
+                      setGeoResults([]);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 )}
@@ -475,41 +787,61 @@ export function WeatherSidebarWidget() {
                   <div className="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
                 </div>
               )}
-              {!geoLoading && geoResults.length > 0 && geoResults.map((city, i) => (
-                <button
-                  key={`${city.name}-${city.latitude}-${i}`}
-                  onClick={() => selectCity(city)}
-                  className={cn(
-                    "flex items-center gap-2 w-full px-3 py-2 text-xs transition-colors",
-                    selectedCity.name === city.name && selectedCity.latitude === city.latitude ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-foreground",
-                  )}
-                >
-                  <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
-                  <span className="truncate">{city.name}</span>
-                  {city.country && <span className="text-[10px] text-muted-foreground ml-auto">{city.country}</span>}
-                </button>
-              ))}
-              {!geoLoading && geoResults.length === 0 && cityQuery.length >= 2 && (
-                <div className="py-4 text-center text-xs text-muted-foreground">Город не найден</div>
-              )}
-              {!geoLoading && geoResults.length === 0 && cityQuery.length < 2 && (
-                <div className="p-2 space-y-0.5">
-                  <p className="text-[10px] text-muted-foreground px-2 py-1">Популярные города</p>
-                  {DEFAULT_CITIES.map((city) => (
-                    <button
-                      key={`${city.name}-${city.latitude}`}
-                      onClick={() => selectCity(city)}
-                      className={cn(
-                        "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs transition-colors",
-                        selectedCity.name === city.name && selectedCity.latitude === city.latitude ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-foreground",
-                      )}
-                    >
-                      <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{city.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+              {!geoLoading &&
+                geoResults.length > 0 &&
+                geoResults.map((city, i) => (
+                  <button
+                    key={`${city.name}-${city.latitude}-${i}`}
+                    onClick={() => selectCity(city)}
+                    className={cn(
+                      "flex items-center gap-2 w-full px-3 py-2 text-xs transition-colors",
+                      selectedCity.name === city.name &&
+                        selectedCity.latitude === city.latitude
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "hover:bg-muted/50 text-foreground",
+                    )}
+                  >
+                    <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{city.name}</span>
+                    {city.country && (
+                      <span className="text-[10px] text-muted-foreground ml-auto">
+                        {city.country}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              {!geoLoading &&
+                geoResults.length === 0 &&
+                cityQuery.length >= 2 && (
+                  <div className="py-4 text-center text-xs text-muted-foreground">
+                    Город не найден
+                  </div>
+                )}
+              {!geoLoading &&
+                geoResults.length === 0 &&
+                cityQuery.length < 2 && (
+                  <div className="p-2 space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground px-2 py-1">
+                      Популярные города
+                    </p>
+                    {DEFAULT_CITIES.map((city) => (
+                      <button
+                        key={`${city.name}-${city.latitude}`}
+                        onClick={() => selectCity(city)}
+                        className={cn(
+                          "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs transition-colors",
+                          selectedCity.name === city.name &&
+                            selectedCity.latitude === city.latitude
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "hover:bg-muted/50 text-foreground",
+                        )}
+                      >
+                        <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{city.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
             </div>
           </PopoverContent>
         </Popover>

@@ -29,6 +29,7 @@ import {
   deleteTransaction,
 } from "@/lib/finance-client";
 import { auth } from "@/lib/firebase";
+import { localDateStr } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,7 +40,7 @@ import { cn } from "@/lib/utils";
 function computeMonthlyExpenses(transactions: Transaction[]): number {
   const now = new Date();
   const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-  const start = threeMonthsAgo.toISOString().split("T")[0];
+  const start = localDateStr(threeMonthsAgo);
 
   const expenses = transactions.filter(
     (t) => t.type === "expense" && t.date >= start,

@@ -27,7 +27,6 @@ import {
   Gavel,
   Home,
   Check,
-
   Banknote,
 } from "lucide-react";
 import type { Loan, ObligationType, FinanceAccount } from "@/lib/finance-types";
@@ -70,6 +69,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { localDateStr, parseLocalDate } from "@/lib/date-utils";
 
 const OBLIGATION_LABELS: Record<ObligationType, string> = {
   credit: "Кредит",
@@ -280,7 +280,7 @@ export function FinanceLoans() {
     setFormRemaining("");
     setFormRate("");
     setFormPayment("");
-    setFormStartDate(new Date().toISOString().split("T")[0]);
+    setFormStartDate(localDateStr());
     setFormDueDate("");
     setFormHasInterest(true);
     setFormRepaymentType("monthly");
@@ -365,8 +365,8 @@ export function FinanceLoans() {
         : undefined;
     const nextPaymentDate =
       formRepaymentType === "lumpSum" || formObligationType === "fine"
-        ? formDueDate || new Date().toISOString().split("T")[0]
-        : formStartDate || new Date().toISOString().split("T")[0];
+        ? formDueDate || localDateStr()
+        : formStartDate || localDateStr();
 
     const toastId = toast.loading("Сохраняем...");
 
@@ -535,7 +535,7 @@ export function FinanceLoans() {
         description: paymentComment.trim() || `Оплата: ${paymentLoan.name}`,
         tags: ["obligation-payment", paymentLoan.obligationType],
         date:
-          new Date().toISOString().split("T")[0] +
+          localDateStr() +
           "T" +
           new Date().toISOString().split("T")[1].slice(0, 8),
       });
@@ -668,15 +668,13 @@ export function FinanceLoans() {
           monthlyInterestPortion = 0;
           monthlyPrincipalPortion = 0;
 
-          const dueDate = new Date(
-            loan.dueDate || loan.nextPaymentDate + "T00:00:00Z",
-          );
+          const dueDate = parseLocalDate(loan.dueDate || loan.nextPaymentDate);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const diffMs = dueDate.getTime() - today.getTime();
           daysUntilNextPayment = Math.ceil(diffMs / 86400000);
 
-          const created = new Date(loan.createdAt + "T00:00:00Z");
+          const created = parseLocalDate(loan.createdAt);
           created.setHours(0, 0, 0, 0);
           const totalDiffMs = dueDate.getTime() - created.getTime();
           totalDays = Math.ceil(totalDiffMs / 86400000);
@@ -741,7 +739,7 @@ export function FinanceLoans() {
             ? 0
             : Math.max(0, loan.monthlyPayment - monthlyInterestPortion);
 
-          const nextPayDate = new Date(loan.nextPaymentDate + "T00:00:00Z");
+          const nextPayDate = parseLocalDate(loan.nextPaymentDate);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const diffMs = nextPayDate.getTime() - today.getTime();
@@ -1180,8 +1178,8 @@ export function FinanceLoans() {
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Скидка до</span>
                         <span className="font-medium tabular-nums">
-                          {new Date(
-                            loan.discountDeadline + "T00:00:00Z",
+                          {parseLocalDate(
+                            loan.discountDeadline,
                           ).toLocaleDateString("ru-RU")}
                         </span>
                       </div>
@@ -1984,7 +1982,6 @@ export function FinanceLoans() {
                           <span className="text-xs font-medium truncate leading-tight">
                             {a.name}
                           </span>
-
                         </div>
                         <p className="text-[10px] text-muted-foreground/60 leading-tight mt-0.5">
                           #{a.sortOrder != null ? a.sortOrder + 1 : "—"} ·{" "}

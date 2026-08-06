@@ -140,6 +140,12 @@ const PRIORITY_CONFIG: Record<
     bg: "bg-sky-500/10",
     icon: Circle,
   },
+  none: {
+    label: "Без приоритета",
+    color: "text-muted-foreground",
+    bg: "bg-muted",
+    icon: Circle,
+  },
 };
 
 const STATUS_OPTIONS = [
@@ -153,6 +159,7 @@ const PRIORITY_FILTER_OPTIONS = [
   { value: "high", label: "Высокий" },
   { value: "medium", label: "Средний" },
   { value: "low", label: "Низкий" },
+  { value: "none", label: "Без приоритета" },
 ] as const;
 
 const PERIOD_OPTIONS = [
@@ -546,7 +553,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
     "all" | "pending" | "completed"
   >("all");
   const [priorityFilter, setPriorityFilter] = useState<
-    "all" | "high" | "medium" | "low"
+    "all" | "high" | "medium" | "low" | "none"
   >("all");
   const [periodFilter, setPeriodFilter] = useState<string>("month");
   const [boardFilter, setBoardFilter] = useState<string>("all");
@@ -756,7 +763,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
         },
         tasks: boardTasks.sort((a, b) => {
           if (a.completed !== b.completed) return a.completed ? 1 : -1;
-          const priorityOrder = { high: 0, medium: 1, low: 2 };
+          const priorityOrder = { high: 0, medium: 1, low: 2, none: 3 };
           return priorityOrder[a.priority] - priorityOrder[b.priority];
         }),
       };
@@ -764,7 +771,7 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
   }, [filteredTasks, boards]);
 
   const priorityDistribution = useMemo(() => {
-    const dist = { high: 0, medium: 0, low: 0 };
+    const dist = { high: 0, medium: 0, low: 0, none: 0 };
     filteredTasks.forEach((t) => {
       if (!t.completed) dist[t.priority]++;
     });
@@ -1020,43 +1027,47 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
                 <h3 className="text-sm font-semibold">По приоритетам</h3>
               </div>
               <div className="grid grid-cols-3 gap-4">
-                {(["high", "medium", "low"] as Priority[]).map((priority) => {
-                  const config = PRIORITY_CONFIG[priority];
-                  const count = priorityDistribution[priority];
-                  const activeTotal = filteredTasks.filter(
-                    (t) => !t.completed,
-                  ).length;
-                  const percentage =
-                    activeTotal > 0
-                      ? Math.round((count / activeTotal) * 100)
-                      : 0;
+                {(["high", "medium", "low", "none"] as Priority[]).map(
+                  (priority) => {
+                    const config = PRIORITY_CONFIG[priority];
+                    const count = priorityDistribution[priority];
+                    const activeTotal = filteredTasks.filter(
+                      (t) => !t.completed,
+                    ).length;
+                    const percentage =
+                      activeTotal > 0
+                        ? Math.round((count / activeTotal) * 100)
+                        : 0;
 
-                  return (
-                    <div key={priority} className="text-center">
-                      <div
-                        className={cn(
-                          "inline-flex h-10 w-10 items-center justify-center rounded-xl mb-2",
-                          config.bg,
-                        )}
-                      >
-                        <config.icon className={cn("h-5 w-5", config.color)} />
-                      </div>
-                      <p className="text-xl font-bold">{count}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {config.label}
-                      </p>
-                      <div className="mt-1 h-1 rounded-full bg-muted/40 overflow-hidden">
+                    return (
+                      <div key={priority} className="text-center">
                         <div
                           className={cn(
-                            "h-full rounded-full transition-all duration-500",
-                            config.color.replace("text-", "bg-"),
+                            "inline-flex h-10 w-10 items-center justify-center rounded-xl mb-2",
+                            config.bg,
                           )}
-                          style={{ width: `${percentage}%` }}
-                        />
+                        >
+                          <config.icon
+                            className={cn("h-5 w-5", config.color)}
+                          />
+                        </div>
+                        <p className="text-xl font-bold">{count}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {config.label}
+                        </p>
+                        <div className="mt-1 h-1 rounded-full bg-muted/40 overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all duration-500",
+                              config.color.replace("text-", "bg-"),
+                            )}
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  },
+                )}
               </div>
             </div>
           </div>

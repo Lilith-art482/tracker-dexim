@@ -66,7 +66,7 @@ export function TeamListView({
 
   const sorted = useMemo(() => {
     return [...dayTasks].sort((a, b) => {
-      const p = { high: 0, medium: 1, low: 2 };
+      const p = { high: 0, medium: 1, low: 2, none: 3 };
       const ap = p[a.priority] ?? 1;
       const bp = p[b.priority] ?? 1;
       if (ap !== bp) return ap - bp;

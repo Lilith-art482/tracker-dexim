@@ -36,18 +36,21 @@ const PRIORITY_COLORS: Record<Priority, string> = {
   medium:
     "bg-amber-500/10 border-l-amber-500 text-amber-600 dark:text-amber-400",
   low: "bg-sky-500/10 border-l-sky-500 text-sky-600 dark:text-sky-400",
+  none: "bg-muted/10 border-l-muted text-muted-foreground",
 };
 
 const PRIORITY_BADGE: Record<Priority, "default" | "secondary" | "outline"> = {
   high: "default",
   medium: "secondary",
   low: "outline",
+  none: "outline",
 };
 
 const PRIORITY_LABELS: Record<Priority, string> = {
   high: "Высокий",
   medium: "Средний",
   low: "Низкий",
+  none: "Без приоритета",
 };
 
 function DraggableTaskCard({

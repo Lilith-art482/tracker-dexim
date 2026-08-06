@@ -51,6 +51,7 @@ import {
   convertToRUB,
 } from "@/lib/exchange-rates";
 import { syncRecurringTransactions } from "@/lib/finance-recurring-sync";
+import { localDateStr, parseLocalDate } from "@/lib/date-utils";
 
 const CATEGORY_COLORS_HEX: Record<string, string> = {
   red: "#ef4444",
@@ -220,7 +221,6 @@ export function FinanceDashboard({
 
   const dashboardRange = useMemo(() => {
     const now = new Date();
-    const today = now.toISOString().split("T")[0];
     let start: Date;
     switch (dashboardPeriod) {
       case "week": {
@@ -247,7 +247,7 @@ export function FinanceDashboard({
         start = new Date(now.getFullYear(), 0, 1);
         break;
     }
-    return { start: start!.toISOString().split("T")[0], end: today };
+    return { start: localDateStr(start!), end: localDateStr(now) };
   }, [dashboardPeriod]);
 
   const prevDashboardRange = useMemo(() => {
@@ -259,8 +259,8 @@ export function FinanceDashboard({
     );
     const prevStart = new Date(prevEnd.getTime() - dur);
     return {
-      start: prevStart.toISOString().split("T")[0],
-      end: prevEnd.toISOString().split("T")[0],
+      start: localDateStr(prevStart),
+      end: localDateStr(prevEnd),
     };
   }, [dashboardRange]);
 
@@ -366,7 +366,7 @@ export function FinanceDashboard({
 
   const catRange = useMemo(() => {
     const now = new Date();
-    const today = now.toISOString().split("T")[0];
+    const today = localDateStr(now);
     let start: Date;
     switch (catPeriod) {
       case "week": {
@@ -393,7 +393,7 @@ export function FinanceDashboard({
         start = new Date(now.getFullYear(), 0, 1);
         break;
     }
-    return { start: start!.toISOString().split("T")[0], end: today };
+    return { start: localDateStr(start!), end: today };
   }, [catPeriod]);
 
   const catTxns = useMemo(
@@ -463,8 +463,8 @@ export function FinanceDashboard({
 
   const daysInPeriod = dashboardRange
     ? Math.round(
-        (new Date(dashboardRange.end + "T00:00:00Z").getTime() -
-          new Date(dashboardRange.start + "T00:00:00Z").getTime()) /
+        (parseLocalDate(dashboardRange.end).getTime() -
+          parseLocalDate(dashboardRange.start).getTime()) /
           (1000 * 60 * 60 * 24),
       ) + 1
     : 30;
@@ -476,8 +476,8 @@ export function FinanceDashboard({
 
   const dailyChartData = useMemo(() => {
     if (!transactions.length || !dashboardRange) return null;
-    const startDate = new Date(dashboardRange.start + "T00:00:00Z");
-    const endDate = new Date(dashboardRange.end + "T00:00:00Z");
+    const startDate = parseLocalDate(dashboardRange.start);
+    const endDate = parseLocalDate(dashboardRange.end);
     const daysDiff =
       Math.floor(
         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
@@ -508,8 +508,8 @@ export function FinanceDashboard({
     } else {
       for (let d = 0; d < daysDiff; d++) {
         const date = new Date(startDate);
-        date.setUTCDate(date.getUTCDate() + d);
-        const prefix = date.toISOString().split("T")[0];
+        date.setDate(date.getDate() + d);
+        const prefix = localDateStr(date);
         const income = transactions
           .filter((t) => t.type === "income" && t.date.startsWith(prefix))
           .reduce((s, t) => s + t.amount, 0);
@@ -518,8 +518,8 @@ export function FinanceDashboard({
           .reduce((s, t) => s + t.amount, 0);
         const label =
           dashboardPeriod === "week"
-            ? ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"][date.getUTCDay()]
-            : String(date.getUTCDate());
+            ? ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"][date.getDay()]
+            : String(date.getDate());
         data.push({ label, income, expense });
         if (income > maxVal) maxVal = income;
         if (expense > maxVal) maxVal = expense;

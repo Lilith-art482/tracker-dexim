@@ -5,6 +5,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  Copy,
+  CopyPlus,
   CheckCircle2,
   Circle,
   Trash2,
@@ -15,11 +17,13 @@ import {
   CalendarDays,
 } from "lucide-react";
 import type { PersonalPlanEntry, Board, Priority } from "@/lib/models";
+import { localDateStr, parseLocalDate, addDays } from "@/lib/date-utils";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -59,24 +63,24 @@ const PRIORITY_CONFIG: Record<
     bg: "bg-sky-500/10",
     icon: Circle,
   },
+  none: {
+    label: "Без приоритета",
+    color: "text-muted-foreground",
+    bg: "bg-muted/60",
+    icon: Circle,
+  },
 };
 
 const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
+  { value: "none", label: "Без приоритета" },
   { value: "low", label: "Низкий" },
   { value: "medium", label: "Средний" },
   { value: "high", label: "Высокий" },
 ];
 
-function toDateStr(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 function formatDisplayDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00Z");
-  const day = d.getUTCDate();
+  const d = parseLocalDate(dateStr);
+  const day = d.getDate();
   const months = [
     "января",
     "февраля",
@@ -92,17 +96,14 @@ function formatDisplayDate(dateStr: string): string {
     "декабря",
   ];
   const weekdays = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-  return `${weekdays[d.getUTCDay()]}, ${day} ${months[d.getUTCMonth()]}`;
-}
-
-function getTodayStr(): string {
-  return new Date().toISOString().split("T")[0];
+  return `${weekdays[d.getDay()]}, ${day} ${months[d.getMonth()]}`;
 }
 
 interface PlanEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entry?: PersonalPlanEntry | null;
+  duplicateFrom?: PersonalPlanEntry | null;
   date: string;
   activeBoard?: Board;
   onSaved: (entry: PersonalPlanEntry) => void;
@@ -113,18 +114,18 @@ function PlanEntryDialog({
   open,
   onOpenChange,
   entry,
+  duplicateFrom,
   date,
   activeBoard,
   onSaved,
   onDelete,
 }: PlanEntryDialogProps) {
   const isEditing = !!entry;
+  const isDuplicating = !!duplicateFrom;
   const [title, setTitle] = useState(entry?.title ?? "");
   const [startTime, setStartTime] = useState(entry?.startTime ?? "09:00");
   const [endTime, setEndTime] = useState(entry?.endTime ?? "09:30");
-  const [priority, setPriority] = useState<Priority>(
-    entry?.priority ?? "medium",
-  );
+  const [priority, setPriority] = useState<Priority>(entry?.priority ?? "none");
   const [comment, setComment] = useState(entry?.comment ?? "");
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -136,21 +137,30 @@ function PlanEntryDialog({
       setEndTime(entry.endTime);
       setPriority(entry.priority);
       setComment(entry.comment ?? "");
+    } else if (duplicateFrom) {
+      setTitle(duplicateFrom.title);
+      setStartTime("");
+      setEndTime("");
+      setPriority(duplicateFrom.priority);
+      setComment(duplicateFrom.comment ?? "");
     } else {
       setTitle("");
       setStartTime("09:00");
       setEndTime("09:30");
-      setPriority("medium");
+      setPriority("none");
       setComment("");
     }
     setErrors({});
-  }, [entry, open]);
+  }, [entry, duplicateFrom, open]);
 
   const handleSubmit = async () => {
     const newErrors: Record<string, string> = {};
     if (!title.trim()) newErrors.title = "Название обязательно";
-    if (startTime >= endTime)
+    if (!startTime || !endTime) {
+      newErrors.endTime = "Укажите время";
+    } else if (startTime >= endTime) {
       newErrors.endTime = "Конец должен быть позже начала";
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -231,7 +241,11 @@ function PlanEntryDialog({
         <div className="px-6 pt-5 pb-4 border-b bg-muted/20">
           <DialogHeader className="p-0">
             <DialogTitle className="text-base">
-              {isEditing ? "Редактировать запись" : "Новая запись"}
+              {isEditing
+                ? "Редактировать запись"
+                : isDuplicating
+                  ? "Дублировать задачу"
+                  : "Новая запись"}
             </DialogTitle>
           </DialogHeader>
         </div>
@@ -358,7 +372,11 @@ function PlanEntryDialog({
             className="min-w-[100px]"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isEditing ? "Сохранить" : "Создать"}
+            {isEditing
+              ? "Сохранить"
+              : isDuplicating
+                ? "Дублировать"
+                : "Создать"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -370,18 +388,302 @@ interface PersonalPlanViewProps {
   activeBoard?: Board;
 }
 
+interface DuplicatePlanDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  targetDate: string;
+  activeBoard?: Board;
+  onSaved: (entry: PersonalPlanEntry) => void;
+}
+
+function DuplicatePlanDialog({
+  open,
+  onOpenChange,
+  targetDate,
+  activeBoard,
+  onSaved,
+}: DuplicatePlanDialogProps) {
+  const [sourceDate, setSourceDate] = useState(targetDate);
+  const [sourceEntries, setSourceEntries] = useState<PersonalPlanEntry[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setSourceDate(targetDate);
+    setSelectedIds(new Set());
+    setSourceEntries([]);
+  }, [open, targetDate]);
+
+  const loadSource = useCallback(async () => {
+    const uid = auth?.currentUser?.uid;
+    if (!uid) return;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ uid, date: sourceDate });
+      if (activeBoard?.id) params.set("boardId", activeBoard.id);
+      const res = await fetch(
+        `/api/personal-plan-entries?${params.toString()}`,
+      );
+      if (res.ok) {
+        const data: PersonalPlanEntry[] = await res.json();
+        setSourceEntries(data);
+        setSelectedIds(new Set(data.map((e) => e.id)));
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, [sourceDate, activeBoard?.id]);
+
+  useEffect(() => {
+    if (open) loadSource();
+  }, [open, loadSource]);
+
+  const toggle = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    setSelectedIds((prev) =>
+      prev.size === sourceEntries.length
+        ? new Set()
+        : new Set(sourceEntries.map((e) => e.id)),
+    );
+  };
+
+  const handleDuplicate = async () => {
+    const uid = auth?.currentUser?.uid;
+    if (!uid || selectedIds.size === 0) return;
+    setSaving(true);
+    let created = 0;
+    let failed = 0;
+    try {
+      for (const entry of sourceEntries) {
+        if (!selectedIds.has(entry.id)) continue;
+        const res = await fetch("/api/personal-plan-entries", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: entry.title,
+            date: targetDate,
+            startTime: entry.startTime,
+            endTime: entry.endTime,
+            priority: entry.priority,
+            comment: entry.comment ?? undefined,
+            ownerId: uid,
+            boardId: activeBoard?.id || undefined,
+          }),
+        });
+        if (res.status === 503) {
+          toast.error("База данных недоступна");
+          failed++;
+          continue;
+        }
+        if (res.ok) {
+          const createdEntry: PersonalPlanEntry = await res.json();
+          onSaved(createdEntry);
+          created++;
+        } else {
+          const err = await res.json();
+          toast.error(err.error || "Ошибка создания");
+          failed++;
+        }
+      }
+      if (created > 0) {
+        toast.success(
+          failed > 0
+            ? `Дублировано: ${created}, ошибок: ${failed}`
+            : `Дублировано задач: ${created}`,
+        );
+      }
+      onOpenChange(false);
+    } catch {
+      toast.error("Ошибка дублирования");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const sourceDiff =
+    Math.round(
+      (parseLocalDate(sourceDate).getTime() -
+        parseLocalDate(localDateStr()).getTime()) /
+        (1000 * 60 * 60 * 24),
+    ) + 7;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg gap-0 overflow-hidden">
+        <div className="px-6 pt-5 pb-4 border-b bg-muted/20">
+          <DialogHeader className="p-0">
+            <DialogTitle className="text-base">Дублировать план</DialogTitle>
+          </DialogHeader>
+        </div>
+
+        <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSourceDate(addDays(sourceDate, -1))}
+                disabled={sourceDiff <= 0}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="text-center min-w-[120px]">
+                <p className="text-sm font-semibold">
+                  {formatDisplayDate(sourceDate)}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSourceDate(addDays(sourceDate, 1))}
+                disabled={sourceDiff >= 14}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            {sourceEntries.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleAll}
+                className="text-xs"
+              >
+                {selectedIds.size === sourceEntries.length
+                  ? "Снять все"
+                  : "Выбрать все"}
+              </Button>
+            )}
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Задачи будут скопированы на{" "}
+            <span className="font-medium text-foreground">
+              {formatDisplayDate(targetDate)}
+            </span>{" "}
+            со временем оригинала.
+          </p>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : sourceEntries.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border/60 py-10 text-center">
+              <CalendarDays className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                На этот день плана нет
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {sourceEntries
+                .slice()
+                .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                .map((entry) => {
+                  const pc = PRIORITY_CONFIG[entry.priority];
+                  return (
+                    <label
+                      key={entry.id}
+                      className={cn(
+                        "flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors",
+                        selectedIds.has(entry.id)
+                          ? "border-primary/30 bg-primary/5"
+                          : "border-border/40 bg-background hover:bg-muted/30",
+                      )}
+                    >
+                      <div className="mt-0.5">
+                        <Checkbox
+                          checked={selectedIds.has(entry.id)}
+                          onCheckedChange={() => toggle(entry.id)}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">
+                            {entry.title}
+                          </p>
+                          {entry.priority !== "none" && (
+                            <span
+                              className={cn(
+                                "text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0",
+                                pc.bg,
+                                pc.color,
+                              )}
+                            >
+                              {pc.label}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {entry.startTime} — {entry.endTime}
+                          </span>
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="px-6 py-4 border-t bg-muted/10 m-0 rounded-b-xl gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
+            Отмена
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleDuplicate}
+            disabled={saving || selectedIds.size === 0}
+            className="gap-1.5 min-w-[140px]"
+          >
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            <CopyPlus className="h-4 w-4" />
+            Дублировать
+            {selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
   const [entries, setEntries] = useState<PersonalPlanEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(getTodayStr());
+  const [selectedDate, setSelectedDate] = useState(localDateStr());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<PersonalPlanEntry | null>(
     null,
   );
+  const [duplicateFrom, setDuplicateFrom] = useState<PersonalPlanEntry | null>(
+    null,
+  );
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
 
-  const today = getTodayStr();
-  const todayDate = new Date(today + "T00:00:00Z");
-  const selectedDateObj = new Date(selectedDate + "T00:00:00Z");
+  const today = localDateStr();
+  const todayDate = parseLocalDate(today);
+  const selectedDateObj = parseLocalDate(selectedDate);
   const diffDays = Math.round(
     (selectedDateObj.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24),
   );
@@ -485,16 +787,12 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
 
   const goBack = () => {
     if (!canGoBack) return;
-    const d = new Date(selectedDate + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() - 1);
-    setSelectedDate(toDateStr(d));
+    setSelectedDate(addDays(selectedDate, -1));
   };
 
   const goForward = () => {
     if (!canGoForward) return;
-    const d = new Date(selectedDate + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() + 1);
-    setSelectedDate(toDateStr(d));
+    setSelectedDate(addDays(selectedDate, 1));
   };
 
   return (
@@ -540,9 +838,19 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
             </div>
           )}
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPlanDialogOpen(true)}
+            className="gap-1.5"
+          >
+            <CopyPlus className="h-4 w-4" />
+            Дублировать план
+          </Button>
+          <Button
             size="sm"
             onClick={() => {
               setEditingEntry(null);
+              setDuplicateFrom(null);
               setDialogOpen(true);
             }}
             className="gap-1.5"
@@ -646,7 +954,19 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                   <button
                     onClick={() => {
+                      setEditingEntry(null);
+                      setDuplicateFrom(entry);
+                      setDialogOpen(true);
+                    }}
+                    className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors"
+                    title="Дублировать на следующий день"
+                  >
+                    <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                  <button
+                    onClick={() => {
                       setEditingEntry(entry);
+                      setDuplicateFrom(null);
                       setDialogOpen(true);
                     }}
                     className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors"
@@ -683,13 +1003,25 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open);
-          if (!open) setEditingEntry(null);
+          if (!open) {
+            setEditingEntry(null);
+            setDuplicateFrom(null);
+          }
         }}
         entry={editingEntry}
-        date={selectedDate}
+        duplicateFrom={duplicateFrom}
+        date={duplicateFrom ? addDays(selectedDate, 1) : selectedDate}
         activeBoard={activeBoard}
         onSaved={handleSaved}
         onDelete={handleDelete}
+      />
+
+      <DuplicatePlanDialog
+        open={planDialogOpen}
+        onOpenChange={setPlanDialogOpen}
+        targetDate={selectedDate}
+        activeBoard={activeBoard}
+        onSaved={handleSaved}
       />
     </div>
   );

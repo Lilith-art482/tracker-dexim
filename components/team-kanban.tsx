@@ -47,6 +47,7 @@ const PRIORITY_COLORS: Record<Priority, string> = {
   high: "border-l-rose-500 bg-rose-500/5",
   medium: "border-l-amber-500 bg-amber-500/5",
   low: "border-l-sky-500 bg-sky-500/5",
+  none: "border-l-muted bg-muted/5",
 };
 
 const PRIORITY_BADGE: Record<Priority, string> = {
@@ -54,12 +55,14 @@ const PRIORITY_BADGE: Record<Priority, string> = {
   medium:
     "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
   low: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
+  none: "bg-muted text-muted-foreground",
 };
 
 const PRIORITY_LABELS: Record<Priority, string> = {
   high: "Высокий",
   medium: "Средний",
   low: "Низкий",
+  none: "Без приоритета",
 };
 
 const COLUMN_COLORS = [

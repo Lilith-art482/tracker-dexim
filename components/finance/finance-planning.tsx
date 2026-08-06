@@ -23,6 +23,12 @@ import type {
   FinanceAccount,
   Loan,
 } from "@/lib/finance-types";
+import {
+  localDateStr,
+  parseLocalDate,
+  daysBetween,
+  daysElapsed,
+} from "@/lib/date-utils";
 
 import {
   getAccountsByUser,
@@ -55,34 +61,29 @@ function getPeriodRange(period: BudgetPlan["period"]): {
   periodStart: string;
   periodEnd: string;
 } {
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = localDateStr();
   if (period === "day") return { periodStart: todayStr, periodEnd: todayStr };
 
-  const today = new Date(todayStr + "T00:00:00Z");
-  const y = today.getUTCFullYear();
-  const m = today.getUTCMonth();
-  const d = today.getUTCDate();
-  const dow = today.getUTCDay();
+  const today = parseLocalDate(todayStr);
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  const d = today.getDate();
+  const dow = today.getDay();
+
+  const fmt = (dt: Date) => localDateStr(dt);
 
   switch (period) {
     case "week": {
       const monOff = dow === 0 ? -6 : 1 - dow;
-      const mon = new Date(todayStr + "T00:00:00Z");
-      mon.setUTCDate(d + monOff);
+      const mon = new Date(y, m, d + monOff);
       const sun = new Date(mon);
-      sun.setUTCDate(mon.getUTCDate() + 6);
-      return {
-        periodStart: mon.toISOString().split("T")[0],
-        periodEnd: sun.toISOString().split("T")[0],
-      };
+      sun.setDate(mon.getDate() + 6);
+      return { periodStart: fmt(mon), periodEnd: fmt(sun) };
     }
     case "month": {
-      const start = new Date(Date.UTC(y, m, 1));
-      const end = new Date(Date.UTC(y, m + 1, 0));
-      return {
-        periodStart: start.toISOString().split("T")[0],
-        periodEnd: end.toISOString().split("T")[0],
-      };
+      const start = new Date(y, m, 1);
+      const end = new Date(y, m + 1, 0);
+      return { periodStart: fmt(start), periodEnd: fmt(end) };
     }
     case "year": {
       return { periodStart: `${y}-01-01`, periodEnd: `${y}-12-31` };
@@ -90,21 +91,10 @@ function getPeriodRange(period: BudgetPlan["period"]): {
   }
 }
 
-function getDaysInRange(start: string, end: string): number {
-  const s = new Date(start + "T00:00:00Z").getTime();
-  const e = new Date(end + "T00:00:00Z").getTime();
-  return Math.floor((e - s) / 86400000) + 1;
-}
-
 function genId(): string {
   return typeof crypto.randomUUID === "function"
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function getDaysElapsed(start: string): number {
-  const s = new Date(start + "T00:00:00Z").getTime();
-  return Math.max(1, Math.ceil((Date.now() - s) / 86400000));
 }
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -131,32 +121,35 @@ export function FinancePlanning() {
     {},
   );
 
-  const handleDeleteCategory = useCallback(async (catId: string) => {
-    const cat = categories.find((c) => c.id === catId);
-    if (!cat) return;
-    toast("Удалить категорию?", {
-      description: `${cat.name} будет удалена навсегда`,
-      action: {
-        label: "Удалить",
-        onClick: async () => {
-          const id = toast.loading("Удаляем...");
-          try {
-            await deleteCategory(catId);
-            setCategories((prev) => prev.filter((c) => c.id !== catId));
-            setCategoryLimits((prev) => {
-              const next = { ...prev };
-              delete next[catId];
-              return next;
-            });
-            toast.success("Категория удалена", { id });
-          } catch {
-            toast.error("Ошибка при удалении", { id });
-          }
+  const handleDeleteCategory = useCallback(
+    async (catId: string) => {
+      const cat = categories.find((c) => c.id === catId);
+      if (!cat) return;
+      toast("Удалить категорию?", {
+        description: `${cat.name} будет удалена навсегда`,
+        action: {
+          label: "Удалить",
+          onClick: async () => {
+            const id = toast.loading("Удаляем...");
+            try {
+              await deleteCategory(catId);
+              setCategories((prev) => prev.filter((c) => c.id !== catId));
+              setCategoryLimits((prev) => {
+                const next = { ...prev };
+                delete next[catId];
+                return next;
+              });
+              toast.success("Категория удалена", { id });
+            } catch {
+              toast.error("Ошибка при удалении", { id });
+            }
+          },
         },
-      },
-      cancel: { label: "Отмена", onClick: () => {} },
-    });
-  }, [categories]);
+        cancel: { label: "Отмена", onClick: () => {} },
+      });
+    },
+    [categories],
+  );
 
   const { periodStart, periodEnd } = useMemo(
     () => getPeriodRange(period),
@@ -225,7 +218,8 @@ export function FinancePlanning() {
   const expenseCategories = useMemo(
     () =>
       categories.filter(
-        (c) => c.type === "expense" && !c.isArchived && c.showInBudget !== false,
+        (c) =>
+          c.type === "expense" && !c.isArchived && c.showInBudget !== false,
       ),
     [categories],
   );
@@ -262,8 +256,8 @@ export function FinancePlanning() {
     [expenseCategories, spentByCategory],
   );
 
-  const periodDays = getDaysInRange(periodStart, periodEnd);
-  const elapsedDays = getDaysElapsed(periodStart);
+  const periodDays = daysBetween(periodStart, periodEnd);
+  const elapsedDays = daysElapsed(periodStart);
   const dailyAvg = elapsedDays > 0 ? totalSpent / elapsedDays : 0;
   const projectedTotal = Math.max(dailyAvg * periodDays, totalPlanned);
   const totalBalance = useMemo(
@@ -355,16 +349,14 @@ export function FinancePlanning() {
 
   const handleCopyFromLastMonth = async () => {
     if (period !== "month") return;
-    const today = new Date();
-    const y = today.getUTCFullYear();
-    const m = today.getUTCMonth();
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
     const prevMonth = m - 1;
     const prevYear = prevMonth < 0 ? y - 1 : y;
     const pm = prevMonth < 0 ? 11 : prevMonth;
-    const prevStart = new Date(Date.UTC(prevYear, pm, 1));
-    const prevEnd = new Date(Date.UTC(prevYear, pm + 1, 0));
-    const prevStartStr = prevStart.toISOString().split("T")[0];
-    const prevEndStr = prevEnd.toISOString().split("T")[0];
+    const prevStartStr = localDateStr(new Date(prevYear, pm, 1));
+    const prevEndStr = localDateStr(new Date(prevYear, pm + 1, 0));
 
     const prevBudget = allBudgets.find(
       (b) => b.periodStart === prevStartStr && b.periodEnd === prevEndStr,

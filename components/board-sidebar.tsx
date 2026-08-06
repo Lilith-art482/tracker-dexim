@@ -121,22 +121,24 @@ function PermissionToggles({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      {(Object.entries(PERMISSION_LABELS) as [keyof PermissionFlags, string][]).map(
-        ([key, label]) => (
-          <label
-            key={key}
-            className="flex items-center gap-2 text-xs cursor-pointer"
-          >
-            <input
-              type="checkbox"
-              checked={permissions[key]}
-              onChange={(e) => onChange({ ...permissions, [key]: e.target.checked })}
-              className="accent-primary"
-            />
-            {label}
-          </label>
-        ),
-      )}
+      {(
+        Object.entries(PERMISSION_LABELS) as [keyof PermissionFlags, string][]
+      ).map(([key, label]) => (
+        <label
+          key={key}
+          className="flex items-center gap-2 text-xs cursor-pointer"
+        >
+          <input
+            type="checkbox"
+            checked={permissions[key]}
+            onChange={(e) =>
+              onChange({ ...permissions, [key]: e.target.checked })
+            }
+            className="accent-primary"
+          />
+          {label}
+        </label>
+      ))}
     </div>
   );
 }
@@ -227,8 +229,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
       if (res.ok) {
         setCompanies(await res.json());
       }
-    } catch {
-    }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -414,7 +415,10 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
       if (res.ok) {
         const data = await res.json();
         if (data) {
-          const info = { email: data.email || "", nickname: data.nickname || "" };
+          const info = {
+            email: data.email || "",
+            nickname: data.nickname || "",
+          };
           setUserCache((prev) => ({ ...prev, [uid]: info }));
           return info;
         }
@@ -851,7 +855,9 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                 activeBoardId === board.id ||
                 (!activeBoardId && filteredBoards[0]?.id === board.id);
               const color = getBoardColor(board);
-              const IconComponent = board.icon ? getBoardIcon(board.icon) : null;
+              const IconComponent = board.icon
+                ? getBoardIcon(board.icon)
+                : null;
               return (
                 <div
                   key={board.id}
@@ -1197,9 +1203,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                                     size="sm"
                                     className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                                     onClick={() =>
-                                      setExpandedMember(
-                                        isExpanded ? null : uid,
-                                      )
+                                      setExpandedMember(isExpanded ? null : uid)
                                     }
                                     title="Настройки доступа"
                                   >
@@ -1242,9 +1246,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                                         <input
                                           type="radio"
                                           name={`boardAccess-${uid}`}
-                                          checked={
-                                            config.boardAccess !== "all"
-                                          }
+                                          checked={config.boardAccess !== "all"}
                                           onChange={() =>
                                             handleUpdateMemberConfig(uid, {
                                               boardAccess: [],
@@ -1287,8 +1289,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
                                                   const next = e.target.checked
                                                     ? [...current, board.id]
                                                     : current.filter(
-                                                        (id) =>
-                                                          id !== board.id,
+                                                        (id) => id !== board.id,
                                                       );
                                                   handleUpdateMemberConfig(
                                                     uid,

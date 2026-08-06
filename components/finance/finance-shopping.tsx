@@ -24,7 +24,6 @@ import {
   Bitcoin,
   TrendingUp,
   PiggyBank,
-
   Flag,
 } from "lucide-react";
 import type {

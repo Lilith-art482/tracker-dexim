@@ -53,6 +53,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CategorySearchSelect } from "./category-search-select";
+import { AccountSearchSelect } from "./account-search-select";
 
 const INTERVAL_LABELS: Record<RecurringInterval, string> = {
   weekly: "Еженедельно",
@@ -530,23 +531,11 @@ export function FinanceRecurring() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium">Счёт</label>
-                <Select
+                <AccountSearchSelect
+                  accounts={accounts}
                   value={formAccountId}
-                  onValueChange={(v) => v && setFormAccountId(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите счёт">
-                      {accountMap.get(formAccountId)?.name}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.map((acc) => (
-                      <SelectItem key={acc.id} value={acc.id}>
-                        {acc.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={setFormAccountId}
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium">Категория</label>

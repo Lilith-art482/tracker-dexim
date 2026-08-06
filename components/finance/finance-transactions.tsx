@@ -64,7 +64,9 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { localDateStr } from "@/lib/date-utils";
 import { CategorySearchSelect } from "@/components/finance/category-search-select";
+import { AccountSearchSelect } from "@/components/finance/account-search-select";
 
 type DateFilter = "all" | "today" | "week" | "month" | "custom";
 
@@ -109,10 +111,10 @@ function getDateGroup(dateStr: string): string {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
+  const todayStr = localDateStr(today);
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split("T")[0];
+  const yesterdayStr = localDateStr(yesterday);
   const datePart = dateStr.split("T")[0];
   if (datePart === todayStr) return "Сегодня";
   if (datePart === yesterdayStr) return "Вчера";
@@ -160,7 +162,10 @@ export function FinanceTransactions() {
   const [txCategoryId, setTxCategoryId] = useState("");
   const [txAmount, setTxAmount] = useState("");
   const [txCurrency, setTxCurrency] = useState("");
-  const [txDate, setTxDate] = useState(new Date().toISOString().slice(0, 16));
+  const [txDate, setTxDate] = useState(() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}T${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
+  });
   const [txDescription, setTxDescription] = useState("");
   const [txTags, setTxTags] = useState("");
   const [saving, setSaving] = useState(false);
@@ -187,7 +192,7 @@ export function FinanceTransactions() {
     fetchAll();
   }, [fetchAll]);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateStr();
 
   const filteredTransactions = useMemo(() => {
     let result = [...transactions];
@@ -197,12 +202,12 @@ export function FinanceTransactions() {
     } else if (dateFilter === "week") {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      const weekStart = weekAgo.toISOString().split("T")[0];
+      const weekStart = localDateStr(weekAgo);
       result = result.filter((t) => t.date >= weekStart);
     } else if (dateFilter === "month") {
       const monthStart = new Date();
       monthStart.setDate(1);
-      const ms = monthStart.toISOString().split("T")[0];
+      const ms = localDateStr(monthStart);
       result = result.filter((t) => t.date >= ms);
     } else if (dateFilter === "custom") {
       if (dateFrom) result = result.filter((t) => t.date >= dateFrom);
@@ -315,7 +320,10 @@ export function FinanceTransactions() {
     setTxCategoryId("");
     setTxAmount("");
     setTxCurrency(getDisplayCurrency());
-    setTxDate(new Date().toISOString().slice(0, 16));
+    setTxDate(() => {
+      const n = new Date();
+      return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}T${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
+    });
     setTxDescription("");
     setTxTags("");
   };
@@ -673,11 +681,7 @@ export function FinanceTransactions() {
                             {Icon && (
                               <Icon
                                 className="h-3.5 w-3.5 shrink-0"
-                                style={
-                                  c.color
-                                    ? { color: c.color }
-                                    : undefined
-                                }
+                                style={c.color ? { color: c.color } : undefined}
                               />
                             )}
                             {c.name}
@@ -689,17 +693,13 @@ export function FinanceTransactions() {
               </Select>
             )}
 
-              <Select
-                value={accountFilter}
-                onValueChange={(v) => v && setAccountFilter(v)}
-              >
-                <SelectTrigger className="h-7 text-xs w-[130px]">
-                  <SelectValue placeholder="Счёт">
-                    {accountFilter === "all"
-                      ? "Все"
-                      : accounts.find((a) => a.id === accountFilter)?.name}
-                  </SelectValue>
-                </SelectTrigger>
+            <Select
+              value={accountFilter}
+              onValueChange={(v) => v && setAccountFilter(v)}
+            >
+              <SelectTrigger className="h-7 text-xs w-[130px]">
+                <SelectValue placeholder="Счёт" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все</SelectItem>
                 {accounts.map((a) => (
@@ -979,31 +979,11 @@ export function FinanceTransactions() {
 
             <div className="space-y-1.5">
               <Label className="text-xs">Счёт</Label>
-              <Select
+              <AccountSearchSelect
+                accounts={accounts}
                 value={txAccountId}
-                onValueChange={(v) => v && setTxAccountId(v)}
-              >
-                <SelectTrigger className="w-full h-9">
-                  <SelectValue placeholder="Выберите счёт">
-                    {accounts.find((a) => a.id === txAccountId)?.name}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.length === 0 && (
-                    <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-                      Нет доступных счетов. Создайте счёт в разделе «Счета»
-                    </div>
-                  )}
-                  {accounts.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.name}
-                      <span className="text-muted-foreground ml-auto">
-                        {a.balance.toLocaleString()} {a.currency}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={setTxAccountId}
+              />
             </div>
 
             {txType !== "transfer" && (
@@ -1174,23 +1154,11 @@ export function FinanceTransactions() {
 
             <div className="space-y-1.5">
               <Label className="text-xs">Счёт</Label>
-              <Select
+              <AccountSearchSelect
+                accounts={accounts}
                 value={txAccountId}
-                onValueChange={(v) => v && setTxAccountId(v)}
-              >
-                <SelectTrigger className="w-full h-9">
-                  <SelectValue placeholder="Выберите счёт">
-                    {accounts.find((a) => a.id === txAccountId)?.name}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={setTxAccountId}
+              />
             </div>
 
             {txType !== "transfer" && (

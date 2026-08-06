@@ -1534,7 +1534,9 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
               <div
                 className={cn(
                   "h-5 w-9 rounded-full flex items-center px-0.5 transition-all duration-200 shrink-0",
-                  showInBudget ? "bg-primary justify-end" : "bg-muted justify-start",
+                  showInBudget
+                    ? "bg-primary justify-end"
+                    : "bg-muted justify-start",
                 )}
               >
                 <div className="h-4 w-4 rounded-full bg-white shadow-sm" />

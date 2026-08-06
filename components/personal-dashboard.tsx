@@ -7,6 +7,7 @@ const COLORS: Record<Priority, string> = {
   high: "#f43f5e",
   medium: "#f59e0b",
   low: "#0ea5e9",
+  none: "#6b7280",
 };
 
 const STATUS_COLORS = {
@@ -18,6 +19,7 @@ const PRIORITY_LABELS: Record<Priority, string> = {
   high: "Высокий",
   medium: "Средний",
   low: "Низкий",
+  none: "Без приоритета",
 };
 
 interface BarChartProps {
@@ -72,11 +74,16 @@ interface PersonalDashboardProps {
 
 export function PersonalDashboard({ tasks }: PersonalDashboardProps) {
   const priorityData = useMemo(() => {
-    const counts: Record<Priority, number> = { high: 0, medium: 0, low: 0 };
+    const counts: Record<Priority, number> = {
+      high: 0,
+      medium: 0,
+      low: 0,
+      none: 0,
+    };
     tasks.forEach((t) => {
       counts[t.priority]++;
     });
-    return (["high", "medium", "low"] as Priority[]).map((p) => ({
+    return (["high", "medium", "low", "none"] as Priority[]).map((p) => ({
       label: PRIORITY_LABELS[p],
       value: counts[p],
       color: COLORS[p],
