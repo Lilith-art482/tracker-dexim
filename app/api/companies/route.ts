@@ -138,10 +138,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Ошибка обновления компании:", error);
-    return NextResponse.json(
-      { error: "Ошибка обновления" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Ошибка обновления" }, { status: 500 });
   }
 }
 

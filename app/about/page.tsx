@@ -286,36 +286,78 @@ export default function AboutPage() {
       {/* Blobs */}
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-3xl overflow-hidden animate-float-slow">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/10" />
-        <div className="absolute inset-0 opacity-[0.16]" style={{ backgroundImage: STRONG_NOISE }} />
+        <div
+          className="absolute inset-0 opacity-[0.16]"
+          style={{ backgroundImage: STRONG_NOISE }}
+        />
       </div>
-      <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full blur-3xl overflow-hidden animate-float-medium" style={{ animationDelay: "-2s" }}>
+      <div
+        className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full blur-3xl overflow-hidden animate-float-medium"
+        style={{ animationDelay: "-2s" }}
+      >
         <div className="absolute inset-0 bg-gradient-to-tl from-primary/25 to-primary/10" />
-        <div className="absolute inset-0 opacity-[0.16]" style={{ backgroundImage: STRONG_NOISE }} />
+        <div
+          className="absolute inset-0 opacity-[0.16]"
+          style={{ backgroundImage: STRONG_NOISE }}
+        />
       </div>
-      <div className="absolute top-1/3 left-1/2 w-72 h-72 rounded-full blur-3xl overflow-hidden animate-float-fast" style={{ animationDelay: "-4s" }}>
+      <div
+        className="absolute top-1/3 left-1/2 w-72 h-72 rounded-full blur-3xl overflow-hidden animate-float-fast"
+        style={{ animationDelay: "-4s" }}
+      >
         <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/5" />
-        <div className="absolute inset-0 opacity-[0.16]" style={{ backgroundImage: STRONG_NOISE }} />
+        <div
+          className="absolute inset-0 opacity-[0.16]"
+          style={{ backgroundImage: STRONG_NOISE }}
+        />
       </div>
 
       <style jsx>{`
         @keyframes float-slow {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -30px) scale(1.05); }
-          66% { transform: translate(-20px, 20px) scale(0.95); }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(30px, -30px) scale(1.05);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.95);
+          }
         }
         @keyframes float-medium {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(-25px, 25px) scale(1.08); }
-          66% { transform: translate(35px, -15px) scale(0.92); }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(-25px, 25px) scale(1.08);
+          }
+          66% {
+            transform: translate(35px, -15px) scale(0.92);
+          }
         }
         @keyframes float-fast {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(40px, 15px) scale(0.95); }
-          66% { transform: translate(-30px, -25px) scale(1.05); }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(40px, 15px) scale(0.95);
+          }
+          66% {
+            transform: translate(-30px, -25px) scale(1.05);
+          }
         }
-        .animate-float-slow { animation: float-slow 20s ease-in-out infinite; }
-        .animate-float-medium { animation: float-medium 15s ease-in-out infinite; }
-        .animate-float-fast { animation: float-fast 12s ease-in-out infinite; }
+        .animate-float-slow {
+          animation: float-slow 20s ease-in-out infinite;
+        }
+        .animate-float-medium {
+          animation: float-medium 15s ease-in-out infinite;
+        }
+        .animate-float-fast {
+          animation: float-fast 12s ease-in-out infinite;
+        }
       `}</style>
 
       <div className="relative z-10 mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -333,7 +375,10 @@ export default function AboutPage() {
           <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-emerald-500/[0.04] via-background to-emerald-500/[0.01] p-7 sm:p-10 backdrop-blur-sm">
             <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-emerald-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute inset-0 opacity-[0.12] pointer-events-none" style={{ backgroundImage: STRONG_NOISE }} />
+            <div
+              className="absolute inset-0 opacity-[0.12] pointer-events-none"
+              style={{ backgroundImage: STRONG_NOISE }}
+            />
 
             <div className="relative flex flex-col sm:flex-row items-start gap-6">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30">
@@ -352,19 +397,49 @@ export default function AboutPage() {
 
                 <div className="flex flex-wrap items-center gap-2">
                   {[
-                    { label: "Задачи", icon: ListChecks, color: "text-blue-500 bg-blue-500/10" },
-                    { label: "Финансы", icon: DollarSign, color: "text-emerald-500 bg-emerald-500/10" },
-                    { label: "Привычки", icon: Heart, color: "text-rose-500 bg-rose-500/10" },
-                    { label: "Спорт", icon: Dumbbell, color: "text-orange-500 bg-orange-500/10" },
-                    { label: "Заметки", icon: BookOpen, color: "text-violet-500 bg-violet-500/10" },
-                    { label: "Блог", icon: Newspaper, color: "text-amber-500 bg-amber-500/10" },
-                    { label: "AI", icon: Bot, color: "text-indigo-500 bg-indigo-500/10" },
+                    {
+                      label: "Задачи",
+                      icon: ListChecks,
+                      color: "text-blue-500 bg-blue-500/10",
+                    },
+                    {
+                      label: "Финансы",
+                      icon: DollarSign,
+                      color: "text-emerald-500 bg-emerald-500/10",
+                    },
+                    {
+                      label: "Привычки",
+                      icon: Heart,
+                      color: "text-rose-500 bg-rose-500/10",
+                    },
+                    {
+                      label: "Спорт",
+                      icon: Dumbbell,
+                      color: "text-orange-500 bg-orange-500/10",
+                    },
+                    {
+                      label: "Заметки",
+                      icon: BookOpen,
+                      color: "text-violet-500 bg-violet-500/10",
+                    },
+                    {
+                      label: "Блог",
+                      icon: Newspaper,
+                      color: "text-amber-500 bg-amber-500/10",
+                    },
+                    {
+                      label: "AI",
+                      icon: Bot,
+                      color: "text-indigo-500 bg-indigo-500/10",
+                    },
                   ].map((tag) => (
                     <span
                       key={tag.label}
                       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium border border-border/30 bg-background/40 text-muted-foreground ${tag.color.split(" ")[1]}`}
                     >
-                      <tag.icon className={`h-3 w-3 shrink-0 ${tag.color.split(" ")[0]}`} />
+                      <tag.icon
+                        className={`h-3 w-3 shrink-0 ${tag.color.split(" ")[0]}`}
+                      />
                       {tag.label}
                     </span>
                   ))}
@@ -437,11 +512,18 @@ export default function AboutPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {FEATURES.map((feature) => (
-              <Card key={feature.label} className="backdrop-blur-sm bg-card/70 border-border/50">
+              <Card
+                key={feature.label}
+                className="backdrop-blur-sm bg-card/70 border-border/50"
+              >
                 <CardContent className="p-5">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${feature.bg}`}>
-                      <feature.icon className={`h-4.5 w-4.5 ${feature.color}`} />
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-xl ${feature.bg}`}
+                    >
+                      <feature.icon
+                        className={`h-4.5 w-4.5 ${feature.color}`}
+                      />
                     </div>
                     <p className="text-sm font-semibold">{feature.label}</p>
                   </div>
@@ -464,7 +546,10 @@ export default function AboutPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {VALUES.map((value) => (
-              <Card key={value.label} className="backdrop-blur-sm bg-card/70 border-border/50">
+              <Card
+                key={value.label}
+                className="backdrop-blur-sm bg-card/70 border-border/50"
+              >
                 <CardContent className="p-4 flex items-start gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted/50 shrink-0 mt-0.5">
                     <value.icon className={`h-4.5 w-4.5 ${value.color}`} />
@@ -552,7 +637,11 @@ export default function AboutPage() {
                   {uid === null ? (
                     <div className="mt-3 flex items-center gap-3">
                       <Link href="/auth">
-                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1"
+                        >
                           <ArrowLeft className="h-3 w-3" />
                           Войти в аккаунт
                         </Button>
@@ -607,7 +696,10 @@ export default function AboutPage() {
 
         {/* AI Chat Block */}
         <div className="mb-10 rounded-2xl border border-border/60 bg-gradient-to-br from-violet-500/5 to-violet-500/[0.02] backdrop-blur-sm p-6 sm:p-8 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-[0.12] pointer-events-none" style={{ backgroundImage: STRONG_NOISE }} />
+          <div
+            className="absolute inset-0 opacity-[0.12] pointer-events-none"
+            style={{ backgroundImage: STRONG_NOISE }}
+          />
           <div className="relative flex flex-col sm:flex-row items-center gap-6">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shrink-0">
               <Bot className="h-8 w-8 text-white" />
@@ -621,7 +713,11 @@ export default function AboutPage() {
                 настроек и обработки данных. Задайте любой вопрос.
               </p>
               <div className="flex flex-wrap gap-2 mt-4">
-                <Button variant="default" className="gap-2" onClick={() => setChatOpen(true)}>
+                <Button
+                  variant="default"
+                  className="gap-2"
+                  onClick={() => setChatOpen(true)}
+                >
                   <Bot className="h-4 w-4" />
                   Открыть чат
                 </Button>
@@ -770,13 +866,17 @@ export default function AboutPage() {
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 mb-3">
                   <Timer className="h-7 w-7 text-amber-500" />
                 </div>
-                <p className="text-base font-semibold">Запрос на удаление активен</p>
+                <p className="text-base font-semibold">
+                  Запрос на удаление активен
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Аккаунт будет удалён через{" "}
                   {Math.max(
                     0,
                     Math.ceil(
-                      (new Date(revokePendingDeletion.deletionDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+                      (new Date(revokePendingDeletion.deletionDate).getTime() -
+                        new Date().getTime()) /
+                        (1000 * 60 * 60 * 24),
                     ),
                   )}{" "}
                   дн.
@@ -795,7 +895,9 @@ export default function AboutPage() {
                     </code>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(revokePendingDeletion.promoCode!);
+                        navigator.clipboard.writeText(
+                          revokePendingDeletion.promoCode!,
+                        );
                         toast.success("Промокод скопирован");
                       }}
                       className="text-xs font-medium text-amber-600 hover:text-amber-700 shrink-0"
@@ -814,7 +916,9 @@ export default function AboutPage() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Дата удаления</span>
                   <span className="font-medium">
-                    {new Date(revokePendingDeletion.deletionDate).toLocaleDateString("ru-RU", {
+                    {new Date(
+                      revokePendingDeletion.deletionDate,
+                    ).toLocaleDateString("ru-RU", {
                       day: "numeric",
                       month: "long",
                       year: "numeric",
@@ -823,9 +927,13 @@ export default function AboutPage() {
                 </div>
                 {revokePendingDeletion.promoCode && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Промокод активен до</span>
+                    <span className="text-muted-foreground">
+                      Промокод активен до
+                    </span>
                     <span className="font-medium text-amber-600">
-                      {new Date(revokePendingDeletion.deletionDate).toLocaleDateString("ru-RU", {
+                      {new Date(
+                        revokePendingDeletion.deletionDate,
+                      ).toLocaleDateString("ru-RU", {
                         day: "numeric",
                         month: "long",
                         year: "numeric",
@@ -843,7 +951,11 @@ export default function AboutPage() {
                 .
               </p>
 
-              <Button variant="outline" className="w-full" onClick={() => setRevokeOpen(false)}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setRevokeOpen(false)}
+              >
                 Понятно
               </Button>
             </div>
@@ -890,11 +1002,14 @@ export default function AboutPage() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Дата удаления</span>
                   <span className="font-medium">
-                    {new Date(revokeResult.deletionDate).toLocaleDateString("ru-RU", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
+                    {new Date(revokeResult.deletionDate).toLocaleDateString(
+                      "ru-RU",
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      },
+                    )}
                   </span>
                 </div>
               </div>
@@ -930,7 +1045,10 @@ export default function AboutPage() {
                   </p>
                   <ul className="space-y-1">
                     {CONSENT_REVOKE_INFO.consequences.map((item, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground/80">
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 text-xs text-muted-foreground/80"
+                      >
                         <span className="text-rose-400 mt-0.5">•</span>
                         {item}
                       </li>
@@ -985,7 +1103,9 @@ export default function AboutPage() {
                   ) : (
                     <Trash2 className="h-4 w-4" />
                   )}
-                  {revoking ? "Отправляем..." : "Отозвать согласие и удалить аккаунт"}
+                  {revoking
+                    ? "Отправляем..."
+                    : "Отозвать согласие и удалить аккаунт"}
                 </Button>
                 <button
                   onClick={() => setRevokeOpen(false)}
