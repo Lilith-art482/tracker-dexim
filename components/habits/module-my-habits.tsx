@@ -14,6 +14,8 @@ import {
   Flame,
   Loader2,
   ChevronDown,
+  X,
+  Clock,
 } from "lucide-react";
 import type {
   Habit,
@@ -21,12 +23,12 @@ import type {
   HabitFrequencyType,
   HabitStatus,
 } from "@/lib/habit-types";
+import { CATEGORY_LABELS, DIFFICULTY_LABELS } from "@/lib/habit-types";
 import {
-  CATEGORY_LABELS,
-  CATEGORY_COLORS,
-  DIFFICULTY_LABELS,
-  WEEKDAYS,
-} from "@/lib/habit-types";
+  CATEGORY_ICONS,
+  CATEGORY_ACCENTS,
+  getFrequencyLabel,
+} from "@/lib/habit-category-ui";
 import {
   calculateStreak,
   calculateCompletionPercentage,
@@ -41,20 +43,13 @@ import {
   CardTitle,
   CardDescription,
   CardAction,
+  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-const CATEGORY_FILTERS: { value: HabitCategory | "all"; label: string }[] = [
-  { value: "all", label: "Все" },
-  ...Object.entries(CATEGORY_LABELS).map(([value, label]) => ({
-    value: value as HabitCategory,
-    label,
-  })),
-];
 
 const STATUS_FILTERS: { value: HabitStatus | "all"; label: string }[] = [
   { value: "all", label: "Все" },
@@ -73,23 +68,6 @@ const FREQUENCY_FILTERS: {
   { value: "interval", label: "С интервалом" },
   { value: "time", label: "По времени" },
 ];
-
-function getFrequencyLabel(habit: Habit): string {
-  switch (habit.frequencyType) {
-    case "daily":
-      return "Ежедневно";
-    case "weekly":
-      return habit.frequencyDays
-        ? habit.frequencyDays.map((d) => WEEKDAYS[d]).join(", ")
-        : "По дням";
-    case "interval":
-      return `Каждые ${habit.frequencyInterval} дн.`;
-    case "time":
-      return `В ${habit.frequencyTime || "—"}`;
-    default:
-      return "—";
-  }
-}
 
 export function ModuleMyHabits() {
   const {
@@ -128,6 +106,21 @@ export function ModuleMyHabits() {
       return true;
     });
   }, [habits, categoryFilter, statusFilter, frequencyFilter, searchQuery]);
+
+  const activeFilterCount = useMemo(
+    () =>
+      (categoryFilter !== "all" ? 1 : 0) +
+      (statusFilter !== "all" ? 1 : 0) +
+      (frequencyFilter !== "all" ? 1 : 0),
+    [categoryFilter, statusFilter, frequencyFilter],
+  );
+
+  const resetFilters = () => {
+    setCategoryFilter("all");
+    setStatusFilter("all");
+    setFrequencyFilter("all");
+    setSearchQuery("");
+  };
 
   const handleEdit = (habit: Habit) => {
     setEditingHabit(habit);
@@ -177,7 +170,14 @@ export function ModuleMyHabits() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Мои привычки</h3>
+        <div>
+          <h3 className="text-base font-semibold">Мои привычки</h3>
+          <p className="text-xs text-muted-foreground/70 mt-0.5">
+            {habits.length > 0
+              ? `${filteredHabits.length} из ${habits.length} привычек`
+              : "Создайте привычки, чтобы начать"}
+          </p>
+        </div>
         <Button size="sm" onClick={handleAdd} className="gap-1.5">
           <Plus className="h-4 w-4" />
           Добавить
@@ -192,8 +192,16 @@ export function ModuleMyHabits() {
             placeholder="Поиск привычек"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 pl-8 text-sm"
+            className="h-9 pl-8 pr-8 text-sm"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         <button
@@ -202,6 +210,11 @@ export function ModuleMyHabits() {
         >
           <Filter className="h-3.5 w-3.5" />
           Фильтры
+          {activeFilterCount > 0 && (
+            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground tabular-nums">
+              {activeFilterCount}
+            </span>
+          )}
           <ChevronDown
             className={cn(
               "h-3 w-3 transition-transform",
@@ -211,51 +224,97 @@ export function ModuleMyHabits() {
         </button>
 
         {showFilters && (
-          <div className="flex flex-wrap gap-2">
-            <div className="flex flex-wrap gap-1">
-              {CATEGORY_FILTERS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => setCategoryFilter(value)}
-                  className={cn(
-                    "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
-                    categoryFilter === value
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
+          <div className="space-y-3 rounded-xl border bg-muted/30 p-3 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/60">
+                Категория
+              </span>
+              <button
+                onClick={resetFilters}
+                className="text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors"
+              >
+                Сбросить
+              </button>
             </div>
-            <Separator orientation="vertical" className="h-5" />
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setCategoryFilter("all")}
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                  categoryFilter === "all"
+                    ? "bg-foreground text-background"
+                    : "bg-background text-muted-foreground ring-1 ring-foreground/10 hover:text-foreground hover:ring-foreground/25",
+                )}
+              >
+                Все
+              </button>
+              {(Object.keys(CATEGORY_LABELS) as HabitCategory[]).map(
+                (value) => {
+                  const Icon = CATEGORY_ICONS[value];
+                  const active = categoryFilter === value;
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => setCategoryFilter(value)}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                        active
+                          ? cn(
+                              "ring-1 ring-transparent",
+                              CATEGORY_ACCENTS[value].soft,
+                            )
+                          : "bg-background text-muted-foreground ring-1 ring-foreground/10 hover:text-foreground hover:ring-foreground/25",
+                      )}
+                    >
+                      <Icon className="h-3 w-3" />
+                      {CATEGORY_LABELS[value]}
+                    </button>
+                  );
+                },
+              )}
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/60">
+                Статус
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               {STATUS_FILTERS.map(({ value, label }) => (
                 <button
                   key={value}
                   onClick={() => setStatusFilter(value)}
                   className={cn(
-                    "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                    "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
                     statusFilter === value
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                      ? "bg-foreground text-background"
+                      : "bg-background text-muted-foreground ring-1 ring-foreground/10 hover:text-foreground hover:ring-foreground/25",
                   )}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            <Separator orientation="vertical" className="h-5" />
-            <div className="flex flex-wrap gap-1">
+
+            <Separator />
+
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/60">
+                Частота
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               {FREQUENCY_FILTERS.map(({ value, label }) => (
                 <button
                   key={value}
                   onClick={() => setFrequencyFilter(value)}
                   className={cn(
-                    "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                    "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
                     frequencyFilter === value
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                      ? "bg-foreground text-background"
+                      : "bg-background text-muted-foreground ring-1 ring-foreground/10 hover:text-foreground hover:ring-foreground/25",
                   )}
                 >
                   {label}
@@ -276,7 +335,7 @@ export function ModuleMyHabits() {
               ? "У вас ещё нет привычек"
               : "Нет привычек, соответствующих фильтрам"}
           </p>
-          {habits.length === 0 && (
+          {habits.length === 0 ? (
             <Button
               size="sm"
               onClick={handleAdd}
@@ -285,6 +344,16 @@ export function ModuleMyHabits() {
             >
               <Plus className="h-4 w-4" />
               Создать первую привычку
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={resetFilters}
+              variant="outline"
+              className="gap-1.5"
+            >
+              <X className="h-4 w-4" />
+              Сбросить фильтры
             </Button>
           )}
         </div>
@@ -297,23 +366,46 @@ export function ModuleMyHabits() {
               logs,
               30,
             );
+            const accent = CATEGORY_ACCENTS[habit.category];
+            const CategoryIcon = CATEGORY_ICONS[habit.category];
             return (
-              <Card key={habit.id} size="sm">
+              <Card
+                key={habit.id}
+                size="sm"
+                className="group/card relative gap-3 overflow-hidden"
+              >
+                <div
+                  className={cn(
+                    "absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r opacity-70",
+                    accent.gradient,
+                  )}
+                />
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-3 min-w-0">
                       <div
                         className={cn(
-                          "h-2.5 w-2.5 rounded-full shrink-0",
-                          CATEGORY_COLORS[habit.category].replace(
-                            "text-",
-                            "bg-",
-                          ),
+                          "flex h-11 w-11 items-center justify-center rounded-xl shrink-0",
+                          accent.soft,
                         )}
-                      />
-                      <CardTitle className="text-sm truncate">
-                        {habit.name}
-                      </CardTitle>
+                      >
+                        <CategoryIcon className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <CardTitle className="text-sm truncate leading-tight">
+                          {habit.name}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-1.5 text-xs">
+                          <span className={cn("font-medium", accent.text)}>
+                            {CATEGORY_LABELS[habit.category]}
+                          </span>
+                          <span className="text-muted-foreground/40">·</span>
+                          <Clock className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+                          <span className="truncate">
+                            {getFrequencyLabel(habit)}
+                          </span>
+                        </CardDescription>
+                      </div>
                     </div>
                     <CardAction>
                       <div className="flex items-center gap-0.5">
@@ -350,36 +442,61 @@ export function ModuleMyHabits() {
                       </div>
                     </CardAction>
                   </div>
-                  <CardDescription className="text-xs">
-                    {CATEGORY_LABELS[habit.category]} ·{" "}
-                    {getFrequencyLabel(habit)}
-                    {habit.difficulty !== "medium" &&
-                      ` · ${DIFFICULTY_LABELS[habit.difficulty]}`}
-                  </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5">
-                      <Flame className="h-3.5 w-3.5 text-amber-500" />
-                      <span className="text-xs font-medium tabular-nums">
-                        {streak} дн.
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Trophy className="h-3.5 w-3.5 text-primary" />
-                      <span className="text-xs font-medium tabular-nums">
-                        {completion}%
-                      </span>
-                    </div>
-                    <Badge variant="outline" className="text-[10px] ml-auto">
-                      {habit.status === "active"
-                        ? "Активна"
-                        : habit.status === "completed"
-                          ? "Завершена"
-                          : "В архиве"}
-                    </Badge>
+                <CardContent className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Flame className="h-3.5 w-3.5 text-orange-500" />
+                      Стрик
+                    </span>
+                    <span className="text-sm font-semibold tabular-nums">
+                      {streak} дн.
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Trophy className={cn("h-3.5 w-3.5", accent.text)} />
+                      За 30 дней
+                    </span>
+                    <span className="text-sm font-semibold tabular-nums">
+                      {completion}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        accent.solid,
+                      )}
+                      style={{ width: `${Math.max(completion, 0)}%` }}
+                    />
                   </div>
                 </CardContent>
+                <CardFooter className="justify-between bg-transparent pt-0">
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-[10px] font-medium",
+                      habit.status === "active" &&
+                        "border-emerald-500/30 text-emerald-600 dark:text-emerald-400",
+                      habit.status === "completed" &&
+                        "border-primary/30 text-primary",
+                      habit.status === "archived" &&
+                        "border-muted-foreground/30 text-muted-foreground",
+                    )}
+                  >
+                    {habit.status === "active"
+                      ? "Активна"
+                      : habit.status === "completed"
+                        ? "Завершена"
+                        : "В архиве"}
+                  </Badge>
+                  {habit.difficulty !== "medium" && (
+                    <span className="text-xs text-muted-foreground/70">
+                      {DIFFICULTY_LABELS[habit.difficulty]}
+                    </span>
+                  )}
+                </CardFooter>
               </Card>
             );
           })}

@@ -1,41 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import {
-  LayoutDashboard,
-  ListChecks,
-  BarChart3,
-  Trophy,
-  Clock,
-} from "lucide-react";
+import { LayoutDashboard, ListChecks, BarChart3, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HabitProvider, useHabits } from "./habits-context";
 import { ModuleDashboard } from "./module-dashboard";
 import { ModuleMyHabits } from "./module-my-habits";
 import { ModuleStatistics } from "./module-statistics";
 import { ModuleAchievements } from "./module-achievements";
-import { ModuleSchedule } from "./module-schedule";
 
 const TABS = [
   { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
   { id: "my-habits", label: "Мои привычки", icon: ListChecks },
   { id: "statistics", label: "Статистика", icon: BarChart3 },
   { id: "achievements", label: "Достижения", icon: Trophy },
-  { id: "schedule", label: "Расписание", icon: Clock },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
 function HabitsContent() {
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
-  const {
-    habits,
-    logs,
-    achievements,
-    loading,
-    updateHabit,
-    toggleHabitForDate,
-  } = useHabits();
+  const { habits, logs, achievements, loading } = useHabits();
 
   if (loading) {
     return (
@@ -44,14 +29,6 @@ function HabitsContent() {
       </div>
     );
   }
-
-  const handleScheduleToggle = (
-    habitId: string,
-    date: string,
-    status: string,
-  ) => {
-    toggleHabitForDate(habitId, date, status as "done" | "missed" | "skipped");
-  };
 
   return (
     <div className="min-h-screen">
@@ -86,13 +63,6 @@ function HabitsContent() {
             habits={habits}
             logs={logs}
             achievements={achievements}
-          />
-        )}
-        {activeTab === "schedule" && (
-          <ModuleSchedule
-            habits={habits}
-            logs={logs}
-            onToggleHabit={handleScheduleToggle}
           />
         )}
       </div>

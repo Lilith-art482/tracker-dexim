@@ -12,13 +12,13 @@ import {
   ArrowRightLeft,
   ArrowRight,
   ArrowUp,
+  ArrowUpDown,
   Clock,
   Wallet,
   X,
   Search,
   Tags,
   Calendar,
-  ChevronDown,
 } from "lucide-react";
 import type {
   Transaction,
@@ -64,6 +64,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { localDateStr } from "@/lib/date-utils";
@@ -585,22 +591,22 @@ export function FinanceTransactions() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Журнал операций</h2>
         <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={handleExportCSV}
-            title="Экспорт CSV"
-          >
-            <ArrowUp className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={handleExportJSON}
-            title="Экспорт JSON"
-          >
-            <ArrowUp className="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors outline-none shrink-0"
+              title="Экспорт"
+            >
+              <ArrowUp className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={handleExportCSV}>
+                Экспорт CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportJSON}>
+                Экспорт JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -608,12 +614,7 @@ export function FinanceTransactions() {
             title={sortAsc ? "Сначала старые" : "Сначала новые"}
             className={cn(sortAsc && "text-muted-foreground/50")}
           >
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 transition-transform",
-                sortAsc && "rotate-180",
-              )}
-            />
+            <ArrowUpDown className="h-4 w-4" />
           </Button>
           <Button
             size="sm"

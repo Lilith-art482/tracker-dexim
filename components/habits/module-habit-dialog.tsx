@@ -78,9 +78,11 @@ function SectionBlock({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-3 rounded-lg border bg-muted/10 p-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground/80">
-        <Icon className="h-4 w-4" />
+    <div className="space-y-3 rounded-xl border bg-gradient-to-b from-muted/40 to-muted/5 p-4">
+      <div className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="h-3.5 w-3.5" />
+        </span>
         {title}
       </div>
       {children}
@@ -143,9 +145,6 @@ export function HabitDialog({
   const [difficulty, setDifficulty] = useState<HabitDifficulty>(
     habit?.difficulty ?? "medium",
   );
-  const [durationMinutes, setDurationMinutes] = useState<number>(
-    habit?.durationMinutes ?? 0,
-  );
   const [goal, setGoal] = useState(habit?.goal ?? "");
   const [goalType, setGoalType] = useState<"streak" | "count">(
     habit?.goalType ?? "streak",
@@ -169,7 +168,6 @@ export function HabitDialog({
       setReminderEnabled(habit.reminderEnabled);
       setReminderTime(habit.reminderTime ?? "");
       setDifficulty(habit.difficulty);
-      setDurationMinutes(habit.durationMinutes ?? 0);
       setGoal(habit.goal ?? "");
       setGoalType(habit.goalType ?? "streak");
       setGoalValue(habit.goalValue ?? 0);
@@ -185,7 +183,6 @@ export function HabitDialog({
       setReminderEnabled(false);
       setReminderTime("");
       setDifficulty("medium");
-      setDurationMinutes(0);
       setGoal("");
       setGoalType("streak");
       setGoalValue(0);
@@ -214,7 +211,6 @@ export function HabitDialog({
       reminderEnabled,
       reminderTime: reminderEnabled ? reminderTime || undefined : undefined,
       difficulty,
-      durationMinutes: durationMinutes > 0 ? durationMinutes : undefined,
       goal: goal.trim() || undefined,
       goalType: goal.trim() ? goalType : undefined,
       goalValue: goal.trim() ? goalValue : undefined,
@@ -320,7 +316,7 @@ export function HabitDialog({
                 onValueChange={(v) => setCategory(v as HabitCategory)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>{CATEGORY_LABELS[category]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {CATEGORY_OPTIONS.map(({ value, label }) => (
@@ -337,7 +333,7 @@ export function HabitDialog({
                 onValueChange={(v) => setDifficulty(v as HabitDifficulty)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>{DIFFICULTY_LABELS[difficulty]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {DIFFICULTY_OPTIONS.map(({ value, label }) => (
@@ -348,29 +344,6 @@ export function HabitDialog({
                 </SelectContent>
               </Select>
             </FieldRow>
-            {durationMinutes > 0 && (
-              <FieldRow label="Длительность (мин)">
-                <Input
-                  type="number"
-                  min={0}
-                  max={1440}
-                  value={durationMinutes}
-                  onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                />
-              </FieldRow>
-            )}
-            {!durationMinutes && (
-              <FieldRow label="Длительность (мин)">
-                <Input
-                  type="number"
-                  min={0}
-                  max={1440}
-                  value={durationMinutes || ""}
-                  onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                  placeholder="Не указана"
-                />
-              </FieldRow>
-            )}
           </SectionBlock>
 
           <SectionBlock icon={Clock} title="Частота">
@@ -380,7 +353,12 @@ export function HabitDialog({
                 onValueChange={(v) => setFrequencyType(v as HabitFrequencyType)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    {
+                      FREQUENCY_OPTIONS.find((o) => o.value === frequencyType)
+                        ?.label
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {FREQUENCY_OPTIONS.map(({ value, label }) => (
@@ -485,7 +463,9 @@ export function HabitDialog({
                     onValueChange={(v) => setGoalType(v as "streak" | "count")}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue>
+                        {goalType === "streak" ? "Стрик" : "Количество"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="streak">Стрик</SelectItem>
@@ -507,7 +487,9 @@ export function HabitDialog({
                     onValueChange={(v) => setGoalPeriod(v as "month" | "all")}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue>
+                        {goalPeriod === "month" ? "Месяц" : "Всё время"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="month">Месяц</SelectItem>
