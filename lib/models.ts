@@ -142,7 +142,10 @@ export async function createCompany(
 export async function updateCompany(
   id: string,
   data: Partial<
-    Pick<Company, "name" | "description" | "color" | "icon" | "members" | "memberConfig">
+    Pick<
+      Company,
+      "name" | "description" | "color" | "icon" | "members" | "memberConfig"
+    >
   >,
 ): Promise<Company> {
   await getAdminDb()
@@ -197,7 +200,10 @@ export async function createBoard(
 export async function updateBoard(
   id: string,
   data: Partial<
-    Pick<Board, "name" | "members" | "color" | "icon" | "pinned" | "order" | "companyId">
+    Pick<
+      Board,
+      "name" | "members" | "color" | "icon" | "pinned" | "order" | "companyId"
+    >
   >,
 ): Promise<Board> {
   await getAdminDb()

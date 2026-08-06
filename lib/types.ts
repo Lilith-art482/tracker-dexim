@@ -66,7 +66,7 @@ export interface Column {
   updatedAt: string;
 }
 
-export type Priority = "low" | "medium" | "high";
+export type Priority = "none" | "low" | "medium" | "high";
 
 export interface Task {
   id: string;

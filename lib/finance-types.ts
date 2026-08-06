@@ -2,7 +2,13 @@ export type TransactionType = "income" | "expense" | "transfer";
 export type BudgetPeriod = "day" | "week" | "month" | "year";
 export type GoalPriority = "high" | "medium" | "low";
 
-export type InterestPeriod = "daily" | "weekly" | "monthly" | "quarterly" | "semiannual" | "annual";
+export type InterestPeriod =
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "semiannual"
+  | "annual";
 
 export interface FinanceAccount {
   id: string;

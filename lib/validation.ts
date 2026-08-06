@@ -82,7 +82,7 @@ export const createPersonalPlanEntrySchema = z.object({
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ"),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ"),
   title: z.string().min(1).max(200),
-  priority: z.enum(["low", "medium", "high"]).default("medium"),
+  priority: z.enum(["none", "low", "medium", "high"]).default("none"),
   comment: z.string().max(2000).optional(),
   ownerId: z.string().min(1).optional(),
   boardId: z.string().min(1).optional(),
@@ -103,7 +103,7 @@ export const updatePersonalPlanEntrySchema = z.object({
     .regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ")
     .optional(),
   title: z.string().min(1).max(200).optional(),
-  priority: z.enum(["low", "medium", "high"]).optional(),
+  priority: z.enum(["none", "low", "medium", "high"]).optional(),
   completed: z.boolean().optional(),
   completedAt: z.string().nullable().optional(),
   comment: z.string().max(2000).optional(),

@@ -5,43 +5,43 @@ import {
   createTransaction,
 } from "./finance-client";
 import type { RecurringTransaction } from "./finance-types";
+import { localDateStr, parseLocalDate, todayStart } from "./date-utils";
 
 function lastDayOfMonth(year: number, month: number): number {
-  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return new Date(year, month, 0).getDate();
 }
 
 function computeNextDate(rt: RecurringTransaction): string | null {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  const start = new Date(rt.startDate + "T00:00:00Z");
-  const end = rt.endDate ? new Date(rt.endDate + "T00:00:00Z") : null;
+  const today = todayStart();
+  const start = parseLocalDate(rt.startDate);
+  const end = rt.endDate ? parseLocalDate(rt.endDate) : null;
 
   if (today < start) return null;
   if (end && today > end) return null;
 
-  const currentYear = today.getUTCFullYear();
-  const currentMonth = today.getUTCMonth();
-  const currentDay = today.getUTCDate();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  const currentDay = today.getDate();
 
   let candidate: Date | null = null;
 
   if (rt.interval === "monthly") {
     const maxDay = lastDayOfMonth(currentYear, currentMonth + 1);
     const day = Math.min(rt.dayOfMonth, maxDay);
-    candidate = new Date(Date.UTC(currentYear, currentMonth, day));
+    candidate = new Date(currentYear, currentMonth, day);
     if (candidate < start) {
       const nextMonth = currentMonth + 1;
       const nextYear = nextMonth > 11 ? currentYear + 1 : currentYear;
       const nextMaxDay = lastDayOfMonth(nextYear, (nextMonth % 12) + 1);
       candidate = new Date(
-        Date.UTC(nextYear, nextMonth % 12, Math.min(rt.dayOfMonth, nextMaxDay)),
+        nextYear,
+        nextMonth % 12,
+        Math.min(rt.dayOfMonth, nextMaxDay),
       );
     }
   } else if (rt.interval === "weekly") {
-    const diff = (rt.dayOfMonth - today.getUTCDay() + 7) % 7;
-    candidate = new Date(
-      Date.UTC(currentYear, currentMonth, currentDay + diff),
-    );
+    const diff = (rt.dayOfMonth - today.getDay() + 7) % 7;
+    candidate = new Date(currentYear, currentMonth, currentDay + diff);
     if (candidate < start) {
       candidate = new Date(candidate.getTime() + 7 * 86400000);
     }
@@ -49,27 +49,25 @@ function computeNextDate(rt: RecurringTransaction): string | null {
     const month = (rt.month ?? 1) - 1;
     const maxDay = lastDayOfMonth(currentYear, month + 1);
     const day = Math.min(rt.dayOfMonth, maxDay);
-    candidate = new Date(Date.UTC(currentYear, month, day));
+    candidate = new Date(currentYear, month, day);
     if (candidate < start) {
       candidate = new Date(
-        Date.UTC(
-          currentYear + 1,
-          month,
-          Math.min(rt.dayOfMonth, lastDayOfMonth(currentYear + 1, month + 1)),
-        ),
+        currentYear + 1,
+        month,
+        Math.min(rt.dayOfMonth, lastDayOfMonth(currentYear + 1, month + 1)),
       );
     }
   }
 
   if (!candidate) return null;
   if (end && candidate > end) return null;
-  return candidate.toISOString().split("T")[0];
+  return localDateStr(candidate);
 }
 
 function isDue(rt: RecurringTransaction): boolean {
   const next = computeNextDate(rt);
   if (!next) return false;
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateStr();
   return (
     next <= today && (!rt.lastGeneratedDate || rt.lastGeneratedDate < next)
   );

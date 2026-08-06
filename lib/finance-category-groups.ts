@@ -860,8 +860,5 @@ export const getCategoryGroup = (
   catType?: string,
 ): CategoryGroup => {
   const targetId = catType === "income" ? "income" : "expense";
-  return (
-    CATEGORY_GROUPS.find((g) => g.id === targetId) ??
-    CATEGORY_GROUPS[0]
-  );
+  return CATEGORY_GROUPS.find((g) => g.id === targetId) ?? CATEGORY_GROUPS[0];
 };

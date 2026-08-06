@@ -8,13 +8,14 @@ import type {
   EmergencyFund,
   ShoppingList,
 } from "./finance-types";
+import { localDateStr } from "./date-utils";
 
 const now = new Date();
 const iso = (d: Date) => d.toISOString();
 const daysAgo = (n: number) => {
   const d = new Date(now);
   d.setDate(d.getDate() - n);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 };
 
 export const mockFinanceAccounts: FinanceAccount[] = [
@@ -2459,8 +2460,8 @@ export const mockFinanceBudgetPlans: BudgetPlan[] = [
     id: "fin-budget-1",
     userId: "user-1",
     period: "month",
-    periodStart: currentMonthStart.toISOString().split("T")[0],
-    periodEnd: currentMonthEnd.toISOString().split("T")[0],
+    periodStart: localDateStr(currentMonthStart),
+    periodEnd: localDateStr(currentMonthEnd),
     expectedIncome: 185000,
     categoryBudgets: [
       { categoryId: "cat-grocery", limit: 30000 },
@@ -2498,7 +2499,7 @@ export const mockFinanceGoals: FinanceGoal[] = [
     name: "Новый ноутбук",
     targetAmount: 150000,
     currentAmount: 45000,
-    deadline: nextYear.toISOString().split("T")[0],
+    deadline: localDateStr(nextYear),
     priority: "high",
     accountId: "fin-acc-3",
     autoDepositPercent: 10,
@@ -2512,7 +2513,7 @@ export const mockFinanceGoals: FinanceGoal[] = [
     name: "Путешествие",
     targetAmount: 200000,
     currentAmount: 80000,
-    deadline: nextYear.toISOString().split("T")[0],
+    deadline: localDateStr(nextYear),
     priority: "medium",
     accountId: "fin-acc-3",
     autoDepositPercent: 5,
@@ -2531,9 +2532,9 @@ export const mockFinanceLoans: Loan[] = [
     interestRate: 8,
     monthlyPayment: 45000,
     remainingAmount: 4200000,
-    nextPaymentDate: new Date(now.getFullYear(), now.getMonth() + 1, 10)
-      .toISOString()
-      .split("T")[0],
+    nextPaymentDate: localDateStr(
+      new Date(now.getFullYear(), now.getMonth() + 1, 10),
+    ),
     repaymentType: "monthly",
     obligationType: "credit",
     overdueMonths: 0,
@@ -2554,7 +2555,7 @@ export const mockShoppingLists: ShoppingList[] = [
     id: "shop-1",
     userId: "user-1",
     name: "Продукты на неделю",
-    date: new Date().toISOString().split("T")[0],
+    date: localDateStr(),
     items: [
       { id: "item-1", name: "Молоко", quantity: 2, unit: "л", checked: false },
       {
@@ -2586,7 +2587,7 @@ export const mockShoppingLists: ShoppingList[] = [
     id: "shop-2",
     userId: "user-1",
     name: "Стройматериалы",
-    date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+    date: localDateStr(new Date(Date.now() + 86400000)),
     items: [
       {
         id: "item-6",
