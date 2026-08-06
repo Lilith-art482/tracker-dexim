@@ -785,6 +785,36 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
     setEditingEntry(null);
   }, []);
 
+  const handleDeletePlan = useCallback(async () => {
+    const targets = dayEntries;
+    if (targets.length === 0) return;
+    let deleted = 0;
+    try {
+      for (const entry of targets) {
+        const res = await fetch("/api/personal-plan-entries", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: entry.id }),
+        });
+        if (res.ok) {
+          deleted++;
+          setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+        }
+      }
+      if (deleted > 0) {
+        toast.success(
+          deleted === targets.length
+            ? "План удалён"
+            : `Удалено: ${deleted} из ${targets.length}`,
+        );
+      } else {
+        toast.error("Не удалось удалить план");
+      }
+    } catch {
+      toast.error("Ошибка сети");
+    }
+  }, [dayEntries]);
+
   const goBack = () => {
     if (!canGoBack) return;
     setSelectedDate(addDays(selectedDate, -1));
@@ -844,8 +874,31 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
             className="gap-1.5"
           >
             <CopyPlus className="h-4 w-4" />
-            Дублировать план
+            Дублировать
           </Button>
+          {totalCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                toast("Удалить весь план на этот день?", {
+                  description: `${totalCount} задач будет удалено безвозвратно`,
+                  action: {
+                    label: "Удалить",
+                    onClick: () => handleDeletePlan(),
+                  },
+                  cancel: {
+                    label: "Отмена",
+                    onClick: () => {},
+                  },
+                })
+              }
+              className="gap-1.5 text-destructive border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+              Удалить план
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={() => {
