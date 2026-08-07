@@ -687,6 +687,7 @@ export async function updatePersonalPlanEntry(
       | "completed"
       | "completedAt"
       | "comment"
+      | "sortOrder"
       | "boardId"
     >
   >,

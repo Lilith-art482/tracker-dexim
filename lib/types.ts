@@ -138,13 +138,14 @@ export interface PersonalKanbanTask {
 export interface PersonalPlanEntry {
   id: string;
   date: string;
-  startTime: string;
-  endTime: string;
+  startTime?: string | null;
+  endTime?: string | null;
   title: string;
   priority: Priority;
   completed: boolean;
   completedAt?: string | null;
   comment?: string;
+  sortOrder?: number;
   createdAt: string;
   updatedAt: string;
   ownerId?: string;

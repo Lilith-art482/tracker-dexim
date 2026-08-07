@@ -79,11 +79,20 @@ export type UpdatePersonalTaskInput = z.infer<typeof updatePersonalTaskSchema>;
 
 export const createPersonalPlanEntrySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Формат ГГГГ-ММ-ДД"),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ"),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ"),
+  startTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ")
+    .nullable()
+    .optional(),
+  endTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ")
+    .nullable()
+    .optional(),
   title: z.string().min(1).max(200),
   priority: z.enum(["none", "low", "medium", "high"]).default("none"),
   comment: z.string().max(2000).optional(),
+  sortOrder: z.number().int().optional(),
   ownerId: z.string().min(1).optional(),
   boardId: z.string().min(1).optional(),
 });
@@ -97,16 +106,19 @@ export const updatePersonalPlanEntrySchema = z.object({
   startTime: z
     .string()
     .regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ")
+    .nullable()
     .optional(),
   endTime: z
     .string()
     .regex(/^\d{2}:\d{2}$/, "Формат ЧЧ:ММ")
+    .nullable()
     .optional(),
   title: z.string().min(1).max(200).optional(),
   priority: z.enum(["none", "low", "medium", "high"]).optional(),
   completed: z.boolean().optional(),
   completedAt: z.string().nullable().optional(),
   comment: z.string().max(2000).optional(),
+  sortOrder: z.number().int().optional(),
   boardId: z.string().min(1).optional(),
 });
 

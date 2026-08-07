@@ -1,10 +1,12 @@
 import "firebase-admin";
 import { initializeApp, getApps, cert, App } from "firebase-admin/app";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
+import { getAuth, Auth } from "firebase-admin/auth";
 import { db as clientDb } from "./firebase";
 
 let adminApp: App | null = null;
 let adminDbInstance: Firestore | null = null;
+let adminAuthInstance: Auth | null = null;
 
 function getAdminApp(): App | null {
   if (adminApp) return adminApp;
@@ -61,4 +63,19 @@ export function getAdminDb(): Firestore {
   // Fall back to Client SDK when Admin SDK isn't available
   adminDbInstance = clientDb as unknown as Firestore;
   return adminDbInstance;
+}
+
+export function getAdminAuth(): Auth | null {
+  if (adminAuthInstance) return adminAuthInstance;
+  const app = getAdminApp();
+  if (!app) return null;
+  adminAuthInstance = getAuth(app);
+  return adminAuthInstance;
+}
+
+export function isAdminConfigured(): boolean {
+  return (
+    !!process.env.FIREBASE_PRIVATE_KEY ||
+    !!process.env.FIREBASE_PRIVATE_KEY_BASE64
+  ) && !!process.env.FIREBASE_CLIENT_EMAIL;
 }

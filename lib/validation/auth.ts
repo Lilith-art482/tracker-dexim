@@ -46,6 +46,60 @@ export const updateConsentSchema = z.object({
   dataConsent: z.boolean(),
 });
 
+const registrationResponseSchema = z
+  .object({
+    id: z.string(),
+    rawId: z.string(),
+    type: z.string(),
+    response: z
+      .object({
+        clientDataJSON: z.string(),
+        attestationObject: z.string(),
+      })
+      .passthrough(),
+    clientExtensionResults: z.record(z.string(), z.unknown()).optional(),
+    transports: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+const authenticationResponseSchema = z
+  .object({
+    id: z.string(),
+    rawId: z.string(),
+    type: z.string(),
+    response: z
+      .object({
+        clientDataJSON: z.string(),
+        authenticatorData: z.string(),
+        signature: z.string(),
+        userHandle: z.string().optional(),
+      })
+      .passthrough(),
+    clientExtensionResults: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
+
+export const biometricRegisterOptionsSchema = z.object({
+  uid: z.string().min(1, "uid обязателен"),
+});
+
+export const biometricRegisterSchema = z.object({
+  uid: z.string().min(1, "uid обязателен"),
+  challengeId: z.string().min(1, "challengeId обязателен"),
+  deviceName: z.string().max(80).default("Устройство"),
+  registrationResponse: registrationResponseSchema,
+});
+
+export const biometricAuthenticateSchema = z.object({
+  challengeId: z.string().min(1, "challengeId обязателен"),
+  authenticationResponse: authenticationResponseSchema,
+});
+
+export const biometricRemoveSchema = z.object({
+  uid: z.string().min(1, "uid обязателен"),
+  credentialId: z.string().min(1, "credentialId обязателен"),
+});
+
 export const TARIFF_FEATURES: Record<
   string,
   { name: string; price: string; features: string[] }
