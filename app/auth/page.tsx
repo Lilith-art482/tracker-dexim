@@ -11,6 +11,7 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
+import { isWebAuthnSupported, loginWithBiometric } from "@/lib/biometric-client";
 import {
   Mail,
   Lock,
@@ -24,6 +25,7 @@ import {
   Info,
   Sun,
   Moon,
+  Fingerprint,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -67,6 +69,8 @@ export default function AuthPage() {
   const { theme, setTheme } = useTheme();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricBusy, setBiometricBusy] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -77,6 +81,29 @@ export default function AuthPage() {
     document.body.classList.add("grain-strong");
     return () => document.body.classList.remove("grain-strong");
   }, []);
+
+  useEffect(() => {
+    isWebAuthnSupported()
+      .then(setBiometricSupported)
+      .catch(() => setBiometricSupported(false));
+  }, []);
+
+  const handleBiometricLogin = async () => {
+    setBiometricBusy(true);
+    try {
+      const result = await loginWithBiometric();
+      if (!result.success) {
+        toast.error(result.error || "Не удалось войти по биометрии");
+        return;
+      }
+      toast.success("Вход выполнен!");
+      router.push("/");
+    } catch {
+      toast.error("Ошибка входа по биометрии");
+    } finally {
+      setBiometricBusy(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -390,6 +417,33 @@ export default function AuthPage() {
                     </span>
                   </button>
                 </form>
+
+                {isLogin && biometricSupported && (
+                  <>
+                    <div className="relative flex items-center gap-3 my-6">
+                      <div className="flex-1 h-px bg-border/60" />
+                      <span className="text-xs text-muted-foreground/50 font-medium">
+                        или
+                      </span>
+                      <div className="flex-1 h-px bg-border/60" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleBiometricLogin}
+                      disabled={biometricBusy}
+                      className="group relative w-full py-3 px-4 font-semibold rounded-xl border border-border/60 text-foreground bg-background/60 hover:bg-muted/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        {biometricBusy ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <Fingerprint className="h-5 w-5 text-primary" />
+                        )}
+                        {biometricBusy ? "Проверяем..." : "Войти по биометрии"}
+                      </span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -614,6 +668,33 @@ export default function AuthPage() {
                     </span>
                   </button>
                 </form>
+
+                {isLogin && biometricSupported && (
+                  <>
+                    <div className="relative flex items-center gap-3 my-6">
+                      <div className="flex-1 h-px bg-border/60" />
+                      <span className="text-xs text-muted-foreground/50 font-medium">
+                        или
+                      </span>
+                      <div className="flex-1 h-px bg-border/60" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleBiometricLogin}
+                      disabled={biometricBusy}
+                      className="group relative w-full py-3 px-4 font-semibold rounded-xl border border-border/60 text-foreground bg-background/60 hover:bg-muted/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        {biometricBusy ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <Fingerprint className="h-5 w-5 text-primary" />
+                        )}
+                        {biometricBusy ? "Проверяем..." : "Войти по биометрии"}
+                      </span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -6,6 +6,10 @@ import { onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import {
+  isWebAuthnSupported,
+  registerBiometric,
+} from "@/lib/biometric-client";
+import {
   User,
   LogOut,
   Loader2,
@@ -29,6 +33,7 @@ import {
   CalendarDays,
   Copy,
   XCircle,
+  Fingerprint,
 } from "lucide-react";
 import Link from "next/link";
 import { TARIFF_FEATURES } from "@/lib/validation/auth";
@@ -111,6 +116,18 @@ export default function ProfilePage() {
   const [cardCvc, setCardCvc] = useState("");
   const [cardAdding, setCardAdding] = useState(false);
 
+  // Biometrics
+  const [biometricDevices, setBiometricDevices] = useState<
+    Array<{
+      id: string;
+      deviceName: string;
+      createdAt: string | null;
+      lastUsedAt: string | null;
+    }>
+  >([]);
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricBusy, setBiometricBusy] = useState(false);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
@@ -155,6 +172,24 @@ export default function ProfilePage() {
       } catch {
         // ignore
       }
+
+      try {
+        const bioRes = await fetch(
+          `/api/auth/biometric?uid=${firebaseUser.uid}`,
+        );
+        if (bioRes.ok) {
+          const bioData = await bioRes.json();
+          if (Array.isArray(bioData.devices)) {
+            setBiometricDevices(bioData.devices);
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      isWebAuthnSupported()
+        .then(setBiometricSupported)
+        .catch(() => setBiometricSupported(false));
 
       setInitialLoading(false);
     });
@@ -422,8 +457,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleCancelDeletion = async () => {
-    if (!uid) return;
+  const handleCancelDeletion = async () => {    if (!uid) return;
     setCancellingDeletion(true);
     try {
       const res = await fetch("/api/auth/cancel-deletion", {
@@ -444,6 +478,52 @@ export default function ProfilePage() {
       toast.error("Ошибка");
     } finally {
       setCancellingDeletion(false);
+    }
+  };
+
+  const handleAddBiometric = async () => {
+    if (!uid) return;
+    setBiometricBusy(true);
+    try {
+      const result = await registerBiometric(uid);
+      if (!result.success) {
+        toast.error(result.error || "Не удалось привязать биометрию");
+        return;
+      }
+      const bioRes = await fetch(`/api/auth/biometric?uid=${uid}`);
+      if (bioRes.ok) {
+        const bioData = await bioRes.json();
+        if (Array.isArray(bioData.devices)) {
+          setBiometricDevices(bioData.devices);
+        }
+      }
+      toast.success("Биометрия привязана");
+    } catch {
+      toast.error("Ошибка привязки биометрии");
+    } finally {
+      setBiometricBusy(false);
+    }
+  };
+
+  const handleRemoveBiometric = async (credentialId: string) => {
+    if (!uid) return;
+    try {
+      const res = await fetch("/api/auth/biometric", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, credentialId }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Ошибка удаления");
+        return;
+      }
+      setBiometricDevices((prev) =>
+        prev.filter((d) => d.id !== credentialId),
+      );
+      toast.success("Биометрия отвязана");
+    } catch {
+      toast.error("Ошибка удаления биометрии");
     }
   };
 
@@ -907,6 +987,96 @@ export default function ProfilePage() {
                     : "Сохранить настройки оплаты"}
                 </Button>
               </CardFooter>
+            </Card>
+
+            {/* Биометрия */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Fingerprint className="h-5 w-5" />
+                  Биометрия
+                </CardTitle>
+                <CardDescription>
+                  Вход по отпечатку пальца или Face ID — без пароля
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!biometricSupported ? (
+                  <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/20 p-3.5">
+                    <ShieldCheck className="h-5 w-5 text-muted-foreground/60 shrink-0" />
+                    <p className="text-sm text-muted-foreground">
+                      Ваш браузер не поддерживает биометрический вход
+                    </p>
+                  </div>
+                ) : biometricDevices.length === 0 ? (
+                  <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/60 py-8 text-center">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                      <Fingerprint className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground max-w-[240px]">
+                      Биометрия ещё не привязана. Добавьте устройство, чтобы
+                      входить по отпечатку или Face ID.
+                    </p>
+                    <Button
+                      size="sm"
+                      onClick={handleAddBiometric}
+                      disabled={biometricBusy}
+                      className="gap-1.5"
+                    >
+                      {biometricBusy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Fingerprint className="h-4 w-4" />
+                      )}
+                      Привязать биометрию
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {biometricDevices.map((device) => (
+                      <div
+                        key={device.id}
+                        className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/20 p-3.5"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                          <Fingerprint className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">
+                            {device.deviceName}
+                          </p>
+                          <p className="text-xs text-muted-foreground/60">
+                            {device.lastUsedAt
+                              ? `Использовано ${new Date(device.lastUsedAt).toLocaleDateString("ru-RU")}`
+                              : "Не использовалось"}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveBiometric(device.id)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
+                          title="Отвязать устройство"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddBiometric}
+                      disabled={biometricBusy}
+                      className="gap-1.5 w-full"
+                    >
+                      {biometricBusy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4" />
+                      )}
+                      Привязать ещё устройство
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
             </Card>
           </div>
 
