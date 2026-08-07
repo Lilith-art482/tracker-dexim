@@ -640,8 +640,8 @@ export function PersonalDashboardFull({ boards }: PersonalDashboardFullProps) {
                 allTasks.push({
                   id: pe.id,
                   date: pe.date,
-                  startTime: pe.startTime,
-                  endTime: pe.endTime,
+                  startTime: pe.startTime ?? "",
+                  endTime: pe.endTime ?? "",
                   title: pe.title,
                   priority: pe.priority,
                   completed: pe.completed,

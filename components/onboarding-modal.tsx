@@ -26,6 +26,9 @@ import {
   StickyNote,
   Zap,
   Globe,
+  Fingerprint,
+  Smartphone,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -268,6 +271,36 @@ const STEPS = [
             icon={Globe}
             title="Синхронизация"
             desc="Заметки доступны на всех устройствах"
+          />
+        </div>
+      </>
+    ),
+  },
+  {
+    icon: Fingerprint,
+    title: "Биометрический вход",
+    content: (
+      <>
+        <p className="text-muted-foreground leading-relaxed">
+          Защитите свой аккаунт входом по отпечатку пальца или Face ID — пароль
+          больше не понадобится.
+        </p>
+
+        <div className="grid gap-2.5">
+          <FeatureRow
+            icon={Fingerprint}
+            title="Отпечаток или Face ID"
+            desc="Входите в один тап — быстрее и безопаснее пароля"
+          />
+          <FeatureRow
+            icon={Smartphone}
+            title="Без пароля"
+            desc="Биометрия хранится на вашем устройстве и не покидает его"
+          />
+          <FeatureRow
+            icon={KeyRound}
+            title="Настройка в профиле"
+            desc="Привяжите устройство в разделе «Биометрия» в настройках"
           />
         </div>
       </>

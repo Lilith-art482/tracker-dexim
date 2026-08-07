@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,62 +11,84 @@ import {
   Circle,
   Trash2,
   Pencil,
+  PencilLine,
   Clock,
   AlertTriangle,
   Loader2,
   CalendarDays,
+  CalendarPlus,
+  GripVertical,
+  ArrowUpDown,
+  X,
 } from "lucide-react";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { PersonalPlanEntry, Board, Priority } from "@/lib/models";
 import { localDateStr, parseLocalDate, addDays } from "@/lib/date-utils";
 import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const PRIORITY_CONFIG: Record<
   Priority,
-  { label: string; color: string; bg: string; icon: typeof AlertTriangle }
+  { label: string; color: string; bg: string; dot: string; icon: typeof AlertTriangle }
 > = {
   high: {
     label: "Высокий",
     color: "text-rose-500",
     bg: "bg-rose-500/10",
+    dot: "bg-rose-500",
     icon: AlertTriangle,
   },
   medium: {
     label: "Средний",
     color: "text-amber-500",
     bg: "bg-amber-500/10",
+    dot: "bg-amber-500",
     icon: Clock,
   },
   low: {
     label: "Низкий",
     color: "text-sky-500",
     bg: "bg-sky-500/10",
+    dot: "bg-sky-500",
     icon: Circle,
   },
   none: {
     label: "Без приоритета",
     color: "text-muted-foreground",
     bg: "bg-muted/60",
+    dot: "bg-muted-foreground/40",
     icon: Circle,
   },
 };
@@ -99,6 +121,27 @@ function formatDisplayDate(dateStr: string): string {
   return `${weekdays[d.getDay()]}, ${day} ${months[d.getMonth()]}`;
 }
 
+function formatEntryTime(entry: PersonalPlanEntry): string {
+  if (entry.startTime && entry.endTime) {
+    return `${entry.startTime} — ${entry.endTime}`;
+  }
+  if (entry.startTime) return `Начало: ${entry.startTime}`;
+  if (entry.endTime) return `Конец: ${entry.endTime}`;
+  return "Весь день";
+}
+
+function comparePlanEntries(a: PersonalPlanEntry, b: PersonalPlanEntry): number {
+  if (a.sortOrder != null && b.sortOrder != null) return a.sortOrder - b.sortOrder;
+  if (a.sortOrder != null) return -1;
+  if (b.sortOrder != null) return 1;
+  const at = a.startTime ?? "";
+  const bt = b.startTime ?? "";
+  if (at && bt && at !== bt) return at.localeCompare(bt);
+  if (at && !bt) return -1;
+  if (!at && bt) return 1;
+  return (a.title ?? "").localeCompare(b.title ?? "");
+}
+
 interface PlanEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -124,7 +167,8 @@ function PlanEntryDialog({
   const isDuplicating = !!duplicateFrom;
   const [title, setTitle] = useState(entry?.title ?? "");
   const [startTime, setStartTime] = useState(entry?.startTime ?? "09:00");
-  const [endTime, setEndTime] = useState(entry?.endTime ?? "09:30");
+  const [endTime, setEndTime] = useState(entry?.endTime ?? "");
+  const [allDay, setAllDay] = useState(false);
   const [priority, setPriority] = useState<Priority>(entry?.priority ?? "none");
   const [comment, setComment] = useState(entry?.comment ?? "");
   const [saving, setSaving] = useState(false);
@@ -133,32 +177,42 @@ function PlanEntryDialog({
   useEffect(() => {
     if (entry) {
       setTitle(entry.title);
-      setStartTime(entry.startTime);
-      setEndTime(entry.endTime);
+      setStartTime(entry.startTime ?? "");
+      setEndTime(entry.endTime ?? "");
       setPriority(entry.priority);
       setComment(entry.comment ?? "");
+      setAllDay(!entry.startTime && !entry.endTime);
     } else if (duplicateFrom) {
       setTitle(duplicateFrom.title);
-      setStartTime("");
-      setEndTime("");
+      setStartTime(duplicateFrom.startTime ?? "");
+      setEndTime(duplicateFrom.endTime ?? "");
       setPriority(duplicateFrom.priority);
       setComment(duplicateFrom.comment ?? "");
+      setAllDay(!duplicateFrom.startTime && !duplicateFrom.endTime);
     } else {
       setTitle("");
       setStartTime("09:00");
-      setEndTime("09:30");
+      setEndTime("");
       setPriority("none");
       setComment("");
+      setAllDay(false);
     }
     setErrors({});
   }, [entry, duplicateFrom, open]);
 
+  const handleAllDayChange = (checked: boolean) => {
+    setAllDay(checked);
+    if (checked) {
+      setStartTime("");
+      setEndTime("");
+    }
+    setErrors((prev) => ({ ...prev, endTime: "" }));
+  };
+
   const handleSubmit = async () => {
     const newErrors: Record<string, string> = {};
     if (!title.trim()) newErrors.title = "Название обязательно";
-    if (!startTime || !endTime) {
-      newErrors.endTime = "Укажите время";
-    } else if (startTime >= endTime) {
+    if (startTime && endTime && startTime >= endTime) {
       newErrors.endTime = "Конец должен быть позже начала";
     }
 
@@ -178,8 +232,8 @@ function PlanEntryDialog({
           body: JSON.stringify({
             id: entry.id,
             title: title.trim(),
-            startTime,
-            endTime,
+            startTime: startTime || null,
+            endTime: endTime || null,
             priority,
             comment: comment.trim() || undefined,
           }),
@@ -202,8 +256,8 @@ function PlanEntryDialog({
           body: JSON.stringify({
             title: title.trim(),
             date,
-            startTime,
-            endTime,
+            startTime: startTime || null,
+            endTime: endTime || null,
             priority,
             comment: comment.trim() || undefined,
             ownerId: ownerId || undefined,
@@ -237,16 +291,35 @@ function PlanEntryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md gap-0 overflow-hidden">
-        <div className="px-6 pt-5 pb-4 border-b bg-muted/20">
+      <DialogContent className="sm:max-w-lg gap-0 overflow-hidden p-0 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="relative px-6 pt-6 pb-5 border-b bg-gradient-to-br from-primary/10 via-muted/20 to-background overflow-hidden">
+          <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
           <DialogHeader className="p-0">
-            <DialogTitle className="text-base">
-              {isEditing
-                ? "Редактировать запись"
-                : isDuplicating
-                  ? "Дублировать задачу"
-                  : "Новая запись"}
-            </DialogTitle>
+            <div className="flex items-center gap-3 relative">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/25 shrink-0">
+                {isEditing ? (
+                  <PencilLine className="h-5 w-5" />
+                ) : (
+                  <CalendarPlus className="h-5 w-5" />
+                )}
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold tracking-tight">
+                  {isEditing
+                    ? "Редактировать запись"
+                    : isDuplicating
+                      ? "Дублировать задачу"
+                      : "Новая запись"}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  {isEditing
+                    ? "Обновите детали задачи"
+                    : isDuplicating
+                      ? "Создайте копию на следующий день"
+                      : "Задача появится в плане на выбранный день"}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
         </div>
 
@@ -258,7 +331,8 @@ function PlanEntryDialog({
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Название задачи"
+              placeholder="Например, утренняя пробежка"
+              className="h-11 text-base"
               aria-invalid={!!errors.title}
             />
             {errors.title && (
@@ -266,52 +340,112 @@ function PlanEntryDialog({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground/70 font-medium">
-                Начало
-              </Label>
-              <Input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              />
+          <div className="rounded-xl border bg-muted/10 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground/80">
+                <Clock className="h-4 w-4" />
+                Время
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground/60">Весь день</span>
+                <Switch checked={allDay} onCheckedChange={handleAllDayChange} />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground/70 font-medium">
-                Конец
-              </Label>
-              <Input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                aria-invalid={!!errors.endTime}
-              />
-              {errors.endTime && (
-                <p className="text-xs text-destructive">{errors.endTime}</p>
-              )}
-            </div>
+
+            {!allDay && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground/70 font-medium">
+                    Начало
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="pr-8"
+                    />
+                    {startTime && (
+                      <button
+                        type="button"
+                        onClick={() => setStartTime("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-md text-muted-foreground/60 hover:bg-muted/60 hover:text-foreground transition-colors"
+                        title="Убрать время начала"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground/70 font-medium">
+                    Конец
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      className="pr-8"
+                      aria-invalid={!!errors.endTime}
+                    />
+                    {endTime && (
+                      <button
+                        type="button"
+                        onClick={() => setEndTime("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-md text-muted-foreground/60 hover:bg-muted/60 hover:text-foreground transition-colors"
+                        title="Убрать время конца"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="col-span-2 text-xs text-muted-foreground/60 -mt-1">
+                  Можно указать только начало или только конец — или оставить без
+                  времени
+                </p>
+                {errors.endTime && (
+                  <p className="col-span-2 text-xs text-destructive -mt-1">
+                    {errors.endTime}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground/70 font-medium">
+          <div className="rounded-xl border bg-muted/10 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground/80">
+              <ArrowUpDown className="h-4 w-4" />
               Приоритет
-            </Label>
-            <Select
-              value={priority}
-              onValueChange={(v) => setPriority(v as Priority)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIORITY_OPTIONS.map(({ value, label }) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {PRIORITY_OPTIONS.map((option) => {
+                const active = priority === option.value;
+                return (
+                  <button
+                    type="button"
+                    key={option.value}
+                    onClick={() => setPriority(option.value)}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 rounded-lg border px-2 py-2.5 text-[11px] font-medium transition-all",
+                      active
+                        ? "border-primary/40 bg-primary/10 text-foreground shadow-sm"
+                        : "border-transparent text-muted-foreground hover:bg-muted/40",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full transition-transform",
+                        PRIORITY_CONFIG[option.value].dot,
+                        active && "scale-125",
+                      )}
+                    />
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -369,7 +503,7 @@ function PlanEntryDialog({
             size="sm"
             onClick={handleSubmit}
             disabled={saving || !title.trim()}
-            className="min-w-[100px]"
+            className="min-w-[120px] bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/25 hover:opacity-95 transition-opacity"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEditing
@@ -474,8 +608,8 @@ function DuplicatePlanDialog({
           body: JSON.stringify({
             title: entry.title,
             date: targetDate,
-            startTime: entry.startTime,
-            endTime: entry.endTime,
+            startTime: entry.startTime || null,
+            endTime: entry.endTime || null,
             priority: entry.priority,
             comment: entry.comment ?? undefined,
             ownerId: uid,
@@ -592,7 +726,9 @@ function DuplicatePlanDialog({
             <div className="space-y-2">
               {sourceEntries
                 .slice()
-                .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                .sort((a, b) =>
+                  (a.startTime ?? "").localeCompare(b.startTime ?? ""),
+                )
                 .map((entry) => {
                   const pc = PRIORITY_CONFIG[entry.priority];
                   return (
@@ -631,7 +767,7 @@ function DuplicatePlanDialog({
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {entry.startTime} — {entry.endTime}
+                            {formatEntryTime(entry)}
                           </span>
                         </div>
                       </div>
@@ -668,6 +804,165 @@ function DuplicatePlanDialog({
   );
 }
 
+interface PlanEntryCardContentProps {
+  entry: PersonalPlanEntry;
+  onToggleComplete: (entry: PersonalPlanEntry) => void;
+  onDuplicate: (entry: PersonalPlanEntry) => void;
+  onEdit: (entry: PersonalPlanEntry) => void;
+  onDelete: (entry: PersonalPlanEntry) => void;
+}
+
+function PlanEntryCardContent({
+  entry,
+  onToggleComplete,
+  onDuplicate,
+  onEdit,
+  onDelete,
+}: PlanEntryCardContentProps) {
+  const pc = PRIORITY_CONFIG[entry.priority];
+  return (
+    <>
+      <button
+        onClick={() => onToggleComplete(entry)}
+        className="mt-0.5 shrink-0"
+        title={
+          entry.completed ? "Отменить выполнение" : "Отметить выполненной"
+        }
+      >
+        {entry.completed ? (
+          <CheckCircle2 className="h-5 w-5 text-emerald-500 hover:text-emerald-600 transition-colors" />
+        ) : (
+          <Circle className="h-5 w-5 text-muted-foreground/30 hover:text-emerald-500 transition-colors" />
+        )}
+      </button>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p
+            className={cn(
+              "text-sm font-medium",
+              entry.completed && "line-through text-muted-foreground",
+            )}
+          >
+            {entry.title}
+          </p>
+          <span
+            className={cn(
+              "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+              pc.bg,
+              pc.color,
+            )}
+          >
+            {pc.label}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {formatEntryTime(entry)}
+          </span>
+        </div>
+        {entry.comment && (
+          <p className="text-xs text-muted-foreground/70 mt-1.5 line-clamp-2">
+            {entry.comment}
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <button
+          onClick={() => onDuplicate(entry)}
+          className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors"
+          title="Дублировать на следующий день"
+        >
+          <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
+        <button
+          onClick={() => onEdit(entry)}
+          className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors"
+          title="Редактировать"
+        >
+          <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
+        <button
+          onClick={() =>
+            toast("Удалить запись?", {
+              action: {
+                label: "Удалить",
+                onClick: () => onDelete(entry),
+              },
+              cancel: {
+                label: "Отмена",
+                onClick: () => {},
+              },
+            })
+          }
+          className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-destructive/10 transition-colors"
+          title="Удалить"
+        >
+          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+        </button>
+      </div>
+    </>
+  );
+}
+
+interface SortablePlanEntryProps extends PlanEntryCardContentProps {}
+
+function SortablePlanEntry(props: SortablePlanEntryProps) {
+  const {
+    entry,
+    onToggleComplete,
+    onDuplicate,
+    onEdit,
+    onDelete,
+  } = props;
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: entry.id,
+    data: { entry },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={cn(
+        "group flex items-start gap-2 rounded-xl border border-border/40 px-3 py-3 transition-all",
+        entry.completed
+          ? "bg-muted/20 opacity-60"
+          : "bg-gradient-to-r from-background to-muted/10 hover:shadow-md hover:shadow-primary/5 hover:border-primary/20",
+        isDragging && "z-10 ring-2 ring-primary/40 border-primary/30",
+      )}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="mt-0.5 h-6 w-6 shrink-0 flex items-center justify-center rounded-md hover:bg-muted/60 cursor-grab active:cursor-grabbing touch-none"
+        title="Перетащить, чтобы изменить порядок"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+      </button>
+      <PlanEntryCardContent
+        entry={entry}
+        onToggleComplete={onToggleComplete}
+        onDuplicate={onDuplicate}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
+    </div>
+  );
+}
+
 export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
   const [entries, setEntries] = useState<PersonalPlanEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -680,6 +975,23 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
     null,
   );
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [activeDragEntry, setActiveDragEntry] =
+    useState<PersonalPlanEntry | null>(null);
+  const [uid, setUid] = useState<string | null>(
+    () => auth.currentUser?.uid ?? null,
+  );
+  const autoDeleteRanRef = useRef(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUid(user?.uid ?? null);
+    });
+    return unsubscribe;
+  }, []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
 
   const today = localDateStr();
   const todayDate = parseLocalDate(today);
@@ -693,7 +1005,7 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
 
   const dayEntries = entries
     .filter((e) => e.date === selectedDate)
-    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    .sort(comparePlanEntries);
 
   const completedCount = dayEntries.filter((e) => e.completed).length;
   const totalCount = dayEntries.length;
@@ -701,12 +1013,12 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
   const loadEntries = useCallback(async () => {
     setLoading(true);
     try {
-      const uid = auth.currentUser?.uid;
-      if (!uid) {
+      const uidCurrent = uid;
+      if (!uidCurrent) {
         setLoading(false);
         return;
       }
-      const params = new URLSearchParams({ uid, date: selectedDate });
+      const params = new URLSearchParams({ uid: uidCurrent, date: selectedDate });
       if (activeBoard?.id) params.set("boardId", activeBoard.id);
       const res = await fetch(
         `/api/personal-plan-entries?${params.toString()}`,
@@ -723,11 +1035,51 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, activeBoard?.id]);
+  }, [selectedDate, activeBoard?.id, uid]);
 
   useEffect(() => {
     loadEntries();
   }, [loadEntries]);
+
+  // Auto-delete completed plan entries older than 30 days (fixed period, no settings UI)
+  useEffect(() => {
+    if (!uid || autoDeleteRanRef.current) return;
+    autoDeleteRanRef.current = true;
+    (async () => {
+      try {
+        const params = new URLSearchParams({ uid });
+        if (activeBoard?.id) params.set("boardId", activeBoard.id);
+        const res = await fetch(
+          `/api/personal-plan-entries?${params.toString()}`,
+        );
+        if (!res.ok) return;
+        const all: PersonalPlanEntry[] = await res.json();
+        const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        const toDelete = all.filter(
+          (e) =>
+            e.completed &&
+            e.completedAt &&
+            new Date(e.completedAt).getTime() < cutoff,
+        );
+        if (toDelete.length === 0) return;
+        setEntries((prev) =>
+          prev.filter((e) => !toDelete.some((d) => d.id === e.id)),
+        );
+        for (const e of toDelete) {
+          fetch("/api/personal-plan-entries", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: e.id }),
+          }).catch(() => {});
+        }
+        toast.success(
+          `Удалено ${toDelete.length} выполненн${toDelete.length === 1 ? "ая" : "ых"} задач`,
+        );
+      } catch {
+        // silent
+      }
+    })();
+  }, [uid, activeBoard?.id]);
 
   const handleToggleComplete = useCallback(async (entry: PersonalPlanEntry) => {
     const newCompleted = !entry.completed;
@@ -815,6 +1167,55 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
     }
   }, [dayEntries]);
 
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const entry = event.active.data.current?.entry as
+      | PersonalPlanEntry
+      | undefined;
+    if (entry) setActiveDragEntry(entry);
+  }, []);
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      setActiveDragEntry(null);
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const oldIndex = dayEntries.findIndex((e) => e.id === active.id);
+      const newIndex = dayEntries.findIndex((e) => e.id === over.id);
+      if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return;
+
+      const reordered = arrayMove(dayEntries, oldIndex, newIndex);
+      const withOrder = reordered.map((e, i) => ({ ...e, sortOrder: i }));
+
+      setEntries((prev) => {
+        const other = prev.filter((e) => e.date !== selectedDate);
+        return [...other, ...withOrder];
+      });
+
+      let failed = false;
+      for (const entry of withOrder) {
+        const prevEntry = dayEntries.find((e) => e.id === entry.id);
+        if (prevEntry && prevEntry.sortOrder === entry.sortOrder) continue;
+        try {
+          const res = await fetch("/api/personal-plan-entries", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: entry.id, sortOrder: entry.sortOrder }),
+          });
+          if (!res.ok) failed = true;
+        } catch {
+          failed = true;
+        }
+      }
+      if (failed) {
+        toast.error("Не удалось сохранить порядок");
+      } else {
+        toast.success("Порядок обновлён");
+      }
+    },
+    [dayEntries, selectedDate],
+  );
+
   const goBack = () => {
     if (!canGoBack) return;
     setSelectedDate(addDays(selectedDate, -1));
@@ -828,7 +1229,7 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
   return (
     <div className="space-y-4">
       {/* Day header with navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -896,7 +1297,7 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
               className="gap-1.5 text-destructive border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
             >
               <Trash2 className="h-4 w-4" />
-              Удалить план
+              Удалить
             </Button>
           )}
           <Button
@@ -942,114 +1343,54 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {dayEntries.map((entry) => {
-            const pc = PRIORITY_CONFIG[entry.priority];
-            return (
-              <div
-                key={entry.id}
-                className={cn(
-                  "group flex items-start gap-3 rounded-xl border border-border/40 px-4 py-3 transition-all",
-                  entry.completed
-                    ? "bg-muted/20 opacity-60"
-                    : "bg-gradient-to-r from-background to-muted/10 hover:shadow-md hover:shadow-primary/5 hover:border-primary/20",
-                )}
-              >
-                <button
-                  onClick={() => handleToggleComplete(entry)}
-                  className="mt-0.5 shrink-0"
-                  title={
-                    entry.completed
-                      ? "Отменить выполнение"
-                      : "Отметить выполненной"
-                  }
-                >
-                  {entry.completed ? (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500 hover:text-emerald-600 transition-colors" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-muted-foreground/30 hover:text-emerald-500 transition-colors" />
-                  )}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={dayEntries.map((e) => e.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-2">
+              {dayEntries.map((entry) => (
+                <SortablePlanEntry
+                  key={entry.id}
+                  entry={entry}
+                  onToggleComplete={handleToggleComplete}
+                  onDuplicate={(e) => {
+                    setEditingEntry(null);
+                    setDuplicateFrom(e);
+                    setDialogOpen(true);
+                  }}
+                  onEdit={(e) => {
+                    setEditingEntry(e);
+                    setDuplicateFrom(null);
+                    setDialogOpen(true);
+                  }}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          </SortableContext>
+          <DragOverlay dropAnimation={null}>
+            {activeDragEntry ? (
+              <div className="flex items-start gap-2 rounded-xl border border-border/60 bg-card px-3 py-3 shadow-2xl shadow-primary/10 scale-[1.02]">
+                <button className="mt-0.5 h-6 w-6 shrink-0 flex items-center justify-center cursor-grabbing">
+                  <GripVertical className="h-4 w-4 text-muted-foreground/60" />
                 </button>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p
-                      className={cn(
-                        "text-sm font-medium",
-                        entry.completed && "line-through text-muted-foreground",
-                      )}
-                    >
-                      {entry.title}
-                    </p>
-                    <span
-                      className={cn(
-                        "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
-                        pc.bg,
-                        pc.color,
-                      )}
-                    >
-                      {pc.label}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {entry.startTime} — {entry.endTime}
-                    </span>
-                  </div>
-                  {entry.comment && (
-                    <p className="text-xs text-muted-foreground/70 mt-1.5 line-clamp-2">
-                      {entry.comment}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  <button
-                    onClick={() => {
-                      setEditingEntry(null);
-                      setDuplicateFrom(entry);
-                      setDialogOpen(true);
-                    }}
-                    className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors"
-                    title="Дублировать на следующий день"
-                  >
-                    <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingEntry(entry);
-                      setDuplicateFrom(null);
-                      setDialogOpen(true);
-                    }}
-                    className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors"
-                    title="Редактировать"
-                  >
-                    <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-                  <button
-                    onClick={() =>
-                      toast("Удалить запись?", {
-                        action: {
-                          label: "Удалить",
-                          onClick: () => handleDelete(entry),
-                        },
-                        cancel: {
-                          label: "Отмена",
-                          onClick: () => {},
-                        },
-                      })
-                    }
-                    className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-destructive/10 transition-colors"
-                    title="Удалить"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </button>
-                </div>
+                <PlanEntryCardContent
+                  entry={activeDragEntry}
+                  onToggleComplete={() => {}}
+                  onDuplicate={() => {}}
+                  onEdit={() => {}}
+                  onDelete={() => {}}
+                />
               </div>
-            );
-          })}
-        </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
       <PlanEntryDialog
