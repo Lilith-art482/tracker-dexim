@@ -21,6 +21,21 @@ const toPlain = <T>(snap: {
   ...snap.data(),
 });
 
+/**
+ * Verifies a document exists in `collection`, has id `id`, and belongs to `uid`
+ * (its stored `userId` field). Used before update/delete to prevent
+ * cross-user reads and writes through the API.
+ */
+export async function ensureOwned(
+  collection: string,
+  id: string,
+  uid: string,
+): Promise<boolean> {
+  const snap = await getAdminDb().collection(collection).doc(id).get();
+  if (!snap.exists) return false;
+  return (snap.data()?.userId ?? null) === uid;
+}
+
 // --- Accounts ---
 
 export async function getAccountsByUser(
@@ -146,6 +161,7 @@ export async function updateTransaction(
       | "date"
       | "categoryId"
       | "accountId"
+      | "toAccountId"
       | "type"
     >
   >,

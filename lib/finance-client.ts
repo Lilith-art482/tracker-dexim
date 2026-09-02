@@ -11,6 +11,7 @@ import {
   query,
   where,
   limit,
+  orderBy,
 } from "firebase/firestore";
 import { convert, getCachedRates, getAllRates } from "./exchange-rates";
 
@@ -214,6 +215,50 @@ export async function createTransaction(
     }
   }
 
+  // Transfer: move funds out of source and into destination
+  if (
+    tx.type === "transfer" &&
+    tx.toAccountId &&
+    tx.toAccountId !== tx.accountId
+  ) {
+    const rates = await resolveRates();
+    const fromAccSnap = await getDoc(doc(accountsCol(), tx.accountId));
+    const toAccSnap = await getDoc(doc(accountsCol(), tx.toAccountId));
+    const txCurrency = tx.currency || "RUB";
+    if (fromAccSnap.exists()) {
+      const fromAcc = toPlain<FinanceAccount>(fromAccSnap);
+      const debit = convertAmount(
+        tx.amount,
+        txCurrency,
+        fromAcc.currency,
+        rates,
+      );
+      if (debit !== 0) {
+        const newFromBalance = fromAcc.balance - debit;
+        await updateDoc(
+          doc(accountsCol(), tx.accountId),
+          clean(computeAccountUpdate(fromAcc, newFromBalance, rates)),
+        );
+      }
+    }
+    if (toAccSnap.exists()) {
+      const toAcc = toPlain<FinanceAccount>(toAccSnap);
+      const credit = convertAmount(
+        tx.amount,
+        txCurrency,
+        toAcc.currency,
+        rates,
+      );
+      if (credit !== 0) {
+        const newToBalance = toAcc.balance + credit;
+        await updateDoc(
+          doc(accountsCol(), tx.toAccountId),
+          clean(computeAccountUpdate(toAcc, newToBalance, rates)),
+        );
+      }
+    }
+  }
+
   const goalDelta =
     tx.type === "income" ? tx.amount : tx.type === "expense" ? -tx.amount : 0;
   await applyGoalDelta(tx.userId, tx.categoryId, goalDelta);
@@ -232,6 +277,7 @@ export async function updateTransaction(
       | "date"
       | "categoryId"
       | "accountId"
+      | "toAccountId"
       | "type"
       | "currency"
     >
@@ -243,17 +289,43 @@ export async function updateTransaction(
     const old = toPlain<Transaction>(oldSnap);
     const rates = await resolveRates();
 
-    const oldAccSnap = await getDoc(doc(accountsCol(), old.accountId));
-    const oldAcc = oldAccSnap.exists()
-      ? toPlain<FinanceAccount>(oldAccSnap)
-      : null;
-    const oldAccCurrency = oldAcc?.currency || "RUB";
-    const oldTxCurrency = old.currency || oldAccCurrency;
-    const oldConverted =
-      old.type === "income" || old.type === "expense"
-        ? convertAmount(old.amount, oldTxCurrency, oldAccCurrency, rates)
-        : 0;
-    const oldDelta = old.type === "income" ? oldConverted : -oldConverted;
+    const accountMap = new Map<string, FinanceAccount | null>();
+    const loadAcc = async (accountId?: string) => {
+      if (!accountId) return null;
+      if (accountMap.has(accountId)) return accountMap.get(accountId)!;
+      const accSnap = await getDoc(doc(accountsCol(), accountId));
+      const acc = accSnap.exists() ? toPlain<FinanceAccount>(accSnap) : null;
+      accountMap.set(accountId, acc);
+      return acc;
+    };
+
+    // Compute net balance effect of a transaction across accounts
+    const getEffects = async (t: Transaction) => {
+      const effects: { accountId: string; delta: number }[] = [];
+      if (t.type === "income" || t.type === "expense") {
+        const acc = await loadAcc(t.accountId);
+        if (!acc) return effects;
+        const txCur = t.currency || acc.currency;
+        const converted = convertAmount(t.amount, txCur, acc.currency, rates);
+        const delta = t.type === "income" ? converted : -converted;
+        if (delta !== 0) effects.push({ accountId: t.accountId, delta });
+      } else if (t.type === "transfer") {
+        const fromAcc = await loadAcc(t.accountId);
+        const toAcc = await loadAcc(t.toAccountId);
+        const txCur = t.currency || "RUB";
+        if (fromAcc) {
+          const d = convertAmount(t.amount, txCur, fromAcc.currency, rates);
+          if (d !== 0) effects.push({ accountId: t.accountId, delta: -d });
+        }
+        if (toAcc && t.toAccountId && t.toAccountId !== t.accountId) {
+          const c = convertAmount(t.amount, txCur, toAcc.currency, rates);
+          if (c !== 0) effects.push({ accountId: t.toAccountId, delta: c });
+        }
+      }
+      return effects;
+    };
+
+    const oldEffects = await getEffects(old);
 
     await updateDoc(
       ref,
@@ -262,37 +334,24 @@ export async function updateTransaction(
     const newSnap = await getDoc(ref);
     const updated = toPlain<Transaction>(newSnap);
 
-    const newAccSnap = await getDoc(doc(accountsCol(), updated.accountId));
-    const newAcc = newAccSnap.exists()
-      ? toPlain<FinanceAccount>(newAccSnap)
-      : null;
-    const newAccCurrency = newAcc?.currency || "RUB";
-    const newTxCurrency = updated.currency || newAccCurrency;
-    const newConverted =
-      updated.type === "income" || updated.type === "expense"
-        ? convertAmount(updated.amount, newTxCurrency, newAccCurrency, rates)
-        : 0;
-    const newDelta = updated.type === "income" ? newConverted : -newConverted;
+    const newEffects = await getEffects(updated);
 
-    if (updated.accountId === old.accountId) {
-      const netDelta = newDelta - oldDelta;
-      if (netDelta !== 0 && newAcc) {
+    // Revert old effects, then apply new effects
+    for (const ef of oldEffects) {
+      const acc = await loadAcc(ef.accountId);
+      if (acc) {
         await updateDoc(
-          doc(accountsCol(), updated.accountId),
-          clean(computeAccountUpdate(newAcc, newAcc.balance + netDelta, rates)),
+          doc(accountsCol(), ef.accountId),
+          clean(computeAccountUpdate(acc, acc.balance - ef.delta, rates)),
         );
       }
-    } else {
-      if (oldDelta !== 0 && oldAcc) {
+    }
+    for (const ef of newEffects) {
+      const acc = await loadAcc(ef.accountId);
+      if (acc) {
         await updateDoc(
-          doc(accountsCol(), old.accountId),
-          clean(computeAccountUpdate(oldAcc, oldAcc.balance - oldDelta, rates)),
-        );
-      }
-      if (newDelta !== 0 && newAcc) {
-        await updateDoc(
-          doc(accountsCol(), updated.accountId),
-          clean(computeAccountUpdate(newAcc, newAcc.balance + newDelta, rates)),
+          doc(accountsCol(), ef.accountId),
+          clean(computeAccountUpdate(acc, acc.balance + ef.delta, rates)),
         );
       }
     }
@@ -528,4 +587,48 @@ export async function updateRecurringTransaction(
 
 export async function deleteRecurringTransaction(id: string): Promise<void> {
   await deleteDoc(doc(recurringCol(), id));
+}
+
+// --- Account Edit Logs ---
+
+const accountEditsCol = () => collection(db, "FINANCE_ACCOUNT_EDITS");
+
+export async function logAccountEdit(data: {
+  accountId: string;
+  accountName: string;
+  changes: { field: string; oldValue?: string; newValue?: string }[];
+}): Promise<void> {
+  await addDoc(accountEditsCol(), {
+    ...data,
+    createdAt: new Date().toISOString(),
+  });
+}
+
+export async function getAccountEditLogs(
+  maxLimit = 50,
+): Promise<
+  {
+    id: string;
+    accountId: string;
+    accountName: string;
+    changes: { field: string; oldValue?: string; newValue?: string }[];
+    createdAt: string;
+  }[]
+> {
+  const q = query(
+    accountEditsCol(),
+    orderBy("createdAt", "desc"),
+    limit(maxLimit),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      accountId: data.accountId,
+      accountName: data.accountName,
+      changes: data.changes || [],
+      createdAt: data.createdAt,
+    };
+  });
 }

@@ -1,4 +1,6 @@
 import { getAdminDb } from "./firebase-admin";
+import { isDatabaseAvailable } from "./db";
+import { mockBoards, mockCompanies } from "./mock-data";
 import type {
   Board,
   Company,
@@ -11,6 +13,10 @@ import type {
   PersonalTask,
   PersonalKanbanTask,
   PersonalPlanEntry,
+  ContentTask,
+  WorkKanbanTask,
+  PlannerChat,
+  PlannerMessage,
   PermissionFlags,
   MemberConfig,
   Note,
@@ -31,6 +37,10 @@ export type {
   PersonalTask,
   PersonalKanbanTask,
   PersonalPlanEntry,
+  ContentTask,
+  WorkKanbanTask,
+  PlannerChat,
+  PlannerMessage,
   PermissionFlags,
   MemberConfig,
   Note,
@@ -52,6 +62,97 @@ function omitUndefined<T extends object>(obj: T): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(obj).filter(([, v]) => v !== undefined),
   );
+}
+
+// --- Access-control helpers ---
+
+async function getDocById<T>(col: string, id: string): Promise<T | null> {
+  const snap = await getAdminDb().collection(col).doc(id).get();
+  if (!snap.exists) return null;
+  return toPlain(snap) as T;
+}
+
+export async function getBoardById(id: string): Promise<Board | null> {
+  return getDocById<Board>(COL("BOARDS"), id);
+}
+
+export async function getCompanyById(id: string): Promise<Company | null> {
+  return getDocById<Company>(COL("COMPANIES"), id);
+}
+
+export async function getColumnById(id: string): Promise<Column | null> {
+  return getDocById<Column>(COL("COLUMNS"), id);
+}
+
+export async function getTaskById(id: string): Promise<Task | null> {
+  // Tasks live in BOARDS/{boardId}/COLUMNS/{columnId}/TASKS/{taskId}
+  const { FieldPath } = await import("firebase-admin/firestore");
+  const snap = await getAdminDb()
+    .collectionGroup("TASKS")
+    .where(FieldPath.documentId(), "==", id)
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  return toPlain(snap.docs[0]) as Task;
+}
+
+export async function getBoardMemberById(
+  id: string,
+): Promise<BoardMember | null> {
+  return getDocById<BoardMember>(COL("BOARD_MEMBERS"), id);
+}
+
+export async function getPersonalTaskById(
+  id: string,
+): Promise<PersonalTask | null> {
+  return getDocById<PersonalTask>(COL("PERSONAL_TASKS"), id);
+}
+
+export async function getPersonalKanbanTaskById(
+  id: string,
+): Promise<PersonalKanbanTask | null> {
+  return getDocById<PersonalKanbanTask>(COL("PERSONAL_KANBAN_TASKS"), id);
+}
+
+export async function getPersonalPlanEntryById(
+  id: string,
+): Promise<PersonalPlanEntry | null> {
+  return getDocById<PersonalPlanEntry>(COL("PERSONAL_PLAN_ENTRIES"), id);
+}
+
+/** Direct member check against the Board/Company doc (owner + members array). */
+export function boardHasUser(board: Board, uid: string): boolean {
+  return board.ownerId === uid || (board.members ?? []).includes(uid);
+}
+
+export function companyHasUser(company: Company, uid: string): boolean {
+  return company.ownerId === uid || (company.members ?? []).includes(uid);
+}
+
+/** True when `uid` is owner or member of the board (static-mode aware). */
+export async function boardIncludesUser(
+  boardId: string,
+  uid: string,
+): Promise<boolean> {
+  if (!(await isDatabaseAvailable())) {
+    const board = mockBoards.find((b) => b.id === boardId);
+    return board ? boardHasUser(board, uid) : false;
+  }
+  const board = await getBoardById(boardId);
+  return board ? boardHasUser(board, uid) : false;
+}
+
+/** True when `uid` is owner or member of the company (static-mode aware). */
+export async function companyIncludesUser(
+  companyId: string,
+  uid: string,
+): Promise<boolean> {
+  if (!(await isDatabaseAvailable())) {
+    const company = mockCompanies.find((c) => c.id === companyId);
+    return company ? companyHasUser(company, uid) : false;
+  }
+  const company = await getCompanyById(companyId);
+  return company ? companyHasUser(company, uid) : false;
 }
 
 export async function getServiceById(id: string): Promise<Service | null> {
@@ -578,7 +679,9 @@ export async function deletePersonalTask(id: string): Promise<void> {
   await getAdminDb().collection(COL("PERSONAL_TASKS")).doc(id).delete();
 }
 
-export async function cleanupExpiredPersonalTasks(): Promise<number> {
+export async function cleanupExpiredPersonalTasks(
+  ownerId?: string,
+): Promise<number> {
   const db = getAdminDb();
   const now = Date.now();
   const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
@@ -586,6 +689,7 @@ export async function cleanupExpiredPersonalTasks(): Promise<number> {
   let deleted = 0;
   for (const doc of snapshot.docs) {
     const task = toPlain(doc) as PersonalTask;
+    if (ownerId && task.ownerId !== ownerId) continue;
     const created = new Date(task.createdAt).getTime();
     const updated = new Date(task.updatedAt).getTime();
     const latest = Math.max(created, updated);
@@ -710,14 +814,146 @@ export async function deletePersonalPlanEntry(id: string): Promise<void> {
   await getAdminDb().collection(PERSONAL_PLAN_ENTRIES).doc(id).delete();
 }
 
+const CONTENT_TASKS = COL("CONTENT_TASKS");
+
+export async function getContentTaskById(
+  id: string,
+): Promise<ContentTask | null> {
+  const snap = await getAdminDb().collection(CONTENT_TASKS).doc(id).get();
+  if (!snap.exists) return null;
+  return toPlain(snap) as ContentTask;
+}
+
+export async function getContentTasksByOwner(
+  ownerId: string,
+): Promise<ContentTask[]> {
+  const snap = await getAdminDb()
+    .collection(CONTENT_TASKS)
+    .where("ownerId", "==", ownerId)
+    .get();
+  return snap.docs.map((d) => toPlain(d) as ContentTask);
+}
+
+export async function createContentTask(
+  data: Omit<ContentTask, "createdAt" | "updatedAt">,
+): Promise<ContentTask> {
+  const now = new Date().toISOString();
+  const task: ContentTask = { ...data, createdAt: now, updatedAt: now };
+  await getAdminDb().collection(CONTENT_TASKS).doc(task.id).set(task);
+  return task;
+}
+
+export async function updateContentTask(
+  id: string,
+  data: Partial<
+    Pick<
+      ContentTask,
+      | "title"
+      | "topic"
+      | "platform"
+      | "funnel"
+      | "format"
+      | "status"
+      | "date"
+      | "time"
+      | "notes"
+      | "completed"
+      | "completedAt"
+      | "boardId"
+    >
+  >,
+): Promise<ContentTask> {
+  await getAdminDb()
+    .collection(CONTENT_TASKS)
+    .doc(id)
+    .update({
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
+  const snap = await getAdminDb().collection(CONTENT_TASKS).doc(id).get();
+  return toPlain(snap) as ContentTask;
+}
+
+export async function deleteContentTask(id: string): Promise<void> {
+  await getAdminDb().collection(CONTENT_TASKS).doc(id).delete();
+}
+
+const WORK_KANBAN_TASKS = COL("WORK_KANBAN_TASKS");
+
+export async function getWorkKanbanTasksByOwner(
+  ownerId: string,
+  workType: "content" | "dev",
+): Promise<WorkKanbanTask[]> {
+  const snap = await getAdminDb()
+    .collection(WORK_KANBAN_TASKS)
+    .where("ownerId", "==", ownerId)
+    .where("workType", "==", workType)
+    .get();
+  return snap.docs.map((d) => toPlain(d) as WorkKanbanTask);
+}
+
+export async function createWorkKanbanTask(
+  data: Omit<WorkKanbanTask, "createdAt" | "updatedAt">,
+): Promise<WorkKanbanTask> {
+  const now = new Date().toISOString();
+  const task: WorkKanbanTask = { ...data, createdAt: now, updatedAt: now };
+  await getAdminDb().collection(WORK_KANBAN_TASKS).doc(task.id).set(task);
+  return task;
+}
+
+export async function updateWorkKanbanTask(
+  id: string,
+  data: Partial<Omit<WorkKanbanTask, "id" | "createdAt" | "updatedAt">>,
+): Promise<WorkKanbanTask> {
+  await getAdminDb()
+    .collection(WORK_KANBAN_TASKS)
+    .doc(id)
+    .update({
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
+  const snap = await getAdminDb().collection(WORK_KANBAN_TASKS).doc(id).get();
+  return toPlain(snap) as WorkKanbanTask;
+}
+
+export async function deleteWorkKanbanTask(id: string): Promise<void> {
+  await getAdminDb().collection(WORK_KANBAN_TASKS).doc(id).delete();
+}
+
+const PLANNER_CHATS = COL("PLANNER_CHATS");
+
+export async function getPlannerChatsByOwner(
+  ownerId: string,
+): Promise<PlannerChat[]> {
+  const snap = await getAdminDb()
+    .collection(PLANNER_CHATS)
+    .where("ownerId", "==", ownerId)
+    .get();
+  return snap.docs.map((d) => toPlain(d) as PlannerChat);
+}
+
+export async function getPlannerChatById(
+  id: string,
+): Promise<PlannerChat | null> {
+  const snap = await getAdminDb().collection(PLANNER_CHATS).doc(id).get();
+  if (!snap.exists) return null;
+  return toPlain(snap) as PlannerChat;
+}
+
+export async function upsertPlannerChat(chat: PlannerChat): Promise<void> {
+  await getAdminDb().collection(PLANNER_CHATS).doc(chat.id).set(chat);
+}
+
+export async function deletePlannerChat(id: string): Promise<void> {
+  await getAdminDb().collection(PLANNER_CHATS).doc(id).delete();
+}
+
 export async function getAllNotes(userId: string): Promise<Note[]> {
   const db = getAdminDb();
-  const snap = await db
-    .collection("notes")
-    .where("userId", "==", userId)
-    .orderBy("updatedAt", "desc")
-    .get();
-  return snap.docs.map((d) => toPlain(d) as Note);
+  const snap = await db.collection("notes").where("userId", "==", userId).get();
+  return snap.docs
+    .map((d) => toPlain(d) as Note)
+    .sort((a, b) => (a.updatedAt > b.updatedAt ? -1 : 1));
 }
 
 export async function getNoteById(
@@ -754,6 +990,18 @@ function computeLinkedNoteIds(
     .map((n) => n.id);
 }
 
+async function computeLinkedNoteIdsSafely(
+  userId: string,
+  blocks: Note["blocks"],
+): Promise<string[]> {
+  try {
+    const allNotes = await getAllNotes(userId);
+    return computeLinkedNoteIds(blocks, allNotes);
+  } catch {
+    return [];
+  }
+}
+
 export async function createNote(
   userId: string,
   data: {
@@ -770,8 +1018,7 @@ export async function createNote(
   const now = new Date().toISOString();
   const ref = db.collection("notes").doc();
 
-  const allNotes = await getAllNotes(userId);
-  const linkedNoteIds = computeLinkedNoteIds(data.blocks, allNotes);
+  const linkedNoteIds = await computeLinkedNoteIdsSafely(userId, data.blocks);
 
   const note: Omit<Note, "id"> = {
     title: data.title,
@@ -814,8 +1061,10 @@ export async function updateNote(
   if (data.title !== undefined) updates.title = data.title;
   if (data.blocks !== undefined) {
     updates.blocks = data.blocks;
-    const allNotes = await getAllNotes(userId);
-    updates.linkedNoteIds = computeLinkedNoteIds(data.blocks, allNotes);
+    updates.linkedNoteIds = await computeLinkedNoteIdsSafely(
+      userId,
+      data.blocks,
+    );
   }
   if (data.tags !== undefined) updates.tags = data.tags;
   if (data.scheduledDate !== undefined)
@@ -842,15 +1091,26 @@ export async function deleteNote(
   return true;
 }
 
-export async function cleanupExpiredArchivedTasks(): Promise<number> {
+export async function cleanupExpiredArchivedTasks(
+  boardId?: string,
+): Promise<number> {
   const db = getAdminDb();
   const now = Date.now();
   const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 
-  const boardsSnap = await db.collection(COL("BOARDS")).get();
+  const boardsSnap = boardId
+    ? await db
+        .collection(COL("BOARDS"))
+        .doc(boardId)
+        .get()
+        .then((ref) => (ref.exists ? [ref] : []))
+    : await db
+        .collection(COL("BOARDS"))
+        .get()
+        .then((s) => s.docs);
   let deleted = 0;
 
-  for (const boardDoc of boardsSnap.docs) {
+  for (const boardDoc of boardsSnap) {
     const columnsSnap = await boardDoc.ref.collection("COLUMNS").get();
     for (const colDoc of columnsSnap.docs) {
       const tasksSnap = await colDoc.ref.collection("TASKS").get();

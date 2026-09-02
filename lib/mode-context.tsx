@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
-export type ViewMode = "team" | "personal";
+export type ViewMode = "team" | "personal" | "work";
 
 interface ModeContextValue {
   mode: ViewMode;
@@ -25,7 +25,8 @@ const STORAGE_KEY = "viewMode";
 function getSnapshot(): ViewMode {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "team" || stored === "personal") return stored;
+    if (stored === "team" || stored === "personal" || stored === "work")
+      return stored;
   } catch {}
   return "team";
 }

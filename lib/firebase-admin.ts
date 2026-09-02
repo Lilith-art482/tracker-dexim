@@ -1,14 +1,16 @@
 import "firebase-admin";
-import { initializeApp, getApps, cert, App } from "firebase-admin/app";
-import { getFirestore, Firestore } from "firebase-admin/firestore";
-import { getAuth, Auth } from "firebase-admin/auth";
+import { initializeApp, getApps, cert } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import type { App as FirebaseAdminApp } from "firebase-admin/app";
+import type { Firestore } from "firebase-admin/firestore";
+import type { Auth } from "firebase-admin/auth";
 import { db as clientDb } from "./firebase";
 
-let adminApp: App | null = null;
+let adminApp: FirebaseAdminApp | null = null;
 let adminDbInstance: Firestore | null = null;
 let adminAuthInstance: Auth | null = null;
 
-function getAdminApp(): App | null {
+function getAdminApp(): FirebaseAdminApp | null {
   if (adminApp) return adminApp;
   if (getApps().length > 0) {
     adminApp = getApps()[0];
@@ -65,17 +67,49 @@ export function getAdminDb(): Firestore {
   return adminDbInstance;
 }
 
-export function getAdminAuth(): Auth | null {
+let authModulePromise: Promise<typeof import("firebase-admin/auth")> | null =
+  null;
+
+function lazyAuth(): Promise<typeof import("firebase-admin/auth")> {
+  if (!authModulePromise) {
+    authModulePromise = import("firebase-admin/auth");
+  }
+  return authModulePromise;
+}
+
+export async function getAdminAuth(): Promise<Auth | null> {
   if (adminAuthInstance) return adminAuthInstance;
   const app = getAdminApp();
   if (!app) return null;
+  const { getAuth } = await lazyAuth();
   adminAuthInstance = getAuth(app);
   return adminAuthInstance;
 }
 
 export function isAdminConfigured(): boolean {
   return (
-    !!process.env.FIREBASE_PRIVATE_KEY ||
-    !!process.env.FIREBASE_PRIVATE_KEY_BASE64
-  ) && !!process.env.FIREBASE_CLIENT_EMAIL;
+    (!!process.env.FIREBASE_PRIVATE_KEY ||
+      !!process.env.FIREBASE_PRIVATE_KEY_BASE64) &&
+    !!process.env.FIREBASE_CLIENT_EMAIL
+  );
+}
+
+export async function getUidFromAuthHeader(
+  authorizationHeader: string | null,
+): Promise<string | null> {
+  if (!authorizationHeader) return null;
+  const match = /^Bearer\s+(.+)$/i.exec(authorizationHeader);
+  if (!match) return null;
+
+  const auth = await getAdminAuth();
+  if (!auth) return null;
+
+  try {
+    const decoded = await auth.verifyIdToken(match[1]);
+    return decoded.uid;
+  } catch (e: unknown) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    console.error("verifyIdToken error:", err.message);
+    return null;
+  }
 }

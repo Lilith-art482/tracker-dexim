@@ -28,6 +28,27 @@ function generateId(): string {
     : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/**
+ * Returns the stored `ownerId` of a habit/log/reminder/achievement doc, or
+ * null when it does not exist. Used to prevent cross-user access through the
+ * API. In static (DB unavailable) mode returns null -> ownership checks pass.
+ */
+async function docOwner(col: string, id: string): Promise<string | null> {
+  if (!(await isDatabaseAvailable())) return null;
+  const snap = await getAdminDb().collection(col).doc(id).get();
+  if (!snap.exists) return null;
+  return (snap.data()?.ownerId ?? null) as string | null;
+}
+
+export async function ensureOwner(
+  col: string,
+  id: string,
+  uid: string,
+): Promise<boolean> {
+  if (!(await isDatabaseAvailable())) return true;
+  return (await docOwner(col, id)) === uid;
+}
+
 // --- Habits ---
 
 export async function getAllHabits(): Promise<Habit[]> {
@@ -150,7 +171,9 @@ export async function createLog(
 
 export async function updateLog(
   id: string,
-  data: Partial<Pick<HabitLog, "status" | "durationMinutes" | "note">>,
+  data: Partial<
+    Pick<HabitLog, "status" | "durationMinutes" | "note" | "ownerId">
+  >,
 ): Promise<HabitLog | null> {
   if (!(await isDatabaseAvailable())) return null;
   await getAdminDb()
@@ -208,10 +231,23 @@ export async function getOrCreateLog(
 
 // --- Achievements ---
 
-export async function getAllAchievements(): Promise<Achievement[]> {
+export async function getAllAchievements(
+  ownerId?: string,
+): Promise<Achievement[]> {
   if (!(await isDatabaseAvailable())) return mockAchievements;
-  const snap = await getAdminDb().collection(COL(TableName.ACHIEVEMENTS)).get();
+  const snap = ownerId
+    ? await getAdminDb()
+        .collection(COL(TableName.ACHIEVEMENTS))
+        .where("ownerId", "==", ownerId)
+        .get()
+    : await getAdminDb().collection(COL(TableName.ACHIEVEMENTS)).get();
   return snap.docs.map((d) => toPlain(d) as Achievement);
+}
+
+export async function getAchievementsByOwner(
+  ownerId: string,
+): Promise<Achievement[]> {
+  return getAllAchievements(ownerId);
 }
 
 export async function createAchievement(
@@ -228,10 +264,21 @@ export async function createAchievement(
 
 // --- Reminders ---
 
-export async function getAllReminders(): Promise<Reminder[]> {
+export async function getAllReminders(ownerId?: string): Promise<Reminder[]> {
   if (!(await isDatabaseAvailable())) return mockReminders;
-  const snap = await getAdminDb().collection(COL(TableName.REMINDERS)).get();
+  const snap = ownerId
+    ? await getAdminDb()
+        .collection(COL(TableName.REMINDERS))
+        .where("ownerId", "==", ownerId)
+        .get()
+    : await getAdminDb().collection(COL(TableName.REMINDERS)).get();
   return snap.docs.map((d) => toPlain(d) as Reminder);
+}
+
+export async function getRemindersByOwner(
+  ownerId: string,
+): Promise<Reminder[]> {
+  return getAllReminders(ownerId);
 }
 
 export async function createReminder(

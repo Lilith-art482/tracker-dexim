@@ -9,8 +9,19 @@ const CRYPTO_COINGECKO_IDS: Record<string, string> = {
   ETH: "ethereum",
   SOL: "solana",
   TON: "the-open-network",
+  GRAM: "the-open-network",
   BNB: "binancecoin",
   TRX: "tron",
+};
+
+const CRYPTO_BINANCE_PAIRS: Record<string, string> = {
+  BTC: "BTCUSDT",
+  ETH: "ETHUSDT",
+  SOL: "SOLUSDT",
+  TON: "TONUSDT",
+  GRAM: "TONUSDT",
+  BNB: "BNBUSDT",
+  TRX: "TRXUSDT",
 };
 
 async function fetchCBIRates(): Promise<Record<string, number>> {
@@ -33,6 +44,7 @@ async function fetchCoinGeckoPrices(): Promise<Record<string, number>> {
     `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
     { signal: AbortSignal.timeout(5000) },
   );
+  if (!res.ok) return {};
   const data = (await res.json()) as Record<string, { usd: number }>;
   const map: Record<string, number> = {};
   for (const [symbol, id] of Object.entries(CRYPTO_COINGECKO_IDS)) {
@@ -40,6 +52,34 @@ async function fetchCoinGeckoPrices(): Promise<Record<string, number>> {
     if (price && price > 0) map[symbol] = price;
   }
   return map;
+}
+
+async function fetchBinancePrices(
+  missing: Record<string, number>,
+): Promise<Record<string, number>> {
+  const result = { ...missing };
+  const pairs = Object.entries(CRYPTO_BINANCE_PAIRS)
+    .filter(([symbol]) => !result[symbol])
+    .map(([, pair]) => pair);
+  if (pairs.length === 0) return result;
+
+  try {
+    const res = await fetch(
+      `https://api.binance.com/api/v3/ticker/price?symbols=${encodeURIComponent(JSON.stringify(pairs))}`,
+      { signal: AbortSignal.timeout(5000) },
+    );
+    if (!res.ok) return result;
+    const data = (await res.json()) as { symbol: string; price: string }[];
+    for (const [symbol, pair] of Object.entries(CRYPTO_BINANCE_PAIRS)) {
+      if (result[symbol]) continue;
+      const item = data.find((d) => d.symbol === pair);
+      const price = item ? parseFloat(item.price) : NaN;
+      if (price > 0) result[symbol] = price;
+    }
+  } catch {
+    // ignore — keep whatever we already have
+  }
+  return result;
 }
 
 function buildRUBRateMap(
@@ -56,6 +96,7 @@ function buildRUBRateMap(
   map["USD"] = usdToRub;
   map["USDT"] = usdToRub;
   map["USDC"] = usdToRub;
+  map["PUSD"] = usdToRub;
 
   for (const [symbol, usdPrice] of Object.entries(cryptoUsdPrices)) {
     map[symbol] = usdPrice * usdToRub;
@@ -68,16 +109,48 @@ export async function getAllRates(): Promise<RateMap> {
   const now = Date.now();
   if (cachedRates !== null && now - cachedAt < CACHE_TTL) return cachedRates;
 
-  try {
-    const cbiRates = await fetchCBIRates();
-    const usdToRub = cbiRates["USD"] || 85;
-    const cryptoUsdPrices = await fetchCoinGeckoPrices();
-    cachedRates = buildRUBRateMap(cbiRates, cryptoUsdPrices, usdToRub);
-    cachedAt = now;
-  } catch {
-    if (cachedRates) return cachedRates;
-    cachedRates = buildRUBRateMap({}, {}, 85);
+  // Prefer fetching through our own server (Vercel) when running in the
+  // browser: the browser may be unable to reach CoinGecko/Binance directly
+  // (geo-blocks, rate limits), while the server usually can.
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/rates", {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { rates?: RateMap };
+        if (data.rates && data.rates.RUB) {
+          cachedRates = data.rates;
+          cachedAt = now;
+          return cachedRates;
+        }
+      }
+    } catch {
+      // fall through to direct fetch
+    }
   }
+
+  // Each source is fetched independently: a failure in one (e.g. CBR) must not
+  // wipe out the crypto rates obtained from CoinGecko/Binance.
+  let cbiRates: Record<string, number> = {};
+  let usdToRub = 85;
+  try {
+    cbiRates = await fetchCBIRates();
+    usdToRub = cbiRates["USD"] || usdToRub || 85;
+  } catch {
+    // keep defaults
+  }
+
+  let cryptoPrices: Record<string, number> = {};
+  try {
+    const coinGecko = await fetchCoinGeckoPrices();
+    cryptoPrices = await fetchBinancePrices(coinGecko);
+  } catch {
+    // keep whatever we have (likely empty)
+  }
+
+  cachedRates = buildRUBRateMap(cbiRates, cryptoPrices, usdToRub);
+  cachedAt = now;
 
   return cachedRates;
 }
@@ -104,22 +177,16 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   RUB: "₽",
   USD: "$",
   EUR: "€",
-  CNY: "¥",
-  UAH: "₴",
-  KZT: "₸",
-  BYN: "Br",
-  AMD: "֏",
-  AED: "د.إ",
-  TRY: "₺",
-  PLN: "zł",
-  BTC: "₿",
-  ETH: "⟠",
-  SOL: "SOL",
-  TON: "TON",
-  BNB: "BNB",
-  TRX: "TRX",
-  USDT: "₮",
-  USDC: "₮",
+  BTC: "",
+  ETH: "",
+  SOL: "",
+  TON: "",
+  GRAM: "",
+  BNB: "",
+  TRX: "",
+  USDT: "",
+  USDC: "",
+  PUSD: "",
 };
 
 export function getCurrencySymbol(code: string): string {
@@ -181,7 +248,7 @@ export function convertToRUB(
 
 export function getConversionNote(currency: string): string | null {
   if (currency === "RUB") return null;
-  if (["USDT", "USDC"].includes(currency)) return null;
+  if (["USDT", "USDC", "PUSD"].includes(currency)) return null;
   if (cachedRates && cachedRates[currency]) return null;
   return ` (${currency}, нет курса)`;
 }

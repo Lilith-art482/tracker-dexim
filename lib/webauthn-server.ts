@@ -35,6 +35,18 @@ export interface BiometricChallenge {
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const RP_NAME = "In Motion";
 
+const ALLOWED_ORIGINS = (
+  process.env.WEBAUTHN_ALLOWED_ORIGINS ??
+  "http://localhost:8080,http://localhost:3000"
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+export function isOriginAllowed(origin: string): boolean {
+  return ALLOWED_ORIGINS.includes(origin);
+}
+
 function bufferToBase64Url(buffer: Uint8Array): string {
   return Buffer.from(buffer).toString("base64url");
 }
@@ -67,13 +79,13 @@ function toWebAuthnCredential(
     id: cred.id,
     publicKey: base64UrlToBuffer(cred.publicKey) as Uint8Array<ArrayBuffer>,
     counter: cred.counter,
-    transports: cred.transports as
-      | WebAuthnCredential["transports"]
-      | undefined,
+    transports: cred.transports as WebAuthnCredential["transports"] | undefined,
   };
 }
 
-async function getCredentials(uid: string): Promise<StoredWebAuthnCredential[]> {
+async function getCredentials(
+  uid: string,
+): Promise<StoredWebAuthnCredential[]> {
   const db = getAdminDb();
   const doc = await db.collection("users").doc(uid).get();
   if (!doc.exists) return [];
@@ -162,11 +174,7 @@ export async function generateBiometricRegistrationOptions(
     timeout: 60000,
   });
 
-  const challengeId = await createChallenge(
-    "register",
-    uid,
-    options.challenge,
-  );
+  const challengeId = await createChallenge("register", uid, options.challenge);
 
   return { challengeId, options };
 }
@@ -227,7 +235,11 @@ export async function generateBiometricAuthenticationOptions(
     timeout: 60000,
   });
 
-  const challengeId = await createChallenge("authenticate", null, options.challenge);
+  const challengeId = await createChallenge(
+    "authenticate",
+    null,
+    options.challenge,
+  );
   return { challengeId, options };
 }
 
@@ -235,10 +247,7 @@ export async function verifyBiometricAuthentication(
   challengeId: string,
   authenticationResponse: AuthenticationResponseJSON,
   expectedOrigin: string,
-): Promise<
-  | { success: true; uid: string }
-  | { success: false; error: string }
-> {
+): Promise<{ success: true; uid: string } | { success: false; error: string }> {
   const challenge = await consumeChallenge(challengeId, "authenticate");
   if (!challenge) {
     return { success: false, error: "Сессия входа истекла" };
@@ -251,9 +260,7 @@ export async function verifyBiometricAuthentication(
 
   const uid = new TextDecoder().decode(base64UrlToBuffer(userHandle));
   const credentials = await getCredentials(uid);
-  const stored = credentials.find(
-    (c) => c.id === authenticationResponse.id,
-  );
+  const stored = credentials.find((c) => c.id === authenticationResponse.id);
 
   if (!stored) {
     return { success: false, error: "Биометрия не привязана к аккаунту" };

@@ -33,6 +33,10 @@ export interface FinanceAccount {
   capitalizeInterest?: boolean;
   gracePeriodDays?: number;
   notes?: string;
+  /** Last on-chain balance sync timestamp */
+  lastBalanceSync?: string;
+  /** On-chain balance in native units (e.g., SOL, TON) */
+  onChainBalance?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -46,22 +50,16 @@ export const CURRENCIES: {
   { code: "RUB", symbol: "₽", label: "Российский рубль", type: "fiat" },
   { code: "USD", symbol: "$", label: "Доллар США", type: "fiat" },
   { code: "EUR", symbol: "€", label: "Евро", type: "fiat" },
-  { code: "CNY", symbol: "¥", label: "Китайский юань", type: "fiat" },
-  { code: "UAH", symbol: "₴", label: "Украинская гривна", type: "fiat" },
-  { code: "KZT", symbol: "₸", label: "Казахстанский тенге", type: "fiat" },
-  { code: "BYN", symbol: "Br", label: "Белорусский рубль", type: "fiat" },
-  { code: "AMD", symbol: "֏", label: "Армянский драм", type: "fiat" },
-  { code: "AED", symbol: "د.إ", label: "Дирхам ОАЭ", type: "fiat" },
-  { code: "TRY", symbol: "₺", label: "Турецкая лира", type: "fiat" },
-  { code: "PLN", symbol: "zł", label: "Польский злотый", type: "fiat" },
-  { code: "USDT", symbol: "₮", label: "Tether", type: "crypto" },
-  { code: "USDC", symbol: "₮", label: "USD Coin", type: "crypto" },
-  { code: "BTC", symbol: "₿", label: "Bitcoin", type: "crypto" },
-  { code: "SOL", symbol: "SOL", label: "Solana", type: "crypto" },
-  { code: "TON", symbol: "TON", label: "TON (GRAM)", type: "crypto" },
-  { code: "ETH", symbol: "⟠", label: "Ethereum", type: "crypto" },
-  { code: "BNB", symbol: "BNB", label: "BNB", type: "crypto" },
-  { code: "TRX", symbol: "TRX", label: "Tron", type: "crypto" },
+  { code: "USDT", symbol: "", label: "Tether", type: "crypto" },
+  { code: "USDC", symbol: "", label: "USD Coin", type: "crypto" },
+  { code: "PUSD", symbol: "", label: "PUSD", type: "crypto" },
+  { code: "BTC", symbol: "", label: "Bitcoin", type: "crypto" },
+  { code: "SOL", symbol: "", label: "Solana", type: "crypto" },
+  { code: "GRAM", symbol: "", label: "GRAM", type: "crypto" },
+  { code: "TON", symbol: "", label: "GRAM", type: "crypto" },
+  { code: "ETH", symbol: "", label: "Ethereum", type: "crypto" },
+  { code: "BNB", symbol: "", label: "BNB", type: "crypto" },
+  { code: "TRX", symbol: "", label: "Tron", type: "crypto" },
 ];
 
 export interface TransactionCategory {
@@ -82,6 +80,8 @@ export interface Transaction {
   id: string;
   userId: string;
   accountId: string;
+  /** Для переводов: счёт получателя */
+  toAccountId?: string;
   type: TransactionType;
   categoryId: string;
   amount: number;
@@ -189,6 +189,7 @@ export interface RecurringTransaction {
   categoryId: string;
   type: TransactionType;
   amount: number;
+  currency?: string;
   description: string;
   interval: RecurringInterval;
   dayOfMonth: number;

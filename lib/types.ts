@@ -1,7 +1,7 @@
 export interface Board {
   id: string;
   name: string;
-  type: "personal" | "team";
+  type: "personal" | "team" | "schedule";
   companyId?: string;
   createdAt: string;
   updatedAt: string;
@@ -109,6 +109,7 @@ export interface PersonalTask {
   endTime: string;
   title: string;
   priority: Priority;
+  color?: string;
   completed: boolean;
   completedAt?: string | null;
   comment?: string;
@@ -127,11 +128,70 @@ export interface PersonalKanbanTask {
   startTime: string;
   endTime: string;
   priority: Priority;
+  color?: string;
   completed: boolean;
   completedAt?: string | null;
   comment?: string;
   createdAt: string;
   updatedAt: string;
+  ownerId?: string;
+}
+
+export interface ContentTask {
+  id: string;
+  title: string;
+  topic: string;
+  platform: string;
+  funnel: boolean;
+  format: string;
+  status: string;
+  color?: string;
+  date: string | null;
+  time: string | null;
+  notes: string;
+  completed: boolean;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  ownerId?: string;
+  boardId?: string;
+}
+
+export interface WorkKanbanTask {
+  id: string;
+  boardId: string;
+  columnId: string;
+  title: string;
+  priority: Priority;
+  color?: string;
+  completed: boolean;
+  completedAt?: string | null;
+  comment?: string;
+  createdAt: string;
+  updatedAt: string;
+  ownerId?: string;
+  workType: "content" | "dev";
+}
+
+export interface PlannerMessageAttachment {
+  name: string;
+  text: string;
+}
+
+export interface PlannerMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: number;
+  attachment?: PlannerMessageAttachment;
+}
+
+export interface PlannerChat {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  messages: PlannerMessage[];
   ownerId?: string;
 }
 
@@ -192,4 +252,16 @@ export interface Note {
   recurringInterval?: string | null;
   linkedNoteIds?: string[];
   canvasState?: CanvasState | null;
+}
+
+export interface Idea {
+  id: string;
+  userId: string;
+  content: string;
+  priority: "none" | "low" | "medium" | "high";
+  deadline: string | null;
+  comment: string;
+  importedToTask: boolean;
+  createdAt: string;
+  updatedAt: string;
 }

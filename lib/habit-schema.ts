@@ -11,6 +11,7 @@ export const createHabitSchema = z.object({
     "self-development",
     "other",
   ]),
+  customCategory: z.string().max(50, "Слишком длинное название").optional(),
   frequencyType: z.enum(["daily", "weekly", "interval", "time"]),
   frequencyDays: z.array(z.number().min(0).max(6)).optional(),
   frequencyInterval: z.number().min(1).optional(),

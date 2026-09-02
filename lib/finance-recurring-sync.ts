@@ -94,6 +94,7 @@ export async function syncRecurringTransactions(): Promise<number> {
       categoryId: rt.categoryId,
       type: rt.type,
       amount: rt.amount,
+      currency: rt.currency,
       description: rt.description + " (регулярная)",
       tags: ["recurring"],
       date: nextDate,

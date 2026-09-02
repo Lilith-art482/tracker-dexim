@@ -12,6 +12,7 @@ export const registerSchema = z.object({
     .string()
     .min(2, "Никнейм должен быть не менее 2 символов")
     .max(30, "Никнейм слишком длинный"),
+  gender: z.enum(["male", "female"]).optional(),
   accessCode: z.string().refine((code) => code === "demo-tracker-2026", {
     message: "Неверный код доступа",
   }),

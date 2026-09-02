@@ -19,6 +19,7 @@ export interface Habit {
   id: string;
   name: string;
   category: HabitCategory;
+  customCategory?: string;
   frequencyType: HabitFrequencyType;
   frequencyDays?: number[];
   frequencyInterval?: number;
@@ -101,6 +102,16 @@ export const CATEGORY_LABELS: Record<HabitCategory, string> = {
   "self-development": "Саморазвитие",
   other: "Другое",
 };
+
+export function getCategoryLabel(
+  category: HabitCategory,
+  customCategory?: string,
+): string {
+  if (category === "other" && customCategory?.trim()) {
+    return customCategory.trim();
+  }
+  return CATEGORY_LABELS[category];
+}
 
 export const CATEGORY_COLORS: Record<HabitCategory, string> = {
   health: "text-emerald-500",
