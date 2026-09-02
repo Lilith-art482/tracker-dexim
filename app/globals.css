@@ -4,6 +4,28 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@font-face {
+  font-family: "Neue Montreal";
+  src: url("https://cdn.jsdelivr.net/gh/webfontworld/PPNeueMontreal/PPNeueMontreal-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Neue Montreal";
+  src: url("https://cdn.jsdelivr.net/gh/webfontworld/PPNeueMontreal/PPNeueMontreal-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Neue Montreal";
+  src: url("https://cdn.jsdelivr.net/gh/webfontworld/PPNeueMontreal/PPNeueMontreal-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -41,14 +63,14 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: var(--font-sans);
+  --font-sans: "Neue Montreal", system-ui, sans-serif;
 }
 
 @layer base {
   :root {
-    --background: oklch(0.985 0.002 145);
+    --background: #F7F7F5;
     --foreground: oklch(0.2 0.02 145);
-    --card: oklch(1 0 0 / 0.7);
+    --card: oklch(1 0 0);
     --card-foreground: oklch(0.2 0.02 145);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.2 0.02 145);
@@ -71,7 +93,7 @@
     --chart-4: oklch(0.65 0.1 35);
     --chart-5: oklch(0.45 0.15 325);
     --radius: 0.75rem;
-    --sidebar: oklch(0.97 0.01 145);
+    --sidebar: #F7F7F5;
     --sidebar-foreground: oklch(0.2 0.02 145);
     --sidebar-primary: #4E6E62;
     --sidebar-primary-foreground: oklch(0.98 0.005 145);
@@ -81,37 +103,37 @@
     --sidebar-ring: #4E6E62;
   }
   .dark {
-    --background: #252525;
+    --background: #16191F;
     --foreground: #e8e8e8;
-    --card: #2e2e2e;
+    --card: #1e2128;
     --card-foreground: #e8e8e8;
-    --popover: #2c2c2c;
+    --popover: #1b1e24;
     --popover-foreground: #e8e8e8;
     --primary: #6a8d7e;
     --primary-foreground: #f0f0f0;
-    --secondary: #363636;
+    --secondary: #252830;
     --secondary-foreground: #d0d0d0;
-    --muted: #323232;
+    --muted: #1f2229;
     --muted-foreground: #a0a0a0;
-    --accent: #383838;
+    --accent: #252830;
     --accent-foreground: #d0d0d0;
     --destructive: #c44a4a;
     --destructive-foreground: #f0f0f0;
-    --border: #3a3a3a;
-    --input: #3e3e3e;
+    --border: #2a2d35;
+    --input: #2a2d35;
     --ring: #6a8d7e;
     --chart-1: #6a8d7e;
     --chart-2: #5a8faa;
     --chart-3: #7d9d6a;
     --chart-4: #c4944a;
     --chart-5: #a06aaa;
-    --sidebar: #2a2a2a;
+    --sidebar: #1a1d23;
     --sidebar-foreground: #e8e8e8;
     --sidebar-primary: #6a8d7e;
     --sidebar-primary-foreground: #f0f0f0;
-    --sidebar-accent: #363636;
+    --sidebar-accent: #252830;
     --sidebar-accent-foreground: #d0d0d0;
-    --sidebar-border: #3a3a3a;
+    --sidebar-border: #2a2d35;
     --sidebar-ring: #6a8d7e;
   }
   * {
@@ -248,5 +270,41 @@
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
+  }
+
+  /* Bullet list marker */
+  [data-block-type="bulletList"] {
+    position: relative;
+    padding-left: 1.25rem;
+  }
+  [data-block-type="bulletList"]::before {
+    content: "\2022";
+    position: absolute;
+    left: 0;
+    color: hsl(var(--muted-foreground));
+    font-size: 1.1em;
+    line-height: 1.5;
+    pointer-events: none;
+  }
+
+  /* Numbered list marker */
+  [data-block-type="numberedList"] {
+    position: relative;
+    padding-left: 1.75rem;
+    counter-increment: nlist;
+  }
+  [data-block-type="numberedList"][data-list-start] {
+    counter-reset: nlist;
+  }
+  [data-block-type="numberedList"]::before {
+    content: counter(nlist) ".";
+    position: absolute;
+    left: 0;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.9em;
+    line-height: 1.5;
+    pointer-events: none;
+    min-width: 1.25rem;
+    text-align: right;
   }
 }

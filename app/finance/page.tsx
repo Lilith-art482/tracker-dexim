@@ -4,7 +4,6 @@ import { useState, useCallback } from "react";
 import {
   LayoutDashboard,
   Wallet,
-  Receipt,
   Target,
   PiggyBank,
   Landmark,
@@ -15,7 +14,6 @@ import {
 } from "lucide-react";
 import { FinanceDashboard } from "@/components/finance/finance-dashboard";
 import { FinanceAccounts } from "@/components/finance/finance-accounts";
-import { FinanceTransactions } from "@/components/finance/finance-transactions";
 import { FinancePlanning } from "@/components/finance/finance-planning";
 import { FinanceGoals } from "@/components/finance/finance-goals";
 import { FinanceLoans } from "@/components/finance/finance-loans";
@@ -24,12 +22,11 @@ import { FinanceSettings } from "@/components/finance/finance-settings";
 import { FinanceShopping } from "@/components/finance/finance-shopping";
 import { FinanceRecurring } from "@/components/finance/finance-recurring";
 import { cn } from "@/lib/utils";
-import { getHiddenModules } from "@/lib/finance-visibility";
+import { useSectionVisibility } from "@/lib/section-visibility-context";
 
 const ALL_MODULES = [
   { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
   { id: "accounts", label: "Счета", icon: Wallet },
-  { id: "transactions", label: "Транзакции", icon: Receipt },
   { id: "planning", label: "Планирование", icon: Target },
   { id: "goals", label: "Цели", icon: PiggyBank },
   { id: "loans", label: "Обязательства", icon: Landmark },
@@ -43,34 +40,28 @@ type ModuleId = (typeof ALL_MODULES)[number]["id"];
 
 export default function FinancePage() {
   const [activeModule, setActiveModule] = useState<ModuleId>("dashboard");
-  const [hiddenModules, setHiddenModules] = useState<string[]>(() =>
-    getHiddenModules(),
-  );
+  const { isSubVisible } = useSectionVisibility();
 
   const visibleModules = ALL_MODULES.filter(
-    (m) => m.id === "settings" || !hiddenModules.includes(m.id),
+    (m) => m.id === "settings" || isSubVisible("finance", m.id),
   );
 
   const handleSave = useCallback(() => {
-    const h = getHiddenModules();
-    setHiddenModules(h);
-    if (h.includes(activeModule)) {
+    if (!isSubVisible("finance", activeModule)) {
       setActiveModule("settings");
     }
-  }, [activeModule]);
+  }, [activeModule, isSubVisible]);
 
   const renderModule = () => {
     switch (activeModule) {
       case "dashboard":
         return (
           <FinanceDashboard
-            onNavigateToTransactions={() => setActiveModule("transactions")}
+            onNavigateToTransactions={() => setActiveModule("accounts")}
           />
         );
       case "accounts":
         return <FinanceAccounts />;
-      case "transactions":
-        return <FinanceTransactions />;
       case "planning":
         return <FinancePlanning />;
       case "goals":

@@ -1,14 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
-import {
-  isWebAuthnSupported,
-  registerBiometric,
-} from "@/lib/biometric-client";
+import { SecurityCard } from "@/components/profile/security-card";
 import {
   User,
   LogOut,
@@ -33,7 +30,11 @@ import {
   CalendarDays,
   Copy,
   XCircle,
-  Fingerprint,
+  Camera,
+  Check,
+  Users,
+  Binoculars,
+  Award,
 } from "lucide-react";
 import Link from "next/link";
 import { TARIFF_FEATURES } from "@/lib/validation/auth";
@@ -58,6 +59,27 @@ import {
 } from "@/components/ui/dialog";
 
 const TIER_ORDER = ["basic", "pro", "apex"] as const;
+
+const REFERRAL_TIERS = [
+  {
+    name: "Scout",
+    desc: "1–4 приглашённых друга",
+    icon: <Binoculars className="h-4 w-4" />,
+    ready: false,
+  },
+  {
+    name: "Spark",
+    desc: "5–14 приглашённых друзей",
+    icon: <Sparkles className="h-4 w-4" />,
+    ready: false,
+  },
+  {
+    name: "Ambassador",
+    desc: "15+ приглашённых друзей",
+    icon: <Award className="h-4 w-4" />,
+    ready: false,
+  },
+] as const;
 const BRAND_ICONS: Record<string, string> = {
   visa: "VISA",
   mastercard: "MC",
@@ -92,6 +114,10 @@ export default function ProfilePage() {
   const [uid, setUid] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
+  const [avatar, setAvatar] = useState("");
+  const [gender, setGender] = useState<string>("");
+  const [copiedUid, setCopiedUid] = useState(false);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
   const [tariff, setTariff] = useState<string>("basic");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "crypto" | null>(
     null,
@@ -116,17 +142,7 @@ export default function ProfilePage() {
   const [cardCvc, setCardCvc] = useState("");
   const [cardAdding, setCardAdding] = useState(false);
 
-  // Biometrics
-  const [biometricDevices, setBiometricDevices] = useState<
-    Array<{
-      id: string;
-      deviceName: string;
-      createdAt: string | null;
-      lastUsedAt: string | null;
-    }>
-  >([]);
-  const [biometricSupported, setBiometricSupported] = useState(false);
-  const [biometricBusy, setBiometricBusy] = useState(false);
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -143,11 +159,19 @@ export default function ProfilePage() {
         const res = await fetch(`/api/auth/profile?uid=${firebaseUser.uid}`);
         if (res.ok) {
           const data = await res.json();
+          if (data.deleted) {
+            toast.error("Ваш аккаунт был удалён");
+            await signOut(auth);
+            router.push("/auth");
+            return;
+          }
           if (data.tariff) setTariff(data.tariff);
           if (data.paymentMethod) setPaymentMethod(data.paymentMethod);
           if (data.defaultCardId) setDefaultCardId(data.defaultCardId);
           if (typeof data.autoPay === "boolean") setAutoPay(data.autoPay);
           if (Array.isArray(data.savedCards)) setSavedCards(data.savedCards);
+          if (data.avatar) setAvatar(data.avatar);
+          if (data.gender) setGender(data.gender);
           if (data.deletionScheduledAt && data.deletionDate) {
             setPendingDeletion({
               deletionDate: data.deletionDate,
@@ -173,24 +197,6 @@ export default function ProfilePage() {
         // ignore
       }
 
-      try {
-        const bioRes = await fetch(
-          `/api/auth/biometric?uid=${firebaseUser.uid}`,
-        );
-        if (bioRes.ok) {
-          const bioData = await bioRes.json();
-          if (Array.isArray(bioData.devices)) {
-            setBiometricDevices(bioData.devices);
-          }
-        }
-      } catch {
-        // ignore
-      }
-
-      isWebAuthnSupported()
-        .then(setBiometricSupported)
-        .catch(() => setBiometricSupported(false));
-
       setInitialLoading(false);
     });
 
@@ -215,6 +221,68 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uid) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error("Файл слишком большой (макс 2MB)"); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.createElement("canvas");
+        const size = 64;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const min = Math.min(img.width, img.height);
+        ctx.drawImage(img, (img.width - min) / 2, (img.height - min) / 2, min, min, 0, 0, size, size);
+        const base64 = canvas.toDataURL("image/jpeg", 0.3);
+        setAvatar(base64);
+        try {
+          await fetch("/api/auth/profile", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uid, avatar: base64 }),
+          });
+          toast.success("Фото обновлено");
+        } catch {
+          toast.error("Ошибка сохранения фото");
+        }
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleGenderChange = async (value: string) => {
+    setGender(value);
+    if (!uid) return;
+    try {
+      await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, gender: value }),
+      });
+      toast.success("Пол сохранён");
+    } catch {
+      toast.error("Ошибка сохранения");
+    }
+  };
+
+  const handleCopyUid = () => {
+    if (!uid) return;
+    navigator.clipboard.writeText(uid);
+    setCopiedUid(true);
+    toast.success("ID скопирован");
+    setTimeout(() => setCopiedUid(false), 2000);
+  };
+
+  const handleProfileLogout = async () => {
+    await signOut(auth);
+    router.push("/");
   };
 
   const handleSaveSettings = async () => {
@@ -410,6 +478,7 @@ export default function ProfilePage() {
       discountPercent: number;
       validUntil: string | null;
       used: boolean;
+      expired?: boolean;
       description?: string;
       source?: string;
     }>
@@ -457,7 +526,8 @@ export default function ProfilePage() {
     }
   };
 
-  const handleCancelDeletion = async () => {    if (!uid) return;
+  const handleCancelDeletion = async () => {
+    if (!uid) return;
     setCancellingDeletion(true);
     try {
       const res = await fetch("/api/auth/cancel-deletion", {
@@ -481,51 +551,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAddBiometric = async () => {
-    if (!uid) return;
-    setBiometricBusy(true);
-    try {
-      const result = await registerBiometric(uid);
-      if (!result.success) {
-        toast.error(result.error || "Не удалось привязать биометрию");
-        return;
-      }
-      const bioRes = await fetch(`/api/auth/biometric?uid=${uid}`);
-      if (bioRes.ok) {
-        const bioData = await bioRes.json();
-        if (Array.isArray(bioData.devices)) {
-          setBiometricDevices(bioData.devices);
-        }
-      }
-      toast.success("Биометрия привязана");
-    } catch {
-      toast.error("Ошибка привязки биометрии");
-    } finally {
-      setBiometricBusy(false);
-    }
-  };
 
-  const handleRemoveBiometric = async (credentialId: string) => {
-    if (!uid) return;
-    try {
-      const res = await fetch("/api/auth/biometric", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid, credentialId }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        toast.error(err.error || "Ошибка удаления");
-        return;
-      }
-      setBiometricDevices((prev) =>
-        prev.filter((d) => d.id !== credentialId),
-      );
-      toast.success("Биометрия отвязана");
-    } catch {
-      toast.error("Ошибка удаления биометрии");
-    }
-  };
 
   if (initialLoading) {
     return (
@@ -558,141 +584,111 @@ export default function ProfilePage() {
           {/* ========== КОЛОНКА ПРОФИЛЯ ========== */}
           <div className="lg:col-span-2 space-y-5">
             {/* Профиль */}
-            <Card>
-              <CardHeader>
+            <Card className="overflow-hidden">
+              <CardContent className="p-5">
                 <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary via-primary/80 to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
-                      <User className="h-8 w-8 text-primary-foreground" />
-                    </div>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h1 className="text-xl font-bold truncate">
-                      {nickname || "Пользователь"}
-                    </h1>
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
-                      <Mail className="h-3.5 w-3.5" />
-                      <span className="truncate">{email}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground/50 mt-0.5">
-                      <Hash className="h-3 w-3" />
-                      <span className="font-mono tracking-tighter">
-                        {uid?.slice(0, 8)}…{uid?.slice(-4)}
-                      </span>
-                      {uid && (
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(uid);
-                            toast.success("ID скопирован");
-                          }}
-                          className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/40 hover:text-foreground hover:bg-muted/50 transition-all"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <Badge
-                    variant="secondary"
-                    className="gap-1.5 text-xs font-medium shrink-0"
+                  <div
+                    onClick={() => avatarFileRef.current?.click()}
+                    className="relative h-14 w-14 rounded-full flex items-center justify-center cursor-pointer shrink-0 overflow-hidden shadow-md group/avatar"
+                    style={{ background: avatar ? "none" : "linear-gradient(135deg, var(--primary), var(--primary) / 0.7)" }}
                   >
-                    <Crown
-                      className={cn(
-                        "h-3 w-3",
-                        tariff === "apex"
-                          ? "text-amber-500"
-                          : tariff === "pro"
-                            ? "text-violet-500"
-                            : "text-muted-foreground/60",
-                      )}
-                    />
-                    {tierInfo.name}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="border-t pt-4">
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      value={nickname}
-                      onChange={(e) => setNickname(e.target.value)}
-                      placeholder="Никнейм"
-                      maxLength={30}
-                      className="pr-20"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground/40 select-none">
-                      {nickname.length}/30
-                    </span>
-                  </div>
-                  <Button
-                    onClick={handleSaveNickname}
-                    disabled={saving || !nickname.trim()}
-                    size="sm"
-                  >
-                    {saving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    {avatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatar} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <Save className="h-4 w-4" />
+                      <User className="h-7 w-7 text-primary-foreground" />
                     )}
-                    Сохранить
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity rounded-full">
+                      <Camera className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
+                  <input ref={avatarFileRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[15px] font-bold truncate">{nickname || "Без имени"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{email}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-[10px] text-muted-foreground font-mono">{uid?.slice(0, 12)}...</span>
+                      <button onClick={handleCopyUid} className="flex h-5 w-5 items-center justify-center rounded text-primary hover:bg-primary/10 transition-colors">
+                        {copiedUid ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                      </button>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={handleProfileLogout} className="shrink-0 gap-1.5 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/5 h-8 text-xs">
+                    <LogOut className="h-3.5 w-3.5" /> Выйти
                   </Button>
+                </div>
+                <div className="border-t border-border/40 mt-4 pt-4">
+                  <div className="flex gap-2 mb-2.5">
+                    <div className="relative flex-1">
+                      <Input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="Ваше имя" maxLength={30} className="pr-12 h-8 text-sm" />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground/30">{nickname.length}/30</span>
+                    </div>
+                    <Button onClick={handleSaveNickname} disabled={saving || !nickname.trim()} size="sm" className="h-8 px-3">
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => handleGenderChange("male")} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-xs font-semibold transition-all", gender === "male" ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-muted/30 text-muted-foreground border-border hover:bg-muted/50 hover:text-foreground")}>
+                      <User className="h-3 w-3" /> Мужской
+                    </button>
+                    <button onClick={() => handleGenderChange("female")} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-xs font-semibold transition-all", gender === "female" ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-muted/30 text-muted-foreground border-border hover:bg-muted/50 hover:text-foreground")}>
+                      <Users className="h-3 w-3" /> Женский
+                    </button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Тариф */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Crown
-                      className={cn(
-                        "h-5 w-5",
-                        tariff === "apex"
-                          ? "text-amber-500"
-                          : tariff === "pro"
-                            ? "text-violet-500"
-                            : "text-muted-foreground/60",
-                      )}
-                    />
-                    {tierInfo.name} · {tierInfo.price}
-                  </CardTitle>
-                  <CardDescription>Ваш текущий тарифный план</CardDescription>
-                </div>
-                <Link href="/tariffs">
-                  <Button variant="outline" size="sm">
-                    Сменить тариф
-                  </Button>
-                </Link>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {tierInfo.features.map((feature) => (
-                    <div
-                      key={feature}
-                      className="flex items-center gap-2 text-sm text-muted-foreground/80"
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
+            {/* Безопасность */}
+            {uid && <SecurityCard uid={uid} />}
 
-                {currentTierIndex < TIER_ORDER.length - 1 && (
-                  <div className="mt-4 pt-4 border-t border-border/50">
-                    <Link
-                      href="/tariffs"
-                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      Перейти на{" "}
-                      {
-                        TARIFF_FEATURES[TIER_ORDER[currentTierIndex + 1]].name
-                      } —{" "}
-                      {TARIFF_FEATURES[TIER_ORDER[currentTierIndex + 1]].price}
-                    </Link>
+            {/* Реферальная программа */}
+            <Card>
+              <CardHeader className="p-4">
+                <div className="flex items-center gap-2.5">
+                  <Users className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium">Реферальная программа</p>
+                    <p className="text-xs text-muted-foreground/70">
+                      Приглашайте друзей и открывайте новые уровни
+                    </p>
                   </div>
-                )}
+                </div>
+              </CardHeader>
+              <CardContent className="border-t pt-4 space-y-2">
+                {REFERRAL_TIERS.map((t) => (
+                  <div
+                    key={t.name}
+                    className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
+                        {t.icon}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{t.name}</p>
+                        <p className="text-xs text-muted-foreground/60">
+                          {t.desc}
+                        </p>
+                      </div>
+                    </div>
+                    {t.ready ? (
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] h-5 px-1.5 shrink-0"
+                      >
+                        Доступно
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] h-5 px-1.5 shrink-0 text-muted-foreground/60"
+                      >
+                        В разработке
+                      </Badge>
+                    )}
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
@@ -988,164 +984,10 @@ export default function ProfilePage() {
                 </Button>
               </CardFooter>
             </Card>
-
-            {/* Биометрия */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Fingerprint className="h-5 w-5" />
-                  Биометрия
-                </CardTitle>
-                <CardDescription>
-                  Вход по отпечатку пальца или Face ID — без пароля
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {!biometricSupported ? (
-                  <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/20 p-3.5">
-                    <ShieldCheck className="h-5 w-5 text-muted-foreground/60 shrink-0" />
-                    <p className="text-sm text-muted-foreground">
-                      Ваш браузер не поддерживает биометрический вход
-                    </p>
-                  </div>
-                ) : biometricDevices.length === 0 ? (
-                  <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/60 py-8 text-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                      <Fingerprint className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <p className="text-sm text-muted-foreground max-w-[240px]">
-                      Биометрия ещё не привязана. Добавьте устройство, чтобы
-                      входить по отпечатку или Face ID.
-                    </p>
-                    <Button
-                      size="sm"
-                      onClick={handleAddBiometric}
-                      disabled={biometricBusy}
-                      className="gap-1.5"
-                    >
-                      {biometricBusy ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Fingerprint className="h-4 w-4" />
-                      )}
-                      Привязать биометрию
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-2.5">
-                    {biometricDevices.map((device) => (
-                      <div
-                        key={device.id}
-                        className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/20 p-3.5"
-                      >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 shrink-0">
-                          <Fingerprint className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium">
-                            {device.deviceName}
-                          </p>
-                          <p className="text-xs text-muted-foreground/60">
-                            {device.lastUsedAt
-                              ? `Использовано ${new Date(device.lastUsedAt).toLocaleDateString("ru-RU")}`
-                              : "Не использовалось"}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveBiometric(device.id)}
-                          className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
-                          title="Отвязать устройство"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddBiometric}
-                      disabled={biometricBusy}
-                      className="gap-1.5 w-full"
-                    >
-                      {biometricBusy ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Plus className="h-4 w-4" />
-                      )}
-                      Привязать ещё устройство
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           {/* ========== ПРАВАЯ КОЛОНКА ========== */}
           <div className="space-y-4">
-            {/* Краткая сводка */}
-            <Card size="sm">
-              <CardHeader>
-                <CardTitle className="text-sm">Сводка</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground/70">
-                    Тариф
-                  </span>
-                  <Badge variant="secondary" className="text-[10px] h-5 gap-1">
-                    <Crown
-                      className={cn(
-                        "h-2.5 w-2.5",
-                        tariff === "apex"
-                          ? "text-amber-500"
-                          : tariff === "pro"
-                            ? "text-violet-500"
-                            : "text-muted-foreground/60",
-                      )}
-                    />
-                    {tierInfo.name}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground/70">
-                    Оплата
-                  </span>
-                  <span className="text-xs font-medium">
-                    {paymentMethod === "crypto"
-                      ? "Крипта"
-                      : paymentMethod === "card"
-                        ? "Карта"
-                        : "—"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground/70">
-                    Автооплата
-                  </span>
-                  <Badge
-                    variant={
-                      autoPay && paymentMethod === "card"
-                        ? "default"
-                        : "secondary"
-                    }
-                    className={cn(
-                      "text-[10px] h-5",
-                      autoPay &&
-                        paymentMethod === "card" &&
-                        "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-                    )}
-                  >
-                    {autoPay && paymentMethod === "card" ? "Вкл" : "Выкл"}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground/70">Карт</span>
-                  <span className="text-xs font-medium">
-                    {savedCards.length}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Навигация по разделам */}
             <Card size="sm">
@@ -1180,7 +1022,7 @@ export default function ProfilePage() {
                   </span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-1.5">
+              <CardContent className="space-y-3">
                 {tierInfo.features.map((f) => (
                   <div
                     key={f}
@@ -1190,11 +1032,32 @@ export default function ProfilePage() {
                     <span>{f}</span>
                   </div>
                 ))}
+
+                <div className="pt-2 border-t border-border/50 flex flex-col gap-2">
+                  <Link href="/tariffs">
+                    <Button variant="outline" size="sm" className="w-full">
+                      Сменить тариф
+                    </Button>
+                  </Link>
+                  {currentTierIndex < TIER_ORDER.length - 1 && (
+                    <Link
+                      href="/tariffs"
+                      className="inline-flex items-center justify-center gap-1.5 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      Перейти на{" "}
+                      {
+                        TARIFF_FEATURES[TIER_ORDER[currentTierIndex + 1]].name
+                      } —{" "}
+                      {TARIFF_FEATURES[TIER_ORDER[currentTierIndex + 1]].price}
+                    </Link>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
             {/* Мои промокоды */}
-            {promoCodes.length > 0 && (
+            {promoCodes.filter((pc) => !pc.expired).length > 0 && (
               <Card size="sm">
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-1.5">
@@ -1203,18 +1066,41 @@ export default function ProfilePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {promoCodes.map((pc, i) => (
+                  {promoCodes
+                    .filter((pc) => !pc.expired)
+                    .map((pc, i) => (
                     <div
                       key={i}
-                      className="rounded-lg border border-amber-200/40 dark:border-amber-800/30 bg-amber-50/30 dark:bg-amber-950/10 p-2.5 space-y-1"
+                      className={cn(
+                        "rounded-lg border p-2.5 space-y-1",
+                        pc.expired
+                          ? "border-border/50 bg-muted/30"
+                          : "border-amber-200/40 dark:border-amber-800/30 bg-amber-50/30 dark:bg-amber-950/10",
+                      )}
                     >
                       <div className="flex items-center justify-between">
-                        <code className="text-xs font-mono font-bold tracking-wider text-amber-700 dark:text-amber-400">
+                        <code
+                          className={cn(
+                            "text-xs font-mono font-bold tracking-wider",
+                            pc.expired
+                              ? "text-muted-foreground/60"
+                              : "text-amber-700 dark:text-amber-400",
+                          )}
+                        >
                           {pc.code}
                         </code>
-                        <span className="text-[10px] text-muted-foreground/50">
-                          -{pc.discountPercent}%
-                        </span>
+                        {pc.expired ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] h-4 px-1 text-muted-foreground/60"
+                          >
+                            Истёк
+                          </Badge>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/50">
+                            -{pc.discountPercent}%
+                          </span>
+                        )}
                       </div>
                       {pc.description && (
                         <p className="text-[10px] text-muted-foreground/60">
@@ -1224,12 +1110,21 @@ export default function ProfilePage() {
                       {pc.validUntil && (
                         <div className="flex items-center gap-1 text-[10px] text-muted-foreground/50">
                           <CalendarDays className="h-2.5 w-2.5" />
-                          до{" "}
-                          {new Date(pc.validUntil).toLocaleDateString("ru-RU", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
+                          {pc.expired ? (
+                            "срок истёк"
+                          ) : (
+                            <>
+                              до{" "}
+                              {new Date(pc.validUntil).toLocaleDateString(
+                                "ru-RU",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                },
+                              )}
+                            </>
+                          )}
                         </div>
                       )}
                       {pc.used && (

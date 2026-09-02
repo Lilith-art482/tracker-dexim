@@ -1,14 +1,24 @@
 import type { Metadata } from "next";
+import { Syne } from "next/font/google";
 import "./globals.css";
-import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "next-themes";
+import { LanguageProvider } from "@/lib/language-context";
 import { BridgeProvider } from "@/components/bridge-provider";
+import { MenuModeProvider } from "@/lib/menu-mode-context";
+import { AiChatProvider } from "@/lib/ai-chat-context";
+import { SettingsPanelProvider } from "@/lib/settings-panel-context";
+import { SectionVisibilityProvider } from "@/lib/section-visibility-context";
+import { SectionShortcutsProvider } from "@/lib/section-shortcuts-context";
 import AppShell from "@/components/app-shell";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
-
 const appName = "In Motion";
+
+const syne = Syne({
+  subsets: ["latin"],
+  variable: "--font-syne",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: appName,
@@ -24,7 +34,7 @@ export default function RootLayout({
     <html
       lang="ru"
       suppressHydrationWarning
-      className={cn("font-sans", geist.variable)}
+      className={cn("font-sans", syne.variable)}
     >
       <body className="antialiased min-h-screen bg-background flex flex-col">
         <ThemeProvider
@@ -34,7 +44,19 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <BridgeProvider />
-          <AppShell>{children}</AppShell>
+          <MenuModeProvider>
+          <AiChatProvider>
+            <SettingsPanelProvider>
+              <SectionVisibilityProvider>
+                <SectionShortcutsProvider>
+                  <LanguageProvider>
+                    <AppShell>{children}</AppShell>
+                  </LanguageProvider>
+                </SectionShortcutsProvider>
+              </SectionVisibilityProvider>
+            </SettingsPanelProvider>
+          </AiChatProvider>
+          </MenuModeProvider>
         </ThemeProvider>
       </body>
     </html>
