@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
     await db.collection("users").doc(userRecord.uid).set({
       email: parsed.data.email,
       nickname: parsed.data.nickname,
+      gender: parsed.data.gender || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });

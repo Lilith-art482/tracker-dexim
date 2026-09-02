@@ -4,7 +4,9 @@ import {
   updateSettingsSchema,
   updateConsentSchema,
 } from "@/lib/validation/auth";
-import { getAdminDb } from "@/lib/firebase-admin";
+import { getAdminDb, isAdminConfigured } from "@/lib/firebase-admin";
+import { requireAuth } from "@/lib/api-auth";
+import { isDeletionOverdue, performAccountDeletion } from "@/lib/deletion";
 import { initializeApp, getApps, cert, App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 
@@ -33,6 +35,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "uid обязателен" }, { status: 400 });
   }
 
+  const authResult = await requireAuth(request, uid);
+  if (!authResult.ok) return authResult.response;
+
   try {
     const db = getAdminDb();
     const userDoc = await db.collection("users").doc(uid).get();
@@ -41,7 +46,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Профиль не найден" }, { status: 404 });
     }
 
-    return NextResponse.json(userDoc.data());
+    const userData = userDoc.data();
+
+    // A scheduled deletion whose deadline has passed must actually be executed.
+    if (isAdminConfigured() && isDeletionOverdue(userData)) {
+      await performAccountDeletion(uid);
+      return NextResponse.json({ deleted: true });
+    }
+
+    return NextResponse.json(userData);
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error("Get profile error:", err.message);
@@ -55,10 +68,14 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const uid = body.uid;
-    if (!uid) {
+    const requestedUid = body.uid;
+    if (!requestedUid) {
       return NextResponse.json({ error: "uid обязателен" }, { status: 400 });
     }
+
+    const authResult = await requireAuth(request, requestedUid);
+    if (!authResult.ok) return authResult.response;
+    const uid = authResult.uid!;
 
     const db = getAdminDb();
     const updateData: Record<string, unknown> = {
@@ -112,7 +129,25 @@ export async function PATCH(request: NextRequest) {
       updateData.dataConsent = parsed.data.dataConsent;
     }
 
-    await db.collection("users").doc(uid).update(updateData);
+    if ("avatar" in body) {
+      if (typeof body.avatar === "string" && body.avatar.length < 50000) {
+        updateData.avatar = body.avatar;
+      }
+    }
+
+    if ("gender" in body) {
+      if (body.gender === "male" || body.gender === "female" || body.gender === "") {
+        updateData.gender = body.gender;
+      }
+    }
+
+    const docRef = db.collection("users").doc(uid);
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
+      await docRef.update(updateData);
+    } else {
+      await docRef.set({ userId: uid, ...updateData }, { merge: true });
+    }
 
     return NextResponse.json({ uid, ...updateData });
   } catch (error: unknown) {

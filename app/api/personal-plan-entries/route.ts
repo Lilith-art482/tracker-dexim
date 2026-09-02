@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDatabaseAvailable } from "@/lib/db";
+import { requireAuth } from "@/lib/api-auth";
 import {
   getPersonalPlanEntriesByOwner,
   createPersonalPlanEntry,
   updatePersonalPlanEntry,
   deletePersonalPlanEntry,
+  getPersonalPlanEntryById,
 } from "@/lib/models";
 import { mockPersonalPlanEntries } from "@/lib/mock-data";
 import {
@@ -17,11 +19,12 @@ export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
-  const uid = url.searchParams.get("uid");
+  const requestedUid = url.searchParams.get("uid");
+  const authResult = await requireAuth(request, requestedUid);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
   const date = url.searchParams.get("date");
   const boardId = url.searchParams.get("boardId");
-
-  if (!uid) return NextResponse.json([]);
 
   const dbAvailable = await isDatabaseAvailable();
   if (dbAvailable) {
@@ -61,6 +64,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
   if (!dbAvailable) {
     return NextResponse.json(
@@ -70,14 +77,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const ownerId = parsed.data.ownerId || body.ownerId || null;
-    if (!ownerId || typeof ownerId !== "string") {
-      return NextResponse.json(
-        { error: "ownerId обязателен" },
-        { status: 400 },
-      );
-    }
-
     const today = new Date().toISOString().split("T")[0];
     const todayDate = new Date(today + "T00:00:00Z");
     const entryDate = new Date(parsed.data.date + "T00:00:00Z");
@@ -99,7 +98,7 @@ export async function POST(request: NextRequest) {
       id: crypto.randomUUID(),
       ...parsed.data,
       completed: false,
-      ownerId,
+      ownerId: uid,
     });
     return NextResponse.json(entry, { status: 201 });
   } catch {
@@ -111,6 +110,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const parsed = updatePersonalPlanEntrySchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json(
@@ -129,6 +132,13 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const { id, ...data } = parsed.data;
+    const existing = await getPersonalPlanEntryById(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+    }
+    if (existing.ownerId !== uid) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+    }
     const entry = await updatePersonalPlanEntry(id, data);
     return NextResponse.json(entry);
   } catch {
@@ -140,6 +150,10 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const { id } = await request.json();
   if (!id || typeof id !== "string") {
     return NextResponse.json({ error: "id обязателен" }, { status: 400 });
@@ -154,6 +168,13 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
+    const existing = await getPersonalPlanEntryById(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+    }
+    if (existing.ownerId !== uid) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+    }
     await deletePersonalPlanEntry(id);
     return NextResponse.json({ success: true });
   } catch {

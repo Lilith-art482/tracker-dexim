@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDatabaseAvailable } from "@/lib/db";
+import { requireAuth } from "@/lib/api-auth";
 import {
   getPersonalTasksByOwner,
   deletePersonalTask,
@@ -59,11 +60,10 @@ interface ResetPayload {
 
 export async function POST(request: NextRequest) {
   const body: ResetPayload = await request.json();
-  const uid = body.uid;
-
-  if (!uid || typeof uid !== "string") {
-    return NextResponse.json({ error: "uid обязателен" }, { status: 400 });
-  }
+  const requestedUid = body.uid ?? null;
+  const authResult = await requireAuth(request, requestedUid);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
 
   const dbAvailable = await isDatabaseAvailable();
 

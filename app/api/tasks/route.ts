@@ -7,11 +7,12 @@ import {
   createTask,
   updateTask,
   deleteTask,
-  getBoardMembersByBoardId,
+  boardIncludesUser,
   cleanupExpiredArchivedTasks,
 } from "@/lib/models";
-import { mockTasks, mockBoardMembers } from "@/lib/mock-data";
+import { mockTasks } from "@/lib/mock-data";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validation";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,26 +22,16 @@ async function checkBoardAccess(
   uid: string | null,
 ): Promise<boolean> {
   if (!uid) return false;
-
-  const dbAvailable = await isDatabaseAvailable();
-  if (dbAvailable) {
-    try {
-      const members = await getBoardMembersByBoardId(boardId);
-      return members.some((m) => m.userId === uid);
-    } catch {
-      return false;
-    }
-  }
-
-  // Static fallback
-  const members = mockBoardMembers.filter((m) => m.boardId === boardId);
-  return members.some((m) => m.userId === uid);
+  return boardIncludesUser(boardId, uid);
 }
 
 export async function GET(request: NextRequest) {
+  const clientUid = request.nextUrl.searchParams.get("uid");
+  const authResult = await requireAuth(request, clientUid);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
   const archived = request.nextUrl.searchParams.get("archived");
   const boardId = request.nextUrl.searchParams.get("boardId");
-  const uid = request.nextUrl.searchParams.get("uid");
 
   if (archived === "true") {
     if (!boardId) {
@@ -61,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     if (dbAvailable) {
       try {
-        await cleanupExpiredArchivedTasks();
+        await cleanupExpiredArchivedTasks(boardId);
         const tasks = await getArchivedTasks(boardId);
         return NextResponse.json(tasks);
       } catch (error) {
@@ -154,6 +145,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
 
   if (!dbAvailable) {
@@ -181,6 +176,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "boardId обязателен" },
         { status: 400 },
+      );
+    }
+
+    if (!(await checkBoardAccess(parsed.data.boardId, uid))) {
+      return NextResponse.json(
+        { error: "Нет доступа к доске" },
+        { status: 403 },
       );
     }
 
@@ -217,6 +219,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
 
   if (!dbAvailable) {
@@ -246,6 +252,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json(
         { error: "boardId и columnId обязательны" },
         { status: 400 },
+      );
+    }
+
+    if (!(await checkBoardAccess(boardId, uid))) {
+      return NextResponse.json(
+        { error: "Нет доступа к доске" },
+        { status: 403 },
       );
     }
 
@@ -305,6 +318,10 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
 
   if (!dbAvailable) {
@@ -328,6 +345,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: "boardId и columnId обязательны" },
         { status: 400 },
+      );
+    }
+
+    if (!(await checkBoardAccess(body.boardId, uid))) {
+      return NextResponse.json(
+        { error: "Нет доступа к доске" },
+        { status: 403 },
       );
     }
 

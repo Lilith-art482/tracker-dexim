@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isDatabaseAvailable } from "@/lib/db";
+import { requireAuth } from "@/lib/api-auth";
 import {
   getCompaniesByUser,
   createCompany,
   updateCompany,
   deleteCompany,
+  getCompanyById,
+  companyIncludesUser,
 } from "@/lib/models";
 import { mockCompanies } from "@/lib/mock-data";
 
@@ -30,17 +33,13 @@ const updateCompanySchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const dbAvailable = await isDatabaseAvailable();
-
   const url = new URL(request.url);
-  const uid = url.searchParams.get("uid");
+  const requestedUid = url.searchParams.get("uid");
+  const authResult = await requireAuth(request, requestedUid);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
 
-  if (!uid) {
-    return NextResponse.json(
-      { error: "Требуется авторизация" },
-      { status: 401 },
-    );
-  }
+  const dbAvailable = await isDatabaseAvailable();
 
   if (dbAvailable) {
     try {
@@ -71,6 +70,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   try {
     const body = await request.json();
     const parsed = createCompanySchema.safeParse(body);
@@ -85,15 +88,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ownerId = body.ownerId || null;
     const company = await createCompany({
       id: crypto.randomUUID(),
       name: parsed.data.name,
       color: parsed.data.color,
       icon: parsed.data.icon,
       description: parsed.data.description,
-      ownerId: ownerId || undefined,
-      members: ownerId ? [ownerId] : [],
+      ownerId: uid,
+      members: [uid],
     });
 
     return NextResponse.json(company, { status: 201 });
@@ -115,6 +117,10 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   try {
     const body = await request.json();
     const parsed = updateCompanySchema.safeParse(body);
@@ -127,6 +133,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { id, ...data } = parsed.data;
+    if (!(await companyIncludesUser(id, uid))) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+    }
+
     const clean: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(data)) {
       if (v !== undefined) clean[k] = v ?? undefined;
@@ -151,11 +161,22 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   try {
     const body = await request.json();
     const { id } = body;
     if (!id || typeof id !== "string") {
       return NextResponse.json({ error: "id обязателен" }, { status: 400 });
+    }
+    const company = await getCompanyById(id);
+    if (!company) {
+      return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+    }
+    if (company.ownerId !== uid) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
     }
     await deleteCompany(id);
     return NextResponse.json({ success: true });

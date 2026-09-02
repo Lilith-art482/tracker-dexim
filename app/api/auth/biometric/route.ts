@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { biometricRemoveSchema } from "@/lib/validation/auth";
-import { isAdminConfigured } from "@/lib/firebase-admin";
+import { isAdminConfigured, getUidFromAuthHeader } from "@/lib/firebase-admin";
 import {
   removeBiometricCredential,
   getBiometricCredentials,
@@ -9,18 +9,31 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET(request: NextRequest) {
+async function requireOwnUid(
+  request: NextRequest,
+  targetUid: string,
+): Promise<NextResponse | null> {
   if (!isAdminConfigured()) {
     return NextResponse.json(
       { error: "База данных недоступна" },
       { status: 503 },
     );
   }
+  const uid = await getUidFromAuthHeader(request.headers.get("authorization"));
+  if (!uid || uid !== targetUid) {
+    return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+  }
+  return null;
+}
 
+export async function GET(request: NextRequest) {
   const uid = request.nextUrl.searchParams.get("uid");
   if (!uid) {
     return NextResponse.json({ error: "uid обязателен" }, { status: 400 });
   }
+
+  const denied = await requireOwnUid(request, uid);
+  if (denied) return denied;
 
   try {
     const credentials = await getBiometricCredentials(uid);
@@ -43,13 +56,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!isAdminConfigured()) {
-    return NextResponse.json(
-      { error: "База данных недоступна" },
-      { status: 503 },
-    );
-  }
-
   const parsed = biometricRemoveSchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json(
@@ -57,6 +63,9 @@ export async function DELETE(request: NextRequest) {
       { status: 400 },
     );
   }
+
+  const denied = await requireOwnUid(request, parsed.data.uid);
+  if (denied) return denied;
 
   try {
     const removed = await removeBiometricCredential(

@@ -1,26 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loginSchema } from "@/lib/validation/auth";
-import { initializeApp, getApps, cert, App } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
 
-let adminApp: App;
-
-function getFirebaseAuth() {
-  if (!adminApp || getApps().length === 0) {
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-    if (!privateKey || !process.env.FIREBASE_CLIENT_EMAIL) {
-      throw new Error("Firebase Admin not configured");
-    }
-    adminApp = initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID || "tracker-74204",
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey,
-      }),
-    });
-  }
-  return getAuth(adminApp);
-}
+const FIREBASE_API_KEY =
+  process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+  process.env.FIREBASE_API_KEY ||
+  "AIzaSyDWvrCqMWsdLH1LSGZU3xzVAVg4PEAHnSQ";
+const IDENTITYTOOLKIT_URL =
+  "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword";
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,25 +20,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const auth = getFirebaseAuth();
-    const userCredential = await auth.getUserByEmail(parsed.data.email);
+    const res = await fetch(`${IDENTITYTOOLKIT_URL}?key=${FIREBASE_API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: parsed.data.email,
+        password: parsed.data.password,
+        returnSecureToken: true,
+      }),
+    });
+
+    if (!res.ok) {
+      let message = "Неверный email или пароль";
+      try {
+        const errBody = (await res.json()) as { error?: { message?: string } };
+        message = errBody.error?.message || message;
+      } catch {
+        // ignore
+      }
+      if (
+        message === "EMAIL_NOT_FOUND" ||
+        message === "INVALID_PASSWORD" ||
+        message === "USER_DISABLED" ||
+        message === "INVALID_LOGIN_CREDENTIALS"
+      ) {
+        message = "Неверный email или пароль";
+      }
+      return NextResponse.json({ error: message }, { status: 401 });
+    }
+
+    const data = (await res.json()) as {
+      localId: string;
+      email?: string;
+      displayName?: string | null;
+    };
 
     return NextResponse.json({
-      uid: userCredential.uid,
-      email: userCredential.email,
-      nickname: userCredential.displayName || null,
+      uid: data.localId,
+      email: data.email || null,
+      nickname: data.displayName || null,
     });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error("Login error:", err.message);
-
-    if (err.message.includes("not found")) {
-      return NextResponse.json(
-        { error: "Пользователь с таким email не найден" },
-        { status: 404 },
-      );
-    }
-
     return NextResponse.json(
       { error: "Ошибка входа. Проверьте email и пароль." },
       { status: 401 },

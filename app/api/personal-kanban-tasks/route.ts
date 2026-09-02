@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDatabaseAvailable } from "@/lib/db";
+import { requireAuth } from "@/lib/api-auth";
 import {
   getPersonalKanbanTasksByBoard,
   createPersonalKanbanTask,
   updatePersonalKanbanTask,
   deletePersonalKanbanTask,
+  getPersonalKanbanTaskById,
 } from "@/lib/models";
 import { z } from "zod";
 
@@ -42,6 +44,10 @@ const updateTaskSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const boardId = request.nextUrl.searchParams.get("boardId");
   if (!boardId) {
     return NextResponse.json({ error: "boardId обязателен" }, { status: 400 });
@@ -51,7 +57,7 @@ export async function GET(request: NextRequest) {
   if (dbAvailable) {
     try {
       const tasks = await getPersonalKanbanTasksByBoard(boardId);
-      return NextResponse.json(tasks);
+      return NextResponse.json(tasks.filter((t) => t.ownerId === uid));
     } catch {
       return NextResponse.json([]);
     }
@@ -78,11 +84,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   try {
     const task = await createPersonalKanbanTask({
       id: crypto.randomUUID(),
       ...parsed.data,
       completed: false,
+      ownerId: uid,
     });
     return NextResponse.json(task, { status: 201 });
   } catch {
@@ -94,6 +105,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const parsed = updateTaskSchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json(
@@ -112,6 +127,13 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const { id, ...data } = parsed.data;
+    const existing = await getPersonalKanbanTaskById(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+    }
+    if (existing.ownerId !== uid) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+    }
     const task = await updatePersonalKanbanTask(id, data);
     return NextResponse.json(task);
   } catch {
@@ -123,6 +145,10 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const { id } = await request.json();
   if (!id || typeof id !== "string") {
     return NextResponse.json({ error: "id обязателен" }, { status: 400 });
@@ -137,6 +163,13 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
+    const existing = await getPersonalKanbanTaskById(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+    }
+    if (existing.ownerId !== uid) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+    }
     await deletePersonalKanbanTask(id);
     return NextResponse.json({ success: true });
   } catch {

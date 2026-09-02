@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { biometricAuthenticateSchema } from "@/lib/validation/auth";
-import {
-  isAdminConfigured,
-  getAdminAuth,
-} from "@/lib/firebase-admin";
+import { isAdminConfigured, getAdminAuth } from "@/lib/firebase-admin";
 import {
   verifyBiometricAuthentication,
   getWebAuthnOrigin,
+  isOriginAllowed,
 } from "@/lib/webauthn-server";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +27,12 @@ export async function POST(request: NextRequest) {
   }
 
   const origin = getWebAuthnOrigin(request);
+  if (!isOriginAllowed(origin)) {
+    return NextResponse.json(
+      { error: "Недопустимый источник запроса" },
+      { status: 403 },
+    );
+  }
 
   try {
     const result = await verifyBiometricAuthentication(
@@ -41,7 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    const auth = getAdminAuth();
+    const auth = await getAdminAuth();
     if (!auth) {
       return NextResponse.json(
         { error: "База данных недоступна" },

@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { requireAuth } from "@/lib/api-auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const { uid } = await request.json();
+    const { uid: requestedUid } = await request.json();
 
-    if (!uid) {
+    if (!requestedUid) {
       return NextResponse.json({ error: "uid обязателен" }, { status: 400 });
     }
+
+    const authResult = await requireAuth(request, requestedUid);
+    if (!authResult.ok) return authResult.response;
+    const uid = authResult.uid!;
 
     let dbAvailable = false;
     try {
@@ -30,6 +35,23 @@ export async function POST(request: NextRequest) {
           },
           { merge: true },
         );
+
+        // The deletion-reward promo must stay valid after cancellation:
+        // drop its validUntil so it no longer auto-expires.
+        const userDoc = await db.collection("users").doc(uid).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        const existingCodes = Array.isArray(userData?.promoCodes)
+          ? (userData.promoCodes as Array<Record<string, unknown>>)
+          : [];
+        const keptCodes = existingCodes.map((c) =>
+          c.source === "deletion_reward" ? { ...c, validUntil: null } : c,
+        );
+        if (keptCodes.length > 0) {
+          await db
+            .collection("users")
+            .doc(uid)
+            .set({ promoCodes: keptCodes }, { merge: true });
+        }
 
         // Update deletion_requests status
         const requests = await db

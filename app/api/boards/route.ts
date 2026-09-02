@@ -7,15 +7,18 @@ import {
   createColumn,
   updateBoard,
   deleteBoard,
+  getBoardById,
+  boardIncludesUser,
 } from "@/lib/models";
 import { mockBoards } from "@/lib/mock-data";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const createBoardSchema = z.object({
   name: z.string().min(1).max(200),
-  type: z.enum(["personal", "team"]).default("team"),
+  type: z.enum(["personal", "team", "schedule"]).default("team"),
   companyId: z.string().min(1).optional(),
 });
 
@@ -23,15 +26,11 @@ export async function GET(request: NextRequest) {
   const dbAvailable = await isDatabaseAvailable();
 
   const url = new URL(request.url);
-  const uid = url.searchParams.get("uid");
+  const clientUid = url.searchParams.get("uid");
 
-  // uid обязателен для безопасности
-  if (!uid) {
-    return NextResponse.json(
-      { error: "Требуется авторизация" },
-      { status: 401 },
-    );
-  }
+  const authResult = await requireAuth(request, clientUid);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
 
   if (dbAvailable) {
     try {
@@ -54,6 +53,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
 
   if (!dbAvailable) {
@@ -77,15 +80,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ownerId = body.ownerId || null;
     const boardId = crypto.randomUUID();
     const board = await createBoard({
       id: boardId,
       name: parsed.data.name,
       type: parsed.data.type,
       companyId: parsed.data.companyId,
-      ownerId: ownerId || undefined,
-      members: ownerId ? [ownerId] : [],
+      ownerId: uid,
+      members: [uid],
     });
 
     if (parsed.data.type === "team") {
@@ -128,6 +130,10 @@ const updateBoardSchema = z.object({
 });
 
 export async function PATCH(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
   if (!dbAvailable) {
     return NextResponse.json(
@@ -148,6 +154,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { id, ...data } = parsed.data;
+    if (!(await boardIncludesUser(id, uid))) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+    }
+
     const clean: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(data)) {
       if (v !== undefined) clean[k] = v ?? undefined;
@@ -164,6 +174,10 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
   if (!dbAvailable) {
     return NextResponse.json(
@@ -177,6 +191,13 @@ export async function DELETE(request: NextRequest) {
     const { id } = body;
     if (!id || typeof id !== "string") {
       return NextResponse.json({ error: "id обязателен" }, { status: 400 });
+    }
+    const board = await getBoardById(id);
+    if (!board) {
+      return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+    }
+    if (board.ownerId !== uid) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
     }
     await deleteBoard(id);
     return NextResponse.json({ success: true });

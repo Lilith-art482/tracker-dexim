@@ -6,8 +6,10 @@ import {
   createColumn,
   updateColumn,
   deleteColumn,
+  boardIncludesUser,
 } from "@/lib/models";
 import { mockColumns } from "@/lib/mock-data";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,10 +29,26 @@ const updateColumnSchema = z.object({
   color: z.string().optional(),
 });
 
+async function checkColumnBoardAccess(
+  boardId: string,
+  uid: string | null,
+): Promise<boolean> {
+  if (!uid) return false;
+  return boardIncludesUser(boardId, uid);
+}
+
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const boardId = request.nextUrl.searchParams.get("boardId");
   if (!boardId) {
     return NextResponse.json({ error: "boardId обязателен" }, { status: 400 });
+  }
+
+  if (!(await checkColumnBoardAccess(boardId, uid))) {
+    return NextResponse.json({ error: "Нет доступа к доске" }, { status: 403 });
   }
 
   const dbAvailable = await isDatabaseAvailable();
@@ -53,6 +71,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
 
   if (!dbAvailable) {
@@ -76,6 +98,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!(await checkColumnBoardAccess(parsed.data.boardId, uid))) {
+      return NextResponse.json(
+        { error: "Нет доступа к доске" },
+        { status: 403 },
+      );
+    }
+
     const column = await createColumn({
       id: crypto.randomUUID(),
       boardId: parsed.data.boardId,
@@ -96,6 +125,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
 
   if (!dbAvailable) {
@@ -119,6 +152,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json(
         { error: "Поле boardId обязательно" },
         { status: 400 },
+      );
+    }
+
+    if (!(await checkColumnBoardAccess(body.boardId, uid))) {
+      return NextResponse.json(
+        { error: "Нет доступа к доске" },
+        { status: 403 },
       );
     }
 
@@ -145,6 +185,10 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
 
   if (!dbAvailable) {
@@ -168,6 +212,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: "Поле boardId обязательно" },
         { status: 400 },
+      );
+    }
+
+    if (!(await checkColumnBoardAccess(body.boardId, uid))) {
+      return NextResponse.json(
+        { error: "Нет доступа к доске" },
+        { status: 403 },
       );
     }
 

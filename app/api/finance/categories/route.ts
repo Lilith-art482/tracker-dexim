@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/firebase";
+import { requireAuth } from "@/lib/api-auth";
 import {
   getCategoriesByUser,
   createCategory,
   deleteCategory,
+  ensureOwned,
 } from "@/lib/finance-models";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
-  if (!uid) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
 
   try {
     const categories = await getCategoriesByUser(uid);
@@ -28,10 +28,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const uid = auth.currentUser?.uid || body.userId;
-  if (!uid) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
 
   try {
     const category = await createCategory({
@@ -52,15 +51,18 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
-  if (!uid) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+
+  if (!(await ensureOwned("FINANCE_CATEGORIES", id, uid))) {
+    return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
   }
 
   try {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { requireAuth } from "@/lib/api-auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,6 +8,9 @@ export async function GET(request: NextRequest) {
     if (!uid) {
       return NextResponse.json({ error: "uid обязателен" }, { status: 400 });
     }
+
+    const authResult = await requireAuth(request, uid);
+    if (!authResult.ok) return authResult.response;
 
     let dbAvailable = false;
     try {
@@ -46,7 +50,22 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    return NextResponse.json({ promoCodes });
+    const now = Date.now();
+    // A deletion-reward promo stays valid after the deletion is cancelled,
+    // even if its validUntil (originally the deletion date) is now in the past.
+    const cancelled = !!userData?.deletionCancelledAt;
+    const withExpiry = promoCodes.map((pc: Record<string, unknown>) => {
+      const validUntil = pc.validUntil ? String(pc.validUntil) : null;
+      const isDeletionReward = pc.source === "deletion_reward";
+      const expired =
+        !pc.used &&
+        validUntil != null &&
+        new Date(validUntil).getTime() <= now &&
+        !(isDeletionReward && cancelled);
+      return { ...pc, validUntil, expired };
+    });
+
+    return NextResponse.json({ promoCodes: withExpiry });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error("Get promo codes error:", err.message);
@@ -59,15 +78,31 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { uid, code, discountPercent, validUntil, description } = body;
+    const adminKey = process.env.PROMO_ADMIN_KEY;
+    const providedKey = request.headers.get("x-admin-key");
+    if (!adminKey || providedKey !== adminKey) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+    }
 
-    if (!uid || !code) {
+    const body = await request.json();
+    const {
+      uid: requestedUid,
+      code,
+      discountPercent,
+      validUntil,
+      description,
+    } = body;
+
+    if (!requestedUid || !code) {
       return NextResponse.json(
         { error: "uid и code обязательны" },
         { status: 400 },
       );
     }
+
+    const authResult = await requireAuth(request, requestedUid);
+    if (!authResult.ok) return authResult.response;
+    const uid = authResult.uid!;
 
     let dbAvailable = false;
     try {

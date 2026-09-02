@@ -279,7 +279,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Grainy overlay */}
       <div
-        className="absolute inset-0 opacity-[0.22] pointer-events-none z-0"
+        className="absolute inset-0 opacity-[0.06] pointer-events-none z-0"
         style={{ backgroundImage: STRONG_NOISE }}
       />
 
@@ -287,7 +287,7 @@ export default function AboutPage() {
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-3xl overflow-hidden animate-float-slow">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/10" />
         <div
-          className="absolute inset-0 opacity-[0.16]"
+          className="absolute inset-0 opacity-[0.12]"
           style={{ backgroundImage: STRONG_NOISE }}
         />
       </div>
@@ -297,7 +297,7 @@ export default function AboutPage() {
       >
         <div className="absolute inset-0 bg-gradient-to-tl from-primary/25 to-primary/10" />
         <div
-          className="absolute inset-0 opacity-[0.16]"
+          className="absolute inset-0 opacity-[0.12]"
           style={{ backgroundImage: STRONG_NOISE }}
         />
       </div>
@@ -307,7 +307,7 @@ export default function AboutPage() {
       >
         <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/5" />
         <div
-          className="absolute inset-0 opacity-[0.16]"
+          className="absolute inset-0 opacity-[0.12]"
           style={{ backgroundImage: STRONG_NOISE }}
         />
       </div>

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDatabaseAvailable } from "@/lib/db";
+import { requireAuth } from "@/lib/api-auth";
 import {
-  getAllPersonalTasks,
   getPersonalTasksByOwner,
   createPersonalTask,
   updatePersonalTask,
   deletePersonalTask,
+  getPersonalTaskById,
   cleanupExpiredPersonalTasks,
 } from "@/lib/models";
 import { mockPersonalTasks } from "@/lib/mock-data";
@@ -20,12 +21,14 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   const dbAvailable = await isDatabaseAvailable();
   const url = new URL(request.url);
-  const uid = url.searchParams.get("uid");
+  const requestedUid = url.searchParams.get("uid");
+  const authResult = await requireAuth(request, requestedUid);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
   const boardId = url.searchParams.get("boardId");
   if (dbAvailable) {
     try {
-      if (!uid) return NextResponse.json([]);
-      await cleanupExpiredPersonalTasks();
+      await cleanupExpiredPersonalTasks(uid);
       let tasks = await getPersonalTasksByOwner(uid);
       if (boardId) {
         tasks = tasks.filter((t) => t.boardId === boardId);
@@ -36,8 +39,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // in static/mock mode, require uid to avoid exposing all personal tasks
-  if (!uid) return NextResponse.json([]);
+  // in static/mock mode, uid comes from the token
   let filtered = mockPersonalTasks.filter(
     (t) => t.ownerId === uid || !t.ownerId,
   );
@@ -57,6 +59,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
   if (!dbAvailable) {
     return NextResponse.json(
@@ -66,21 +72,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const ownerId = parsed.success
-      ? parsed.data.ownerId || body.ownerId || null
-      : body.ownerId || null;
-    if (!ownerId || typeof ownerId !== "string") {
-      return NextResponse.json(
-        { error: "ownerId обязателен" },
-        { status: 400 },
-      );
-    }
-
     const task = await createPersonalTask({
       id: crypto.randomUUID(),
       ...parsed.data,
       completed: false,
-      ownerId: ownerId,
+      ownerId: uid,
     });
     return NextResponse.json(task, { status: 201 });
   } catch {
@@ -92,6 +88,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const parsed = updatePersonalTaskSchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json(
@@ -110,6 +110,13 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const { id, ...data } = parsed.data;
+    const existing = await getPersonalTaskById(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+    }
+    if (existing.ownerId !== uid) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+    }
     const task = await updatePersonalTask(id, data);
     return NextResponse.json(task);
   } catch {
@@ -121,6 +128,10 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const { id } = await request.json();
   if (!id || typeof id !== "string") {
     return NextResponse.json({ error: "id обязателен" }, { status: 400 });
@@ -135,6 +146,13 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
+    const existing = await getPersonalTaskById(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+    }
+    if (existing.ownerId !== uid) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+    }
     await deletePersonalTask(id);
     return NextResponse.json({ success: true });
   } catch {

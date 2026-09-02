@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/firebase";
+import { requireAuth } from "@/lib/api-auth";
 import {
   getTransactionsByUser,
   createTransaction,
@@ -7,6 +7,7 @@ import {
   deleteTransaction,
   getAccountsByUser,
   updateAccount,
+  ensureOwned,
 } from "@/lib/finance-models";
 import type { TransactionType, TransactionFilters } from "@/lib/finance-types";
 
@@ -20,10 +21,9 @@ function genId(): string {
 }
 
 export async function GET(request: NextRequest) {
-  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
-  if (!uid) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
 
   const searchParams = request.nextUrl.searchParams;
   const type = searchParams.get("type") as TransactionType | null;
@@ -59,16 +59,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const uid = auth.currentUser?.uid || body.userId;
-  if (!uid) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
 
   try {
     const transaction = await createTransaction({
-      id: body.id || genId(),
+      id: genId(),
       userId: uid,
       accountId: body.accountId,
+      toAccountId: body.toAccountId,
       type: body.type,
       categoryId: body.categoryId,
       amount: body.amount,
@@ -87,6 +87,20 @@ export async function POST(request: NextRequest) {
           balance: account.balance + delta,
         });
       }
+    } else if (body.type === "transfer") {
+      const accounts = await getAccountsByUser(uid);
+      const from = accounts.find((a) => a.id === body.accountId);
+      const to = accounts.find((a) => a.id === body.toAccountId);
+      if (from) {
+        await updateAccount(from.id, {
+          balance: from.balance - body.amount,
+        });
+      }
+      if (to && body.toAccountId !== body.accountId) {
+        await updateAccount(to.id, {
+          balance: to.balance + body.amount,
+        });
+      }
     }
 
     return NextResponse.json(transaction, { status: 201 });
@@ -101,18 +115,18 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json();
-  const uid =
-    auth.currentUser?.uid ||
-    request.nextUrl.searchParams.get("uid") ||
-    body.userId;
-  if (!uid) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+
+  if (!(await ensureOwned("FINANCE_TRANSACTIONS", id, uid))) {
+    return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
   }
 
   try {
@@ -124,15 +138,18 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
-  if (!uid) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+
+  if (!(await ensureOwned("FINANCE_TRANSACTIONS", id, uid))) {
+    return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
   }
 
   try {

@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/firebase";
+import { requireAuth } from "@/lib/api-auth";
 import { getEmergencyFund, upsertEmergencyFund } from "@/lib/finance-models";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const uid = auth.currentUser?.uid || request.nextUrl.searchParams.get("uid");
-  if (!uid) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
 
   try {
     const fund = await getEmergencyFund(uid);
@@ -24,10 +23,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const uid = auth.currentUser?.uid || body.userId;
-  if (!uid) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
 
   try {
     const fund = await upsertEmergencyFund(uid, {
@@ -46,13 +44,9 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json();
-  const uid =
-    auth.currentUser?.uid ||
-    request.nextUrl.searchParams.get("uid") ||
-    body.userId;
-  if (!uid) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
   const { targetAmount, currentAmount } = body;
 
   if (targetAmount == null && currentAmount == null) {

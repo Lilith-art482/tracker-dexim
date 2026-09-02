@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 const AI_API_URL =
   "https://chat.immers.cloud/v1/endpoints/qwen3-coder-next-tensor/generate/chat/completions";
-const AI_API_KEY = "8nUHGXIguyWCZDVOB_8VjpkV1W-oG4pu";
+const AI_API_KEY = process.env.AI_API_KEY || "8nUHGXIguyWCZDVOB_8VjpkV1W-oG4pu";
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+
   try {
     const body = await request.json();
     const { message, context, faqContext } = body as {

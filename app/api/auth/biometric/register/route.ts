@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { biometricRegisterSchema } from "@/lib/validation/auth";
-import { isAdminConfigured } from "@/lib/firebase-admin";
+import { isAdminConfigured, getUidFromAuthHeader } from "@/lib/firebase-admin";
 import {
   verifyBiometricRegistration,
   getWebAuthnOrigin,
+  isOriginAllowed,
 } from "@/lib/webauthn-server";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,17 @@ export async function POST(request: NextRequest) {
   }
 
   const origin = getWebAuthnOrigin(request);
+  if (!isOriginAllowed(origin)) {
+    return NextResponse.json(
+      { error: "Недопустимый источник запроса" },
+      { status: 403 },
+    );
+  }
+
+  const uid = await getUidFromAuthHeader(request.headers.get("authorization"));
+  if (!uid || uid !== parsed.data.uid) {
+    return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+  }
 
   try {
     const result = await verifyBiometricRegistration(
@@ -40,10 +52,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, deviceName: parsed.data.deviceName });
+    return NextResponse.json({
+      success: true,
+      deviceName: parsed.data.deviceName,
+    });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("Biometric register error:", err.message);
+    console.error("Biometric register error:", err);
     return NextResponse.json(
       { error: "Ошибка сохранения биометрии" },
       { status: 500 },

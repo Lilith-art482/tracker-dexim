@@ -5,8 +5,12 @@ import {
   getBoardMembersByBoardId,
   createBoardMember,
   deleteBoardMember,
+  getBoardMemberById,
+  getBoardById,
+  boardIncludesUser,
 } from "@/lib/models";
 import { mockBoardMembers } from "@/lib/mock-data";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -17,10 +21,26 @@ const createBoardMemberSchema = z.object({
   userId: z.string().min(1).optional(),
 });
 
+async function checkMemberBoardAccess(
+  boardId: string,
+  uid: string | null,
+): Promise<boolean> {
+  if (!uid) return false;
+  return boardIncludesUser(boardId, uid);
+}
+
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const boardId = request.nextUrl.searchParams.get("boardId");
   if (!boardId) {
     return NextResponse.json({ error: "boardId обязателен" }, { status: 400 });
+  }
+
+  if (!(await checkMemberBoardAccess(boardId, uid))) {
+    return NextResponse.json({ error: "Нет доступа к доске" }, { status: 403 });
   }
 
   const dbAvailable = await isDatabaseAvailable();
@@ -43,6 +63,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
 
   if (!dbAvailable) {
@@ -66,6 +90,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!(await checkMemberBoardAccess(parsed.data.boardId, uid))) {
+      return NextResponse.json(
+        { error: "Нет доступа к доске" },
+        { status: 403 },
+      );
+    }
+
     const member = await createBoardMember({
       id: crypto.randomUUID(),
       boardId: parsed.data.boardId,
@@ -84,6 +115,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!authResult.ok) return authResult.response;
+  const uid = authResult.uid!;
+
   const dbAvailable = await isDatabaseAvailable();
 
   if (!dbAvailable) {
@@ -101,6 +136,14 @@ export async function DELETE(request: NextRequest) {
         { error: "Поле id обязательно" },
         { status: 400 },
       );
+    }
+
+    const member = await getBoardMemberById(body.id);
+    if (!member) {
+      return NextResponse.json({ error: "Не найдено" }, { status: 404 });
+    }
+    if (!(await boardIncludesUser(member.boardId, uid))) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
     }
 
     await deleteBoardMember(body.id);

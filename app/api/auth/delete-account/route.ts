@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { requireAuth } from "@/lib/api-auth";
 
 function generatePromoCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -12,11 +13,15 @@ function generatePromoCode(): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { uid, reason } = await request.json();
+    const { uid: requestedUid, reason } = await request.json();
 
-    if (!uid) {
+    if (!requestedUid) {
       return NextResponse.json({ error: "uid обязателен" }, { status: 400 });
     }
+
+    const authResult = await requireAuth(request, requestedUid);
+    if (!authResult.ok) return authResult.response;
+    const uid = authResult.uid!;
 
     let dbAvailable = false;
     try {

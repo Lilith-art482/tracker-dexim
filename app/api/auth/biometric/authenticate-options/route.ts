@@ -4,6 +4,7 @@ import {
   generateBiometricAuthenticationOptions,
   getWebAuthnOrigin,
   getWebAuthnRpId,
+  isOriginAllowed,
 } from "@/lib/webauthn-server";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,12 @@ export async function POST(request: NextRequest) {
   }
 
   const origin = getWebAuthnOrigin(request);
+  if (!isOriginAllowed(origin)) {
+    return NextResponse.json(
+      { error: "Недопустимый источник запроса" },
+      { status: 403 },
+    );
+  }
   const rpId = getWebAuthnRpId(origin);
 
   try {
