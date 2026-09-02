@@ -1,0 +1,9 @@
+{
+  "buildCommand": "next build",
+  "crons": [
+    {
+      "path": "/api/cron/process-deletions",
+      "schedule": "7 3 * * *"
+    }
+  ]
+}

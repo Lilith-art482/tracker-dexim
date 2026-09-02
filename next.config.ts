@@ -21,6 +21,22 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   poweredByHeader: false,
   reactStrictMode: true,
+
+  serverExternalPackages: ["firebase-admin", "pdf-parse", "mammoth"],
+
+  async redirects() {
+    return [
+      {
+        source: "/smartclock",
+        destination: "/sleep",
+        permanent: true,
+      },
+    ];
+  },
+
+  turbopack: {
+    root: ".",
+  },
 };
 
 export default nextConfig;
