@@ -8,7 +8,7 @@ export function SidebarToggle() {
   const { collapsed, toggle } = useSidebar();
   const pathname = usePathname();
 
-  if (pathname.startsWith("/finance") || pathname.startsWith("/habits")) {
+  if (pathname !== "/" && !pathname.startsWith("/work")) {
     return null;
   }
 

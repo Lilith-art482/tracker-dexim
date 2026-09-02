@@ -3,28 +3,27 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const LandingPage = dynamic(() => import("@/components/landing-page"), { ssr: false });
 
 export default function HomeContent({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.push("/auth");
-      } else {
-        setLoading(false);
-      }
+      setAuthenticated(!!user);
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
   if (loading) {
     return (
@@ -35,6 +34,10 @@ export default function HomeContent({
         </div>
       </div>
     );
+  }
+
+  if (!authenticated) {
+    return <LandingPage />;
   }
 
   return <>{children}</>;

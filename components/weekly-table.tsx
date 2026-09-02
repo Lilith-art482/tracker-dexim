@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef } from "react";
-import { Plus, CheckCircle2, Circle, FileText } from "lucide-react";
+import { Plus, CheckCircle2, Circle } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { PersonalTaskDialog } from "@/components/personal-task-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { taskColorCard } from "@/lib/task-colors";
 
 const DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -57,14 +58,10 @@ function DraggableTaskCard({
   task,
   onEdit,
   onToggleComplete,
-  onNoteClick,
-  noteSnippet,
 }: {
   task: PersonalTask;
   onEdit: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
-  onNoteClick?: (noteId: string) => void;
-  noteSnippet?: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -88,7 +85,7 @@ function DraggableTaskCard({
       }}
       className={cn(
         "group cursor-grab active:cursor-grabbing rounded-md border-l-2 px-2 py-1 text-xs transition-colors h-full overflow-hidden",
-        PRIORITY_COLORS[task.priority],
+        task.color ? taskColorCard(task.color) : PRIORITY_COLORS[task.priority],
         task.completed && "opacity-60",
         isDragging && "opacity-0 z-50",
       )}
@@ -100,25 +97,6 @@ function DraggableTaskCard({
           </span>
         </span>
         <div className="flex items-center gap-0.5 shrink-0">
-          {task.sourceNoteId && (
-            <div className="relative group/note">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNoteClick?.(task.sourceNoteId!);
-                }}
-                className="hover:scale-110 transition-transform"
-                title="Открыть заметку"
-              >
-                <FileText className="h-3 w-3 text-muted-foreground/70 hover:text-primary" />
-              </button>
-              {noteSnippet && (
-                <div className="absolute bottom-full right-0 mb-1 w-48 p-2 rounded-lg border border-border/60 bg-popover shadow-lg text-[10px] text-muted-foreground opacity-0 group-hover/note:opacity-100 transition-opacity pointer-events-none z-50 whitespace-normal">
-                  {noteSnippet}
-                </div>
-              )}
-            </div>
-          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -127,9 +105,9 @@ function DraggableTaskCard({
             className="hover:scale-110 transition-transform"
           >
             {task.completed ? (
-              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+              <CheckCircle2 className="h-3 w-3 text-primary" />
             ) : (
-              <Circle className="h-3 w-3 text-muted-foreground hover:text-emerald-500" />
+              <Circle className="h-3 w-3 text-muted-foreground hover:text-primary" />
             )}
           </button>
         </div>
@@ -154,7 +132,7 @@ function TaskCardOverlay({ task }: { task: PersonalTask }) {
     <div
       className={cn(
         "rounded-md border-l-2 px-3 py-2 text-sm rotate-3 opacity-90",
-        PRIORITY_COLORS[task.priority],
+        task.color ? taskColorCard(task.color) : PRIORITY_COLORS[task.priority],
         task.completed && "opacity-60",
       )}
     >
@@ -200,8 +178,6 @@ export function WeeklyTable({
   onSaved,
   onToggleComplete,
   onDelete,
-  onNoteClick,
-  noteSnippets,
   activeBoard,
 }: {
   tasks: PersonalTask[];
@@ -209,8 +185,6 @@ export function WeeklyTable({
   onSaved: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
   onDelete: (task: PersonalTask) => void;
-  onNoteClick?: (noteId: string) => void;
-  noteSnippets?: Record<string, string>;
   activeBoard?: Board;
 }) {
   const [activeTask, setActiveTask] = useState<PersonalTask | null>(null);
@@ -376,8 +350,6 @@ export function WeeklyTable({
                       onCellClick={() => handleCellClick(dateKey, rowIdx)}
                       onEdit={handleEditTask}
                       onToggleComplete={onToggleComplete}
-                      onNoteClick={onNoteClick}
-                      noteSnippets={noteSnippets}
                     />
                   );
                 })}
@@ -415,8 +387,6 @@ function CellRow({
   onCellClick,
   onEdit,
   onToggleComplete,
-  onNoteClick,
-  noteSnippets,
 }: {
   date: string;
   rowIndex: number;
@@ -424,8 +394,6 @@ function CellRow({
   onCellClick: () => void;
   onEdit: (task: PersonalTask) => void;
   onToggleComplete: (task: PersonalTask) => void;
-  onNoteClick?: (noteId: string) => void;
-  noteSnippets?: Record<string, string>;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `slot-${date}-${rowIndex}`,
@@ -439,7 +407,7 @@ function CellRow({
       className={cn(
         "min-h-[40px] lg:min-h-[56px] px-1 py-0.5 lg:px-1.5 lg:py-1 overflow-hidden transition-colors",
         !task && "cursor-pointer hover:bg-muted/20",
-        isOver && "bg-emerald-500/10",
+        isOver && "bg-primary/10",
         task && "bg-card",
       )}
     >
@@ -448,8 +416,6 @@ function CellRow({
           task={task}
           onEdit={onEdit}
           onToggleComplete={onToggleComplete}
-          onNoteClick={onNoteClick}
-          noteSnippet={noteSnippets?.[task.sourceNoteId ?? ""]}
         />
       ) : (
         <div className="flex h-full items-center justify-center">

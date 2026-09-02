@@ -61,7 +61,13 @@ import { toast } from "sonner";
 
 const PRIORITY_CONFIG: Record<
   Priority,
-  { label: string; color: string; bg: string; dot: string; icon: typeof AlertTriangle }
+  {
+    label: string;
+    color: string;
+    bg: string;
+    dot: string;
+    icon: typeof AlertTriangle;
+  }
 > = {
   high: {
     label: "Высокий",
@@ -130,8 +136,12 @@ function formatEntryTime(entry: PersonalPlanEntry): string {
   return "Весь день";
 }
 
-function comparePlanEntries(a: PersonalPlanEntry, b: PersonalPlanEntry): number {
-  if (a.sortOrder != null && b.sortOrder != null) return a.sortOrder - b.sortOrder;
+function comparePlanEntries(
+  a: PersonalPlanEntry,
+  b: PersonalPlanEntry,
+): number {
+  if (a.sortOrder != null && b.sortOrder != null)
+    return a.sortOrder - b.sortOrder;
   if (a.sortOrder != null) return -1;
   if (b.sortOrder != null) return 1;
   const at = a.startTime ?? "";
@@ -347,7 +357,9 @@ function PlanEntryDialog({
                 Время
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground/60">Весь день</span>
+                <span className="text-xs text-muted-foreground/60">
+                  Весь день
+                </span>
                 <Switch checked={allDay} onCheckedChange={handleAllDayChange} />
               </div>
             </div>
@@ -402,8 +414,8 @@ function PlanEntryDialog({
                   </div>
                 </div>
                 <p className="col-span-2 text-xs text-muted-foreground/60 -mt-1">
-                  Можно указать только начало или только конец — или оставить без
-                  времени
+                  Можно указать только начало или только конец — или оставить
+                  без времени
                 </p>
                 {errors.endTime && (
                   <p className="col-span-2 text-xs text-destructive -mt-1">
@@ -825,9 +837,7 @@ function PlanEntryCardContent({
       <button
         onClick={() => onToggleComplete(entry)}
         className="mt-0.5 shrink-0"
-        title={
-          entry.completed ? "Отменить выполнение" : "Отметить выполненной"
-        }
+        title={entry.completed ? "Отменить выполнение" : "Отметить выполненной"}
       >
         {entry.completed ? (
           <CheckCircle2 className="h-5 w-5 text-emerald-500 hover:text-emerald-600 transition-colors" />
@@ -910,13 +920,7 @@ function PlanEntryCardContent({
 interface SortablePlanEntryProps extends PlanEntryCardContentProps {}
 
 function SortablePlanEntry(props: SortablePlanEntryProps) {
-  const {
-    entry,
-    onToggleComplete,
-    onDuplicate,
-    onEdit,
-    onDelete,
-  } = props;
+  const { entry, onToggleComplete, onDuplicate, onEdit, onDelete } = props;
   const {
     attributes,
     listeners,
@@ -1018,7 +1022,10 @@ export function PersonalPlanView({ activeBoard }: PersonalPlanViewProps) {
         setLoading(false);
         return;
       }
-      const params = new URLSearchParams({ uid: uidCurrent, date: selectedDate });
+      const params = new URLSearchParams({
+        uid: uidCurrent,
+        date: selectedDate,
+      });
       if (activeBoard?.id) params.set("boardId", activeBoard.id);
       const res = await fetch(
         `/api/personal-plan-entries?${params.toString()}`,

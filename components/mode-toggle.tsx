@@ -23,7 +23,7 @@ export function ModeToggle() {
         className={cn(
           "inline-flex items-center gap-1 rounded-lg border p-0.5 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors",
           dashboardOpen
-            ? "bg-violet-500/10 text-violet-600 shadow-sm border-violet-500/20"
+            ? "bg-primary/10 text-primary shadow-sm border-primary/20"
             : "text-muted-foreground hover:text-foreground border-border/60 hover:border-border",
         )}
         title="Дашборд"
@@ -43,9 +43,7 @@ export function ModeToggle() {
             className={cn(
               "inline-flex items-center gap-1 rounded-md px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors",
               mode === value
-                ? dashboardOpen
-                  ? "bg-violet-500/10 text-violet-600 shadow-sm"
-                  : "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                ? "bg-primary/10 text-primary shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >

@@ -181,7 +181,7 @@ export function TeamView({
                 className={cn(
                   "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
                   viewMode === "kanban"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    ? "bg-primary/10 text-primary shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -192,7 +192,7 @@ export function TeamView({
                 className={cn(
                   "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
                   viewMode === "table"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    ? "bg-primary/10 text-primary shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -203,7 +203,7 @@ export function TeamView({
                 className={cn(
                   "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
                   viewMode === "list"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    ? "bg-primary/10 text-primary shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -240,7 +240,7 @@ export function TeamView({
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "kanban"
-                  ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                  ? "bg-primary/10 text-primary shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -252,7 +252,7 @@ export function TeamView({
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "table"
-                  ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                  ? "bg-primary/10 text-primary shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -264,7 +264,7 @@ export function TeamView({
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "list"
-                  ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                  ? "bg-primary/10 text-primary shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -317,9 +317,9 @@ export function TeamView({
                 className={cn(
                   "flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-xs transition-colors min-w-[64px] shrink-0 snap-start lg:flex-1 lg:shrink lg:min-w-0",
                   isSelected
-                    ? "bg-emerald-500/10 text-emerald-600 font-semibold"
+                    ? "bg-primary/10 text-primary font-semibold"
                     : "text-muted-foreground hover:bg-accent",
-                  isToday && !isSelected && "ring-1 ring-emerald-500/30",
+                  isToday && !isSelected && "ring-1 ring-primary/30",
                 )}
               >
                 <span className="text-[11px] uppercase tracking-wider">

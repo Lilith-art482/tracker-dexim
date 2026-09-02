@@ -32,6 +32,7 @@ import type { Column, PersonalKanbanTask, Priority, Board } from "@/lib/models";
 import { auth } from "@/lib/firebase";
 import { getBoardIcon, BOARD_ICONS } from "@/lib/board-icons";
 import { Button } from "@/components/ui/button";
+import { taskColorCard } from "@/lib/task-colors";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -94,8 +95,8 @@ const COLUMN_COLORS = [
   {
     name: "emerald",
     dot: "bg-emerald-500",
-    bg: "bg-emerald-500/8",
-    border: "border-emerald-300 dark:border-emerald-700",
+    bg: "bg-primary/8",
+    border: "border-primary/30 dark:border-emerald-700",
   },
   {
     name: "violet",
@@ -212,7 +213,7 @@ function DraggableTaskCard({
       onClick={() => onEdit(task)}
       className={cn(
         "rounded-lg border-l-4 p-3 space-y-2 cursor-grab active:cursor-grabbing transition-all hover:shadow-sm",
-        PRIORITY_COLORS[task.priority],
+        task.color ? taskColorCard(task.color) : PRIORITY_COLORS[task.priority],
         task.completed && "opacity-60",
         isDragging && "opacity-0",
       )}
@@ -234,9 +235,9 @@ function DraggableTaskCard({
           className="shrink-0 hover:scale-110 transition-transform"
         >
           {task.completed ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <CheckCircle2 className="h-4 w-4 text-primary" />
           ) : (
-            <Circle className="h-4 w-4 text-muted-foreground hover:text-emerald-500" />
+            <Circle className="h-4 w-4 text-muted-foreground hover:text-primary" />
           )}
         </button>
       </div>
@@ -270,7 +271,9 @@ function TaskCardOverlay({ task }: { task: PersonalKanbanTask }) {
       <div
         className={cn(
           "rounded-lg border-l-4 p-3 space-y-2 shadow-lg",
-          PRIORITY_COLORS[task.priority],
+          task.color
+            ? taskColorCard(task.color)
+            : PRIORITY_COLORS[task.priority],
         )}
       >
         <span className="text-sm font-medium">{task.title}</span>
@@ -302,7 +305,7 @@ function DroppableColumn({
       ref={setNodeRef}
       className={cn(
         "flex flex-col gap-2 min-h-[120px] rounded-xl transition-colors p-2",
-        isOver && "ring-2 ring-emerald-500/40 bg-emerald-500/5",
+        isOver && "ring-2 ring-primary/40 bg-primary/5",
         className,
       )}
     >

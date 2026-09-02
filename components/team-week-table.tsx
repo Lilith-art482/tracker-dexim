@@ -103,7 +103,7 @@ function DraggableTaskCard({
           </span>
         </span>
         {task.completed && (
-          <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+          <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
         )}
       </div>
       <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground">
@@ -325,7 +325,7 @@ function CellRow({
       className={cn(
         "min-h-[40px] lg:min-h-[56px] px-1 py-0.5 lg:px-1.5 lg:py-1 overflow-hidden transition-colors",
         !task && "cursor-pointer hover:bg-muted/20",
-        isOver && "bg-emerald-500/10",
+        isOver && "bg-primary/10",
         task && "bg-card",
       )}
     >

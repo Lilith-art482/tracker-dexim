@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { PersonalTask, Priority, Board } from "@/lib/models";
 import { Button } from "@/components/ui/button";
+import { TaskColorPicker } from "@/components/task-color-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -123,6 +124,7 @@ export function PersonalTaskDialog({
   );
   const [completed, setCompleted] = useState(task?.completed ?? false);
   const [comment, setComment] = useState(task?.comment ?? "");
+  const [color, setColor] = useState(task?.color ?? "");
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -135,6 +137,7 @@ export function PersonalTaskDialog({
       setPriority(task.priority);
       setCompleted(task.completed);
       setComment(task.comment ?? "");
+      setColor(task.color ?? "");
     } else {
       setTitle("");
       setDate(toDateInputValue(defaultDate));
@@ -143,6 +146,7 @@ export function PersonalTaskDialog({
       setPriority("medium");
       setCompleted(false);
       setComment("");
+      setColor("");
     }
     setErrors({});
   }, [task, open, defaultDate, defaultStartTime]);
@@ -175,6 +179,7 @@ export function PersonalTaskDialog({
             startTime,
             endTime,
             priority,
+            color: color || undefined,
             completed,
             comment: comment.trim() || undefined,
           }),
@@ -200,6 +205,7 @@ export function PersonalTaskDialog({
             startTime,
             endTime,
             priority,
+            color: color || undefined,
             comment: comment.trim() || undefined,
             ownerId: ownerId || undefined,
             boardId: activeBoard?.id || undefined,
@@ -319,6 +325,12 @@ export function PersonalTaskDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </FieldRow>
+            <FieldRow label="Цвет карточки">
+              <TaskColorPicker value={color} onChange={setColor} />
+              <p className="text-[10px] text-muted-foreground/50">
+                Задайте свой цвет, чтобы карточка выделялась на доске
+              </p>
             </FieldRow>
             <Textarea
               value={comment}

@@ -4,6 +4,7 @@ import { useMode } from "@/lib/mode-context";
 import type { Board, Column } from "@/lib/models";
 import { PersonalView } from "@/components/personal-view";
 import { TeamView } from "@/components/team-view";
+import { WorkView } from "@/components/work-view";
 import { PersonalDashboardFull } from "@/components/personal-dashboard-full";
 import { TeamDashboardPlaceholder } from "@/components/team-dashboard-placeholder";
 import { PlannerEmptyState } from "@/components/planner-empty-state";
@@ -22,6 +23,10 @@ export function TeamOrPersonalView({
   isArchiveView = false,
 }: TeamOrPersonalViewProps) {
   const { mode, dashboardOpen } = useMode();
+
+  if (mode === "work") {
+    return <WorkView activeBoard={activeBoard} />;
+  }
 
   if (dashboardOpen) {
     if (mode === "personal") {

@@ -13,7 +13,7 @@ import {
   Plus,
   CalendarDays,
 } from "lucide-react";
-import type { PersonalTask, Board, Note } from "@/lib/models";
+import type { PersonalTask, Board } from "@/lib/models";
 import { mockPersonalTasks } from "@/lib/mock-data";
 import { WeeklyTable } from "@/components/weekly-table";
 import { PersonalTaskList } from "@/components/personal-task-list";
@@ -84,7 +84,6 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
   });
   const [weekOffset, setWeekOffset] = useState(0);
   const [tasks, setTasks] = useState<PersonalTask[]>([]);
-  const [noteSnippets, setNoteSnippets] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<PersonalTask | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -181,59 +180,6 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
           if (!cancelled) setTasks(data);
         } else {
           if (!cancelled) setTasks(mockPersonalTasks);
-        }
-
-        // Convert scheduled notes to tasks
-        if (uid) {
-          try {
-            const timezoneOffset = new Date().getTimezoneOffset();
-            const convertRes = await fetch("/api/notes/convert-scheduled", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ uid, timezoneOffset }),
-            });
-            if (convertRes.ok) {
-              const { tasks: newTasks } = await convertRes.json();
-              if (newTasks?.length) {
-                setTasks((prev) => {
-                  const existingIds = new Set(prev.map((t) => t.id));
-                  const unique = newTasks.filter(
-                    (t: PersonalTask) => !existingIds.has(t.id),
-                  );
-                  return [...unique, ...prev];
-                });
-                if (newTasks.length === 1) {
-                  toast.success("Заметка превращена в задачу");
-                } else if (newTasks.length > 1) {
-                  toast.success(
-                    `${newTasks.length} заметок превращены в задачи`,
-                  );
-                }
-              }
-            }
-          } catch {
-            // silent
-          }
-
-          // Load note snippets for tooltips
-          try {
-            const notesRes = await fetch(`/api/notes?uid=${uid}`);
-            if (notesRes.ok) {
-              const notesData: Note[] = await notesRes.json();
-              const snippets: Record<string, string> = {};
-              for (const note of notesData) {
-                const firstBlock = note.blocks?.find(
-                  (b) => b.type === "paragraph" && b.content.trim(),
-                );
-                snippets[note.id] = firstBlock
-                  ? firstBlock.content.slice(0, 120)
-                  : "";
-              }
-              setNoteSnippets(snippets);
-            }
-          } catch {
-            // silent
-          }
         }
       } catch {
         if (!cancelled) setTasks(mockPersonalTasks);
@@ -347,13 +293,6 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
     [toast],
   );
 
-  const handleNoteClick = useCallback(
-    (noteId: string) => {
-      router.push(`/notes?noteId=${noteId}`);
-    },
-    [router],
-  );
-
   const handleEditTask = useCallback((task: PersonalTask) => {
     setEditingTask(task);
     setDialogOpen(true);
@@ -394,7 +333,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
                 className={cn(
                   "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
                   viewMode === "table"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    ? "bg-primary/10 text-primary shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -405,7 +344,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
                 className={cn(
                   "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
                   viewMode === "list"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    ? "bg-primary/10 text-primary shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -416,7 +355,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
                 className={cn(
                   "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
                   viewMode === "kanban"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    ? "bg-primary/10 text-primary shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -427,7 +366,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
                 className={cn(
                   "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium transition-colors",
                   viewMode === "plan"
-                    ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                    ? "bg-primary/10 text-primary shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -471,7 +410,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "table"
-                  ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                  ? "bg-primary/10 text-primary shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -483,7 +422,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "list"
-                  ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                  ? "bg-primary/10 text-primary shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -495,7 +434,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "kanban"
-                  ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                  ? "bg-primary/10 text-primary shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -507,7 +446,7 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "plan"
-                  ? "bg-emerald-500/10 text-emerald-600 shadow-sm"
+                  ? "bg-primary/10 text-primary shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -569,9 +508,9 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
                 className={cn(
                   "flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-xs transition-colors min-w-[64px] shrink-0 snap-start lg:flex-1 lg:shrink lg:min-w-0",
                   isSelected
-                    ? "bg-emerald-500/10 text-emerald-600 font-semibold"
+                    ? "bg-primary/10 text-primary font-semibold"
                     : "text-muted-foreground hover:bg-accent",
-                  isToday && !isSelected && "ring-1 ring-emerald-500/30",
+                  isToday && !isSelected && "ring-1 ring-primary/30",
                 )}
               >
                 <span className="text-[11px] uppercase tracking-wider">
@@ -602,8 +541,6 @@ export function PersonalView({ activeBoard }: { activeBoard?: Board }) {
           onSaved={handleTaskSaved}
           onToggleComplete={handleToggleComplete}
           onDelete={handleDeleteTask}
-          onNoteClick={handleNoteClick}
-          noteSnippets={noteSnippets}
           activeBoard={activeBoard}
         />
       ) : (

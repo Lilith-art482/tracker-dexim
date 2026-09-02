@@ -81,8 +81,8 @@ const COLUMN_COLORS = [
   {
     name: "emerald",
     dot: "bg-emerald-500",
-    bg: "bg-emerald-500/8",
-    border: "border-emerald-300 dark:border-emerald-700",
+    bg: "bg-primary/8",
+    border: "border-primary/30 dark:border-emerald-700",
   },
   {
     name: "violet",
@@ -212,7 +212,7 @@ function DraggableTaskCard({
           {task.title}
         </span>
         {task.completed && (
-          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+          <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
         )}
       </div>
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -277,7 +277,7 @@ function DroppableColumn({
       ref={setNodeRef}
       className={cn(
         "flex flex-col gap-2 min-h-[120px] rounded-xl transition-colors p-2",
-        isOver && "ring-2 ring-emerald-500/40 bg-emerald-500/5",
+        isOver && "ring-2 ring-primary/40 bg-primary/5",
         className,
       )}
     >

@@ -10,6 +10,7 @@ import {
 import type { PersonalTask } from "@/lib/models";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { taskColorCard } from "@/lib/task-colors";
 
 const PRIORITY_STYLES: Record<string, string> = {
   high: "border-l-rose-500 bg-rose-500/5",
@@ -68,7 +69,9 @@ export function PersonalTaskList({
             key={task.id}
             className={cn(
               "flex items-start gap-3 rounded-lg border-l-4 p-3 transition-colors hover:bg-accent/50",
-              PRIORITY_STYLES[task.priority],
+              task.color
+                ? taskColorCard(task.color)
+                : PRIORITY_STYLES[task.priority],
               task.completed && "opacity-60",
               highlightTaskId === task.id &&
                 "animate-pulse bg-primary/10 ring-2 ring-primary/40",
