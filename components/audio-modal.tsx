@@ -29,7 +29,7 @@ export default function AudioModal({
       />
 
       <div className="relative w-full max-w-sm animate-in fade-in zoom-in-95 duration-300">
-        <div className="rounded-3xl overflow-hidden dark:bg-[#121814]/90 dark:border dark:border-[#4E6E62]/30 bg-white/95 border border-border/60 shadow-2xl">
+        <div className="rounded-3xl overflow-hidden dark:bg-[#16191F]/90 dark:border dark:border-primary/30 bg-white/95 border border-border/60 shadow-2xl">
           <div className="flex items-center justify-between px-5 pt-5 pb-3">
             <h2 className="text-sm font-bold text-foreground">
               Управление мелодией
@@ -98,7 +98,7 @@ export default function AudioModal({
             </div>
           </div>
 
-          <div className="border-t dark:border-[#4E6E62]/20 border-border/60 px-5 py-3.5 dark:bg-[#0f1411]/40 bg-muted/20">
+          <div className="border-t dark:border-[#4E6E62]/20 border-border/60 px-5 py-3.5 dark:bg-[#1e2128]/40 bg-muted/20">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
                 Воспроизведение

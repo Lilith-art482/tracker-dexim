@@ -28,7 +28,7 @@ import {
   createTransaction,
   deleteTransaction,
 } from "@/lib/finance-client";
-import { auth } from "@/lib/firebase";
+import { useAuthUid } from "@/lib/use-auth-uid";
 import { localDateStr } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +50,7 @@ function computeMonthlyExpenses(transactions: Transaction[]): number {
 }
 
 export function FinanceEmergencyFund() {
-  const uid = auth.currentUser?.uid || "user-1";
+  const { uid } = useAuthUid();
 
   const [fund, setFund] = useState<EmergencyFund | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -100,6 +100,7 @@ export function FinanceEmergencyFund() {
         : ShieldAlert;
 
   const fetchFund = useCallback(async () => {
+    if (!uid) return;
     try {
       const data = await getEmergencyFund(uid);
       setFund(data);
@@ -109,6 +110,7 @@ export function FinanceEmergencyFund() {
   }, [uid]);
 
   const fetchTransactions = useCallback(async () => {
+    if (!uid) return;
     try {
       const data = await getTransactionsByUser(uid);
       setTransactions(data);
@@ -169,7 +171,7 @@ export function FinanceEmergencyFund() {
           categoryId: "fin-cat-9",
           amount: val,
           description: "Пополнение подушки безопасности",
-          tags: ["emergency", "topup"],
+          tags: ["emergency"],
           date: new Date().toISOString(),
         }),
       ]);
@@ -201,7 +203,7 @@ export function FinanceEmergencyFund() {
           categoryId: "fin-cat-8",
           amount: val,
           description: "Снятие с подушки безопасности",
-          tags: ["emergency", "withdrawal"],
+          tags: ["emergency"],
           date: new Date().toISOString(),
         }),
       ]);

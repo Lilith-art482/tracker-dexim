@@ -252,7 +252,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
 
   const switchBoard = (boardId: string) => {
     const board = boards.find((b) => b.id === boardId);
-    if (board) {
+    if (board && board.type !== "schedule") {
       setMode(board.type);
     }
     setDashboardOpen(false);
@@ -559,7 +559,7 @@ export function BoardSidebar({ initialBoards = [] }: BoardSidebarProps) {
     dragOverItem.current = null;
   };
 
-  if (pathname.startsWith("/finance") || pathname.startsWith("/habits")) {
+  if (pathname.startsWith("/finance") || pathname.startsWith("/habits") || pathname.startsWith("/duodays") || pathname.startsWith("/sleep")) {
     return null;
   }
 

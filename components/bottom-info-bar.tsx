@@ -12,6 +12,8 @@ import {
   RefreshCw,
   Search,
   DollarSign,
+  Info,
+  Circle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -142,9 +144,15 @@ function getWeatherLabel(code: number) {
   return WMO_LABELS[code] || "Неизвестно";
 }
 
-function WeatherSvgIcon({ code, size = 20 }: { code: number; size?: number }) {
-  const isNight = new Date().getHours() >= 20 || new Date().getHours() < 6;
-
+function WeatherSvgIcon({
+  code,
+  size = 20,
+  isNight = false,
+}: {
+  code: number;
+  size?: number;
+  isNight?: boolean;
+}) {
   if (code === 0) {
     return isNight ? (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -601,6 +609,7 @@ function CryptoIcon({
 function WeatherSection() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [selectedCity, setSelectedCity] = useState<GeoCity>(DEFAULT_CITIES[0]);
   const [weatherOpen, setWeatherOpen] = useState(false);
   const [citySearchOpen, setCitySearchOpen] = useState(false);
@@ -608,6 +617,11 @@ function WeatherSection() {
   const [geoResults, setGeoResults] = useState<GeoCity[]>([]);
   const [geoLoading, setGeoLoading] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => setMounted(true), []);
+
+  const isNight =
+    mounted && (new Date().getHours() >= 20 || new Date().getHours() < 6);
 
   const searchCities = useCallback(async (query: string) => {
     if (query.length < 2) {
@@ -751,7 +765,11 @@ function WeatherSection() {
       {/* Weather popover trigger */}
       <Popover open={weatherOpen} onOpenChange={setWeatherOpen}>
         <PopoverTrigger className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 rounded-lg px-2 py-1 transition-colors shrink-0">
-          <WeatherSvgIcon code={weather?.weatherCode ?? 0} size={24} />
+          <WeatherSvgIcon
+            code={weather?.weatherCode ?? 0}
+            size={24}
+            isNight={isNight}
+          />
           <span className="text-sm font-semibold tabular-nums">
             {loading ? "—" : `${weather?.tempC}°`}
           </span>
@@ -785,7 +803,11 @@ function WeatherSection() {
                       {weather?.condition || (loading ? "Загрузка..." : "")}
                     </p>
                   </div>
-                  <WeatherSvgIcon code={weather?.weatherCode ?? 0} size={48} />
+                  <WeatherSvgIcon
+                    code={weather?.weatherCode ?? 0}
+                    size={48}
+                    isNight={isNight}
+                  />
                 </div>
 
                 <div className="mt-3 flex items-end gap-3">
@@ -826,7 +848,11 @@ function WeatherSection() {
                         <span className="text-[10px] text-muted-foreground font-medium">
                           {h.time}
                         </span>
-                        <WeatherSvgIcon code={h.weatherCode} size={18} />
+                        <WeatherSvgIcon
+                          code={h.weatherCode}
+                          size={18}
+                          isNight={isNight}
+                        />
                         <span className="text-xs font-semibold">
                           {h.tempC}°
                         </span>
@@ -854,7 +880,11 @@ function WeatherSection() {
                           {i === 0 ? "" : d.date}
                         </span>
                       </span>
-                      <WeatherSvgIcon code={d.weatherCode} size={18} />
+                      <WeatherSvgIcon
+                        code={d.weatherCode}
+                        size={18}
+                        isNight={isNight}
+                      />
                       <div className="flex items-center gap-1.5 text-xs">
                         <span className="font-semibold w-8 text-right">
                           {d.high}°
@@ -1068,14 +1098,14 @@ function TimeSection() {
   const [time, setTime] = useState("");
   const [date, setDate] = useState("");
   const [tzOpen, setTzOpen] = useState(false);
-  const [tz, setTz] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("user_timezone") || getUserTimezone();
-    }
-    return getUserTimezone();
-  });
+  const [tz, setTz] = useState("");
 
   useEffect(() => {
+    setTz(localStorage.getItem("user_timezone") || getUserTimezone());
+  }, []);
+
+  useEffect(() => {
+    if (!tz) return;
     const tick = () => {
       setTime(formatTime(tz));
       setDate(formatDate(tz));
@@ -1365,6 +1395,7 @@ function MarketsWidget() {
 
 export function BottomInfoBar() {
   const [marketsOpen, setMarketsOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 h-12 bg-background/80 backdrop-blur-xl border-t border-border/40">
@@ -1379,8 +1410,55 @@ export function BottomInfoBar() {
           <TimeSection />
         </div>
 
-        {/* Right: FinInfo icon button */}
-        <div className="flex justify-end">
+        {/* Right: About + Circular + FinInfo */}
+        <div className="flex justify-end items-center gap-1.5">
+          {/* About us */}
+          <Popover open={aboutOpen} onOpenChange={setAboutOpen}>
+            <PopoverTrigger className="h-8 w-8 flex items-center justify-center rounded-lg bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+              <Info className="h-4 w-4" />
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              side="top"
+              sideOffset={8}
+              className="w-[300px] p-0"
+            >
+              <div className="p-4 space-y-3">
+                <h3 className="text-sm font-bold">О нас</h3>
+                <div className="space-y-1.5">
+                  <a href="/privacy" className="block text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    Политика обработки персональных данных
+                  </a>
+                  <a href="/cookies" className="block text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    Cookie Policy
+                  </a>
+                  <a href="/offer" className="block text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    Публичная оферта
+                  </a>
+                  <a href="/terms" className="block text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    Пользовательское соглашение
+                  </a>
+                  <div className="h-px bg-border/40 my-1" />
+                  <a href="/faq" className="block text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    FAQ
+                  </a>
+                  <a href="/contact" className="block text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    Контакты
+                  </a>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Circular menu trigger */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("circular-menu:toggle"))}
+            className="h-8 w-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+          >
+            <Circle className="h-4 w-4" />
+          </button>
+
+          {/* FinInfo */}
           <Popover open={marketsOpen} onOpenChange={setMarketsOpen}>
             <PopoverTrigger className="h-8 w-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
               <DollarSign className="h-4 w-4" />

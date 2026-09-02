@@ -8,8 +8,8 @@ import {
   Trash2,
   Loader2,
   Wallet,
-  Tag,
   Calendar,
+  CalendarDays,
   Power,
   PowerOff,
   ArrowUpRight,
@@ -30,11 +30,16 @@ import {
   getAccountsByUser,
   getCategoriesByUser,
 } from "@/lib/finance-client";
-import { auth } from "@/lib/firebase";
+import { useAuthUid } from "@/lib/use-auth-uid";
+import {
+  getDisplayCurrency,
+  getCurrencySymbol,
+  getCachedRates,
+  convert,
+} from "@/lib/exchange-rates";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +59,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CategorySearchSelect } from "./category-search-select";
 import { AccountSearchSelect } from "./account-search-select";
+import { CurrencySelect } from "./currency-select";
 
 const INTERVAL_LABELS: Record<RecurringInterval, string> = {
   weekly: "Еженедельно",
@@ -82,7 +88,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export function FinanceRecurring() {
-  const uid = auth.currentUser?.uid || "user-1";
+  const { uid } = useAuthUid();
 
   const [items, setItems] = useState<RecurringTransaction[]>([]);
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
@@ -99,6 +105,7 @@ export function FinanceRecurring() {
   const [formAmount, setFormAmount] = useState("");
   const [formAccountId, setFormAccountId] = useState("");
   const [formCategoryId, setFormCategoryId] = useState("");
+  const [formCurrency, setFormCurrency] = useState("");
   const [formInterval, setFormInterval] =
     useState<RecurringInterval>("monthly");
   const [formDayOfMonth, setFormDayOfMonth] = useState("");
@@ -123,6 +130,7 @@ export function FinanceRecurring() {
   }, [formType]);
 
   const fetchData = useCallback(async () => {
+    if (!uid) return;
     setLoading(true);
     try {
       const [recurring, accs, cats] = await Promise.all([
@@ -150,6 +158,7 @@ export function FinanceRecurring() {
     setFormAmount("");
     setFormAccountId(accounts[0]?.id || "");
     setFormCategoryId("");
+    setFormCurrency(accounts[0]?.currency || getDisplayCurrency());
     setFormInterval("monthly");
     setFormDayOfMonth("");
     setFormMonth("1");
@@ -162,19 +171,33 @@ export function FinanceRecurring() {
     setDialogOpen(true);
   }, [resetForm]);
 
-  const openEditDialog = useCallback((item: RecurringTransaction) => {
-    setEditingItem(item);
-    setFormDescription(item.description);
-    setFormType(item.type);
-    setFormAmount(String(item.amount));
-    setFormAccountId(item.accountId);
-    setFormCategoryId(item.categoryId);
-    setFormInterval(item.interval);
-    setFormDayOfMonth(String(item.dayOfMonth));
-    setFormMonth(String(item.month ?? 1));
-    setFormIsActive(item.isActive);
-    setDialogOpen(true);
-  }, []);
+  const handleFormAccountChange = (id: string) => {
+    setFormAccountId(id);
+    const acc = accounts.find((a) => a.id === id);
+    setFormCurrency(acc?.currency || getDisplayCurrency());
+  };
+
+  const openEditDialog = useCallback(
+    (item: RecurringTransaction) => {
+      setEditingItem(item);
+      setFormDescription(item.description);
+      setFormType(item.type);
+      setFormAmount(String(item.amount));
+      setFormAccountId(item.accountId);
+      setFormCategoryId(item.categoryId);
+      setFormCurrency(
+        item.currency ||
+          accounts.find((a) => a.id === item.accountId)?.currency ||
+          getDisplayCurrency(),
+      );
+      setFormInterval(item.interval);
+      setFormDayOfMonth(String(item.dayOfMonth));
+      setFormMonth(String(item.month ?? 1));
+      setFormIsActive(item.isActive);
+      setDialogOpen(true);
+    },
+    [accounts],
+  );
 
   const handleCloseDialog = useCallback(() => {
     setDialogOpen(false);
@@ -220,6 +243,7 @@ export function FinanceRecurring() {
         description: formDescription.trim(),
         type: formType,
         amount,
+        currency: formCurrency || getDisplayCurrency(),
         accountId: formAccountId,
         categoryId: formCategoryId,
         interval: formInterval,
@@ -298,21 +322,56 @@ export function FinanceRecurring() {
     );
   }
 
+  const activeCount = items.filter((i) => i.isActive).length;
+  const rates = getCachedRates();
+  const dc = getDisplayCurrency();
+  const totalMonthly = items
+    .filter((i) => i.isActive)
+    .reduce((sum, i) => {
+      const cur = i.currency || accountMap.get(i.accountId)?.currency || dc;
+      const monthly =
+        i.interval === "monthly"
+          ? i.amount
+          : i.interval === "weekly"
+            ? i.amount * 4.33
+            : i.amount / 12;
+      const converted =
+        rates && cur !== dc ? convert(monthly, cur, dc, rates) : monthly;
+      return sum + converted;
+    }, 0);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Repeat className="h-5 w-5" />
-            Регулярные платежи
-          </h2>
-          {items.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {items.filter((i) => i.isActive).length} активных
-            </p>
-          )}
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10 shrink-0">
+            <Repeat className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold">Регулярные платежи</h2>
+            {items.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {activeCount} активных
+                {totalMonthly > 0 && (
+                  <>
+                    {" "}
+                    · ≈{" "}
+                    {totalMonthly.toLocaleString(undefined, {
+                      maximumFractionDigits: 0,
+                    })}{" "}
+                    {getCurrencySymbol(dc)}/мес
+                  </>
+                )}
+              </p>
+            )}
+          </div>
         </div>
-        <Button size="sm" onClick={openAddDialog}>
+        <Button
+          size="sm"
+          className="h-9 rounded-lg font-medium"
+          onClick={openAddDialog}
+        >
           <Plus className="h-4 w-4 mr-1" />
           Добавить
         </Button>
@@ -343,66 +402,71 @@ export function FinanceRecurring() {
           {items.map((item) => {
             const account = accountMap.get(item.accountId);
             const category = categoryMap.get(item.categoryId);
+            const isIncome = item.type === "income";
+            const typeColor = isIncome ? "text-emerald-500" : "text-rose-500";
+            const typeBg = isIncome
+              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              : "bg-rose-500/10 text-rose-600 dark:text-rose-400";
+            const schedule =
+              item.interval === "weekly"
+                ? `Каждую неделю · ${item.dayOfMonth} день`
+                : item.interval === "yearly"
+                  ? `Ежегодно · ${item.dayOfMonth} ${MONTH_NAMES[(item.month ?? 1) - 1].toLowerCase()}`
+                  : `Ежемесячно · ${item.dayOfMonth} числа`;
             return (
               <Card
                 key={item.id}
                 className={cn(
-                  "transition-all hover:shadow-sm",
+                  "group relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md",
                   !item.isActive && "opacity-60",
                 )}
               >
+                {/* Accent edge */}
+                <div
+                  className={cn(
+                    "absolute left-0 top-0 h-full w-1",
+                    isIncome
+                      ? "bg-gradient-to-b from-emerald-400 to-emerald-600"
+                      : "bg-gradient-to-b from-rose-400 to-rose-600",
+                  )}
+                />
+                <div
+                  className={cn(
+                    "pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full blur-2xl",
+                    isIncome ? "bg-emerald-500/10" : "bg-rose-500/10",
+                  )}
+                />
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0 flex-1">
-                      <CardTitle className="text-base font-semibold truncate">
-                        {item.description}
-                      </CardTitle>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <Badge
-                          variant={
-                            item.type === "income" ? "default" : "destructive"
-                          }
-                          className="text-[10px] px-1.5 py-0 h-5"
-                        >
-                          {item.type === "income" ? (
-                            <ArrowUpRight className="h-3 w-3 mr-0.5" />
-                          ) : (
-                            <ArrowDownRight className="h-3 w-3 mr-0.5" />
-                          )}
-                          {TYPE_LABELS[item.type]}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] px-1.5 py-0 h-5 font-normal"
-                        >
-                          <Calendar className="h-2.5 w-2.5 mr-0.5" />
-                          {INTERVAL_LABELS[item.interval]}
-                          {", "}
-                          {item.dayOfMonth}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[10px] px-1.5 py-0 h-5 font-normal",
-                            item.isActive
-                              ? "text-emerald-600 border-emerald-200"
-                              : "text-muted-foreground",
-                          )}
-                        >
-                          {item.isActive ? (
-                            <Power className="h-2.5 w-2.5 mr-0.5" />
-                          ) : (
-                            <PowerOff className="h-2.5 w-2.5 mr-0.5" />
-                          )}
-                          {item.isActive ? "Активен" : "Неактивен"}
-                        </Badge>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={cn(
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                          typeBg,
+                        )}
+                      >
+                        {isIncome ? (
+                          <ArrowUpRight className="h-4 w-4" />
+                        ) : (
+                          <ArrowDownRight className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <CardTitle className="text-base font-semibold truncate">
+                          {item.description}
+                        </CardTitle>
+                        <p className="flex items-center gap-1 mt-0.5 text-[11px] text-muted-foreground/70">
+                          <Calendar className="h-3 w-3 shrink-0" />
+                          {schedule}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex gap-0.5 shrink-0 ml-2">
+                    <div className="flex gap-0.5 shrink-0">
                       <Button
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => openEditDialog(item)}
+                        className="h-7 w-7 text-muted-foreground/50 hover:text-foreground"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -410,6 +474,7 @@ export function FinanceRecurring() {
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => handleDelete(item)}
+                        className="h-7 w-7 text-muted-foreground/50 hover:text-destructive"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -417,37 +482,50 @@ export function FinanceRecurring() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-2xl font-bold tabular-nums">
-                      {item.amount.toLocaleString()} ₽
+                  <div className="flex items-end justify-between gap-2">
+                    <div>
+                      <p
+                        className={cn(
+                          "text-2xl font-bold tabular-nums tracking-tight",
+                          typeColor,
+                        )}
+                      >
+                        {isIncome ? "+" : "−"}
+                        {item.amount.toLocaleString()}{" "}
+                        {getCurrencySymbol(
+                          item.currency ||
+                            accountMap.get(item.accountId)?.currency ||
+                            getDisplayCurrency(),
+                        )}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/50">
+                        {isIncome ? "поступление" : "списание"}
+                        {category ? ` · ${category.name}` : ""}
+                      </p>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] px-1.5 py-0 h-5 font-normal cursor-pointer transition-colors hover:bg-muted"
+                    <button
                       onClick={() => handleToggleActive(item)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium transition-all",
+                        item.isActive
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                          : "bg-muted text-muted-foreground hover:bg-muted/70",
+                      )}
                     >
                       {item.isActive ? (
-                        <Power className="h-3 w-3 mr-0.5 text-emerald-500" />
+                        <Power className="h-3 w-3" />
                       ) : (
-                        <PowerOff className="h-3 w-3 mr-0.5 text-muted-foreground" />
+                        <PowerOff className="h-3 w-3" />
                       )}
-                      {item.isActive ? "Выключить" : "Включить"}
-                    </Badge>
+                      {item.isActive ? "Включено" : "Отключено"}
+                    </button>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    {account && (
-                      <span className="flex items-center gap-1">
-                        <Wallet className="h-3 w-3" />
-                        {account.name}
-                      </span>
-                    )}
-                    {category && (
-                      <span className="flex items-center gap-1">
-                        <Tag className="h-3 w-3" />
-                        {category.name}
-                      </span>
-                    )}
-                  </div>
+                  {account && (
+                    <div className="flex items-center gap-1.5 pt-2 border-t border-border/50 text-[11px] text-muted-foreground/80">
+                      <Wallet className="h-3 w-3 shrink-0 opacity-60" />
+                      <span className="truncate">{account.name}</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -461,84 +539,157 @@ export function FinanceRecurring() {
           if (!open) handleCloseDialog();
         }}
       >
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Repeat className="h-4 w-4" />
-              {editingItem
-                ? "Редактировать регулярный платёж"
-                : "Добавить регулярный платёж"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium">Тип</label>
-                <Select
-                  value={formType}
-                  onValueChange={(v) => v && setFormType(v as TransactionType)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите тип">
-                      {formType === "income" ? (
-                        <span className="flex items-center gap-1.5">
-                          <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" />
-                          Доход
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1.5">
-                          <ArrowDownRight className="h-3.5 w-3.5 text-rose-500" />
-                          Расход
-                        </span>
-                      )}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="income">
-                      <span className="flex items-center gap-2">
-                        <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" />
-                        Доход
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="expense">
-                      <span className="flex items-center gap-2">
-                        <ArrowDownRight className="h-3.5 w-3.5 text-rose-500" />
-                        Расход
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+        <DialogContent className="overflow-hidden !p-0 sm:max-w-[520px]">
+          <div className="relative bg-gradient-to-br from-primary/15 via-primary/5 to-transparent px-5 pt-5 pb-5">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241/0.14),transparent_55%)]" />
+            <DialogHeader className="relative">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm">
+                  <Repeat className="size-4" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base">
+                    {editingItem ? "Редактировать платёж" : "Регулярный платёж"}
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Автоматическое создание операций
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium">Сумма</label>
-                <Input
-                  type="number"
-                  value={formAmount}
-                  onChange={(e) => setFormAmount(e.target.value)}
-                  placeholder="50000"
-                  min={0}
+            </DialogHeader>
+
+            {/* Type segmented control */}
+            <div className="relative mt-4 grid grid-cols-2 gap-1 rounded-xl bg-muted/60 p-1 backdrop-blur-sm">
+              {(["expense", "income"] as const).map((t) => {
+                const active = formType === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setFormType(t as TransactionType)}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium transition-all duration-200",
+                      active
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {t === "income" ? (
+                      <ArrowUpRight
+                        className={cn("size-3.5", active && "text-emerald-500")}
+                      />
+                    ) : (
+                      <ArrowDownRight
+                        className={cn("size-3.5", active && "text-rose-500")}
+                      />
+                    )}
+                    {TYPE_LABELS[t]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-4 px-5 py-4 max-h-[60vh] overflow-y-auto">
+            {/* Amount hero */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                Сумма
+              </label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type="number"
+                    value={formAmount}
+                    onChange={(e) => setFormAmount(e.target.value)}
+                    placeholder="0.00"
+                    min={0}
+                    className={cn(
+                      "h-10 border-transparent bg-muted/60 text-lg font-semibold tabular-nums focus-visible:ring-2 focus-visible:ring-ring/40",
+                      formType === "income"
+                        ? "text-emerald-500"
+                        : "text-rose-500",
+                    )}
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    {(() => {
+                      const amt = parseFloat(formAmount);
+                      if (isNaN(amt) || amt <= 0) return null;
+                      const rates = getCachedRates();
+                      if (!rates) return null;
+                      const selAcc = accounts.find(
+                        (a) => a.id === formAccountId,
+                      );
+                      const cur = formCurrency || getDisplayCurrency();
+                      const dc = getDisplayCurrency();
+                      const parts: string[] = [];
+                      if (selAcc && selAcc.currency !== cur) {
+                        const converted = convert(
+                          amt,
+                          cur,
+                          selAcc.currency,
+                          rates,
+                        );
+                        parts.push(
+                          `${converted.toLocaleString(undefined, {
+                            maximumFractionDigits: 4,
+                          })} ${getCurrencySymbol(selAcc.currency)} ${selAcc.currency}`,
+                        );
+                      }
+                      if (dc !== cur && dc !== selAcc?.currency) {
+                        const displayVal = convert(amt, cur, dc, rates);
+                        parts.push(
+                          `${displayVal.toLocaleString(undefined, {
+                            maximumFractionDigits: 4,
+                          })} ${getCurrencySymbol(dc)} ${dc}`,
+                        );
+                      }
+                      if (parts.length === 0) return null;
+                      return (
+                        <span className="text-xs text-muted-foreground/70 tabular-nums font-medium whitespace-nowrap">
+                          ≈ {parts.join(" · ")}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+                <CurrencySelect
+                  value={formCurrency || getDisplayCurrency()}
+                  onChange={(v) => setFormCurrency(v)}
+                  triggerClassName="h-10 w-[118px] shrink-0"
                 />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium">Описание</label>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                Описание
+              </label>
               <Input
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
                 placeholder="Например: Аренда квартиры"
+                className="h-10 border-transparent bg-muted/50"
               />
             </div>
+
+            {/* Account + category */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium">Счёт</label>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Счёт
+                </label>
                 <AccountSearchSelect
                   accounts={accounts}
                   value={formAccountId}
-                  onChange={setFormAccountId}
+                  onChange={handleFormAccountChange}
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium">Категория</label>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Категория
+                </label>
                 <CategorySearchSelect
                   categories={categories}
                   type={formType}
@@ -547,30 +698,37 @@ export function FinanceRecurring() {
                 />
               </div>
             </div>
-            <div className="border-t pt-4 space-y-3">
+
+            {/* Schedule */}
+            <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-3.5">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-foreground/70">
+                <CalendarDays className="size-3.5 text-primary" />
+                Расписание
+              </div>
+
+              <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted/70 p-1">
+                {(["weekly", "monthly", "yearly"] as RecurringInterval[]).map(
+                  (iv) => (
+                    <button
+                      key={iv}
+                      type="button"
+                      onClick={() => setFormInterval(iv)}
+                      className={cn(
+                        "flex items-center justify-center rounded-md px-1 py-1.5 text-[11px] font-medium transition-all duration-200",
+                        formInterval === iv
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {INTERVAL_LABELS[iv]}
+                    </button>
+                  ),
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium">Интервал</label>
-                  <Select
-                    value={formInterval}
-                    onValueChange={(v) =>
-                      v && setFormInterval(v as RecurringInterval)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите интервал">
-                        {INTERVAL_LABELS[formInterval]}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="weekly">Еженедельно</SelectItem>
-                      <SelectItem value="monthly">Ежемесячно</SelectItem>
-                      <SelectItem value="yearly">Ежегодно</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium">
+                  <label className="text-xs font-medium text-muted-foreground">
                     {formInterval === "weekly" ? "День недели" : "День месяца"}
                   </label>
                   <Input
@@ -580,49 +738,63 @@ export function FinanceRecurring() {
                     placeholder={formInterval === "weekly" ? "1–7" : "1–31"}
                     min={1}
                     max={formInterval === "weekly" ? 7 : 31}
+                    className="h-9 border-transparent bg-muted/50"
                   />
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-[10px] text-muted-foreground/60">
                     {formInterval === "weekly"
                       ? "1 = Пн, 7 = Вс"
                       : "Число месяца (1–31)"}
                   </p>
                 </div>
+                {formInterval === "yearly" ? (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Месяц
+                    </label>
+                    <Select
+                      value={formMonth}
+                      onValueChange={(v) => v && setFormMonth(v)}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Месяц">
+                          {MONTH_NAMES[parseInt(formMonth) - 1]}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MONTH_NAMES.map((name, i) => (
+                          <SelectItem key={i} value={String(i + 1)}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
               </div>
-              {formInterval === "yearly" && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium">Месяц</label>
-                  <Select
-                    value={formMonth}
-                    onValueChange={(v) => v && setFormMonth(v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите месяц">
-                        {MONTH_NAMES[parseInt(formMonth) - 1]}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MONTH_NAMES.map((name, i) => (
-                        <SelectItem key={i} value={String(i + 1)}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
             </div>
-            <div className="flex items-center justify-between rounded-xl border bg-muted/30 p-3">
-              <div className="flex items-center gap-2">
-                {formIsActive ? (
-                  <Power className="h-4 w-4 text-emerald-500" />
-                ) : (
-                  <PowerOff className="h-4 w-4 text-muted-foreground" />
-                )}
+
+            {/* Active toggle */}
+            <div className="flex items-center justify-between rounded-xl border bg-card p-3.5">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-lg",
+                    formIsActive
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {formIsActive ? (
+                    <Power className="size-4" />
+                  ) : (
+                    <PowerOff className="size-4" />
+                  )}
+                </div>
                 <div>
-                  <p className="text-sm font-medium">Активен</p>
+                  <p className="text-sm font-medium">Платёж активен</p>
                   <p className="text-[10px] text-muted-foreground">
                     {formIsActive
-                      ? "Платёж будет создаваться автоматически"
+                      ? "Операции будут создаваться автоматически"
                       : "Платежи не создаются"}
                   </p>
                 </div>
@@ -633,13 +805,19 @@ export function FinanceRecurring() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>
+
+          <DialogFooter className="m-0 flex-col-reverse gap-2 px-5 py-4 sm:flex-row sm:justify-end">
+            <Button variant="ghost" size="sm" onClick={handleCloseDialog}>
               Отмена
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editingItem ? "Сохранить" : "Создать"}
+            <Button
+              size="sm"
+              className="h-10 px-6 font-medium shadow-sm"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              {editingItem ? "Сохранить" : "Создать платёж"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -56,7 +56,7 @@ import {
   getCachedRates,
   getDisplayCurrency,
 } from "@/lib/exchange-rates";
-import { auth } from "@/lib/firebase";
+import { useAuthUid } from "@/lib/use-auth-uid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -144,7 +144,7 @@ function daysBetween(from: string, to: string): number {
 }
 
 export function FinanceGoals() {
-  const uid = auth.currentUser?.uid || "user-1";
+  const { uid } = useAuthUid();
   const [goals, setGoals] = useState<FinanceGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -185,6 +185,7 @@ export function FinanceGoals() {
   }, []);
 
   const fetchGoals = useCallback(async () => {
+    if (!uid) return;
     setLoading(true);
     try {
       const [data, accs] = await Promise.all([
@@ -205,6 +206,7 @@ export function FinanceGoals() {
   }, [fetchGoals]);
 
   useEffect(() => {
+    if (!uid) return;
     (async () => {
       try {
         const data = await getCategoriesByUser(uid);
@@ -1162,7 +1164,7 @@ export function FinanceGoals() {
             </div>
 
             {/* Footer */}
-            <DialogFooter className="gap-2 pt-2">
+            <DialogFooter className="m-0 gap-2 pt-2">
               <Button
                 variant="outline"
                 className="rounded-xl"

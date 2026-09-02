@@ -41,7 +41,7 @@ import {
   getLoansByUser,
   deleteCategory,
 } from "@/lib/finance-client";
-import { auth } from "@/lib/firebase";
+import { useAuthUid } from "@/lib/use-auth-uid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,7 +105,7 @@ const PERIOD_LABELS: Record<string, string> = {
 };
 
 export function FinancePlanning() {
-  const uid = auth.currentUser?.uid || "user-1";
+  const { uid } = useAuthUid();
   const [period, setPeriod] = useState<BudgetPlan["period"]>("month");
   const [budgetPlan, setBudgetPlan] = useState<BudgetPlan | null>(null);
   const [allBudgets, setAllBudgets] = useState<BudgetPlan[]>([]);
@@ -157,6 +157,7 @@ export function FinancePlanning() {
   );
 
   const fetchData = useCallback(async () => {
+    if (!uid) return;
     setLoading(true);
     try {
       const [budgets, cats, txs, accs, loansData] = await Promise.all([

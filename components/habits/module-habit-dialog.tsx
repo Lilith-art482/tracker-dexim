@@ -7,7 +7,6 @@ import {
   Clock,
   Tag,
   CheckSquare,
-  Bell,
   FileText,
 } from "lucide-react";
 import type {
@@ -16,11 +15,8 @@ import type {
   HabitFrequencyType,
   HabitDifficulty,
 } from "@/lib/habit-types";
-import {
-  CATEGORY_LABELS,
-  DIFFICULTY_LABELS,
-  WEEKDAYS,
-} from "@/lib/habit-types";
+import { DIFFICULTY_LABELS, WEEKDAYS } from "@/lib/habit-types";
+import { CATEGORY_ICONS, CATEGORY_ACCENTS } from "@/lib/habit-category-ui";
 import { createHabitSchema } from "@/lib/habit-schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -138,10 +133,9 @@ export function HabitDialog({
   const [frequencyTime, setFrequencyTime] = useState(
     habit?.frequencyTime ?? "",
   );
-  const [reminderEnabled, setReminderEnabled] = useState(
-    habit?.reminderEnabled ?? false,
+  const [customCategory, setCustomCategory] = useState(
+    habit?.customCategory ?? "",
   );
-  const [reminderTime, setReminderTime] = useState(habit?.reminderTime ?? "");
   const [difficulty, setDifficulty] = useState<HabitDifficulty>(
     habit?.difficulty ?? "medium",
   );
@@ -165,8 +159,7 @@ export function HabitDialog({
       setFrequencyDays(habit.frequencyDays ?? []);
       setFrequencyInterval(habit.frequencyInterval ?? 1);
       setFrequencyTime(habit.frequencyTime ?? "");
-      setReminderEnabled(habit.reminderEnabled);
-      setReminderTime(habit.reminderTime ?? "");
+      setCustomCategory(habit.customCategory ?? "");
       setDifficulty(habit.difficulty);
       setGoal(habit.goal ?? "");
       setGoalType(habit.goalType ?? "streak");
@@ -180,8 +173,7 @@ export function HabitDialog({
       setFrequencyDays([]);
       setFrequencyInterval(1);
       setFrequencyTime("");
-      setReminderEnabled(false);
-      setReminderTime("");
+      setCustomCategory("");
       setDifficulty("medium");
       setGoal("");
       setGoalType("streak");
@@ -208,8 +200,7 @@ export function HabitDialog({
         frequencyType === "interval" ? frequencyInterval : undefined,
       frequencyTime:
         frequencyType === "time" ? frequencyTime || undefined : undefined,
-      reminderEnabled,
-      reminderTime: reminderEnabled ? reminderTime || undefined : undefined,
+      customCategory: customCategory.trim() || undefined,
       difficulty,
       goal: goal.trim() || undefined,
       goalType: goal.trim() ? goalType : undefined,
@@ -277,20 +268,21 @@ export function HabitDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg gap-0 overflow-hidden">
-        <div className="px-6 pt-5 pb-4 border-b bg-muted/20">
-          <DialogHeader className="p-0">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
-                <CheckSquare className="h-4.5 w-4.5" />
+        <div className="relative px-6 pt-6 pb-5 border-b bg-gradient-to-br from-primary/10 via-primary/5 to-transparent overflow-hidden">
+          <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
+          <DialogHeader className="p-0 relative">
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20 shrink-0">
+                <CheckSquare className="h-5 w-5" />
               </div>
               <div>
-                <DialogTitle className="text-base">
+                <DialogTitle className="text-lg font-semibold tracking-tight">
                   {isEditing ? "Редактировать привычку" : "Новая привычка"}
                 </DialogTitle>
-                <DialogDescription className="text-xs mt-0.5 text-muted-foreground/60">
+                <DialogDescription className="text-xs mt-0.5 text-muted-foreground/70">
                   {isEditing
-                    ? "Измените параметры привычки"
-                    : "Заполните поля для новой привычки"}
+                    ? "Настройте параметры привычки"
+                    : "Создайте привычку и начните свой путь"}
                 </DialogDescription>
               </div>
             </div>
@@ -311,21 +303,60 @@ export function HabitDialog({
               )}
             </FieldRow>
             <FieldRow label="Категория">
-              <Select
-                value={category}
-                onValueChange={(v) => setCategory(v as HabitCategory)}
-              >
-                <SelectTrigger>
-                  <SelectValue>{CATEGORY_LABELS[category]}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORY_OPTIONS.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-3 gap-2">
+                {CATEGORY_OPTIONS.map(({ value, label }) => {
+                  const Icon = CATEGORY_ICONS[value];
+                  const accent = CATEGORY_ACCENTS[value];
+                  const selected = category === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setCategory(value)}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2.5 transition-all",
+                        selected
+                          ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
+                          : "border-border/60 bg-background hover:border-primary/40 hover:bg-muted/40",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex h-9 w-9 items-center justify-center rounded-lg",
+                          accent.soft,
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span
+                        className={cn(
+                          "text-[11px] font-medium text-center leading-tight",
+                          selected
+                            ? "text-foreground"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {category === "other" && (
+                <Input
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  placeholder="Укажите свою категорию"
+                  maxLength={50}
+                  className="mt-2"
+                  aria-invalid={!!errors.customCategory}
+                />
+              )}
+              {errors.customCategory && (
+                <p className="text-xs text-destructive">
+                  {errors.customCategory}
+                </p>
+              )}
             </FieldRow>
             <FieldRow label="Сложность">
               <Select
@@ -421,27 +452,6 @@ export function HabitDialog({
                   type="time"
                   value={frequencyTime}
                   onChange={(e) => setFrequencyTime(e.target.value)}
-                />
-              </FieldRow>
-            )}
-          </SectionBlock>
-
-          <SectionBlock icon={Bell} title="Напоминание">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground/70 font-medium">
-                Включить напоминание
-              </Label>
-              <Switch
-                checked={reminderEnabled}
-                onCheckedChange={(checked) => setReminderEnabled(checked)}
-              />
-            </div>
-            {reminderEnabled && (
-              <FieldRow label="Время напоминания">
-                <Input
-                  type="time"
-                  value={reminderTime}
-                  onChange={(e) => setReminderTime(e.target.value)}
                 />
               </FieldRow>
             )}

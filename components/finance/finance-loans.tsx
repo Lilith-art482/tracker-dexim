@@ -45,7 +45,7 @@ import {
   getCachedRates,
   getDisplayCurrency,
 } from "@/lib/exchange-rates";
-import { auth } from "@/lib/firebase";
+import { useAuthUid } from "@/lib/use-auth-uid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -176,7 +176,7 @@ const STATUS_FILTERS = [
 ] as const;
 
 export function FinanceLoans() {
-  const uid = auth.currentUser?.uid || "user-1";
+  const { uid } = useAuthUid();
 
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -252,6 +252,7 @@ export function FinanceLoans() {
   ]);
 
   const fetchLoans = useCallback(async () => {
+    if (!uid) return;
     setLoading(true);
     try {
       const data = await getLoansByUser(uid);
@@ -268,6 +269,7 @@ export function FinanceLoans() {
   }, [fetchLoans]);
 
   useEffect(() => {
+    if (!uid) return;
     getAccountsByUser(uid)
       .then(setAccounts)
       .catch(() => {});

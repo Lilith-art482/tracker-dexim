@@ -6,117 +6,37 @@ import {
   getCategoryGroup,
 } from "@/lib/finance-category-groups";
 import {
-  Settings,
-  Palette,
-  Plus,
-  Pencil,
-  Trash2,
-  Loader2,
-  Download,
-  Upload,
   AlertTriangle,
-  Globe,
-  Wallet,
-  ShoppingCart,
-  Home,
-  Car,
-  Heart,
-  GraduationCap,
-  Plane,
-  Smartphone,
-  Gift,
-  Utensils,
-  MoreHorizontal,
-  DollarSign,
-  PiggyBank,
-  Coffee,
-  Zap,
-  Wifi,
-  Shirt,
-  Dumbbell,
-  BookOpen,
-  Music,
-  Film,
-  Cat,
-  Stethoscope,
-  Pill,
-  Bike,
-  Tv,
-  Radio,
-  Gamepad2,
-  Drama,
-  Paintbrush,
-  Wrench,
-  Fuel,
-  Building2,
-  Baby,
-  ToyBrick,
-  Sparkles,
-  Hand,
-  ScrollText,
-  Banknote,
-  Landmark,
-  Award,
-  Crown,
-  Gem,
-  Ticket,
-  Train,
-  Bus,
-  Ship,
-  Footprints,
-  Package,
-  Target,
-  Shield,
-  ChevronDown,
-  TrendingDown,
-  TrendingUp,
-  EyeOff,
-  Check,
-  Search,
-  Briefcase,
-  Key,
-  Percent,
-  Receipt,
-  RefreshCw,
-  Backpack,
-  Cake,
-  Camera,
-  Cloud,
-  CreditCard,
-  Dices,
-  Droplets,
-  Flame,
-  Flower2,
-  Glasses,
-  Gavel,
-  Hammer,
-  Lock,
-  Luggage,
-  Monitor,
-  ParkingCircle,
-  PartyPopper,
-  Pen,
-  Puzzle,
-  Sandwich,
-  School,
-  Scooter,
-  Sofa,
-  Soup,
-  Syringe,
-  Umbrella,
-  Calendar,
-  Snowflake,
-  GripVertical,
-  Star,
   Archive,
   BarChart3,
+  Check,
+  ChevronDown,
   ChevronRight,
-  Hash,
+  Download,
+  EyeOff,
+  Globe,
+  GripVertical,
+  Loader2,
   MoreVertical,
-  Copy,
-  UserPlus,
-  Users,
+  Palette,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Star,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  Trash2,
+  Upload,
+  Zap,
 } from "lucide-react";
+import { getAssetIcon } from "@/lib/finance-assets";
+import { getFinanceIcon } from "@/lib/finance-icons";
+import {
+  CATEGORY_COLORS,
+  CATEGORY_ICON_GROUPS,
+} from "@/lib/finance-category-constants";
 import type {
   TransactionCategory,
   FinanceAccount,
@@ -131,7 +51,8 @@ import {
   getTransactionsByUser,
 } from "@/lib/finance-client";
 import { doc, updateDoc } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import { useAuthUid } from "@/lib/use-auth-uid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -173,281 +94,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-const COLORS = [
-  { value: "red", bg: "bg-red-500", label: "Красный" },
-  { value: "blue", bg: "bg-blue-500", label: "Синий" },
-  { value: "green", bg: "bg-green-500", label: "Зелёный" },
-  { value: "yellow", bg: "bg-yellow-500", label: "Жёлтый" },
-  { value: "purple", bg: "bg-purple-500", label: "Фиолетовый" },
-  { value: "pink", bg: "bg-pink-500", label: "Розовый" },
-  { value: "orange", bg: "bg-orange-500", label: "Оранжевый" },
-  { value: "teal", bg: "bg-teal-500", label: "Бирюзовый" },
-  { value: "indigo", bg: "bg-indigo-500", label: "Индиго" },
-  { value: "cyan", bg: "bg-cyan-500", label: "Голубой" },
-  { value: "lime", bg: "bg-lime-500", label: "Лаймовый" },
-  { value: "amber", bg: "bg-amber-500", label: "Янтарный" },
-  { value: "violet", bg: "bg-violet-500", label: "Сиреневый" },
-  { value: "rose", bg: "bg-rose-500", label: "Розовый" },
-  { value: "slate", bg: "bg-slate-500", label: "Серый" },
-];
-
-const ICON_GROUPS: {
-  name: string;
-  color: string;
-  type: "expense" | "income" | "both";
-  items: { value: string; label: string; icon: React.ElementType }[];
-}[] = [
-  {
-    name: "Продукты",
-    color: "bg-emerald-500",
-    type: "expense",
-    items: [
-      { value: "ShoppingCart", label: "Магазин", icon: ShoppingCart },
-      { value: "Utensils", label: "Ресторан", icon: Utensils },
-      { value: "Coffee", label: "Кофе", icon: Coffee },
-      { value: "Soup", label: "Столовая", icon: Soup },
-      { value: "Sandwich", label: "Фастфуд", icon: Sandwich },
-      { value: "Cake", label: "Кондитерская", icon: Cake },
-    ],
-  },
-  {
-    name: "Дом",
-    color: "bg-blue-500",
-    type: "expense",
-    items: [
-      { value: "Home", label: "Дом", icon: Home },
-      { value: "Zap", label: "Электричество", icon: Zap },
-      { value: "Wrench", label: "Ремонт", icon: Wrench },
-      { value: "ScrollText", label: "Коммуналка", icon: ScrollText },
-      { value: "Droplets", label: "Вода", icon: Droplets },
-      { value: "Flame", label: "Отопление/Газ", icon: Flame },
-      { value: "Trash2", label: "Мусор", icon: Trash2 },
-      { value: "Sofa", label: "Мебель", icon: Sofa },
-      { value: "Flower2", label: "Растение", icon: Flower2 },
-      { value: "Hammer", label: "Стройматериалы", icon: Hammer },
-      { value: "Paintbrush", label: "Декор", icon: Paintbrush },
-    ],
-  },
-  {
-    name: "Транспорт",
-    color: "bg-orange-500",
-    type: "expense",
-    items: [
-      { value: "Car", label: "Авто", icon: Car },
-      { value: "Fuel", label: "Топливо", icon: Fuel },
-      { value: "Train", label: "Поезд", icon: Train },
-      { value: "Bus", label: "Автобус", icon: Bus },
-      { value: "Plane", label: "Самолёт", icon: Plane },
-      { value: "Ship", label: "Корабль", icon: Ship },
-      { value: "Bike", label: "Велосипед", icon: Bike },
-      { value: "Scooter", label: "Самокат", icon: Scooter },
-      { value: "Shield", label: "Мотоцикл", icon: Shield },
-      { value: "ParkingCircle", label: "Парковка", icon: ParkingCircle },
-      { value: "Gavel", label: "Штрафы", icon: Gavel },
-    ],
-  },
-  {
-    name: "Здоровье",
-    color: "bg-pink-500",
-    type: "expense",
-    items: [
-      { value: "Heart", label: "Здоровье", icon: Heart },
-      { value: "Stethoscope", label: "Врач", icon: Stethoscope },
-      { value: "Pill", label: "Таблетки", icon: Pill },
-      { value: "Dumbbell", label: "Спортзал", icon: Dumbbell },
-      { value: "Pill", label: "Анализы", icon: Pill },
-      { value: "Syringe", label: "Вакцинация", icon: Syringe },
-      { value: "Droplets", label: "Бассейн", icon: Droplets },
-    ],
-  },
-  {
-    name: "Одежда",
-    color: "bg-violet-500",
-    type: "expense",
-    items: [
-      { value: "Shirt", label: "Одежда", icon: Shirt },
-      { value: "Gem", label: "Украшения", icon: Gem },
-      { value: "Sparkles", label: "Косметика", icon: Sparkles },
-      { value: "Footprints", label: "Обувь", icon: Footprints },
-      { value: "Backpack", label: "Рюкзак", icon: Backpack },
-      { value: "Luggage", label: "Чемодан", icon: Luggage },
-      { value: "Glasses", label: "Очки", icon: Glasses },
-      { value: "Umbrella", label: "Зонт", icon: Umbrella },
-    ],
-  },
-  {
-    name: "Образование",
-    color: "bg-indigo-500",
-    type: "expense",
-    items: [
-      { value: "GraduationCap", label: "Обучение", icon: GraduationCap },
-      { value: "BookOpen", label: "Книги", icon: BookOpen },
-      { value: "School", label: "Школа/Вуз", icon: School },
-      { value: "Pen", label: "Канцелярия", icon: Pen },
-    ],
-  },
-  {
-    name: "Развлечения",
-    color: "bg-amber-500",
-    type: "expense",
-    items: [
-      { value: "Film", label: "Кино", icon: Film },
-      { value: "Music", label: "Музыка", icon: Music },
-      { value: "Gamepad2", label: "Игры", icon: Gamepad2 },
-      { value: "Ticket", label: "Билеты", icon: Ticket },
-      { value: "Drama", label: "Театр", icon: Drama },
-      { value: "Dices", label: "Настольные игры", icon: Dices },
-      { value: "Puzzle", label: "Пазлы", icon: Puzzle },
-      { value: "Camera", label: "Фото", icon: Camera },
-      { value: "PartyPopper", label: "Праздники", icon: PartyPopper },
-    ],
-  },
-  {
-    name: "Связь",
-    color: "bg-cyan-500",
-    type: "expense",
-    items: [
-      { value: "Smartphone", label: "Телефон", icon: Smartphone },
-      { value: "Radio", label: "Подписки", icon: Radio },
-      { value: "Tv", label: "ТВ", icon: Tv },
-      { value: "Wifi", label: "Интернет", icon: Wifi },
-      { value: "Monitor", label: "Серверы", icon: Monitor },
-      { value: "Cloud", label: "Облака", icon: Cloud },
-      { value: "Lock", label: "Сигнализация", icon: Lock },
-    ],
-  },
-  {
-    name: "Кредиты",
-    color: "bg-rose-500",
-    type: "expense",
-    items: [
-      { value: "Landmark", label: "Кредит", icon: Landmark },
-      { value: "CreditCard", label: "Карта", icon: CreditCard },
-      { value: "Percent", label: "Проценты", icon: Percent },
-      { value: "Banknote", label: "Займ", icon: Banknote },
-      { value: "Car", label: "Автокредит", icon: Car },
-      { value: "Home", label: "Ипотека", icon: Home },
-    ],
-  },
-  {
-    name: "Социальное",
-    color: "bg-teal-500",
-    type: "expense",
-    items: [
-      { value: "Gift", label: "Подарки", icon: Gift },
-      { value: "Baby", label: "Дети", icon: Baby },
-      { value: "ToyBrick", label: "Игрушки", icon: ToyBrick },
-      { value: "Cat", label: "Животные", icon: Cat },
-    ],
-  },
-  {
-    name: "Финансы",
-    color: "bg-emerald-500",
-    type: "income",
-    items: [
-      { value: "DollarSign", label: "Доход", icon: DollarSign },
-      { value: "PiggyBank", label: "Копилка", icon: PiggyBank },
-      { value: "Wallet", label: "Кошелёк", icon: Wallet },
-      { value: "Landmark", label: "Банк", icon: Landmark },
-      { value: "Banknote", label: "Наличные", icon: Banknote },
-    ],
-  },
-  {
-    name: "Зарплата",
-    color: "bg-emerald-500",
-    type: "income",
-    items: [
-      { value: "DollarSign", label: "Зарплата", icon: DollarSign },
-      { value: "DollarSign", label: "Оклад", icon: DollarSign },
-      { value: "Wallet", label: "Аванс", icon: Wallet },
-      { value: "Award", label: "Премия", icon: Award },
-      { value: "Briefcase", label: "Подработка", icon: Briefcase },
-      { value: "Percent", label: "Проценты", icon: Percent },
-    ],
-  },
-  {
-    name: "Инвестиции",
-    color: "bg-emerald-500",
-    type: "income",
-    items: [
-      { value: "TrendingUp", label: "Доход", icon: TrendingUp },
-      { value: "PiggyBank", label: "Вклады", icon: PiggyBank },
-      { value: "Crown", label: "Роялти/Гонорар", icon: Crown },
-      { value: "RefreshCw", label: "Кэшбэк", icon: RefreshCw },
-    ],
-  },
-  {
-    name: "Выплаты",
-    color: "bg-teal-500",
-    type: "income",
-    items: [
-      { value: "GraduationCap", label: "Стипендия", icon: GraduationCap },
-      { value: "Baby", label: "Пособия", icon: Baby },
-      { value: "Shield", label: "Страховка", icon: Shield },
-      { value: "Heart", label: "Соцподдержка", icon: Heart },
-      { value: "ScrollText", label: "Налоговое", icon: ScrollText },
-    ],
-  },
-  {
-    name: "Недвижимость",
-    color: "bg-blue-500",
-    type: "income",
-    items: [
-      { value: "Key", label: "Аренда", icon: Key },
-      { value: "Building2", label: "Продажа", icon: Building2 },
-      { value: "Package", label: "Товары", icon: Package },
-    ],
-  },
-  {
-    name: "Прочие доходы",
-    color: "bg-amber-500",
-    type: "income",
-    items: [
-      { value: "Gift", label: "Подарки", icon: Gift },
-      { value: "Gem", label: "Выигрыши", icon: Gem },
-      { value: "Search", label: "Находка", icon: Search },
-      { value: "Landmark", label: "Кредит/Займ", icon: Landmark },
-      { value: "Hand", label: "Компенсация", icon: Hand },
-      { value: "Receipt", label: "Налоговый вычет", icon: Receipt },
-    ],
-  },
-  {
-    name: "Госуслуги",
-    color: "bg-red-500",
-    type: "expense",
-    items: [
-      { value: "Building2", label: "Госуслуги", icon: Building2 },
-      { value: "ScrollText", label: "Документы", icon: ScrollText },
-      { value: "AlertTriangle", label: "Штрафы", icon: AlertTriangle },
-      { value: "Landmark", label: "Регистрация", icon: Landmark },
-      { value: "Globe", label: "Виза/Паспорт", icon: Globe },
-    ],
-  },
-  {
-    name: "Покупки",
-    color: "bg-slate-500",
-    type: "expense",
-    items: [
-      { value: "ShoppingCart", label: "Покупки", icon: ShoppingCart },
-      { value: "Hand", label: "Услуги", icon: Hand },
-      { value: "Package", label: "Товары", icon: Package },
-    ],
-  },
-  {
-    name: "Прочее",
-    color: "bg-slate-500",
-    type: "both",
-    items: [
-      { value: "MoreHorizontal", label: "Другое", icon: MoreHorizontal },
-      { value: "Award", label: "Достижения", icon: Award },
-      { value: "Target", label: "Цель", icon: Target },
-      { value: "Shield", label: "Страховка", icon: Shield },
-      { value: "Crown", label: "Премиум", icon: Crown },
-      { value: "CreditCard", label: "Кредитка", icon: CreditCard },
-    ],
-  },
-];
-
+const COLORS = CATEGORY_COLORS;
+const ICON_GROUPS = CATEGORY_ICON_GROUPS;
 const ICON_OPTIONS = ICON_GROUPS.flatMap((g) => g.items);
 
 const ALLOWED_CURRENCIES = CURRENCIES.filter((c) =>
@@ -455,18 +103,12 @@ const ALLOWED_CURRENCIES = CURRENCIES.filter((c) =>
     "RUB",
     "USD",
     "EUR",
-    "CNY",
-    "UAH",
-    "KZT",
-    "BYN",
-    "AMD",
-    "AED",
-    "TRY",
-    "PLN",
     "USDT",
     "USDC",
+    "PUSD",
     "BTC",
     "SOL",
+    "GRAM",
     "TON",
     "ETH",
     "BNB",
@@ -478,18 +120,12 @@ const CURRENCY_ORDER = [
   "RUB",
   "USD",
   "EUR",
-  "CNY",
-  "UAH",
-  "KZT",
-  "BYN",
-  "AMD",
-  "AED",
-  "TRY",
-  "PLN",
   "USDT",
   "USDC",
+  "PUSD",
   "BTC",
   "SOL",
+  "GRAM",
   "TON",
   "ETH",
   "BNB",
@@ -500,22 +136,6 @@ const COUNTRY_FLAGS: Record<string, string> = {
   RUB: "🇷🇺",
   USD: "🇺🇸",
   EUR: "🇪🇺",
-  CNY: "🇨🇳",
-  UAH: "🇺🇦",
-  KZT: "🇰🇿",
-  BYN: "🇧🇾",
-  AMD: "🇦🇲",
-  AED: "🇦🇪",
-  TRY: "🇹🇷",
-  PLN: "🇵🇱",
-  USDT: "💎",
-  USDC: "💎",
-  BTC: "₿",
-  SOL: "◎",
-  TON: "💎",
-  ETH: "⟠",
-  BNB: "🔶",
-  TRX: "⚡",
 };
 
 function CurrencyPickerDialog({
@@ -572,13 +192,25 @@ function CurrencyPickerDialog({
           onOpenChange(false);
         }}
       >
-        <span className="text-3xl leading-none shrink-0">
-          {COUNTRY_FLAGS[c.code] || "🏳️"}
+        <span className="text-3xl leading-none shrink-0 w-8 text-center">
+          {getAssetIcon(c.code) ? (
+            <img
+              src={getAssetIcon(c.code)}
+              alt={c.code}
+              width={32}
+              height={32}
+              className="inline-block rounded"
+            />
+          ) : (
+            COUNTRY_FLAGS[c.code] || "🏳️"
+          )}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="font-semibold text-sm">{c.code}</span>
-            <span className="text-sm text-muted-foreground">{c.symbol}</span>
+            {c.type === "fiat" && c.symbol && (
+              <span className="text-sm text-muted-foreground">{c.symbol}</span>
+            )}
             {isSelected && (
               <Check className="h-3.5 w-3.5 text-primary ml-auto shrink-0" />
             )}
@@ -630,9 +262,7 @@ function CurrencyPickerDialog({
 }
 
 const renderIcon = (iconName: string, className = "h-4 w-4") => {
-  const opt = ICON_OPTIONS.find((i) => i.value === iconName);
-  if (!opt) return <MoreHorizontal className={className} />;
-  const Icon = opt.icon;
+  const Icon = getFinanceIcon(iconName);
   return <Icon className={className} />;
 };
 
@@ -764,15 +394,16 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
   const [editingCat, setEditingCat] = useState<TransactionCategory | null>(
     null,
   );
-  const [currency, setCurrency] = useState(
-    () => localStorage.getItem("finance_currency") || "RUB",
-  );
+  const [currency, setCurrency] = useState("RUB");
+  useEffect(() => {
+    setCurrency(localStorage.getItem("finance_currency") || "RUB");
+  }, []);
   const [name, setName] = useState("");
   const [catType, setCatType] = useState<"income" | "expense">("expense");
   const [color, setColor] = useState("blue");
   const [icon, setIcon] = useState("MoreHorizontal");
   const [showInBudget, setShowInBudget] = useState(true);
-  const uid = auth.currentUser?.uid || "user-1";
+  const { uid } = useAuthUid();
 
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
     () => new Set(),
@@ -794,6 +425,7 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
   }, [transactions]);
 
   useEffect(() => {
+    if (!uid) return;
     Promise.all([
       getCategoriesByUser(uid),
       getAccountsByUser(uid),
@@ -1096,8 +728,18 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
               className="flex items-center gap-2.5 rounded-xl border border-input bg-background px-3.5 py-2 text-left transition-all hover:bg-muted/50 hover:border-muted-foreground/30 shrink-0"
               onClick={() => setShowCurrencyDialog(true)}
             >
-              <span className="text-lg leading-none">
-                {COUNTRY_FLAGS[currency] || "🏳️"}
+              <span className="text-lg leading-none w-6 text-center">
+                {getAssetIcon(currency) ? (
+                  <img
+                    src={getAssetIcon(currency)}
+                    alt={currency}
+                    width={24}
+                    height={24}
+                    className="inline-block rounded"
+                  />
+                ) : (
+                  COUNTRY_FLAGS[currency] || "🏳️"
+                )}
               </span>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -1562,37 +1204,40 @@ export function FinanceSettings({ onVisibilityChange }: Props) {
                       </span>
                     </div>
                     <div className="grid grid-cols-7 sm:grid-cols-8 gap-1.5">
-                      {grp.items.map((opt) => (
-                        <button
-                          key={opt.value}
-                          className={cn(
-                            "flex flex-col items-center gap-1 rounded-lg border p-2 transition-all",
-                            icon === opt.value
-                              ? "border-primary bg-primary/10 shadow-sm"
-                              : "border-input hover:bg-muted hover:border-muted-foreground/30",
-                          )}
-                          onClick={() => setIcon(opt.value)}
-                        >
-                          <opt.icon
+                      {grp.items.map((opt) => {
+                        const Icon = getFinanceIcon(opt.value);
+                        return (
+                          <button
+                            key={opt.value}
                             className={cn(
-                              "h-5 w-5",
+                              "flex flex-col items-center gap-1 rounded-lg border p-2 transition-all",
                               icon === opt.value
-                                ? "text-foreground"
-                                : "text-muted-foreground",
+                                ? "border-primary bg-primary/10 shadow-sm"
+                                : "border-input hover:bg-muted hover:border-muted-foreground/30",
                             )}
-                          />
-                          <span
-                            className={cn(
-                              "text-[8px] text-center leading-tight",
-                              icon === opt.value
-                                ? "text-foreground font-medium"
-                                : "text-muted-foreground",
-                            )}
+                            onClick={() => setIcon(opt.value)}
                           >
+                            <Icon
+                              className={cn(
+                                "h-5 w-5",
+                                icon === opt.value
+                                  ? "text-foreground"
+                                  : "text-muted-foreground",
+                              )}
+                            />
+                            <span
+                              className={cn(
+                                "text-[8px] text-center leading-tight",
+                                icon === opt.value
+                                  ? "text-foreground font-medium"
+                                  : "text-muted-foreground",
+                              )}
+                            >
                             {opt.label}
                           </span>
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}

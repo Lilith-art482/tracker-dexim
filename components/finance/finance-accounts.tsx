@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Wallet,
   Plus,
@@ -19,8 +19,6 @@ import {
   Percent,
   Calendar,
   FileText,
-  Search,
-  ChevronDown,
   ArrowDown,
   Check,
   MoreVertical,
@@ -40,7 +38,8 @@ import type {
   Loan as LoanType,
 } from "@/lib/finance-types";
 import { CURRENCIES } from "@/lib/finance-types";
-import { auth } from "@/lib/firebase";
+import { getAssetIcon } from "@/lib/finance-assets";
+import { useAuthUid } from "@/lib/use-auth-uid";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -62,11 +61,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -112,11 +106,24 @@ import {
   getLoansByUser,
   createLoan,
   updateLoan as updateLoanModel,
+  getTransactionsByUser,
 } from "@/lib/finance-client";
 import { toast } from "sonner";
 import { CategorySearchSelect } from "@/components/finance/category-search-select";
+import { CurrencySelect } from "@/components/finance/currency-select";
+import { FinanceAccountsHistory } from "@/components/finance/finance-accounts-history";
+import { logAccountEdit } from "@/lib/finance-client";
 
 type AccountType = FinanceAccount["type"];
+
+function getStorageErrorMessage(e: unknown, fallback: string): string {
+  const msg = e instanceof Error ? e.message : "";
+  if (/quota|resource-exhausted|insufficient/i.test(msg)) {
+    return "Дневной лимит Firestore исчерпан. Подождите до сброса в полночь или подключите тариф Blaze в консоли Firebase.";
+  }
+  return msg || fallback;
+}
+
 const CARD_TYPES = [
   { value: "debit" as const, label: "Дебетовая" },
   { value: "credit" as const, label: "Кредитная" },
@@ -133,22 +140,6 @@ const INTEREST_PERIOD_LABELS: Record<string, string> = {
   quarterly: "Ежеквартально",
   semiannual: "Раз в 6 месяцев",
   annual: "Ежегодно",
-};
-
-const CRYPTO_ICONS: Record<string, string> = {
-  BTC: "/icon-btc.webp",
-  ETH: "/icon-eth.webp",
-  SOL: "/icon-sol.webp",
-  BNB: "/icon-bnb.webp",
-  TON: "/Gram Circular Badge.svg",
-  TRX: "/trx.png",
-  USDT: "/usdt.png",
-  USDC: "/usdc.jpg",
-};
-
-const FIAT_ICONS: Record<string, string> = {
-  RUB: "/рубль.png",
-  USD: "/usd.png",
 };
 
 const TYPE_CONFIG: Record<
@@ -181,152 +172,6 @@ const TYPE_CONFIG: Record<
     color: "text-sky-600 bg-sky-500/10",
   },
 };
-
-function CurrencySelect({
-  value,
-  onChange,
-  fiatOnly,
-  cryptoOnly,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  fiatOnly?: boolean;
-  cryptoOnly?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-
-  const filtered = useMemo(
-    () =>
-      CURRENCIES.filter((c) => {
-        if (fiatOnly && c.type !== "fiat") return false;
-        if (cryptoOnly && c.type !== "crypto") return false;
-        return (
-          c.code.toLowerCase().includes(search.toLowerCase()) ||
-          c.label.toLowerCase().includes(search.toLowerCase())
-        );
-      }),
-    [search, fiatOnly, cryptoOnly],
-  );
-
-  const selected = CURRENCIES.find((c) => c.code === value);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="flex w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 h-8 data-placeholder:text-muted-foreground dark:bg-input/30 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
-        {selected ? (
-          <span className="flex items-center gap-1.5">
-            {CRYPTO_ICONS[selected.code] || FIAT_ICONS[selected.code] ? (
-              <span className="flex h-5 w-5 items-center justify-center rounded border bg-background shrink-0 overflow-hidden">
-                <img
-                  src={CRYPTO_ICONS[selected.code] || FIAT_ICONS[selected.code]}
-                  alt={selected.code}
-                  width={18}
-                  height={18}
-                  className="object-contain"
-                />
-              </span>
-            ) : (
-              <span className="flex h-5 w-5 items-center justify-center rounded border bg-background text-[10px] font-medium shrink-0">
-                {selected.symbol}
-              </span>
-            )}
-            <span className="font-medium text-xs">{selected.code}</span>
-          </span>
-        ) : (
-          <span className="text-muted-foreground text-xs">Выберите валюту</span>
-        )}
-        <ChevronDown className="h-3.5 w-3.5 ml-auto opacity-50" />
-      </PopoverTrigger>
-      <PopoverContent className="w-[280px] p-2" align="start">
-        <div className="relative mb-2">
-          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Поиск валюты..."
-            className="pl-8 h-8 text-sm"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            autoFocus
-          />
-        </div>
-        {filtered.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-2 text-center">
-            Ничего не найдено
-          </p>
-        ) : (
-          <div className="space-y-0.5 max-h-[240px] overflow-y-auto">
-            {filtered
-              .reduce<
-                {
-                  type: string;
-                  label: string;
-                  items: (typeof CURRENCIES)[number][];
-                }[]
-              >((groups, c) => {
-                const last = groups[groups.length - 1];
-                if (last && last.type === c.type) {
-                  last.items.push(c);
-                } else {
-                  groups.push({
-                    type: c.type,
-                    label: c.type === "fiat" ? "Фиат" : "Криптовалюта",
-                    items: [c],
-                  });
-                }
-                return groups;
-              }, [])
-              .map((group) => (
-                <div key={group.type}>
-                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-2 py-1">
-                    {group.label}
-                  </p>
-                  {group.items.map((c) => (
-                    <button
-                      key={c.code}
-                      className={cn(
-                        "flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-sm transition-colors",
-                        value === c.code
-                          ? "bg-primary/10 text-primary"
-                          : "hover:bg-muted text-foreground",
-                      )}
-                      onClick={() => {
-                        onChange(c.code);
-                        setOpen(false);
-                        setSearch("");
-                      }}
-                    >
-                      {CRYPTO_ICONS[c.code] || FIAT_ICONS[c.code] ? (
-                        <span className="flex h-5 w-5 items-center justify-center rounded overflow-hidden shrink-0">
-                          <img
-                            src={CRYPTO_ICONS[c.code] || FIAT_ICONS[c.code]}
-                            alt={c.code}
-                            width={20}
-                            height={20}
-                            className="object-contain"
-                          />
-                        </span>
-                      ) : (
-                        <span className="text-base w-5 text-center">
-                          {c.symbol}
-                        </span>
-                      )}
-                      <span className="font-medium">{c.code}</span>
-                      <span className="text-xs text-muted-foreground truncate">
-                        {c.label}
-                      </span>
-                      {value === c.code && (
-                        <Check className="h-3.5 w-3.5 ml-auto" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              ))}
-          </div>
-        )}
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 export function FinanceAccounts() {
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
@@ -383,6 +228,9 @@ export function FinanceAccounts() {
   const [quickLinkLoan, setQuickLinkLoan] = useState(false);
   const [quickLoanId, setQuickLoanId] = useState("");
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
+  const [transactions, setTransactions] = useState<
+    import("@/lib/finance-types").Transaction[]
+  >([]);
   const [loans, setLoans] = useState<LoanType[]>([]);
   const [filterMin, setFilterMin] = useState("");
   const [filterMax, setFilterMax] = useState("");
@@ -398,20 +246,23 @@ export function FinanceAccounts() {
   const [newLoanMonthly, setNewLoanMonthly] = useState("");
   const [newLoanNextPayment, setNewLoanNextPayment] = useState("");
 
-  const uid = auth.currentUser?.uid || "user-1";
+  const { uid } = useAuthUid();
   const dialogTitle = editId ? "Редактировать счёт" : "Новый счёт";
 
   const fetchAccounts = useCallback(async () => {
+    if (!uid) return;
     setLoading(true);
     try {
-      const [data, cats, ln] = await Promise.all([
+      const [data, cats, ln, txs] = await Promise.all([
         getAccountsByUser(uid),
         getCategoriesByUser(uid),
         getLoansByUser(uid),
+        getTransactionsByUser(uid),
       ]);
       setAccounts(data);
       setCategories(cats);
       setLoans(ln);
+      setTransactions(txs);
 
       const rate = await getUSDTtoRUB();
       setUsdtRate(rate);
@@ -432,21 +283,24 @@ export function FinanceAccounts() {
     ) as AccountType | null;
     const lastCurrency = localStorage.getItem("finance_last_account_currency");
     if (lastType && TYPE_CONFIG[lastType]) setFormType(lastType);
-    if (lastCurrency) setFormCurrency(lastCurrency);
+    if (lastCurrency) {
+      setFormCurrency(lastCurrency);
+      if (lastType === "crypto") setFormCryptoCoin(lastCurrency);
+    }
   }, []);
 
   const resetForm = useCallback(() => {
+    const lastType = localStorage.getItem(
+      "finance_last_account_type",
+    ) as AccountType | null;
+    const lastCurrency =
+      localStorage.getItem("finance_last_account_currency") || "RUB";
     setFormName("");
-    setFormType(
-      (localStorage.getItem("finance_last_account_type") as AccountType) ||
-        "card",
-    );
+    setFormType(lastType || "card");
     setFormBalance("");
-    setFormCurrency(
-      localStorage.getItem("finance_last_account_currency") || "RUB",
-    );
+    setFormCurrency(lastCurrency);
     setFormCardType("debit");
-    setFormCryptoCoin("BTC");
+    setFormCryptoCoin(lastType === "crypto" ? lastCurrency : "BTC");
     setFormWalletName("");
     setFormWalletAddress("");
     setFormInterestRate("");
@@ -489,7 +343,7 @@ export function FinanceAccounts() {
     }
     setFormCurrency(account.currency);
     setFormCardType(account.cardType || "debit");
-    setFormCryptoCoin(account.cryptoCoin || "BTC");
+    setFormCryptoCoin(account.cryptoCoin || account.currency || "BTC");
     setFormWalletName(account.walletName || "");
     setFormWalletAddress(account.walletAddress || "");
     setFormInterestRate(
@@ -541,6 +395,7 @@ export function FinanceAccounts() {
     if (formType === "crypto") {
       if (formWalletAddress) body.walletAddress = formWalletAddress;
       body.walletName = formName.trim();
+      body.cryptoCoin = formCurrency;
       const rates = getCachedRates();
       if (rates) {
         body.cryptoAmount = computeCryptoAmount(
@@ -570,11 +425,28 @@ export function FinanceAccounts() {
     try {
       let saved: FinanceAccount;
       if (editId) {
+        const oldAcc = accounts.find((a) => a.id === editId);
         const { userId: _, ...updates } = body;
         saved = await updateAccountModel(
           editId,
           updates as Parameters<typeof updateAccountModel>[1],
         );
+
+        if (oldAcc) {
+          const changes: { field: string; oldValue?: string; newValue?: string }[] = [];
+          if (oldAcc.name !== formName.trim()) {
+            changes.push({ field: "name", oldValue: oldAcc.name, newValue: formName.trim() });
+          }
+          if (oldAcc.balance !== balance) {
+            changes.push({ field: "balance", oldValue: String(oldAcc.balance), newValue: String(balance) });
+          }
+          if (oldAcc.currency !== formCurrency) {
+            changes.push({ field: "currency", oldValue: oldAcc.currency, newValue: formCurrency });
+          }
+          if (changes.length > 0) {
+            logAccountEdit({ accountId: editId, accountName: formName.trim(), changes }).catch(() => {});
+          }
+        }
       } else {
         saved = await createAccount({
           id: crypto.randomUUID(),
@@ -589,7 +461,7 @@ export function FinanceAccounts() {
       resetForm();
     } catch (e) {
       console.error("Failed to save account:", e);
-      toast.error(e instanceof Error ? e.message : "Ошибка сохранения");
+      toast.error(getStorageErrorMessage(e, "Ошибка сохранения"));
     } finally {
       setSaving(false);
     }
@@ -615,16 +487,28 @@ export function FinanceAccounts() {
   };
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 15 },
+    }),
   );
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteAccount(id);
-      setAccounts((prev) => prev.filter((a) => a.id !== id));
-    } catch (e) {
-      console.error("Failed to delete account:", e);
-    }
+    toast("Удалить счёт?", {
+      action: {
+        label: "Удалить",
+        onClick: async () => {
+          try {
+            await deleteAccount(id);
+            setAccounts((prev) => prev.filter((a) => a.id !== id));
+            toast.success("Счёт удалён");
+          } catch (e) {
+            console.error("Failed to delete account:", e);
+            toast.error(getStorageErrorMessage(e, "Не удалось удалить счёт"));
+          }
+        },
+      },
+      cancel: { label: "Отмена", onClick: () => {} },
+    });
   };
 
   const accountBalance = useCallback((acc: FinanceAccount): number => {
@@ -837,7 +721,7 @@ export function FinanceAccounts() {
         tags:
           tags.length > 0
             ? tags
-            : [quickType === "add" ? "topup" : "withdrawal"],
+            : [],
         date: localDateStr(),
       });
 
@@ -1015,6 +899,10 @@ export function FinanceAccounts() {
     };
     const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.cash;
     const Icon = cfg.icon;
+    const coinIcon =
+      a.type === "crypto" && (a.cryptoCoin || a.currency)
+        ? getAssetIcon(a.cryptoCoin || a.currency)
+        : undefined;
     const isDepositOrSavings = a.type === "investment" || a.type === "savings";
     const projections = isDepositOrSavings ? depositProjections(a) : null;
 
@@ -1022,7 +910,7 @@ export function FinanceAccounts() {
       <Card
         ref={setNodeRef}
         style={style}
-        className={cn(isDragging && "shadow-lg")}
+        className={cn("h-full", isDragging && "shadow-lg")}
       >
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
@@ -1041,7 +929,15 @@ export function FinanceAccounts() {
                     cfg.color,
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  {coinIcon ? (
+                    <img
+                      src={coinIcon}
+                      alt={a.cryptoCoin}
+                      className="h-5 w-5 rounded-full object-cover"
+                    />
+                  ) : (
+                    <Icon className="h-5 w-5" />
+                  )}
                 </div>
               </div>
               <div className="min-w-0">
@@ -1065,7 +961,7 @@ export function FinanceAccounts() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
+                  variant="destructive"
                   onClick={() => handleDelete(a.id)}
                 >
                   <Trash2 className="h-3.5 w-3.5 mr-2" />
@@ -1075,7 +971,7 @@ export function FinanceAccounts() {
             </DropdownMenu>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 flex-1">
           <div>
             {a.type === "crypto" && a.cryptoCoin && a.cryptoAmount != null ? (
               <>
@@ -1096,7 +992,7 @@ export function FinanceAccounts() {
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {a.cryptoAmount.toLocaleString(undefined, {
-                          maximumFractionDigits: 6,
+                          maximumFractionDigits: a.cryptoCoin === "BTC" ? 8 : 6,
                         })}{" "}
                         {a.cryptoCoin}
                       </p>
@@ -1275,48 +1171,64 @@ export function FinanceAccounts() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="space-y-5">
+      {/* Top bar */}
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Счета и кошельки</h2>
-          <p className="text-sm text-muted-foreground">
-            Общий баланс:{" "}
-            <span className="font-semibold text-foreground">
-              {Math.round(totalBalance).toLocaleString()} ₽
-            </span>
-            {" · "}
-            <span className="text-xs">{accounts.length} счетов</span>
-            {" · "}
-            <span className="text-[10px]">
-              {getDisplayCurrency()} — {usdtRate.toFixed(2)} ₽
-            </span>
+          <h2 className="text-xl font-bold tracking-tight">Счета и кошельки</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Управление счетами, переводы и история балансов
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-1.5">
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon"
             onClick={() => setShowFilters((v) => !v)}
-            className={cn(showFilters && "bg-muted")}
+            className={cn("h-9 w-9", showFilters && "bg-muted text-foreground")}
+            title="Фильтр"
           >
-            <SlidersHorizontal className="h-4 w-4 mr-1.5" />
-            Фильтр
+            <SlidersHorizontal className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              resetForm();
-              setTransferOpen(true);
-            }}
+            variant="ghost"
+            size="icon"
+            onClick={() => { resetForm(); setTransferOpen(true); }}
+            className="h-9 w-9"
+            title="Перевод"
           >
-            <ArrowRightLeft className="h-4 w-4 mr-1.5" />
-            Перевод
+            <ArrowRightLeft className="h-4 w-4" />
           </Button>
-          <Button size="sm" onClick={openAdd}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Добавить счёт
+          <Button
+            size="sm"
+            onClick={openAdd}
+            className="h-9 px-3 gap-1.5 rounded-lg"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Добавить</span>
           </Button>
+        </div>
+      </div>
+
+      {/* Stat strip */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl border-2 border-emerald-500/30 bg-emerald-500/5 p-3.5">
+          <p className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Баланс</p>
+          <p className="text-lg font-bold tabular-nums mt-0.5">
+            {Math.round(totalBalance).toLocaleString()} <span className="text-sm font-medium text-emerald-600/60 dark:text-emerald-400/60">₽</span>
+          </p>
+        </div>
+        <div className="rounded-xl border-2 border-sky-500/30 bg-sky-500/5 p-3.5">
+          <p className="text-[10px] font-medium text-sky-600 dark:text-sky-400 uppercase tracking-wider">Счетов</p>
+          <p className="text-lg font-bold tabular-nums mt-0.5">
+            {accounts.length}
+          </p>
+        </div>
+        <div className="rounded-xl border-2 border-amber-500/30 bg-amber-500/5 p-3.5">
+          <p className="text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider">Курс</p>
+          <p className="text-lg font-bold tabular-nums mt-0.5">
+            {usdtRate > 0 ? usdtRate.toFixed(1) : "—"} <span className="text-sm font-medium text-amber-600/60 dark:text-amber-400/60">₽/$</span>
+          </p>
         </div>
       </div>
 
@@ -1385,26 +1297,38 @@ export function FinanceAccounts() {
         </div>
       )}
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={sortedAccounts.map((a) => a.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAccounts.map((account) => (
-              <SortableAccountCard
-                key={account.id}
-                account={account}
-                onTransfer={handleCardTransfer}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+        <div className="flex-[2.5] min-w-0">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={sortedAccounts.map((a) => a.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {filteredAccounts.map((account) => (
+                  <SortableAccountCard
+                    key={account.id}
+                    account={account}
+                    onTransfer={handleCardTransfer}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </div>
+
+        <div className="flex-[0.5] min-w-[200px] lg:sticky lg:top-[7.5rem] lg:self-start lg:h-[calc(100vh-9rem)]">
+          <FinanceAccountsHistory
+            accounts={accounts}
+            transactions={transactions}
+            categories={categories}
+          />
+        </div>
+      </div>
 
       {/* Deposit projection dialog */}
       <Dialog
@@ -1600,8 +1524,10 @@ export function FinanceAccounts() {
                       if (key !== prevType) {
                         setFormName("");
                         if (key === "cash") setFormCurrency("RUB");
-                        else if (key === "crypto") setFormCurrency("BTC");
-                        else if (prevType === "cash" || prevType === "crypto")
+                        else if (key === "crypto") {
+                          setFormCurrency("BTC");
+                          setFormCryptoCoin("BTC");
+                        } else if (prevType === "cash" || prevType === "crypto")
                           setFormCurrency("RUB");
                       }
                       if (key === "cash" && !formName.trim()) {
@@ -1850,7 +1776,10 @@ export function FinanceAccounts() {
                   <Label className="text-xs font-medium">Валюта</Label>
                   <CurrencySelect
                     value={formCurrency}
-                    onChange={setFormCurrency}
+                    onChange={(v) => {
+                      setFormCurrency(v);
+                      if (formType === "crypto") setFormCryptoCoin(v);
+                    }}
                     fiatOnly={formType === "cash"}
                     cryptoOnly={formType === "crypto"}
                   />
@@ -1890,7 +1819,7 @@ export function FinanceAccounts() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="m-0 gap-2">
             <Button
               variant="outline"
               size="sm"

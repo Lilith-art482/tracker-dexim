@@ -26,6 +26,8 @@ import {
   ShieldCheck,
   MessageCircle,
   Gift,
+  Clapperboard,
+  Megaphone,
 } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -60,6 +62,11 @@ interface SuggestedPrompt {
 }
 
 const DEFAULT_PROMPTS: SuggestedPrompt[] = [
+  {
+    icon: Clapperboard,
+    label: "Контент-план",
+    text: "Что у меня по контент-плану? Расскажи о задачах и подскажи, что стоит опубликовать",
+  },
   {
     icon: Calendar,
     label: "Задачи на сегодня",
@@ -260,6 +267,52 @@ async function buildUserContext(): Promise<string> {
     console.error("[AI Chat] Error building context:", e);
   }
 
+  try {
+    const res = await fetch(`/api/content-tasks?uid=${uid}`);
+    if (res.ok) {
+      const contentTasks: {
+        date?: string | null;
+        status?: string;
+        title?: string;
+      }[] = await res.json();
+      if (contentTasks.length > 0) {
+        const today = new Date().toISOString().split("T")[0];
+        const onToday = contentTasks.filter((t) => t.date === today).length;
+        const backlog = contentTasks.filter((t) => !t.date).length;
+        const pending = contentTasks.filter(
+          (t) =>
+            t.status && t.status !== "Опубликовано" && t.status !== "Архив",
+        ).length;
+        parts.push(
+          `Контент-план: всего ${contentTasks.length} контент-задач, сегодня ${onToday}, без даты (бэклог) ${backlog}, в работе/черновиках ${pending}.`,
+        );
+        const byStatus = new Map<string, number>();
+        for (const t of contentTasks) {
+          const s = t.status || "Без статуса";
+          byStatus.set(s, (byStatus.get(s) || 0) + 1);
+        }
+        parts.push(
+          `  По статусам: ${[...byStatus.entries()]
+            .map(([s, n]) => `${s}: ${n}`)
+            .join(", ")}.`,
+        );
+        const upcoming = contentTasks
+          .filter((t) => t.date && t.date >= today)
+          .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
+          .slice(0, 5)
+          .map((t) => (t.title || "").slice(0, 60))
+          .join(" | ");
+        if (upcoming) {
+          parts.push(`  Ближайшие контент-задачи: ${upcoming}.`);
+        }
+      } else {
+        parts.push("Контент-план: контент-задач пока нет.");
+      }
+    }
+  } catch {
+    // silent
+  }
+
   if (parts.length === 0) {
     return "Нет данных о пользователе.";
   }
@@ -294,6 +347,38 @@ function suggestPrompts(messages: Message[]): SuggestedPrompt[] {
           icon: Lightbulb,
           label: "Расписание",
           text: "Помоги составить расписание на день",
+        },
+      ],
+    },
+    {
+      keywords: [
+        "контент",
+        "публикац",
+        "пост",
+        "stories",
+        "сторис",
+        "телеграм",
+        "канал",
+        "youtube",
+        "tiktok",
+        "рилс",
+        "платфор",
+      ],
+      prompts: [
+        {
+          icon: Clapperboard,
+          label: "Контент-план",
+          text: "Что у меня по контент-плану? Покажи ближайшие публикации",
+        },
+        {
+          icon: Megaphone,
+          label: "Идеи контента",
+          text: "Предложи идеи для публикаций на этой неделе",
+        },
+        {
+          icon: Lightbulb,
+          label: "Текст поста",
+          text: "Помоги написать пост на основе моих контент-задач",
         },
       ],
     },
@@ -704,9 +789,10 @@ export default function AiChat({ open, onClose, initialMessage }: AiChatProps) {
         }
       `}</style>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+        <div className="h-0.5 w-full shrink-0 bg-gradient-to-r from-primary via-primary/80 to-primary" />
+        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0 bg-gradient-to-r from-primary/10 via-background to-primary/10">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-sm shadow-primary/30">
               <Bot className="h-4 w-4 text-white" />
             </div>
             <div>
@@ -736,7 +822,7 @@ export default function AiChat({ open, onClose, initialMessage }: AiChatProps) {
           {messages.length === 0 ? (
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80">
                   <Bot className="h-3.5 w-3.5 text-white" />
                 </div>
                 <div className="rounded-xl bg-muted/50 px-3.5 py-2.5 text-sm">
@@ -744,30 +830,30 @@ export default function AiChat({ open, onClose, initialMessage }: AiChatProps) {
                     Привет! Я — твой AI-помощник
                   </p>
                   <p className="text-muted-foreground text-xs leading-relaxed">
-                    Могу рассказать о твоих задачах, помочь с финансами,
-                    привычками или ответить на вопросы о сервисе. Вот что я
-                    умею:
+                    Могу рассказать о твоих задачах, контент-плане, помочь с
+                    финансами, привычками или ответить на вопросы о сервисе. Вот
+                    что я умею:
                   </p>
                   <ul className="mt-1.5 space-y-0.5">
                     <li className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <ChevronRight className="h-3 w-3 text-violet-500 shrink-0" />
+                      <ChevronRight className="h-3 w-3 text-primary shrink-0" />
                       Посмотреть задачи на сегодня
                     </li>
                     <li className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <ChevronRight className="h-3 w-3 text-violet-500 shrink-0" />
+                      <ChevronRight className="h-3 w-3 text-primary shrink-0" />
+                      Контент-план: задачи, статусы, ближайшие публикации
+                    </li>
+                    <li className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <ChevronRight className="h-3 w-3 text-primary shrink-0" />
                       Анализ финансов и бюджета
                     </li>
                     <li className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <ChevronRight className="h-3 w-3 text-violet-500 shrink-0" />
+                      <ChevronRight className="h-3 w-3 text-primary shrink-0" />
                       Статистика привычек
                     </li>
                     <li className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <ChevronRight className="h-3 w-3 text-violet-500 shrink-0" />
+                      <ChevronRight className="h-3 w-3 text-primary shrink-0" />
                       FAQ, тарифы и информация о сервисе
-                    </li>
-                    <li className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <ChevronRight className="h-3 w-3 text-violet-500 shrink-0" />
-                      Персональные данные и удаление аккаунта
                     </li>
                   </ul>
                 </div>
@@ -791,9 +877,9 @@ export default function AiChat({ open, onClose, initialMessage }: AiChatProps) {
                       key={prompt.label}
                       onClick={() => sendMessage(prompt.text)}
                       disabled={loading || !contextBuilt}
-                      className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2.5 text-xs text-left hover:bg-muted/50 hover:border-primary/30 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                      className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2.5 text-xs text-left hover:bg-muted/50 hover:border-primary/40 transition-all disabled:opacity-40 disabled:pointer-events-none"
                     >
-                      <prompt.icon className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                      <prompt.icon className="h-3.5 w-3.5 text-primary shrink-0" />
                       <span className="font-medium leading-tight">
                         {prompt.label}
                       </span>
@@ -813,9 +899,9 @@ export default function AiChat({ open, onClose, initialMessage }: AiChatProps) {
                       key={prompt.label}
                       onClick={() => sendMessage(prompt.text)}
                       disabled={loading || !contextBuilt}
-                      className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2.5 text-xs text-left hover:bg-muted/50 hover:border-primary/30 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                      className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2.5 text-xs text-left hover:bg-muted/50 hover:border-primary/40 transition-all disabled:opacity-40 disabled:pointer-events-none"
                     >
-                      <prompt.icon className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                      <prompt.icon className="h-3.5 w-3.5 text-primary shrink-0" />
                       <span className="font-medium leading-tight">
                         {prompt.label}
                       </span>
@@ -838,7 +924,7 @@ export default function AiChat({ open, onClose, initialMessage }: AiChatProps) {
                       className={cn(
                         "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
                         msg.role === "assistant"
-                          ? "bg-gradient-to-br from-violet-500 to-purple-600"
+                          ? "bg-gradient-to-br from-primary to-primary/80"
                           : "bg-primary/10",
                       )}
                     >
@@ -894,9 +980,9 @@ export default function AiChat({ open, onClose, initialMessage }: AiChatProps) {
                             key={prompt.label}
                             onClick={() => sendMessage(prompt.text)}
                             disabled={loading}
-                            className="flex items-center gap-1.5 rounded-lg border bg-background/80 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:border-primary/30 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                            className="flex items-center gap-1.5 rounded-lg border bg-background/80 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:border-primary/40 transition-all disabled:opacity-40 disabled:pointer-events-none"
                           >
-                            <prompt.icon className="h-3 w-3 text-violet-500 shrink-0" />
+                            <prompt.icon className="h-3 w-3 text-primary shrink-0" />
                             {prompt.label}
                           </button>
                         ))}
@@ -918,7 +1004,7 @@ export default function AiChat({ open, onClose, initialMessage }: AiChatProps) {
           )}
           {loading && (
             <div className="flex items-start gap-3">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80">
                 <Bot className="h-3.5 w-3.5 text-white" />
               </div>
               <div className="rounded-xl bg-muted/50 px-3.5 py-2.5">

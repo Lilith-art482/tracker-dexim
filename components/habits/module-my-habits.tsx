@@ -23,7 +23,11 @@ import type {
   HabitFrequencyType,
   HabitStatus,
 } from "@/lib/habit-types";
-import { CATEGORY_LABELS, DIFFICULTY_LABELS } from "@/lib/habit-types";
+import {
+  CATEGORY_LABELS,
+  DIFFICULTY_LABELS,
+  getCategoryLabel,
+} from "@/lib/habit-types";
 import {
   CATEGORY_ICONS,
   CATEGORY_ACCENTS,
@@ -397,7 +401,10 @@ export function ModuleMyHabits() {
                         </CardTitle>
                         <CardDescription className="flex items-center gap-1.5 text-xs">
                           <span className={cn("font-medium", accent.text)}>
-                            {CATEGORY_LABELS[habit.category]}
+                            {getCategoryLabel(
+                              habit.category,
+                              habit.customCategory,
+                            )}
                           </span>
                           <span className="text-muted-foreground/40">·</span>
                           <Clock className="h-3 w-3 shrink-0 text-muted-foreground/60" />

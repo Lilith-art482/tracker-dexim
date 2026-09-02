@@ -170,12 +170,10 @@ export function FinanceShopping() {
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [showHint, setShowHint] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("shopping_hint_closed") !== "true";
-    }
-    return true;
-  });
+  const [showHint, setShowHint] = useState(true);
+  useEffect(() => {
+    setShowHint(localStorage.getItem("shopping_hint_closed") !== "true");
+  }, []);
 
   const closeHint = () => {
     setShowHint(false);
@@ -481,12 +479,16 @@ export function FinanceShopping() {
       <div
         key={list.id}
         className={cn(
-          "group relative rounded-2xl border transition-all duration-300",
+          "group relative overflow-hidden rounded-2xl border transition-all duration-300",
           list.completed
             ? "border-emerald-200/50 dark:border-emerald-800/30 bg-emerald-50/30 dark:bg-emerald-950/10"
-            : "border-border/40 bg-card hover:border-border/70 hover:shadow-sm",
+            : "border-border/40 bg-card hover:border-border/70 hover:shadow-md",
         )}
       >
+        {/* Accent edge */}
+        {!list.completed && (
+          <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-primary/50 to-primary/20" />
+        )}
         {/* Header */}
         <div
           className="flex items-center gap-3 p-4 cursor-pointer"
@@ -539,7 +541,7 @@ export function FinanceShopping() {
               </span>
               {totalItemsCount > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <div className="h-1 w-16 rounded-full bg-muted/60 overflow-hidden">
+                  <div className="h-1.5 w-16 rounded-full bg-muted/60 overflow-hidden">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary transition-all duration-500"
                       style={{ width: `${progress}%` }}
@@ -602,7 +604,9 @@ export function FinanceShopping() {
                       key={item.id}
                       className={cn(
                         "group/item flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all",
-                        item.checked ? "bg-muted/20" : "hover:bg-muted/30",
+                        item.checked
+                          ? "bg-muted/20"
+                          : "hover:bg-muted/40 hover:shadow-sm",
                       )}
                     >
                       {/* Check button — simple toggle */}
@@ -611,7 +615,7 @@ export function FinanceShopping() {
                         className={cn(
                           "flex h-5 w-5 items-center justify-center rounded-lg border-2 shrink-0 transition-all",
                           item.checked
-                            ? "bg-emerald-500 border-emerald-500 text-white"
+                            ? "bg-emerald-500 border-emerald-500 text-white shadow-sm shadow-emerald-500/30"
                             : "border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5",
                         )}
                       >
@@ -631,9 +635,11 @@ export function FinanceShopping() {
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[11px] text-muted-foreground/50 tabular-nums">
-                          {item.quantity} {item.unit}
-                        </span>
+                        {!item.checked && (
+                          <span className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[11px] text-muted-foreground/60 tabular-nums">
+                            {item.quantity} {item.unit}
+                          </span>
+                        )}
 
                         {/* Optional per-item amount badge */}
                         {itemHasAmount && (
@@ -752,21 +758,34 @@ export function FinanceShopping() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5">
-            <ShoppingBag className="h-4 w-4 text-primary" />
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10 shrink-0">
+            <ShoppingBag className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold">Списки покупок</h2>
+            <h2 className="text-base font-semibold">Списки покупок</h2>
             {lists.length > 0 && (
-              <p className="text-[11px] text-muted-foreground/50">
+              <p className="text-xs text-muted-foreground/60 mt-0.5">
                 {lists.length} списков · {checkedItems}/{totalItems} товаров
                 {totalSpent > 0 && <> · {totalSpent.toLocaleString()} ₽</>}
               </p>
             )}
           </div>
         </div>
+        {lists.length > 0 && (
+          <Button
+            size="sm"
+            className="h-9 rounded-lg font-medium shrink-0"
+            onClick={() => {
+              setNewListName("");
+              document.getElementById("shopping-new-list")?.focus();
+            }}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Новый список
+          </Button>
+        )}
       </div>
 
       {/* Hint */}
@@ -807,6 +826,7 @@ export function FinanceShopping() {
       <div className="relative">
         <ShoppingCart className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
         <Input
+          id="shopping-new-list"
           value={newListName}
           onChange={(e) => setNewListName(e.target.value)}
           placeholder="Новый список покупок..."
@@ -886,19 +906,24 @@ export function FinanceShopping() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-sm rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
-                <DollarSign className="h-4 w-4 text-primary" />
+        <DialogContent className="overflow-hidden !p-0 sm:max-w-sm">
+          <div className="relative bg-gradient-to-br from-primary/15 via-primary/5 to-transparent px-5 pt-5 pb-4">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241/0.14),transparent_55%)]" />
+            <DialogHeader className="relative">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-foreground text-background shadow-sm">
+                  <DollarSign className="size-4" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base">Сумма товара</DialogTitle>
+                  <DialogDescription>
+                    Укажите стоимость товара (необязательно)
+                  </DialogDescription>
+                </div>
               </div>
-              Сумма товара
-            </DialogTitle>
-            <DialogDescription>
-              Укажите стоимость товара (необязательно).
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 pt-2">
+            </DialogHeader>
+          </div>
+          <div className="space-y-3 px-5 py-4">
             <div className="relative">
               <Input
                 value={editAmountValue}
@@ -915,7 +940,7 @@ export function FinanceShopping() {
                 {getDisplayCurrency()}
               </span>
             </div>
-            <DialogFooter className="gap-2 pt-1">
+            <DialogFooter className="m-0 gap-2 pt-1">
               <Button
                 variant="outline"
                 className="rounded-xl"
@@ -942,20 +967,26 @@ export function FinanceShopping() {
           if (!open) setBulkOpen(false);
         }}
       >
-        <DialogContent className="sm:max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10">
-                <Receipt className="h-4 w-4 text-emerald-600" />
+        <DialogContent className="overflow-hidden !p-0 sm:max-w-md">
+          <div className="relative bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent px-5 pt-5 pb-4">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129/0.14),transparent_55%)]" />
+            <DialogHeader className="relative">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm">
+                  <Receipt className="size-4" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base">
+                    Оформить покупку
+                  </DialogTitle>
+                  <DialogDescription>
+                    Одна транзакция на весь список
+                  </DialogDescription>
+                </div>
               </div>
-              Оформить покупку
-            </DialogTitle>
-            <DialogDescription>
-              Внесите итоговую сумму чека — создастся одна транзакция на весь
-              список.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
+            </DialogHeader>
+          </div>
+          <div className="space-y-4 px-5 py-4">
             {/* Summary */}
             {bulkListId &&
               (() => {
@@ -1205,7 +1236,7 @@ export function FinanceShopping() {
               </div>
             </div>
 
-            <DialogFooter className="gap-2 pt-2">
+            <DialogFooter className="m-0 gap-2 pt-2">
               <Button
                 variant="outline"
                 className="rounded-xl"

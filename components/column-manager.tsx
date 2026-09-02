@@ -147,9 +147,9 @@ function TaskCardContent({
             }
           >
             {task.completed ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <CheckCircle2 className="h-4 w-4 text-primary" />
             ) : (
-              <Circle className="h-4 w-4 text-muted-foreground hover:text-emerald-500" />
+              <Circle className="h-4 w-4 text-muted-foreground hover:text-primary" />
             )}
           </button>
           {task.completed && (
@@ -227,7 +227,7 @@ function DroppableColumn({
       ref={setNodeRef}
       className={cn(
         "flex flex-col gap-2 min-h-[120px] rounded-lg transition-colors",
-        isOver && "bg-emerald-500/5 ring-2 ring-emerald-500/30",
+        isOver && "bg-primary/5 ring-2 ring-primary/30",
       )}
     >
       {children}
@@ -640,7 +640,7 @@ export function ColumnManager({ boardId, initialColumns }: ColumnManagerProps) {
                     <>
                       <button
                         onClick={() => startEditing(column)}
-                        className="flex items-center gap-1.5 text-sm font-semibold tracking-tight hover:text-emerald-500 transition-colors"
+                        className="flex items-center gap-1.5 text-sm font-semibold tracking-tight hover:text-primary transition-colors"
                       >
                         <span>{column.name}</span>
                         <PencilLine className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />

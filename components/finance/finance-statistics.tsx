@@ -15,7 +15,7 @@ import {
   getTransactionsByUser,
   getCategoriesByUser,
 } from "@/lib/finance-client";
-import { auth } from "@/lib/firebase";
+import { useAuthUid } from "@/lib/use-auth-uid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -281,9 +281,10 @@ export function FinanceStatistics() {
   const [loading, setLoading] = useState(true);
   const [sortDesc, setSortDesc] = useState(true);
 
-  const uid = auth.currentUser?.uid || "user-1";
+  const { uid } = useAuthUid();
 
   const fetchData = useCallback(async () => {
+    if (!uid) return;
     setLoading(true);
     try {
       const [txs, cats] = await Promise.all([

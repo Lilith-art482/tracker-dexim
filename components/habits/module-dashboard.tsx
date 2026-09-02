@@ -13,7 +13,7 @@ import {
   Flame,
 } from "lucide-react";
 import type { HabitLog } from "@/lib/habit-types";
-import { CATEGORY_LABELS, MOTIVATIONAL_QUOTES } from "@/lib/habit-types";
+import { getCategoryLabel } from "@/lib/habit-types";
 import { CATEGORY_ICONS, CATEGORY_ACCENTS } from "@/lib/habit-category-ui";
 import { getFrequencyLabel } from "@/lib/habit-category-ui";
 import { calculateStreak } from "@/lib/habit-utils";
@@ -58,7 +58,7 @@ function StatCard({ icon: Icon, label, value, subtext, color }: StatCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className={cn("text-2xl font-bold", color)}>{value}</p>
+        <p className="text-2xl font-bold text-foreground">{value}</p>
         {subtext && (
           <p className="text-xs text-muted-foreground mt-0.5">{subtext}</p>
         )}
@@ -83,7 +83,7 @@ function TodayProgressCard({ done, planned }: TodayProgressCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        <p className="text-2xl font-bold text-emerald-500">
+        <p className="text-2xl font-bold text-foreground">
           {done}
           <span className="text-sm font-medium text-muted-foreground">
             {" "}
@@ -199,12 +199,6 @@ interface ModuleDashboardProps {
 export function ModuleDashboard({ onNavigate }: ModuleDashboardProps) {
   const { todayHabits, stats, logs, loading, toggleHabit, refresh } =
     useHabits();
-  const [quote] = useState(
-    () =>
-      MOTIVATIONAL_QUOTES[
-        Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)
-      ],
-  );
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const greeting = useMemo(() => getGreeting(), []);
@@ -411,7 +405,9 @@ export function ModuleDashboard({ onNavigate }: ModuleDashboardProps) {
                       {habit.name}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                      <span>{CATEGORY_LABELS[habit.category]}</span>
+                      <span>
+                        {getCategoryLabel(habit.category, habit.customCategory)}
+                      </span>
                       <span className="text-muted-foreground/30">·</span>
                       <span className="truncate">
                         {getFrequencyLabel(habit)}
@@ -465,17 +461,6 @@ export function ModuleDashboard({ onNavigate }: ModuleDashboardProps) {
           <BarChart data={stats.weeklyProgress} />
         </CardContent>
       </Card>
-
-      <div className="relative overflow-hidden rounded-xl border bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-5">
-        <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
-            <Sparkles className="h-4 w-4" />
-          </div>
-          <p className="text-sm text-foreground/80 italic leading-relaxed">
-            «{quote}»
-          </p>
-        </div>
-      </div>
 
       <HabitDialog
         open={dialogOpen}

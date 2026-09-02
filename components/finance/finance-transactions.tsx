@@ -19,6 +19,9 @@ import {
   Search,
   Tags,
   Calendar,
+  AlertTriangle,
+  RefreshCcw,
+  Layers,
 } from "lucide-react";
 import type {
   Transaction,
@@ -32,11 +35,12 @@ import {
   createTransaction,
   updateTransaction,
   deleteTransaction,
+  updateAccount,
   getAccountsByUser,
   getCategoriesByUser,
   createCategory,
 } from "@/lib/finance-client";
-import { auth } from "@/lib/firebase";
+import { useAuthUid } from "@/lib/use-auth-uid";
 import { getFinanceIcon } from "@/lib/finance-icons";
 import {
   getDisplayCurrency,
@@ -45,6 +49,7 @@ import {
   getCurrencySymbol,
 } from "@/lib/exchange-rates";
 import { AccountSearchSelect } from "@/components/finance/account-search-select";
+import { CurrencySelect } from "@/components/finance/currency-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,6 +60,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -74,6 +80,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { localDateStr } from "@/lib/date-utils";
 import { CategorySearchSelect } from "@/components/finance/category-search-select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type DateFilter = "all" | "today" | "week" | "month" | "custom";
 
@@ -84,8 +91,6 @@ const TYPE_LABELS: Record<TransactionType, string> = {
 };
 
 const TAG_LABELS: Record<string, string> = {
-  withdrawal: "Снятие",
-  topup: "Пополнение",
   transfer: "Перевод",
   shopping: "Покупки",
   emergency: "Резерв",
@@ -126,6 +131,16 @@ function formatTime(dateStr: string) {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "";
   return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 function getDateGroup(dateStr: string): string {
@@ -176,23 +191,32 @@ export function FinanceTransactions() {
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
+  const [deleteTx, setDeleteTx] = useState<Transaction | null>(null);
+  const [deleteRestore, setDeleteRestore] = useState(true);
+  const [deleteCategoryAll, setDeleteCategoryAll] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [txType, setTxType] = useState<TransactionType>("expense");
   const [txAccountId, setTxAccountId] = useState("");
+  const [txToAccountId, setTxToAccountId] = useState("");
   const [txCategoryId, setTxCategoryId] = useState("");
   const [txAmount, setTxAmount] = useState("");
   const [txCurrency, setTxCurrency] = useState("");
-  const [txDate, setTxDate] = useState(() => {
+  const [txDate, setTxDate] = useState("");
+  useEffect(() => {
     const n = new Date();
-    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}T${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
-  });
+    setTxDate(
+      `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}T${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`,
+    );
+  }, []);
   const [txDescription, setTxDescription] = useState("");
   const [txTags, setTxTags] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const uid = auth.currentUser?.uid || "user-1";
+  const { uid } = useAuthUid();
 
   const fetchAll = useCallback(async () => {
+    if (!uid) return;
     setLoading(true);
     const [txs, accs, cats] = await Promise.allSettled([
       getTransactionsByUser(uid),
@@ -361,9 +385,10 @@ export function FinanceTransactions() {
   const resetForm = () => {
     setTxType("expense");
     setTxAccountId("");
+    setTxToAccountId("");
     setTxCategoryId("");
     setTxAmount("");
-    setTxCurrency(getDisplayCurrency());
+    setTxCurrency("");
     setTxDate(() => {
       const n = new Date();
       return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}T${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
@@ -376,6 +401,7 @@ export function FinanceTransactions() {
     setEditTx(tx);
     setTxType(tx.type);
     setTxAccountId(tx.accountId);
+    setTxToAccountId(tx.toAccountId || "");
     setTxCategoryId(tx.categoryId);
     setTxAmount(String(tx.amount));
     setTxCurrency(tx.currency || getDisplayCurrency());
@@ -383,6 +409,12 @@ export function FinanceTransactions() {
     setTxDescription(tx.description);
     setTxTags(tx.tags.join(", "));
     setEditOpen(true);
+  };
+
+  const handleTxAccountChange = (id: string) => {
+    setTxAccountId(id);
+    const acc = accounts.find((a) => a.id === id);
+    setTxCurrency(acc?.currency || getDisplayCurrency());
   };
 
   const handleSaveTx = async () => {
@@ -417,6 +449,7 @@ export function FinanceTransactions() {
       if (isEdit) {
         const saved = await updateTransaction(editTx!.id, {
           accountId: txAccountId,
+          toAccountId: txType === "transfer" ? txToAccountId : undefined,
           type: txType,
           categoryId:
             txCategoryId ||
@@ -441,6 +474,7 @@ export function FinanceTransactions() {
           id,
           userId: uid,
           accountId: txAccountId,
+          toAccountId: txType === "transfer" ? txToAccountId : undefined,
           type: txType,
           categoryId:
             txCategoryId ||
@@ -454,22 +488,33 @@ export function FinanceTransactions() {
           date: dateValue,
         });
         setTransactions((prev) => [saved, ...prev]);
-        setAccounts((prev) =>
-          prev.map((a) => {
+        const cur = txCurrency || getDisplayCurrency();
+        const rates = getCachedRates();
+        const convertTo = (am: number, acc: FinanceAccount) =>
+          cur !== acc.currency && rates
+            ? convert(am, cur, acc.currency, rates)
+            : am;
+        setAccounts((prev) => {
+          if (txType === "transfer") {
+            return prev.map((a) => {
+              if (a.id === txAccountId)
+                return { ...a, balance: a.balance - convertTo(amount, a) };
+              if (txToAccountId && a.id === txToAccountId)
+                return { ...a, balance: a.balance + convertTo(amount, a) };
+              return a;
+            });
+          }
+          return prev.map((a) => {
             if (a.id !== txAccountId) return a;
-            const cur = txCurrency || getDisplayCurrency();
             let delta =
               txType === "income" ? amount : txType === "expense" ? -amount : 0;
-            if (cur !== a.currency) {
-              const rates = getCachedRates();
-              if (rates)
-                delta =
-                  convert(amount, cur, a.currency, rates) *
-                  (txType === "expense" ? -1 : 1);
-            }
+            if (cur !== a.currency && rates)
+              delta =
+                convert(amount, cur, a.currency, rates) *
+                (txType === "expense" ? -1 : 1);
             return { ...a, balance: a.balance + delta };
-          }),
-        );
+          });
+        });
         setAddOpen(false);
         resetForm();
         toast.success("Операция добавлена");
@@ -482,18 +527,93 @@ export function FinanceTransactions() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const confirmDelete = async () => {
+    if (!deleteTx) return;
+    setDeleting(true);
     try {
-      await deleteTransaction(id);
-      setTransactions((prev) => prev.filter((t) => t.id !== id));
+      const targets = deleteCategoryAll
+        ? transactions.filter((t) => t.categoryId === deleteTx.categoryId)
+        : [deleteTx];
+
+      if (deleteRestore && targets.length > 0) {
+        for (const tx of targets) {
+          const cur = tx.currency || getDisplayCurrency();
+          const rates = getCachedRates();
+          if (tx.type === "transfer") {
+            const fromAcc = accountMap[tx.accountId];
+            const toAcc = tx.toAccountId
+              ? accountMap[tx.toAccountId]
+              : undefined;
+            if (fromAcc) {
+              const delta =
+                cur !== fromAcc.currency && rates
+                  ? convert(tx.amount, cur, fromAcc.currency, rates)
+                  : tx.amount;
+              const newBalance = fromAcc.balance + delta;
+              await updateAccount(fromAcc.id, { balance: newBalance });
+              setAccounts((prev) =>
+                prev.map((a) =>
+                  a.id === fromAcc.id ? { ...a, balance: newBalance } : a,
+                ),
+              );
+            }
+            if (toAcc && tx.toAccountId !== tx.accountId) {
+              const delta =
+                cur !== toAcc.currency && rates
+                  ? convert(tx.amount, cur, toAcc.currency, rates)
+                  : tx.amount;
+              const newBalance = toAcc.balance - delta;
+              await updateAccount(toAcc.id, { balance: newBalance });
+              setAccounts((prev) =>
+                prev.map((a) =>
+                  a.id === toAcc.id ? { ...a, balance: newBalance } : a,
+                ),
+              );
+            }
+            continue;
+          }
+          const acc = accountMap[tx.accountId];
+          if (!acc) continue;
+          let delta =
+            tx.type === "income"
+              ? -tx.amount
+              : tx.type === "expense"
+                ? tx.amount
+                : 0;
+          if (cur !== acc.currency && delta !== 0 && rates) {
+            delta =
+              convert(tx.amount, cur, acc.currency, rates) *
+              (tx.type === "income" ? -1 : 1);
+          }
+          if (delta === 0) continue;
+          const newBalance = acc.balance + delta;
+          await updateAccount(tx.accountId, { balance: newBalance });
+          setAccounts((prev) =>
+            prev.map((a) =>
+              a.id === tx.accountId ? { ...a, balance: newBalance } : a,
+            ),
+          );
+        }
+      }
+
+      await Promise.all(targets.map((t) => deleteTransaction(t.id)));
+      const deletedSet = new Set(targets.map((t) => t.id));
+      setTransactions((prev) => prev.filter((t) => !deletedSet.has(t.id)));
       setSelectedIds((prev) => {
         const next = new Set(prev);
-        next.delete(id);
+        deletedSet.forEach((id) => next.delete(id));
         return next;
       });
-      toast.success("Операция удалена");
+      setDeleteTx(null);
+      toast.success(
+        targets.length > 1
+          ? `Удалено ${targets.length} операций`
+          : "Операция удалена",
+      );
     } catch {
       toast.error("Ошибка удаления");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -801,9 +921,7 @@ export function FinanceTransactions() {
                     const CatIcon = cat?.icon
                       ? getFinanceIcon(cat.icon)
                       : TypeIcon;
-                    const visibleTags = tx.tags.filter(
-                      (t) => t !== "withdrawal" && t !== "topup",
-                    );
+                    const visibleTags = tx.tags;
                     return (
                       <div
                         key={tx.id}
@@ -901,6 +1019,16 @@ export function FinanceTransactions() {
                               <span className="inline-flex items-center gap-1 truncate max-w-[110px]">
                                 <Wallet className="h-3 w-3 opacity-50 shrink-0" />
                                 <span className="truncate">{acc.name}</span>
+                                {tx.type === "transfer" &&
+                                  tx.toAccountId &&
+                                  accountMap[tx.toAccountId] && (
+                                    <>
+                                      <ArrowRight className="h-3 w-3 opacity-50 shrink-0" />
+                                      <span className="truncate">
+                                        {accountMap[tx.toAccountId].name}
+                                      </span>
+                                    </>
+                                  )}
                               </span>
                             </>
                           )}
@@ -919,7 +1047,11 @@ export function FinanceTransactions() {
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              onClick={() => handleDelete(tx.id)}
+                              onClick={() => {
+                                setDeleteRestore(true);
+                                setDeleteCategoryAll(false);
+                                setDeleteTx(tx);
+                              }}
                               className="h-6 w-6 text-destructive hover:text-destructive"
                             >
                               <Trash2 className="h-3 w-3" />
@@ -1011,159 +1143,201 @@ export function FinanceTransactions() {
 
       {/* Add dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Новая операция</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2 max-h-[65vh] overflow-y-auto pr-1">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Тип</Label>
-              <Select
-                value={txType}
-                onValueChange={(v) => {
-                  if (v) {
-                    setTxType(v as TransactionType);
-                    setTxCategoryId("");
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full h-9">
-                  <SelectValue>
-                    {FILTER_TYPE_OPTIONS.find((o) => o.value === txType)
-                      ?.label || txType}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {FILTER_TYPE_OPTIONS.filter((o) => o.value !== "all").map(
-                    (opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ),
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Счёт</Label>
-              <AccountSearchSelect
-                accounts={accounts}
-                value={txAccountId}
-                onChange={setTxAccountId}
-              />
-            </div>
-
-            {txType !== "transfer" && (
-              <div className="space-y-1.5">
-                <Label className="text-xs">Категория</Label>
-                <CategorySearchSelect
-                  categories={activeCategories}
-                  type={txType}
-                  value={txCategoryId}
-                  onChange={setTxCategoryId}
-                />
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <Label className="text-xs">Сумма</Label>
-                <Select
-                  value={txCurrency || getDisplayCurrency()}
-                  onValueChange={(v) => v && setTxCurrency(v)}
-                >
-                  <SelectTrigger className="h-7 w-[100px] text-[11px] font-medium">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      getDisplayCurrency(),
-                      ...new Set(accounts.map((a) => a.currency)),
-                    ].map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {getCurrencySymbol(c)} {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {txAccountId &&
-                  (() => {
-                    const selAcc = accounts.find((a) => a.id === txAccountId);
-                    if (!selAcc) return null;
-                    const cur = txCurrency || getDisplayCurrency();
-                    if (selAcc.currency === cur) return null;
-                    return (
-                      <span className="text-[10px] text-muted-foreground/60">
-                        → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
-                      </span>
-                    );
-                  })()}
-              </div>
-              <div className="relative">
-                <Input
-                  type="number"
-                  value={txAmount}
-                  onChange={(e) => setTxAmount(e.target.value)}
-                  placeholder="0"
-                  className="h-9 pr-24"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  {(() => {
-                    const selAcc = accounts.find((a) => a.id === txAccountId);
-                    if (!selAcc) return null;
-                    const amt = parseFloat(txAmount);
-                    if (isNaN(amt) || amt <= 0) return null;
-                    const rates = getCachedRates();
-                    if (!rates) return null;
-                    const cur = txCurrency || getDisplayCurrency();
-                    if (selAcc.currency === cur) return null;
-                    const converted = convert(amt, cur, selAcc.currency, rates);
-                    return (
-                      <span className="text-[10px] text-muted-foreground/60 tabular-nums font-medium whitespace-nowrap">
-                        ≈{" "}
-                        {converted.toLocaleString(undefined, {
-                          maximumFractionDigits: 4,
-                        })}{" "}
-                        {getCurrencySymbol(selAcc.currency)} {selAcc.currency}
-                      </span>
-                    );
-                  })()}
+        <DialogContent className="overflow-hidden !p-0 sm:max-w-md">
+          <div className="relative bg-gradient-to-br from-primary/15 via-primary/5 to-transparent px-5 pt-5 pb-4">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(var(--primary-rgb,99,102,241)/0.14),transparent_55%)]" />
+            <DialogHeader className="relative">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm">
+                  <Plus className="size-4" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base">
+                    Новая операция
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Запишите движение средств
+                  </p>
                 </div>
               </div>
+            </DialogHeader>
+
+            {/* Type segmented control */}
+            <div className="relative mt-4 grid grid-cols-3 gap-1 rounded-xl bg-muted/60 p-1 backdrop-blur-sm">
+              {(["expense", "income", "transfer"] as TransactionType[]).map(
+                (t) => {
+                  const Icon = TYPE_ICONS[t];
+                  const active = txType === t;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        setTxType(t);
+                        setTxCategoryId("");
+                      }}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium transition-all duration-200",
+                        active
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <Icon
+                        className={cn("size-3.5", active && TYPE_COLORS[t])}
+                      />
+                      {TYPE_LABELS[t]}
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4 px-5 py-4 max-h-[60vh] overflow-y-auto">
+            {/* Amount hero */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Сумма
+              </Label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type="number"
+                    value={txAmount}
+                    onChange={(e) => setTxAmount(e.target.value)}
+                    placeholder="0.00"
+                    className={cn(
+                      "h-10 border-transparent bg-muted/60 px-4 text-lg font-semibold tabular-nums focus-visible:ring-2 focus-visible:ring-ring/40",
+                      TYPE_COLORS[txType],
+                    )}
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    {(() => {
+                      const selAcc = accounts.find((a) => a.id === txAccountId);
+                      if (!selAcc) return null;
+                      const amt = parseFloat(txAmount);
+                      if (isNaN(amt) || amt <= 0) return null;
+                      const rates = getCachedRates();
+                      if (!rates) return null;
+                      const cur = txCurrency || getDisplayCurrency();
+                      const dc = getDisplayCurrency();
+                      const parts: string[] = [];
+                      if (selAcc.currency !== cur) {
+                        const converted = convert(
+                          amt,
+                          cur,
+                          selAcc.currency,
+                          rates,
+                        );
+                        parts.push(
+                          `${converted.toLocaleString(undefined, {
+                            maximumFractionDigits: 4,
+                          })} ${getCurrencySymbol(selAcc.currency)} ${selAcc.currency}`,
+                        );
+                      }
+                      if (dc !== selAcc.currency && dc !== cur) {
+                        const displayVal = convert(amt, cur, dc, rates);
+                        parts.push(
+                          `${displayVal.toLocaleString(undefined, {
+                            maximumFractionDigits: 4,
+                          })} ${getCurrencySymbol(dc)} ${dc}`,
+                        );
+                      }
+                      if (parts.length === 0) return null;
+                      return (
+                        <span className="text-xs text-muted-foreground/70 tabular-nums font-medium whitespace-nowrap">
+                          ≈ {parts.join(" · ")}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+                <CurrencySelect
+                  value={txCurrency || getDisplayCurrency()}
+                  onChange={(v) => setTxCurrency(v)}
+                  triggerClassName="h-10 w-[118px] shrink-0"
+                />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Дата и время</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  {txType === "transfer" ? "Счёт (откуда)" : "Счёт"}
+                </Label>
+                <AccountSearchSelect
+                  accounts={accounts}
+                  value={txAccountId}
+                  onChange={handleTxAccountChange}
+                />
+              </div>
+
+              {txType === "transfer" ? (
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Счёт (куда)
+                  </Label>
+                  <AccountSearchSelect
+                    accounts={accounts}
+                    value={txToAccountId}
+                    onChange={setTxToAccountId}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Категория
+                  </Label>
+                  <CategorySearchSelect
+                    categories={activeCategories}
+                    type={txType}
+                    value={txCategoryId}
+                    onChange={setTxCategoryId}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Дата и время
+              </Label>
               <Input
                 type="datetime-local"
                 value={txDate}
                 onChange={(e) => setTxDate(e.target.value)}
-                className="h-9"
+                className="h-10 border-transparent bg-muted/50"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Описание</Label>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Описание
+              </Label>
               <Textarea
                 value={txDescription}
                 onChange={(e) => setTxDescription(e.target.value)}
                 placeholder="Описание операции"
                 rows={2}
+                className="border-transparent bg-muted/50"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Теги</Label>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Теги
+              </Label>
               <Input
                 value={txTags}
                 onChange={(e) => setTxTags(e.target.value)}
                 placeholder="тег1, тег2"
-                className="h-9"
+                className="h-10 border-transparent bg-muted/50"
               />
             </div>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="m-0 flex-col-reverse gap-2 px-5 py-4 sm:flex-row sm:justify-end">
             <Button
               variant="ghost"
               size="sm"
@@ -1174,11 +1348,23 @@ export function FinanceTransactions() {
             </Button>
             <Button
               size="sm"
+              className="h-10 px-6 font-medium shadow-sm"
               onClick={handleSaveTx}
-              disabled={saving || !txAccountId || !txAmount.trim() || !txDate}
+              disabled={
+                saving ||
+                !txAccountId ||
+                !txAmount.trim() ||
+                !txDate ||
+                (txType === "transfer" &&
+                  (!txToAccountId || txToAccountId === txAccountId))
+              }
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              Сохранить
+              {txType === "income"
+                ? "Добавить доход"
+                : txType === "expense"
+                  ? "Добавить расход"
+                  : "Выполнить перевод"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1221,15 +1407,26 @@ export function FinanceTransactions() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Счёт</Label>
+              <Label className="text-xs">
+                {txType === "transfer" ? "Счёт (откуда)" : "Счёт"}
+              </Label>
               <AccountSearchSelect
                 accounts={accounts}
                 value={txAccountId}
-                onChange={setTxAccountId}
+                onChange={handleTxAccountChange}
               />
             </div>
 
-            {txType !== "transfer" && (
+            {txType === "transfer" ? (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Счёт (куда)</Label>
+                <AccountSearchSelect
+                  accounts={accounts}
+                  value={txToAccountId}
+                  onChange={setTxToAccountId}
+                />
+              </div>
+            ) : (
               <div className="space-y-1.5">
                 <Label className="text-xs">Категория</Label>
                 <CategorySearchSelect
@@ -1243,65 +1440,75 @@ export function FinanceTransactions() {
 
             <div className="space-y-1.5">
               <Label className="text-xs">Сумма</Label>
-              <Select
-                value={txCurrency || getDisplayCurrency()}
-                onValueChange={(v) => v && setTxCurrency(v)}
-              >
-                <SelectTrigger className="h-7 w-[100px] text-[11px] font-medium">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[
-                    getDisplayCurrency(),
-                    ...new Set(accounts.map((a) => a.currency)),
-                  ].map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {getCurrencySymbol(c)} {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {txAccountId &&
-                (() => {
-                  const selAcc = accounts.find((a) => a.id === txAccountId);
-                  if (!selAcc) return null;
-                  const cur = txCurrency || getDisplayCurrency();
-                  if (selAcc.currency === cur) return null;
-                  return (
-                    <span className="text-[10px] text-muted-foreground/60">
-                      → {selAcc.currency} {getCurrencySymbol(selAcc.currency)}
-                    </span>
-                  );
-                })()}
-              <div className="relative">
-                <Input
-                  type="number"
-                  value={txAmount}
-                  onChange={(e) => setTxAmount(e.target.value)}
-                  placeholder="0"
-                  className="h-9 pr-24"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  {(() => {
-                    const selAcc = accounts.find((a) => a.id === txAccountId);
-                    if (!selAcc) return null;
-                    const amt = parseFloat(txAmount);
-                    if (isNaN(amt) || amt <= 0) return null;
-                    const rates = getCachedRates();
-                    if (!rates) return null;
-                    const cur = txCurrency || getDisplayCurrency();
-                    if (selAcc.currency === cur) return null;
-                    const converted = convert(amt, cur, selAcc.currency, rates);
-                    return (
-                      <span className="text-[10px] text-muted-foreground/60 tabular-nums font-medium whitespace-nowrap">
-                        ≈{" "}
-                        {converted.toLocaleString(undefined, {
-                          maximumFractionDigits: 4,
-                        })}{" "}
-                        {getCurrencySymbol(selAcc.currency)} {selAcc.currency}
-                      </span>
-                    );
-                  })()}
+              <div className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <CurrencySelect
+                    value={txCurrency || getDisplayCurrency()}
+                    onChange={(v) => setTxCurrency(v)}
+                    triggerClassName="h-9"
+                  />
+                  {txAccountId &&
+                    (() => {
+                      const selAcc = accounts.find((a) => a.id === txAccountId);
+                      if (!selAcc) return null;
+                      const cur = txCurrency || getDisplayCurrency();
+                      if (selAcc.currency === cur) return null;
+                      return (
+                        <span className="text-[10px] text-muted-foreground/60">
+                          → {selAcc.currency}{" "}
+                          {getCurrencySymbol(selAcc.currency)}
+                        </span>
+                      );
+                    })()}
+                </div>
+                <div className="relative flex-1">
+                  <Input
+                    type="number"
+                    value={txAmount}
+                    onChange={(e) => setTxAmount(e.target.value)}
+                    placeholder="0"
+                    className="h-9 pr-24"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {(() => {
+                      const selAcc = accounts.find((a) => a.id === txAccountId);
+                      if (!selAcc) return null;
+                      const amt = parseFloat(txAmount);
+                      if (isNaN(amt) || amt <= 0) return null;
+                      const rates = getCachedRates();
+                      if (!rates) return null;
+                      const cur = txCurrency || getDisplayCurrency();
+                      const dc = getDisplayCurrency();
+                      const parts: string[] = [];
+                      if (selAcc.currency !== cur) {
+                        const converted = convert(
+                          amt,
+                          cur,
+                          selAcc.currency,
+                          rates,
+                        );
+                        parts.push(
+                          `${converted.toLocaleString(undefined, {
+                            maximumFractionDigits: 4,
+                          })} ${getCurrencySymbol(selAcc.currency)} ${selAcc.currency}`,
+                        );
+                      }
+                      if (dc !== selAcc.currency && dc !== cur) {
+                        const displayVal = convert(amt, cur, dc, rates);
+                        parts.push(
+                          `${displayVal.toLocaleString(undefined, {
+                            maximumFractionDigits: 4,
+                          })} ${getCurrencySymbol(dc)} ${dc}`,
+                        );
+                      }
+                      if (parts.length === 0) return null;
+                      return (
+                        <span className="text-[10px] text-muted-foreground/60 tabular-nums font-medium whitespace-nowrap">
+                          ≈ {parts.join(" · ")}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1348,10 +1555,151 @@ export function FinanceTransactions() {
             <Button
               size="sm"
               onClick={handleSaveTx}
-              disabled={saving || !txAccountId || !txAmount.trim() || !txDate}
+              disabled={
+                saving ||
+                !txAccountId ||
+                !txAmount.trim() ||
+                !txDate ||
+                (txType === "transfer" &&
+                  (!txToAccountId || txToAccountId === txAccountId))
+              }
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={!!deleteTx}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTx(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="size-5 text-destructive" />
+              </div>
+              <div className="space-y-1">
+                <DialogTitle>Удалить операцию?</DialogTitle>
+                <DialogDescription>
+                  Это действие нельзя будет отменить
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {deleteTx && (
+            <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-3">
+              <div
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-full",
+                  TYPE_BGS[deleteTx.type],
+                )}
+              >
+                {(() => {
+                  const Icon = TYPE_ICONS[deleteTx.type];
+                  return (
+                    <Icon
+                      className={cn("size-4", TYPE_COLORS[deleteTx.type])}
+                    />
+                  );
+                })()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                  {deleteTx.description || "Без описания"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {accountMap[deleteTx.accountId]?.name || getDisplayCurrency()}{" "}
+                  · {formatDate(deleteTx.date)}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 text-sm font-semibold tabular-nums",
+                  TYPE_COLORS[deleteTx.type],
+                )}
+              >
+                {deleteTx.type === "expense"
+                  ? "−"
+                  : deleteTx.type === "income"
+                    ? "+"
+                    : ""}
+                {deleteTx.amount.toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                })}{" "}
+                {getCurrencySymbol(deleteTx.currency || getDisplayCurrency())}
+              </span>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50">
+              <Checkbox
+                checked={deleteRestore}
+                onCheckedChange={(checked) => setDeleteRestore(!!checked)}
+                className="mt-0.5"
+              />
+              <span className="flex flex-col gap-0.5">
+                <span className="flex items-center gap-1.5 text-sm font-medium">
+                  <RefreshCcw className="size-3.5 text-muted-foreground" />
+                  Вернуть средства на счёт
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {deleteTx?.type === "income"
+                    ? "Снять зачисленную сумму со счёта"
+                    : "Вернуть списанную сумму на счёт"}
+                </span>
+              </span>
+            </label>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50">
+              <Checkbox
+                checked={deleteCategoryAll}
+                onCheckedChange={(checked) => setDeleteCategoryAll(!!checked)}
+                className="mt-0.5"
+              />
+              <span className="flex flex-col gap-0.5">
+                <span className="flex items-center gap-1.5 text-sm font-medium">
+                  <Layers className="size-3.5 text-muted-foreground" />
+                  Удалить все операции этой категории
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {deleteCategoryAll
+                    ? `Будут удалены все операции категории «${
+                        deleteTx?.categoryId
+                          ? categoryMap[deleteTx.categoryId]?.name ||
+                            "Без категории"
+                          : "Без категории"
+                      }»`
+                    : "Затронет все операции с той же категорией"}
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDeleteTx(null)}
+              disabled={deleting}
+            >
+              Отмена
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={confirmDelete}
+              disabled={deleting}
+            >
+              {deleting && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Удалить
             </Button>
           </DialogFooter>
         </DialogContent>
